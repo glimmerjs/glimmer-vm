@@ -12,13 +12,13 @@ APPEND_OPCODES.add(Op.EnterList, (vm, { op1: relativeStart, op2: elseTarget }) =
   const listRef = check(stack.pop(), CheckReactive);
   const keyRef = check(stack.pop(), CheckReactive);
 
-  const keyValue = vm.deref(keyRef);
+  const keyValue = vm.derefReactive(keyRef);
 
   if (vm.unwrap(keyValue)) {
     const key = keyValue.value === null ? '@identity' : String(keyValue.value);
 
     const iteratorRef = createIteratorRef(listRef, key);
-    const iterator = vm.deref(iteratorRef);
+    const iterator = vm.derefReactive(iteratorRef);
 
     const isEmptyResult = mapResult(iterator, (iterator) => iterator.isEmpty());
 

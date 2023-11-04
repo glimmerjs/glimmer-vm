@@ -1,75 +1,61 @@
 import { createPrimitiveCell } from '@glimmer/reference';
 import { DynamicScopeImpl } from '@glimmer/runtime';
 import { castToBrowser } from '@glimmer/util';
+import { ClientSideRenderDelegate, matrix } from '@glimmer-workspace/integration-tests';
 
-import { JitRenderDelegate } from '../modes/jit/delegate';
-import { RenderTestContext } from '../render-test';
-import { render } from '../test-decorator';
 import { defineComponent } from '../test-helpers/define';
 
-export class EntryPointTest extends RenderTestContext {
-  static suiteName = 'entry points';
-
-  @render
-  'an entry point'() {
+matrix('entry points', (spec) => {
+  spec('an entry point', (ctx) => {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let title = createPrimitiveCell('renderComponent');
-    this.render.component(Title, { title }, { into: this.element });
+    ctx.render.component(Title, { title: 'renderComponent' }, { into: ctx.element });
 
     QUnit.assert.strictEqual(
-      castToBrowser(this.element, 'HTML').innerHTML,
+      castToBrowser(ctx.element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
-  }
+  });
 
-  @render
-  'does not leak args between invocations'() {
-    let delegate = new JitRenderDelegate();
+  spec('does not leak args between invocations', (ctx) => {
+    let delegate = new ClientSideRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
     let element = delegate.dom.getInitialElement(delegate.dom.document);
-    let title = createPrimitiveCell('renderComponent');
-    this.render.component(Title, { title }, { into: element });
+    ctx.render.component(Title, { title: 'renderComponent' }, { into: element });
     QUnit.assert.strictEqual(
       castToBrowser(element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
 
-    element = this.getInitialElement();
-    let newTitle = createPrimitiveCell('new title');
-    this.render.component(Title, { title: newTitle }, { into: element });
+    element = ctx.getClearedElement();
+    ctx.render.component(Title, { title: 'new title' }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<h1>hello new title</h1>');
-  }
+  });
 
-  @render
-  'can render different components per call'() {
+  spec('can render different components per call', (ctx) => {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
     let Body = defineComponent({}, `<p>body {{@body}}</p>`);
 
-    let title = createPrimitiveCell('renderComponent');
-    this.render.component(Title, { title });
+    ctx.render.component(Title, { title: 'renderComponent' });
     QUnit.assert.strictEqual(
-      castToBrowser(this.element, 'HTML').innerHTML,
+      castToBrowser(ctx.element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
 
-    const delegate = new JitRenderDelegate();
-    const element = delegate.dom.getInitialElement(delegate.dom.document);
-    let body = createPrimitiveCell('text');
-    this.render.component(Body, { body }, { into: element });
+    const element = ctx.getClearedElement();
+    ctx.render.component(Body, { body: 'text' }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<p>body text</p>');
-  }
+  });
 
-  @render
-  'supports passing in an initial dynamic context'() {
+  spec('supports passing in an initial dynamic context', (ctx) => {
     let Locale = defineComponent({}, `{{-get-dynamic-var "locale"}}`);
 
     let dynamicScope = new DynamicScopeImpl({
       locale: createPrimitiveCell('en_US'),
     });
-    this.render.component(Locale, {}, { dynamicScope });
+    ctx.render.component(Locale, {}, { dynamicScope });
 
-    QUnit.assert.strictEqual(castToBrowser(this.element, 'HTML').innerHTML, 'en_US');
-  }
-}
+    QUnit.assert.strictEqual(castToBrowser(ctx.element, 'HTML').innerHTML, 'en_US');
+  });
+}).client();

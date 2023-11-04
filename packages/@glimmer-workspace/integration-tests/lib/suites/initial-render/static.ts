@@ -2,7 +2,7 @@ import { strip } from '@glimmer/util';
 
 import { matrix } from '../../matrix';
 
-export const InitialRenderTests = matrix('initial render2', (test) => {
+export const InitialRenderTests = matrix('initial render (static)', (test) => {
   test('HTML text content', (ctx) => {
     ctx.render.template('content');
     ctx.assertHTML('content');
@@ -188,3 +188,5 @@ export const InitialRenderTests = matrix('initial render2', (test) => {
     ctx.assertStableRerender();
   });
 });
+
+InitialRenderTests.client();

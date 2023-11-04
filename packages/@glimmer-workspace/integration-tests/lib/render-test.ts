@@ -185,6 +185,15 @@ export class RenderTestContext implements IRenderTest {
     return this.element;
   }
 
+  getClearedElement(): SimpleElement {
+    (this.element as unknown as HTMLElement).innerHTML = '';
+    return this.element;
+  }
+
+  clearElement() {
+    (this.element as unknown as HTMLElement).innerHTML = '';
+  }
+
   get assertingElement() {
     return assertingElement(this.element.firstChild);
   }
@@ -556,7 +565,7 @@ export class RenderTestContext implements IRenderTest {
     this.takeSnapshot();
   }
 
-  protected assertComponent(content: string, attrs: Dict = {}) {
+  assertComponent(content: string, attrs: Dict = {}) {
     this.#delegate.assert(this.assertingElement, 'div', attrs, content);
 
     this.takeSnapshot();

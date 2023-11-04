@@ -68,7 +68,7 @@ export function renderMain(
 
 function renderInvocation(
   vm: InternalVM,
-  context: CompileTimeCompilationContext,
+  _context: CompileTimeCompilationContext,
   owner: Owner,
   definition: ComponentDefinitionState,
   args: Record<string, SomeReactive>

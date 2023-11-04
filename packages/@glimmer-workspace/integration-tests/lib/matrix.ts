@@ -1,5 +1,7 @@
 import {
+  ClientSideRenderDelegate,
   type DeclaredComponentType,
+  ErrorRecoveryRenderDelegate,
   type RenderDelegate,
   type RenderDelegateOptions,
   RenderTestState,
@@ -14,7 +16,6 @@ interface RenderDelegateClass {
 }
 
 export interface CoreMatrixOptions {
-  inherited?: string;
   template: DeclaredComponentType | 'all' | undefined;
   invokeAs?: DeclaredComponentType | 'all' | undefined;
 }
@@ -39,13 +40,13 @@ const EXPANSIONS = {
 type EXPANSIONS = typeof EXPANSIONS;
 
 function expand(
-  test: MatrixOptions,
-  suite: MatrixOptions
+  test: Partial<CoreMatrixOptions> | undefined,
+  suite: Partial<CoreMatrixOptions>
 ): {
   template: DeclaredComponentType;
   invokeAs: DeclaredComponentType;
 }[] {
-  const template = EXPANSIONS[test.template ?? suite.template ?? 'all'];
+  const template = EXPANSIONS[test?.template ?? suite.template ?? 'all'];
   // const invokeAs= EXPANSIONS[test.invokeAs ?? suite.invokeAs ];
 
   return template.flatMap((t) => {
@@ -56,14 +57,54 @@ function expand(
   });
 }
 
-type TestsFn<T> = (description: string, body: (context: T) => void | Promise<void>) => void;
+interface TestsFn<T> {
+  (
+    ...args:
+      | [description: string, body: (context: T) => void | Promise<void>]
+      | [
+          options: {
+            type: DeclaredComponentType;
+          },
+          description: string,
+          body: (context: T) => void | Promise<void>,
+        ]
+  ): void;
+}
 
 interface CustomOptions<T extends RenderTestContext> {
   context: new (delegate: RenderDelegate, context: RenderTestState) => T;
   extends?: Matrix | Matrix[];
 }
 
-type Matrix = (options: MatrixOptions) => void;
+type MatrixFn = (options: MatrixOptions) => void;
+
+export class Matrix {
+  readonly #fn: MatrixFn;
+
+  constructor(fn: MatrixFn) {
+    this.#fn = fn;
+  }
+
+  client() {
+    this.#fn({
+      delegates: [ClientSideRenderDelegate, ErrorRecoveryRenderDelegate],
+      template: 'all',
+      invokeAs: 'all',
+    });
+  }
+
+  test(delegate: RenderDelegateClass) {
+    this.#fn({
+      delegate,
+      template: 'all',
+      invokeAs: 'all',
+    });
+  }
+
+  apply(options: MatrixOptions) {
+    this.#fn(options);
+  }
+}
 
 export function matrix(
   description: string,
@@ -78,7 +119,7 @@ export function matrix<const T extends RenderTestContext>(
   ...args:
     | [description: string, define: (define: TestsFn<T>) => void]
     | [custom: CustomOptions<T>, description: string, define: (define: TestsFn<T>) => void]
-) {
+): Matrix {
   const [{ context: Context, extends: extendsMatrix }, description, define] =
     args.length === 2
       ? [{ context: RenderTestContext } satisfies CustomOptions<RenderTestContext>, ...args]
@@ -90,13 +131,12 @@ export function matrix<const T extends RenderTestContext>(
       : [extendsMatrix]
     : [];
 
-  return (options: MatrixOptions) => {
+  return new Matrix((options: MatrixOptions) => {
     const delegates = 'delegate' in options ? [options.delegate] : options.delegates;
 
     for (const delegate of delegates) {
       for (const matrix of extendsMatrixes) {
-        matrix({
-          inherited: description,
+        matrix.apply({
           delegate: delegate,
           template: options.template,
           invokeAs: options.invokeAs,
@@ -104,25 +144,47 @@ export function matrix<const T extends RenderTestContext>(
       }
     }
 
-    const fullMatrix = expand(options, options);
     module(description, () => {
       for (const delegate of delegates) {
-        module(`[${delegate.style} style]`, () => {
+        const TESTS: Record<
+          /* DeclaredComponentType */ string,
+          [description: string, test: (assert: Assert) => void | Promise<void>][]
+        > = {};
+
+        const tests: TestsFn<T> = (...args) => {
+          const [testOptions, description, fn] =
+            args.length === 2 ? ([undefined, ...args] as const) : args;
+
+          const fullMatrix = expand({ template: testOptions?.type }, options);
+
           for (const row of fullMatrix) {
-            const tests: TestsFn<T> = (description, body) => {
-              test(description, (assert) => {
+            TESTS[row.template] ??= [];
+
+            TESTS[row.template]?.push([
+              description,
+              (assert) => {
                 const context = new Context(
                   new delegate(),
                   RenderTestState(assert, row.template)
                 ) as T;
-                return body(context);
-              });
-            };
+                return fn(context);
+              },
+            ]);
+          }
+        };
 
-            define(tests);
+        define(tests);
+
+        module(`[${delegate.style} style]`, () => {
+          for (const [type, tests] of Object.entries(TESTS)) {
+            module(type, () => {
+              for (const [description, testFn] of tests) {
+                test(description, testFn);
+              }
+            });
           }
         });
       }
     });
-  };
+  });
 }

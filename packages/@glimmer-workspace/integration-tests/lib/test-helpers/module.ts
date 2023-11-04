@@ -1,6 +1,6 @@
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 
-import { ErrorRecoveryRenderDelegate, JitRenderDelegate } from '../modes/jit/delegate';
+import { ClientSideRenderDelegate,ErrorRecoveryRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
 import type { RenderDelegate, RenderDelegateOptions } from '../render-delegate';
 import type { IRenderTest, RenderTestContext } from '../render-test';
@@ -27,7 +27,7 @@ export function jitSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
   options?: { componentModule?: boolean; test?: ['error-recovery']; env?: EnvironmentDelegate }
 ): void {
-  testSuite(klass, JitRenderDelegate, options);
+  testSuite(klass, ClientSideRenderDelegate, options);
 
   if (options?.test?.includes('error-recovery')) {
     testSuite(klass, ErrorRecoveryRenderDelegate);
@@ -50,7 +50,7 @@ export function nodeComponentSuite<T extends IRenderTest>(
 export function jitComponentSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>
 ): void {
-  return testSuite(klass, JitRenderDelegate, { componentModule: true });
+  return testSuite(klass, ClientSideRenderDelegate, { componentModule: true });
 }
 
 export function jitSerializeSuite<T extends IRenderTest>(

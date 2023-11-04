@@ -59,11 +59,9 @@ export function JitDelegateContext(
   return { runtime, program: context };
 }
 
-export class JitRenderDelegate implements RenderDelegate {
+export class ClientSideRenderDelegate implements RenderDelegate {
   static readonly isEager = false;
-  static style = 'jit';
-
-  readonly style: string = 'jit';
+  static style = 'client-side';
 
   protected registry: TestJitRegistry;
   protected resolver: TestJitRuntimeResolver;
@@ -162,9 +160,8 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 }
 
-export class ErrorRecoveryRenderDelegate extends JitRenderDelegate {
-  static override style = 'error recovery';
-  override style = 'error recovery';
+export class ErrorRecoveryRenderDelegate extends ClientSideRenderDelegate {
+  static override style = 'in a no-op error recovery';
 
   override wrap(template: string): WrappedTemplate {
     return {

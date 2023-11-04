@@ -136,7 +136,7 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
 
   const reactive = check(stack.pop(), CheckReactive);
 
-  const result = vm.deref(reactive);
+  const result = vm.derefReactive(reactive);
 
   if (vm.unwrap(result)) {
     const component = check(result.value, CheckOr(CheckString, CheckCurriedComponentDefinition));

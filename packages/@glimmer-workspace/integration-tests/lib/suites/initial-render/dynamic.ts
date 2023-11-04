@@ -4,15 +4,12 @@ import {
   assertNodeTagName,
   firstElementChild,
   getElementsByTagName,
-  render,
-  RenderTestContext,
+  matrix,
 } from '@glimmer-workspace/integration-tests';
 
-export class DynamicInitialRenderSuite extends RenderTestContext {
-  static suiteName = 'initial render';
+import { Woops } from '../../test-helpers/error';
 
-  name = 'BASE';
-
+export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spec) => {
   // @render
   // 'HTML text content'() {
   //   this.render.template('content');
@@ -20,187 +17,221 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
   //   this.assertStableRerender();
   // }
 
-  @render
-  'Quoted attribute null values do not disable'() {
-    this.render.template('<input disabled="{{this.isDisabled}}">', { isDisabled: null });
-    this.assertHTML('<input>');
-    this.assertStableRerender();
+  spec('Quoted attribute null values do not disable', (ctx) => {
+    ctx.render.template('<input disabled="{{this.isDisabled}}">', { isDisabled: null });
+    ctx.assertHTML('<input>');
+    ctx.assertStableRerender();
 
     // TODO: What is the point of this test? (Note that it wouldn't work with SimpleDOM)
     // assertNodeProperty(root.firstChild, 'input', 'disabled', false);
 
-    this.rerender({ isDisabled: true });
-    this.assertHTML('<input disabled>');
-    this.assertStableNodes();
+    ctx.rerender({ isDisabled: true });
+    ctx.assertHTML('<input disabled>');
+    ctx.assertStableNodes();
 
     // TODO: ??????????
-    this.rerender({ isDisabled: false });
-    this.assertHTML('<input disabled>');
-    this.assertStableNodes();
+    ctx.rerender({ isDisabled: false });
+    ctx.assertHTML('<input disabled>');
+    ctx.assertStableNodes();
 
-    this.rerender({ isDisabled: null });
-    this.assertHTML('<input>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ isDisabled: null });
+    ctx.assertHTML('<input>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Unquoted attribute null values do not disable'() {
-    this.render.template('<input disabled={{this.isDisabled}}>', { isDisabled: null });
-    this.assertHTML('<input>');
-    this.assertStableRerender();
+  spec('Unquoted attribute null values do not disable', (ctx) => {
+    ctx.render.template('<input disabled={{this.isDisabled}}>', { isDisabled: null });
+    ctx.assertHTML('<input>');
+    ctx.assertStableRerender();
 
     // TODO: What is the point of this test? (Note that it wouldn't work with SimpleDOM)
     // assertNodeProperty(root.firstChild, 'input', 'disabled', false);
 
-    this.rerender({ isDisabled: true });
-    this.assertHTML('<input disabled>');
-    this.assertStableRerender();
+    ctx.rerender({ isDisabled: true });
+    ctx.assertHTML('<input disabled>');
+    ctx.assertStableRerender();
 
-    this.rerender({ isDisabled: false });
-    this.assertHTML('<input>');
-    this.assertStableRerender();
+    ctx.rerender({ isDisabled: false });
+    ctx.assertHTML('<input>');
+    ctx.assertStableRerender();
 
-    this.rerender({ isDisabled: null });
-    this.assertHTML('<input>');
-    this.assertStableRerender();
-  }
+    ctx.rerender({ isDisabled: null });
+    ctx.assertHTML('<input>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Quoted attribute string values'() {
-    this.render.template("<img src='{{this.src}}'>", { src: 'image.png' });
-    this.assertHTML("<img src='image.png'>");
-    this.assertStableRerender();
+  spec('Quoted attribute string values', (ctx) => {
+    ctx.render.template("<img src='{{this.src}}'>", { src: 'image.png' });
+    ctx.assertHTML("<img src='image.png'>");
+    ctx.assertStableRerender();
 
-    this.rerender({ src: 'newimage.png' });
-    this.assertHTML("<img src='newimage.png'>");
-    this.assertStableNodes();
+    ctx.rerender({ src: 'newimage.png' });
+    ctx.assertHTML("<img src='newimage.png'>");
+    ctx.assertStableNodes();
 
-    this.rerender({ src: '' });
-    this.assertHTML("<img src=''>");
-    this.assertStableNodes();
+    ctx.rerender({ src: '' });
+    ctx.assertHTML("<img src=''>");
+    ctx.assertStableNodes();
 
-    this.rerender({ src: 'image.png' });
-    this.assertHTML("<img src='image.png'>");
-    this.assertStableNodes();
-  }
+    ctx.rerender({ src: 'image.png' });
+    ctx.assertHTML("<img src='image.png'>");
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Unquoted attribute string values'() {
-    this.render.template('<img src={{this.src}}>', { src: 'image.png' });
-    this.assertHTML("<img src='image.png'>");
-    this.assertStableRerender();
+  spec('Quoted attribute string values (initial error)', (ctx) => {
+    const woops = Woops.error('image.png');
+    ctx.render.template(
+      "<p>{{#-try this.woops.handleError}}before<img src='{{this.woops.value}}'>after{{/-try}}</p>",
+      { woops }
+    );
+    ctx.assertHTML('<p></p>');
+    ctx.assertStableRerender();
 
-    this.rerender({ src: 'newimage.png' });
-    this.assertHTML("<img src='newimage.png'>");
-    this.assertStableNodes();
+    // ctx.rerender({ src: 'newimage.png' });
+    // ctx.assertHTML("<img src='newimage.png'>");
+    // ctx.assertStableNodes();
 
-    this.rerender({ src: '' });
-    this.assertHTML("<img src=''>");
-    this.assertStableNodes();
+    // ctx.rerender({ src: '' });
+    // ctx.assertHTML("<img src=''>");
+    // ctx.assertStableNodes();
 
-    this.rerender({ src: 'image.png' });
-    this.assertHTML("<img src='image.png'>");
-    this.assertStableNodes();
-  }
+    // ctx.rerender({ src: 'image.png' });
+    // ctx.assertHTML("<img src='image.png'>");
+    // ctx.assertStableNodes();
+  });
 
-  @render
-  'Unquoted img src attribute is not rendered when set to `null`'() {
-    this.render.template("<img src='{{this.src}}'>", { src: null });
-    this.assertHTML('<img>');
-    this.assertStableRerender();
+  spec('Quoted attribute string values (updating error)', (ctx) => {
+    const woops = Woops.noop('image.png');
+    ctx.render.template(
+      "<p>{{#-try this.woops.handleError}}before<img src='{{this.woops.value}}'>after{{/-try}}</p>",
+      { woops }
+    );
+    ctx.assertHTML("<p>before<img src='image.png'>after</p>");
+    ctx.assertStableRerender();
 
-    this.rerender({ src: 'newimage.png' });
-    this.assertHTML("<img src='newimage.png'>");
-    this.assertStableNodes();
+    // ctx.rerender({ src: 'newimage.png' });
+    // ctx.assertHTML("<img src='newimage.png'>");
+    // ctx.assertStableNodes();
 
-    this.rerender({ src: '' });
-    this.assertHTML("<img src=''>");
-    this.assertStableNodes();
+    // ctx.rerender({ src: '' });
+    // ctx.assertHTML("<img src=''>");
+    // ctx.assertStableNodes();
 
-    this.rerender({ src: null });
-    this.assertHTML('<img>');
-    this.assertStableNodes();
-  }
+    // ctx.rerender({ src: 'image.png' });
+    // ctx.assertHTML("<img src='image.png'>");
+    // ctx.assertStableNodes();
+  });
 
-  @render
-  'Unquoted img src attribute is not rendered when set to `undefined`'() {
-    this.render.template("<img src='{{this.src}}'>", { src: undefined });
-    this.assertHTML('<img>');
-    this.assertStableRerender();
+  spec('Unquoted attribute string values', (ctx) => {
+    ctx.render.template('<img src={{this.src}}>', { src: 'image.png' });
+    ctx.assertHTML("<img src='image.png'>");
+    ctx.assertStableRerender();
 
-    this.rerender({ src: 'newimage.png' });
-    this.assertHTML("<img src='newimage.png'>");
-    this.assertStableNodes();
+    ctx.rerender({ src: 'newimage.png' });
+    ctx.assertHTML("<img src='newimage.png'>");
+    ctx.assertStableNodes();
 
-    this.rerender({ src: '' });
-    this.assertHTML("<img src=''>");
-    this.assertStableNodes();
+    ctx.rerender({ src: '' });
+    ctx.assertHTML("<img src=''>");
+    ctx.assertStableNodes();
 
-    this.rerender({ src: undefined });
-    this.assertHTML('<img>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ src: 'image.png' });
+    ctx.assertHTML("<img src='image.png'>");
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Unquoted a href attribute is not rendered when set to `null`'() {
-    this.render.template('<a href={{this.href}}></a>', { href: null });
-    this.assertHTML('<a></a>');
-    this.assertStableRerender();
+  spec('Unquoted img src attribute is not rendered when set to `null`', (ctx) => {
+    ctx.render.template("<img src='{{this.src}}'>", { src: null });
+    ctx.assertHTML('<img>');
+    ctx.assertStableRerender();
 
-    this.rerender({ href: 'http://example.com' });
-    this.assertHTML("<a href='http://example.com'></a>");
-    this.assertStableNodes();
+    ctx.rerender({ src: 'newimage.png' });
+    ctx.assertHTML("<img src='newimage.png'>");
+    ctx.assertStableNodes();
 
-    this.rerender({ href: '' });
-    this.assertHTML("<a href=''></a>");
-    this.assertStableNodes();
+    ctx.rerender({ src: '' });
+    ctx.assertHTML("<img src=''>");
+    ctx.assertStableNodes();
 
-    this.rerender({ href: null });
-    this.assertHTML('<a></a>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ src: null });
+    ctx.assertHTML('<img>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Unquoted a href attribute is not rendered when set to `undefined`'() {
-    this.render.template('<a href={{this.href}}></a>', { href: undefined });
-    this.assertHTML('<a></a>');
-    this.assertStableRerender();
+  spec('Unquoted img src attribute is not rendered when set to `undefined`', (ctx) => {
+    ctx.render.template("<img src='{{this.src}}'>", { src: undefined });
+    ctx.assertHTML('<img>');
+    ctx.assertStableRerender();
 
-    this.rerender({ href: 'http://example.com' });
-    this.assertHTML("<a href='http://example.com'></a>");
-    this.assertStableNodes();
+    ctx.rerender({ src: 'newimage.png' });
+    ctx.assertHTML("<img src='newimage.png'>");
+    ctx.assertStableNodes();
 
-    this.rerender({ href: '' });
-    this.assertHTML("<a href=''></a>");
-    this.assertStableNodes();
+    ctx.rerender({ src: '' });
+    ctx.assertHTML("<img src=''>");
+    ctx.assertStableNodes();
 
-    this.rerender({ href: undefined });
-    this.assertHTML('<a></a>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ src: undefined });
+    ctx.assertHTML('<img>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Attribute expression can be followed by another attribute'() {
-    this.render.template("<div foo='{{this.funstuff}}' name='Alice'></div>", { funstuff: 'oh my' });
-    this.assertHTML("<div name='Alice' foo='oh my'></div>");
-    this.assertStableRerender();
+  spec('Unquoted a href attribute is not rendered when set to `null`', (ctx) => {
+    ctx.render.template('<a href={{this.href}}></a>', { href: null });
+    ctx.assertHTML('<a></a>');
+    ctx.assertStableRerender();
 
-    this.rerender({ funstuff: 'oh boy' });
-    this.assertHTML("<div name='Alice' foo='oh boy'></div>");
-    this.assertStableNodes();
+    ctx.rerender({ href: 'http://example.com' });
+    ctx.assertHTML("<a href='http://example.com'></a>");
+    ctx.assertStableNodes();
 
-    this.rerender({ funstuff: '' });
-    this.assertHTML("<div name='Alice' foo=''></div>");
-    this.assertStableNodes();
+    ctx.rerender({ href: '' });
+    ctx.assertHTML("<a href=''></a>");
+    ctx.assertStableNodes();
 
-    this.rerender({ funstuff: 'oh my' });
-    this.assertHTML("<div name='Alice' foo='oh my'></div>");
-    this.assertStableNodes();
-  }
+    ctx.rerender({ href: null });
+    ctx.assertHTML('<a></a>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Dynamic selected options'() {
-    this.render.template(
+  spec('Unquoted a href attribute is not rendered when set to `undefined`', (ctx) => {
+    ctx.render.template('<a href={{this.href}}></a>', { href: undefined });
+    ctx.assertHTML('<a></a>');
+    ctx.assertStableRerender();
+
+    ctx.rerender({ href: 'http://example.com' });
+    ctx.assertHTML("<a href='http://example.com'></a>");
+    ctx.assertStableNodes();
+
+    ctx.rerender({ href: '' });
+    ctx.assertHTML("<a href=''></a>");
+    ctx.assertStableNodes();
+
+    ctx.rerender({ href: undefined });
+    ctx.assertHTML('<a></a>');
+    ctx.assertStableNodes();
+  });
+
+  spec('Attribute expression can be followed by another attribute', (ctx) => {
+    ctx.render.template("<div foo='{{this.funstuff}}' name='Alice'></div>", { funstuff: 'oh my' });
+    ctx.assertHTML("<div name='Alice' foo='oh my'></div>");
+    ctx.assertStableRerender();
+
+    ctx.rerender({ funstuff: 'oh boy' });
+    ctx.assertHTML("<div name='Alice' foo='oh boy'></div>");
+    ctx.assertStableNodes();
+
+    ctx.rerender({ funstuff: '' });
+    ctx.assertHTML("<div name='Alice' foo=''></div>");
+    ctx.assertStableNodes();
+
+    ctx.rerender({ funstuff: 'oh my' });
+    ctx.assertHTML("<div name='Alice' foo='oh my'></div>");
+    ctx.assertStableNodes();
+  });
+
+  spec('Dynamic selected options', (ctx) => {
+    ctx.render.template(
       strip`
       <select>
         <option>1</option>
@@ -211,66 +242,65 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
       { selected: true }
     );
 
-    this.assertHTML(strip`
+    ctx.assertHTML(strip`
       <select>
         <option>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option ${ctx.name === 'rehydration' ? ' selected=true' : ''}>2</option>
         <option>3</option>
       </select>
     `);
 
-    let selectNode = checkNode(castToBrowser(this.element, 'HTML').firstElementChild, 'select');
-    this.assert.strictEqual(selectNode.selectedIndex, 1);
-    this.assertStableRerender();
+    let selectNode = checkNode(castToBrowser(ctx.element, 'HTML').firstElementChild, 'select');
+    ctx.assert.strictEqual(selectNode.selectedIndex, 1);
+    ctx.assertStableRerender();
 
-    this.rerender({ selected: false });
-    this.assertHTML(strip`
+    ctx.rerender({ selected: false });
+    ctx.assertHTML(strip`
       <select>
         <option>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option ${ctx.name === 'rehydration' ? ' selected=true' : ''}>2</option>
         <option>3</option>
       </select>
     `);
 
-    selectNode = checkNode(castToBrowser(this.element, 'HTML').firstElementChild, 'select');
+    selectNode = checkNode(castToBrowser(ctx.element, 'HTML').firstElementChild, 'select');
 
-    this.assert.strictEqual(selectNode.selectedIndex, 0);
+    ctx.assert.strictEqual(selectNode.selectedIndex, 0);
 
-    this.assertStableNodes();
+    ctx.assertStableNodes();
 
-    this.rerender({ selected: '' });
+    ctx.rerender({ selected: '' });
 
-    this.assertHTML(strip`
+    ctx.assertHTML(strip`
       <select>
         <option>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option ${ctx.name === 'rehydration' ? ' selected=true' : ''}>2</option>
         <option>3</option>
       </select>
     `);
 
-    selectNode = checkNode(castToBrowser(this.element, 'HTML').firstElementChild, 'select');
+    selectNode = checkNode(castToBrowser(ctx.element, 'HTML').firstElementChild, 'select');
 
-    this.assert.strictEqual(selectNode.selectedIndex, 0);
+    ctx.assert.strictEqual(selectNode.selectedIndex, 0);
 
-    this.assertStableNodes();
+    ctx.assertStableNodes();
 
-    this.rerender({ selected: true });
-    this.assertHTML(strip`
+    ctx.rerender({ selected: true });
+    ctx.assertHTML(strip`
       <select>
         <option>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option ${ctx.name === 'rehydration' ? ' selected=true' : ''}>2</option>
         <option>3</option>
       </select>
     `);
 
-    selectNode = checkNode(castToBrowser(this.element, 'HTML').firstElementChild, 'select');
-    this.assert.strictEqual(selectNode.selectedIndex, 1);
-    this.assertStableNodes();
-  }
+    selectNode = checkNode(castToBrowser(ctx.element, 'HTML').firstElementChild, 'select');
+    ctx.assert.strictEqual(selectNode.selectedIndex, 1);
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Dynamic multi-select'() {
-    this.render.template(
+  spec('Dynamic multi-select', (ctx) => {
+    ctx.render.template(
       strip`
       <select multiple>
         <option>0</option>
@@ -289,8 +319,8 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
       }
     );
 
-    const selectNode = firstElementChild(this.element);
-    this.assert.ok(selectNode, 'rendered select');
+    const selectNode = firstElementChild(ctx.element);
+    ctx.assert.ok(selectNode, 'rendered select');
     if (selectNode === null) {
       return;
     }
@@ -304,191 +334,175 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
       }
     }
 
-    const [first, second] = this.guardArray({ selected }, { min: 2 });
+    const [first, second] = ctx.guardArray({ selected }, { min: 2 });
 
-    this.assertHTML(strip`
+    ctx.assertHTML(strip`
       <select multiple="">
         <option>0</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option ${ctx.name === 'rehydration' ? ' selected=true' : ''}>1</option>
+        <option ${ctx.name === 'rehydration' ? ' selected=true' : ''}>2</option>
         <option>3</option>
         <option>4</option>
         <option>5</option>
       </select>`);
 
-    this.assert.strictEqual(selected.length, 2, 'two options are selected');
-    this.assert.strictEqual(
-      castToBrowser(first, 'option').value,
-      '1',
-      'first selected item is "1"'
-    );
-    this.assert.strictEqual(
+    ctx.assert.strictEqual(selected.length, 2, 'two options are selected');
+    ctx.assert.strictEqual(castToBrowser(first, 'option').value, '1', 'first selected item is "1"');
+    ctx.assert.strictEqual(
       castToBrowser(second, 'option').value,
       '2',
       'second selected item is "2"'
     );
-  }
+  });
 
-  @render
-  'HTML comments'() {
-    this.render.template('<div><!-- Just passing through --></div>');
-    this.assertHTML('<div><!-- Just passing through --></div>');
-    this.assertStableRerender();
-  }
+  spec('HTML comments', (ctx) => {
+    ctx.render.template('<div><!-- Just passing through --></div>');
+    ctx.assertHTML('<div><!-- Just passing through --></div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Curlies in HTML comments'() {
-    this.render.template('<div><!-- {{this.foo}} --></div>', { foo: 'foo' });
-    this.assertHTML('<div><!-- {{this.foo}} --></div>');
-    this.assertStableRerender();
+  spec('Curlies in HTML comments', (ctx) => {
+    ctx.render.template('<div><!-- {{this.foo}} --></div>', { foo: 'foo' });
+    ctx.assertHTML('<div><!-- {{this.foo}} --></div>');
+    ctx.assertStableRerender();
 
-    this.rerender({ foo: 'bar' });
-    this.assertHTML('<div><!-- {{this.foo}} --></div>');
-    this.assertStableNodes();
+    ctx.rerender({ foo: 'bar' });
+    ctx.assertHTML('<div><!-- {{this.foo}} --></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ foo: '' });
-    this.assertHTML('<div><!-- {{this.foo}} --></div>');
-    this.assertStableNodes();
+    ctx.rerender({ foo: '' });
+    ctx.assertHTML('<div><!-- {{this.foo}} --></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ foo: 'foo' });
-    this.assertHTML('<div><!-- {{this.foo}} --></div>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ foo: 'foo' });
+    ctx.assertHTML('<div><!-- {{this.foo}} --></div>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Complex Curlies in HTML comments'() {
-    this.render.template('<div><!-- {{this.foo bar baz}} --></div>', { foo: 'foo' });
-    this.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
-    this.assertStableRerender();
+  spec('Complex Curlies in HTML comments', (ctx) => {
+    ctx.render.template('<div><!-- {{this.foo bar baz}} --></div>', { foo: 'foo' });
+    ctx.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
+    ctx.assertStableRerender();
 
-    this.rerender({ foo: 'bar' });
-    this.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
-    this.assertStableNodes();
+    ctx.rerender({ foo: 'bar' });
+    ctx.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ foo: '' });
-    this.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
-    this.assertStableNodes();
+    ctx.rerender({ foo: '' });
+    ctx.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ foo: 'foo' });
-    this.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ foo: 'foo' });
+    ctx.assertHTML('<div><!-- {{this.foo bar baz}} --></div>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'HTML comments with multi-line mustaches'() {
-    this.render.template('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>');
-    this.assertHTML('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>');
-    this.assertStableRerender();
-  }
+  spec('HTML comments with multi-line mustaches', (ctx) => {
+    ctx.render.template('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>');
+    ctx.assertHTML('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Top level comments'() {
-    this.render.template('<!-- {{this.foo}} -->');
-    this.assertHTML('<!-- {{this.foo}} -->');
-    this.assertStableRerender();
-  }
+  spec('Top level comments', (ctx) => {
+    ctx.render.template('<!-- {{this.foo}} -->');
+    ctx.assertHTML('<!-- {{this.foo}} -->');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Handlebars comments'() {
-    this.render.template('<div>{{! Better not break! }}content</div>');
-    this.assertHTML('<div>content</div>');
-    this.assertStableRerender();
-  }
+  spec('Handlebars comments', (ctx) => {
+    ctx.render.template('<div>{{! Better not break! }}content</div>');
+    ctx.assertHTML('<div>content</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Namespaced attribute'() {
-    this.render.template("<svg xlink:title='svg-title'>content</svg>");
-    this.assertHTML("<svg xlink:title='svg-title'>content</svg>");
-    this.assertStableRerender();
-  }
+  spec('Namespaced attribute', (ctx) => {
+    ctx.render.template("<svg xlink:title='svg-title'>content</svg>");
+    ctx.assertHTML("<svg xlink:title='svg-title'>content</svg>");
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'svg href attribute with quotation marks'() {
-    this.render.template(
+  spec('svg href attribute with quotation marks', (ctx) => {
+    ctx.render.template(
       `<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="{{this.iconLink}}"></use></svg>`,
       { iconLink: 'home' }
     );
-    this.assertHTML(
+    ctx.assertHTML(
       `<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="home"></use></svg>`
     );
-    const svg = this.element.firstChild;
+    const svg = ctx.element.firstChild;
     if (assertNodeTagName(svg, 'svg')) {
       const use = svg.firstChild;
       if (assertNodeTagName(use, 'use')) {
-        this.assert.strictEqual(use.href.baseVal, 'home');
+        ctx.assert.strictEqual(use.href.baseVal, 'home');
       }
     }
-  }
+  });
 
-  @render
-  'svg href attribute without quotation marks'() {
-    this.render.template(
+  spec('svg href attribute without quotation marks', (ctx) => {
+    ctx.render.template(
       `<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href={{this.iconLink}}></use></svg>`,
       { iconLink: 'home' }
     );
-    this.assertHTML(
+    ctx.assertHTML(
       `<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="home"></use></svg>`
     );
-    const svg = this.element.firstChild;
+    const svg = ctx.element.firstChild;
     if (assertNodeTagName(svg, 'svg')) {
       const use = svg.firstChild;
       if (assertNodeTagName(use, 'use')) {
-        this.assert.strictEqual(use.href.baseVal, 'home');
+        ctx.assert.strictEqual(use.href.baseVal, 'home');
       }
     }
-  }
+  });
 
-  @render
-  '<svg> tag with case-sensitive attribute'() {
-    this.render.template('<svg viewBox="0 0 0 0"></svg>');
-    this.assertHTML('<svg viewBox="0 0 0 0"></svg>');
-    const svg = this.element.firstChild;
+  spec('<svg> tag with case-sensitive attribute', (ctx) => {
+    ctx.render.template('<svg viewBox="0 0 0 0"></svg>');
+    ctx.assertHTML('<svg viewBox="0 0 0 0"></svg>');
+    const svg = ctx.element.firstChild;
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, NS_SVG);
-      this.assert.strictEqual(svg.getAttribute('viewBox'), '0 0 0 0');
+      ctx.assert.strictEqual(svg.namespaceURI, NS_SVG);
+      ctx.assert.strictEqual(svg.getAttribute('viewBox'), '0 0 0 0');
     }
-    this.assertStableRerender();
-  }
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'nested element in the SVG namespace'() {
+  spec('nested element in the SVG namespace', (ctx) => {
     const d = 'M 0 0 L 100 100';
-    this.render.template(`<svg><path d="${d}"></path></svg>`);
-    this.assertHTML(`<svg><path d="${d}"></path></svg>`);
+    ctx.render.template(`<svg><path d="${d}"></path></svg>`);
+    ctx.assertHTML(`<svg><path d="${d}"></path></svg>`);
 
-    const svg = this.element.firstChild;
+    const svg = ctx.element.firstChild;
 
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, NS_SVG);
+      ctx.assert.strictEqual(svg.namespaceURI, NS_SVG);
 
       const path = svg.firstChild;
       if (assertNodeTagName(path, 'path')) {
-        this.assert.strictEqual(
+        ctx.assert.strictEqual(
           path.namespaceURI,
           NS_SVG,
           'creates the path element with a namespace'
         );
-        this.assert.strictEqual(path.getAttribute('d'), d);
+        ctx.assert.strictEqual(path.getAttribute('d'), d);
       }
     }
 
-    this.assertStableRerender();
-  }
+    ctx.assertStableRerender();
+  });
 
-  @render
-  '<foreignObject> tag has an SVG namespace'() {
-    this.render.template('<svg><foreignObject>Hi</foreignObject></svg>');
-    this.assertHTML('<svg><foreignObject>Hi</foreignObject></svg>');
+  spec('<foreignObject> tag has an SVG namespace', (ctx) => {
+    ctx.render.template('<svg><foreignObject>Hi</foreignObject></svg>');
+    ctx.assertHTML('<svg><foreignObject>Hi</foreignObject></svg>');
 
-    const svg = this.element.firstChild;
+    const svg = ctx.element.firstChild;
 
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, NS_SVG);
+      ctx.assert.strictEqual(svg.namespaceURI, NS_SVG);
 
       const foreignObject = svg.firstChild;
 
       if (assertNodeTagName(foreignObject, 'foreignObject')) {
-        this.assert.strictEqual(
+        ctx.assert.strictEqual(
           foreignObject.namespaceURI,
           NS_SVG,
           'creates the foreignObject element with a namespace'
@@ -496,52 +510,50 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
       }
     }
 
-    this.assertStableRerender();
-  }
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Namespaced and non-namespaced elements as siblings'() {
-    this.render.template('<svg></svg><svg></svg><div></div>');
-    this.assertHTML('<svg></svg><svg></svg><div></div>');
+  spec('Namespaced and non-namespaced elements as siblings', (ctx) => {
+    ctx.render.template('<svg></svg><svg></svg><div></div>');
+    ctx.assertHTML('<svg></svg><svg></svg><div></div>');
 
-    const [firstChild, secondChild, thirdChild] = this.guardArray(
-      { childNodes: this.element.childNodes },
+    const [firstChild, secondChild, thirdChild] = ctx.guardArray(
+      { childNodes: ctx.element.childNodes },
       { min: 3 }
     );
 
-    this.assert.strictEqual(
+    ctx.assert.strictEqual(
       castToBrowser(unwrap(firstChild), 'SVG').namespaceURI,
       NS_SVG,
       'creates the first svg element with a namespace'
     );
 
-    this.assert.strictEqual(
+    ctx.assert.strictEqual(
       castToBrowser(secondChild, 'SVG').namespaceURI,
       NS_SVG,
       'creates the second svg element with a namespace'
     );
 
-    this.assert.strictEqual(
+    ctx.assert.strictEqual(
       castToBrowser(thirdChild, 'HTML').namespaceURI,
       XHTML_NAMESPACE,
       'creates the div element without a namespace'
     );
 
-    this.assertStableRerender();
-  }
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Namespaced and non-namespaced elements with nesting'() {
-    this.render.template('<div><svg></svg></div><div></div>');
+  spec('Namespaced and non-namespaced elements with nesting', (ctx) => {
+    ctx.render.template('<div><svg></svg></div><div></div>');
 
-    const firstDiv = this.element.firstChild;
-    const secondDiv = this.element.lastChild;
+    const firstDiv = ctx.element.firstChild;
+    const secondDiv = ctx.element.lastChild;
     const svg = firstDiv && firstDiv.firstChild;
 
-    this.assertHTML('<div><svg></svg></div><div></div>');
+    ctx.assertHTML('<div><svg></svg></div><div></div>');
 
     if (assertNodeTagName(firstDiv, 'div')) {
-      this.assert.strictEqual(
+      ctx.assert.strictEqual(
         firstDiv.namespaceURI,
         XHTML_NAMESPACE,
         "first div's namespace is xhtmlNamespace"
@@ -549,201 +561,201 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
     }
 
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, NS_SVG, "svg's namespace is svgNamespace");
+      ctx.assert.strictEqual(svg.namespaceURI, NS_SVG, "svg's namespace is svgNamespace");
     }
 
     if (assertNodeTagName(secondDiv, 'div')) {
-      this.assert.strictEqual(
+      ctx.assert.strictEqual(
         secondDiv.namespaceURI,
         XHTML_NAMESPACE,
         "last div's namespace is xhtmlNamespace"
       );
     }
 
-    this.assertStableRerender();
-  }
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Case-sensitive tag has capitalization preserved'() {
-    this.render.template('<svg><linearGradient id="gradient"></linearGradient></svg>');
-    this.assertHTML('<svg><linearGradient id="gradient"></linearGradient></svg>');
-    this.assertStableRerender();
-  }
+  spec('Case-sensitive tag has capitalization preserved', (ctx) => {
+    ctx.render.template('<svg><linearGradient id="gradient"></linearGradient></svg>');
+    ctx.assertHTML('<svg><linearGradient id="gradient"></linearGradient></svg>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Text curlies'() {
-    this.render.template('<div>{{this.title}}<span>{{this.title}}</span></div>', {
+  spec('Text curlies', (ctx) => {
+    ctx.render.template('<div>{{this.title}}<span>{{this.title}}</span></div>', {
       title: 'hello',
     });
-    this.assertHTML('<div>hello<span>hello</span></div>');
-    this.assertStableRerender();
+    ctx.assertHTML('<div>hello<span>hello</span></div>');
+    ctx.assertStableRerender();
 
-    this.rerender({ title: 'goodbye' });
-    this.assertHTML('<div>goodbye<span>goodbye</span></div>');
-    this.assertStableNodes();
+    ctx.rerender({ title: 'goodbye' });
+    ctx.assertHTML('<div>goodbye<span>goodbye</span></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ title: '' });
-    this.assertHTML('<div><span></span></div>');
-    this.assertStableNodes();
+    ctx.rerender({ title: '' });
+    ctx.assertHTML('<div><span></span></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ title: 'hello' });
-    this.assertHTML('<div>hello<span>hello</span></div>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ title: 'hello' });
+    ctx.assertHTML('<div>hello<span>hello</span></div>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Repaired text nodes are ensured in the right place Part 1'() {
-    this.render.template('{{this.a}} {{this.b}}', { a: 'A', b: 'B', c: 'C', d: 'D' });
-    this.assertHTML('A B');
-    this.assertStableRerender();
-  }
+  spec('Text curlies (error handling)', (ctx) => {
+    const woops = Woops.noop();
 
-  @render
-  'Repaired text nodes are ensured in the right place Part 2'() {
-    this.render.template('<div>{{this.a}}{{this.b}}{{this.c}}wat{{this.d}}</div>', {
+    ctx.render.template(
+      '<div>{{#-try this.woops.handleError}}<span>{{this.woops.value}}</span>{{/-try}}<span>{{this.title}}</span></div>',
+      { woops, title: 'hello' }
+    );
+
+    ctx.assertHTML('<div><span>no woops</span><span>hello</span></div>');
+    woops.isError = true;
+
+    // ctx.rerender();
+    // ctx.assertHTML('<div><span>hello</span></div>');
+  });
+
+  spec('Repaired text nodes are ensured in the right place Part 1', (ctx) => {
+    ctx.render.template('{{this.a}} {{this.b}}', { a: 'A', b: 'B', c: 'C', d: 'D' });
+    ctx.assertHTML('A B');
+    ctx.assertStableRerender();
+  });
+
+  spec('Repaired text nodes are ensured in the right place Part 2', (ctx) => {
+    ctx.render.template('<div>{{this.a}}{{this.b}}{{this.c}}wat{{this.d}}</div>', {
       a: 'A',
       b: 'B',
       c: 'C',
       d: 'D',
     });
-    this.assertHTML('<div>ABCwatD</div>');
-    this.assertStableRerender();
-  }
+    ctx.assertHTML('<div>ABCwatD</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Repaired text nodes are ensured in the right place Part 3'() {
-    this.render.template('{{this.a}}{{this.b}}<img><img><img><img>', {
+  spec('Repaired text nodes are ensured in the right place Part 3', (ctx) => {
+    ctx.render.template('{{this.a}}{{this.b}}<img><img><img><img>', {
       a: 'A',
       b: 'B',
       c: 'C',
       d: 'D',
     });
-    this.assertHTML('AB<img><img><img><img>');
-    this.assertStableRerender();
-  }
+    ctx.assertHTML('AB<img><img><img><img>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Path expressions'() {
-    this.render.template('<div>{{this.model.foo.bar}}<span>{{this.model.foo.bar}}</span></div>', {
+  spec('Path expressions', (ctx) => {
+    ctx.render.template('<div>{{this.model.foo.bar}}<span>{{this.model.foo.bar}}</span></div>', {
       model: { foo: { bar: 'hello' } },
     });
-    this.assertHTML('<div>hello<span>hello</span></div>');
-    this.assertStableRerender();
+    ctx.assertHTML('<div>hello<span>hello</span></div>');
+    ctx.assertStableRerender();
 
-    this.rerender({ model: { foo: { bar: 'goodbye' } } });
-    this.assertHTML('<div>goodbye<span>goodbye</span></div>');
-    this.assertStableNodes();
+    ctx.rerender({ model: { foo: { bar: 'goodbye' } } });
+    ctx.assertHTML('<div>goodbye<span>goodbye</span></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ model: { foo: { bar: '' } } });
-    this.assertHTML('<div><span></span></div>');
-    this.assertStableNodes();
+    ctx.rerender({ model: { foo: { bar: '' } } });
+    ctx.assertHTML('<div><span></span></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ model: { foo: { bar: 'hello' } } });
-    this.assertHTML('<div>hello<span>hello</span></div>');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ model: { foo: { bar: 'hello' } } });
+    ctx.assertHTML('<div>hello<span>hello</span></div>');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Text curlies perform escaping'() {
-    this.render.template('<div>{{this.title}}<span>{{this.title}}</span></div>', {
+  spec('Text curlies perform escaping', (ctx) => {
+    ctx.render.template('<div>{{this.title}}<span>{{this.title}}</span></div>', {
       title: '<strong>hello</strong>',
     });
-    this.assertHTML(
+    ctx.assertHTML(
       '<div>&lt;strong&gt;hello&lt;/strong&gt;<span>&lt;strong>hello&lt;/strong&gt;</span></div>'
     );
-    this.assertStableRerender();
+    ctx.assertStableRerender();
 
-    this.rerender({ title: '<i>goodbye</i>' });
-    this.assertHTML('<div>&lt;i&gt;goodbye&lt;/i&gt;<span>&lt;i&gt;goodbye&lt;/i&gt;</span></div>');
-    this.assertStableNodes();
+    ctx.rerender({ title: '<i>goodbye</i>' });
+    ctx.assertHTML('<div>&lt;i&gt;goodbye&lt;/i&gt;<span>&lt;i&gt;goodbye&lt;/i&gt;</span></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ title: '' });
-    this.assertHTML('<div><span></span></div>');
-    this.assertStableNodes();
+    ctx.rerender({ title: '' });
+    ctx.assertHTML('<div><span></span></div>');
+    ctx.assertStableNodes();
 
-    this.rerender({ title: '<strong>hello</strong>' });
-    this.assertHTML(
+    ctx.rerender({ title: '<strong>hello</strong>' });
+    ctx.assertHTML(
       '<div>&lt;strong&gt;hello&lt;/strong&gt;<span>&lt;strong>hello&lt;/strong&gt;</span></div>'
     );
-    this.assertStableNodes();
-  }
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Rerender respects whitespace'() {
-    this.render.template('Hello {{ this.foo }} ', { foo: 'bar' });
-    this.assertHTML('Hello bar ');
-    this.assertStableRerender();
+  spec('Rerender respects whitespace', (ctx) => {
+    ctx.render.template('Hello {{ this.foo }} ', { foo: 'bar' });
+    ctx.assertHTML('Hello bar ');
+    ctx.assertStableRerender();
 
-    this.rerender({ foo: 'baz' });
-    this.assertHTML('Hello baz ');
-    this.assertStableNodes();
+    ctx.rerender({ foo: 'baz' });
+    ctx.assertHTML('Hello baz ');
+    ctx.assertStableNodes();
 
-    this.rerender({ foo: '' });
-    this.assertHTML('Hello  ');
-    this.assertStableNodes();
+    ctx.rerender({ foo: '' });
+    ctx.assertHTML('Hello  ');
+    ctx.assertStableNodes();
 
-    this.rerender({ foo: 'bar' });
-    this.assertHTML('Hello bar ');
-    this.assertStableNodes();
-  }
+    ctx.rerender({ foo: 'bar' });
+    ctx.assertHTML('Hello bar ');
+    ctx.assertStableNodes();
+  });
 
-  @render
-  'Safe HTML curlies'() {
+  spec('Safe HTML curlies', (ctx) => {
     const title = {
       toHTML() {
         return '<span>hello</span> <em>world</em>';
       },
     };
-    this.render.template('<div>{{this.title}}</div>', { title });
-    this.assertHTML('<div><span>hello</span> <em>world</em></div>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{this.title}}</div>', { title });
+    ctx.assertHTML('<div><span>hello</span> <em>world</em></div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Triple curlies'() {
+  spec('Triple curlies', (ctx) => {
     const title = '<span>hello</span> <em>world</em>';
-    this.render.template('<div>{{{this.title}}}</div>', { title });
-    this.assertHTML('<div><span>hello</span> <em>world</em></div>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{{this.title}}}</div>', { title });
+    ctx.assertHTML('<div><span>hello</span> <em>world</em></div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Triple curlie helpers'() {
-    this.register.helper('unescaped', ([param]) => param);
-    this.register.helper('escaped', ([param]) => param);
-    this.render.template(
+  spec('Triple curlie helpers', (ctx) => {
+    ctx.register.helper('unescaped', ([param]) => param);
+    ctx.register.helper('escaped', ([param]) => param);
+    ctx.render.template(
       '{{{unescaped "<strong>Yolo</strong>"}}} {{escaped "<strong>Yolo</strong>"}}'
     );
-    this.assertHTML('<strong>Yolo</strong> &lt;strong&gt;Yolo&lt;/strong&gt;');
-    this.assertStableRerender();
-  }
+    ctx.assertHTML('<strong>Yolo</strong> &lt;strong&gt;Yolo&lt;/strong&gt;');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Top level triple curlies'() {
+  spec('Top level triple curlies', (ctx) => {
     const title = '<span>hello</span> <em>world</em>';
-    this.render.template('{{{this.title}}}', { title });
-    this.assertHTML('<span>hello</span> <em>world</em>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('{{{this.title}}}', { title });
+    ctx.assertHTML('<span>hello</span> <em>world</em>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Top level unescaped tr'() {
+  spec('Top level unescaped tr', (ctx) => {
     const title = '<tr><td>Yo</td></tr>';
-    this.render.template('<table>{{{this.title}}}</table>', { title });
-    this.assertHTML('<table><tbody><tr><td>Yo</td></tr></tbody></table>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<table>{{{this.title}}}</table>', { title });
+    ctx.assertHTML('<table><tbody><tr><td>Yo</td></tr></tbody></table>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'The compiler can handle top-level unescaped td inside tr contextualElement'() {
-    this.render.template('{{{this.html}}}', { html: '<td>Yo</td>' });
-    this.assertHTML('<tr><td>Yo</td></tr>');
-    this.assertStableRerender();
-  }
+  spec('The compiler can handle top-level unescaped td inside tr contextualElement', (ctx) => {
+    ctx.render.template('{{{this.html}}}', { html: '<td>Yo</td>' });
+    ctx.assertHTML('<tr><td>Yo</td></tr>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Extreme nesting'() {
-    this.render.template(
+  spec('Extreme nesting', (ctx) => {
+    ctx.render.template(
       '{{this.foo}}<span>{{this.bar}}<a>{{this.baz}}<em>{{this.boo}}{{this.brew}}</em>{{this.bat}}</a></span><span><span>{{this.flute}}</span></span>{{this.argh}}',
       {
         foo: 'FOO',
@@ -756,37 +768,35 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
         argh: 'ARGH',
       }
     );
-    this.assertHTML(
+    ctx.assertHTML(
       'FOO<span>BAR<a>BAZ<em>BOOBREW</em>BAT</a></span><span><span>FLUTE</span></span>ARGH'
     );
-    this.assertStableRerender();
-  }
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Simple blocks'() {
-    this.render.template('<div>{{#if this.admin}}<p>{{this.user}}</p>{{/if}}!</div>', {
+  spec('Simple blocks', (ctx) => {
+    ctx.render.template('<div>{{#if this.admin}}<p>{{this.user}}</p>{{/if}}!</div>', {
       admin: true,
       user: 'chancancode',
     });
-    this.assertHTML('<div><p>chancancode</p>!</div>');
-    this.assertStableRerender();
+    ctx.assertHTML('<div><p>chancancode</p>!</div>');
+    ctx.assertStableRerender();
 
-    const p = this.element.firstChild!.firstChild!;
+    const p = ctx.element.firstChild!.firstChild!;
 
-    this.rerender({ admin: false });
-    this.assertHTML('<div><!---->!</div>');
-    this.assertStableNodes({ except: p });
+    ctx.rerender({ admin: false });
+    ctx.assertHTML('<div><!---->!</div>');
+    ctx.assertStableNodes({ except: p });
 
-    const comment = this.element.firstChild!.firstChild!;
+    const comment = ctx.element.firstChild!.firstChild!;
 
-    this.rerender({ admin: true });
-    this.assertHTML('<div><p>chancancode</p>!</div>');
-    this.assertStableNodes({ except: comment });
-  }
+    ctx.rerender({ admin: true });
+    ctx.assertHTML('<div><p>chancancode</p>!</div>');
+    ctx.assertStableNodes({ except: comment });
+  });
 
-  @render
-  'Nested blocks'() {
-    this.render.template(
+  spec('Nested blocks', (ctx) => {
+    ctx.render.template(
       '<div>{{#if this.admin}}{{#if this.access}}<p>{{this.user}}</p>{{/if}}{{/if}}!</div>',
       {
         admin: true,
@@ -794,31 +804,30 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
         user: 'chancancode',
       }
     );
-    this.assertHTML('<div><p>chancancode</p>!</div>');
-    this.assertStableRerender();
+    ctx.assertHTML('<div><p>chancancode</p>!</div>');
+    ctx.assertStableRerender();
 
-    let p = this.element.firstChild!.firstChild!;
+    let p = ctx.element.firstChild!.firstChild!;
 
-    this.rerender({ admin: false });
-    this.assertHTML('<div><!---->!</div>');
-    this.assertStableNodes({ except: p });
+    ctx.rerender({ admin: false });
+    ctx.assertHTML('<div><!---->!</div>');
+    ctx.assertStableNodes({ except: p });
 
-    const comment = this.element.firstChild!.firstChild!;
+    const comment = ctx.element.firstChild!.firstChild!;
 
-    this.rerender({ admin: true });
-    this.assertHTML('<div><p>chancancode</p>!</div>');
-    this.assertStableNodes({ except: comment });
+    ctx.rerender({ admin: true });
+    ctx.assertHTML('<div><p>chancancode</p>!</div>');
+    ctx.assertStableNodes({ except: comment });
 
-    p = this.element.firstChild!.firstChild!;
+    p = ctx.element.firstChild!.firstChild!;
 
-    this.rerender({ access: false });
-    this.assertHTML('<div><!---->!</div>');
-    this.assertStableNodes({ except: p });
-  }
+    ctx.rerender({ access: false });
+    ctx.assertHTML('<div><!---->!</div>');
+    ctx.assertStableNodes({ except: p });
+  });
 
-  @render
-  Loops() {
-    this.render.template(
+  spec('Loops', (ctx) => {
+    ctx.render.template(
       '<div>{{#each this.people key="handle" as |p|}}<span>{{p.handle}}</span> - {{p.name}}{{/each}}</div>',
       {
         people: [
@@ -829,49 +838,45 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
       }
     );
 
-    this.assertHTML(
+    ctx.assertHTML(
       '<div><span>tomdale</span> - Tom Dale<span>chancancode</span> - Godfrey Chan<span>wycats</span> - Yehuda Katz</div>'
     );
-    this.assertStableRerender();
+    ctx.assertStableRerender();
 
-    this.rerender({
+    ctx.rerender({
       people: [
         { handle: 'tomdale', name: 'Thomas Dale' },
         { handle: 'wycats', name: 'Yehuda Katz' },
       ],
     });
 
-    this.assertHTML(
+    ctx.assertHTML(
       '<div><span>tomdale</span> - Thomas Dale<span>wycats</span> - Yehuda Katz</div>'
     );
-  }
+  });
 
-  @render
-  'Simple helpers'() {
-    this.register.helper('testing', ([id]) => id);
-    this.render.template('<div>{{testing this.title}}</div>', { title: 'hello' });
-    this.assertHTML('<div>hello</div>');
-    this.assertStableRerender();
-  }
+  spec('Simple helpers', (ctx) => {
+    ctx.register.helper('testing', ([id]) => id);
+    ctx.render.template('<div>{{testing this.title}}</div>', { title: 'hello' });
+    ctx.assertHTML('<div>hello</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Constant negative numbers can render'() {
-    this.register.helper('testing', ([id]) => id);
-    this.render.template('<div>{{testing -123321}}</div>');
-    this.assertHTML('<div>-123321</div>');
-    this.assertStableRerender();
-  }
+  spec('Constant negative numbers can render', (ctx) => {
+    ctx.register.helper('testing', ([id]) => id);
+    ctx.render.template('<div>{{testing -123321}}</div>');
+    ctx.assertHTML('<div>-123321</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Large numeric literals (Number.MAX_SAFE_INTEGER)'() {
-    this.register.helper('testing', ([id]) => id);
-    this.render.template('<div>{{testing 9007199254740991}}</div>');
-    this.assertHTML('<div>9007199254740991</div>');
-    this.assertStableRerender();
-  }
+  spec('Large numeric literals (Number.MAX_SAFE_INTEGER)', (ctx) => {
+    ctx.register.helper('testing', ([id]) => id);
+    ctx.render.template('<div>{{testing 9007199254740991}}</div>');
+    ctx.assertHTML('<div>9007199254740991</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Integer powers of 2'() {
+  spec('Integer powers of 2', (ctx) => {
     const ints = [];
     let i = 9007199254740991; // Number.MAX_SAFE_INTEGER isn't available on IE11
     while (i > 1) {
@@ -883,178 +888,176 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
       ints.push(i);
       i = Math.round(i / 2);
     }
-    this.register.helper('testing', ([id]) => id);
-    this.render.template(ints.map((i) => `{{${i}}}`).join('-'));
-    this.assertHTML(ints.map((i) => `${i}`).join('-'));
-    this.assertStableRerender();
-  }
+    ctx.register.helper('testing', ([id]) => id);
+    ctx.render.template(ints.map((i) => `{{${i}}}`).join('-'));
+    ctx.assertHTML(ints.map((i) => `${i}`).join('-'));
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'odd integers'() {
-    this.render.template(
+  spec('odd integers', (ctx) => {
+    ctx.render.template(
       '{{4294967296}} {{4294967295}} {{4294967294}} {{536870913}} {{536870912}} {{536870911}} {{268435455}}'
     );
-    this.assertHTML('4294967296 4294967295 4294967294 536870913 536870912 536870911 268435455');
-    this.assertStableRerender();
-  }
+    ctx.assertHTML('4294967296 4294967295 4294967294 536870913 536870912 536870911 268435455');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Constant float numbers can render'() {
-    this.register.helper('testing', ([id]) => id);
-    this.render.template('<div>{{testing 0.123}}</div>');
-    this.assertHTML('<div>0.123</div>');
-    this.assertStableRerender();
-  }
+  spec('Constant float numbers can render', (ctx) => {
+    ctx.register.helper('testing', ([id]) => id);
+    ctx.render.template('<div>{{testing 0.123}}</div>');
+    ctx.assertHTML('<div>0.123</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'GH#13999 The compiler can handle simple helpers with inline null parameter'() {
+  spec('GH#13999 The compiler can handle simple helpers with inline null parameter', (ctx) => {
     let value;
-    this.register.helper('say-hello', (params) => {
+    ctx.register.helper('say-hello', (params) => {
       value = params[0];
       return 'hello';
     });
-    this.render.template('<div>{{say-hello null}}</div>');
-    this.assertHTML('<div>hello</div>');
-    this.assert.strictEqual(value, null, 'is null');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{say-hello null}}</div>');
+    ctx.assertHTML('<div>hello</div>');
+    ctx.assert.strictEqual(value, null, 'is null');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'GH#13999 The compiler can handle simple helpers with inline string literal null parameter'() {
-    let value;
-    this.register.helper('say-hello', (params) => {
-      value = params[0];
-      return 'hello';
-    });
+  spec(
+    'GH#13999 The compiler can handle simple helpers with inline string literal null parameter',
+    (ctx) => {
+      let value;
+      ctx.register.helper('say-hello', (params) => {
+        value = params[0];
+        return 'hello';
+      });
 
-    this.render.template('<div>{{say-hello "null"}}</div>');
-    this.assertHTML('<div>hello</div>');
-    this.assert.strictEqual(value, 'null', 'is null string literal');
-    this.assertStableRerender();
-  }
+      ctx.render.template('<div>{{say-hello "null"}}</div>');
+      ctx.assertHTML('<div>hello</div>');
+      ctx.assert.strictEqual(value, 'null', 'is null string literal');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @render
-  'GH#13999 The compiler can handle simple helpers with inline undefined parameter'() {
+  spec('GH#13999 The compiler can handle simple helpers with inline undefined parameter', (ctx) => {
     let value: unknown = 'PLACEHOLDER';
     let length;
-    this.register.helper('say-hello', (params) => {
+    ctx.register.helper('say-hello', (params) => {
       length = params.length;
       value = params[0];
       return 'hello';
     });
 
-    this.render.template('<div>{{say-hello undefined}}</div>');
-    this.assertHTML('<div>hello</div>');
-    this.assert.strictEqual(length, 1);
-    this.assert.strictEqual(value, undefined, 'is undefined');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{say-hello undefined}}</div>');
+    ctx.assertHTML('<div>hello</div>');
+    ctx.assert.strictEqual(length, 1);
+    ctx.assert.strictEqual(value, undefined, 'is undefined');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'GH#13999 The compiler can handle simple helpers with positional parameter undefined string literal'() {
+  spec(
+    'GH#13999 The compiler can handle simple helpers with positional parameter undefined string literal',
+    (ctx) => {
+      let value: unknown = 'PLACEHOLDER';
+      let length;
+      ctx.register.helper('say-hello', (params) => {
+        length = params.length;
+        value = params[0];
+        return 'hello';
+      });
+
+      ctx.render.template('<div>{{say-hello "undefined"}} undefined</div>');
+      ctx.assertHTML('<div>hello undefined</div>');
+      ctx.assert.strictEqual(length, 1);
+      ctx.assert.strictEqual(value, 'undefined', 'is undefined string literal');
+      ctx.assertStableRerender();
+    }
+  );
+
+  spec('GH#13999 The compiler can handle components with undefined named arguments', (ctx) => {
     let value: unknown = 'PLACEHOLDER';
-    let length;
-    this.register.helper('say-hello', (params) => {
-      length = params.length;
-      value = params[0];
-      return 'hello';
-    });
-
-    this.render.template('<div>{{say-hello "undefined"}} undefined</div>');
-    this.assertHTML('<div>hello undefined</div>');
-    this.assert.strictEqual(length, 1);
-    this.assert.strictEqual(value, 'undefined', 'is undefined string literal');
-    this.assertStableRerender();
-  }
-
-  @render
-  'GH#13999 The compiler can handle components with undefined named arguments'() {
-    let value: unknown = 'PLACEHOLDER';
-    this.register.helper('say-hello', (_, hash) => {
+    ctx.register.helper('say-hello', (_, hash) => {
       value = hash['foo'];
       return 'hello';
     });
 
-    this.render.template('<div>{{say-hello foo=undefined}}</div>');
-    this.assertHTML('<div>hello</div>');
-    this.assert.strictEqual(value, undefined, 'is undefined');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{say-hello foo=undefined}}</div>');
+    ctx.assertHTML('<div>hello</div>');
+    ctx.assert.strictEqual(value, undefined, 'is undefined');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'GH#13999 The compiler can handle components with undefined string literal named arguments'() {
-    let value: unknown = 'PLACEHOLDER';
-    this.register.helper('say-hello', (_, hash) => {
-      value = hash['foo'];
-      return 'hello';
-    });
+  spec(
+    'GH#13999 The compiler can handle components with undefined string literal named arguments',
+    (ctx) => {
+      let value: unknown = 'PLACEHOLDER';
+      ctx.register.helper('say-hello', (_, hash) => {
+        value = hash['foo'];
+        return 'hello';
+      });
 
-    this.render.template('<div>{{say-hello foo="undefined"}}</div>');
-    this.assertHTML('<div>hello</div>');
-    this.assert.strictEqual(value, 'undefined', 'is undefined string literal');
-    this.assertStableRerender();
-  }
+      ctx.render.template('<div>{{say-hello foo="undefined"}}</div>');
+      ctx.assertHTML('<div>hello</div>');
+      ctx.assert.strictEqual(value, 'undefined', 'is undefined string literal');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @render
-  'GH#13999 The compiler can handle components with null named arguments'() {
+  spec('GH#13999 The compiler can handle components with null named arguments', (ctx) => {
     let value;
-    this.register.helper('say-hello', (_, hash) => {
+    ctx.register.helper('say-hello', (_, hash) => {
       value = hash['foo'];
       return 'hello';
     });
 
-    this.render.template('<div>{{say-hello foo=null}}</div>');
-    this.assertHTML('<div>hello</div>');
-    this.assert.strictEqual(value, null, 'is null');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{say-hello foo=null}}</div>');
+    ctx.assertHTML('<div>hello</div>');
+    ctx.assert.strictEqual(value, null, 'is null');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'GH#13999 The compiler can handle components with null string literal named arguments'() {
-    let value;
-    this.register.helper('say-hello', (_, hash) => {
-      value = hash['foo'];
-      return 'hello';
-    });
+  spec(
+    'GH#13999 The compiler can handle components with null string literal named arguments',
+    (ctx) => {
+      let value;
+      ctx.register.helper('say-hello', (_, hash) => {
+        value = hash['foo'];
+        return 'hello';
+      });
 
-    this.render.template('<div>{{say-hello foo="null"}}</div>');
-    this.assertHTML('<div>hello</div>');
-    this.assert.strictEqual(value, 'null', 'is null string literal');
-    this.assertStableRerender();
-  }
+      ctx.render.template('<div>{{say-hello foo="null"}}</div>');
+      ctx.assertHTML('<div>hello</div>');
+      ctx.assert.strictEqual(value, 'null', 'is null string literal');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @render
-  'Null curly in attributes'() {
-    this.render.template('<div class="foo {{null}}">hello</div>');
-    this.assertHTML('<div class="foo ">hello</div>');
-    this.assertStableRerender();
-  }
+  spec('Null curly in attributes', (ctx) => {
+    ctx.render.template('<div class="foo {{null}}">hello</div>');
+    ctx.assertHTML('<div class="foo ">hello</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Null in primitive syntax'() {
-    this.render.template('{{#if null}}NOPE{{else}}YUP{{/if}}');
-    this.assertHTML('YUP');
-    this.assertStableRerender();
-  }
+  spec('Null in primitive syntax', (ctx) => {
+    ctx.render.template('{{#if null}}NOPE{{else}}YUP{{/if}}');
+    ctx.assertHTML('YUP');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Sexpr helpers'() {
-    this.register.helper('testing', (params) => {
+  spec('Sexpr helpers', (ctx) => {
+    ctx.register.helper('testing', (params) => {
       return `${params[0]}!`;
     });
 
-    this.render.template('<div>{{testing (testing "hello")}}</div>');
-    this.assertHTML('<div>hello!!</div>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{testing (testing "hello")}}</div>');
+    ctx.assertHTML('<div>hello!!</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'The compiler can handle multiple invocations of sexprs'() {
-    this.register.helper('testing', (params) => {
+  spec('The compiler can handle multiple invocations of sexprs', (ctx) => {
+    ctx.register.helper('testing', (params) => {
       return `${params[0]}${params[1]}`;
     });
 
-    this.render.template(
+    ctx.render.template(
       '<div>{{testing (testing "hello" this.foo) (testing (testing this.bar "lol") this.baz)}}</div>',
       {
         foo: 'FOO',
@@ -1062,73 +1065,69 @@ export class DynamicInitialRenderSuite extends RenderTestContext {
         baz: 'BAZ',
       }
     );
-    this.assertHTML('<div>helloFOOBARlolBAZ</div>');
-    this.assertStableRerender();
-  }
+    ctx.assertHTML('<div>helloFOOBARlolBAZ</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'The compiler passes along the hash arguments'() {
-    this.register.helper('testing', (_, hash) => {
+  spec('The compiler passes along the hash arguments', (ctx) => {
+    ctx.register.helper('testing', (_, hash) => {
       return `${hash['first']}-${hash['second']}`;
     });
 
-    this.render.template('<div>{{testing first="one" second="two"}}</div>');
-    this.assertHTML('<div>one-two</div>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<div>{{testing first="one" second="two"}}</div>');
+    ctx.assertHTML('<div>one-two</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Attributes can be populated with helpers that generate a string'() {
-    this.register.helper('testing', (params) => {
+  spec('Attributes can be populated with helpers that generate a string', (ctx) => {
+    ctx.register.helper('testing', (params) => {
       return params[0];
     });
 
-    this.render.template('<a href="{{testing this.url}}">linky</a>', { url: 'linky.html' });
-    this.assertHTML('<a href="linky.html">linky</a>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<a href="{{testing this.url}}">linky</a>', { url: 'linky.html' });
+    ctx.assertHTML('<a href="linky.html">linky</a>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Attribute helpers take a hash'() {
-    this.register.helper('testing', (_, hash) => {
+  spec('Attribute helpers take a hash', (ctx) => {
+    ctx.register.helper('testing', (_, hash) => {
       return hash['path'];
     });
 
-    this.render.template('<a href="{{testing path=this.url}}">linky</a>', { url: 'linky.html' });
-    this.assertHTML('<a href="linky.html">linky</a>');
-    this.assertStableRerender();
-  }
+    ctx.render.template('<a href="{{testing path=this.url}}">linky</a>', { url: 'linky.html' });
+    ctx.assertHTML('<a href="linky.html">linky</a>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Attributes containing multiple helpers are treated like a block'() {
-    this.register.helper('testing', (params) => {
+  spec('Attributes containing multiple helpers are treated like a block', (ctx) => {
+    ctx.register.helper('testing', (params) => {
       return params[0];
     });
 
-    this.render.template(
+    ctx.render.template(
       '<a href="http://{{this.foo}}/{{testing this.bar}}/{{testing "baz"}}">linky</a>',
       {
         foo: 'foo.com',
         bar: 'bar',
       }
     );
-    this.assertHTML('<a href="http://foo.com/bar/baz">linky</a>');
-    this.assertStableRerender();
-  }
+    ctx.assertHTML('<a href="http://foo.com/bar/baz">linky</a>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'Elements inside a yielded block'() {
-    this.render.template('{{#if true}}<div id="test">123</div>{{/if}}');
-    this.assertHTML('<div id="test">123</div>');
-    this.assertStableRerender();
-  }
+  spec('Elements inside a yielded block', (ctx) => {
+    ctx.render.template('{{#if true}}<div id="test">123</div>{{/if}}');
+    ctx.assertHTML('<div id="test">123</div>');
+    ctx.assertStableRerender();
+  });
 
-  @render
-  'A simple block helper can return text'() {
-    this.render.template('{{#if true}}test{{else}}not shown{{/if}}');
-    this.assertHTML('test');
-    this.assertStableRerender();
-  }
-}
+  spec('A simple block helper can return text', (ctx) => {
+    ctx.render.template('{{#if true}}test{{else}}not shown{{/if}}');
+    ctx.assertHTML('test');
+    ctx.assertStableRerender();
+  });
+});
+
+DynamicInitialRenderSuite.client();
 
 const XHTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';

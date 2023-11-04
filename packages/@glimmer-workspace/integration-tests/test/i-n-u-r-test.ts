@@ -1,6 +1,6 @@
 import { castToSimple } from '@glimmer/util';
 import {
-  JitRenderDelegate,
+  ClientSideRenderDelegate,
   RenderTestContext,
   RenderTestState,
 } from '@glimmer-workspace/integration-tests';
@@ -24,7 +24,7 @@ module('Render Tests: I-N-U-R', ({ test }) => {
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [text, 'up']);
       }
-    })(new JitRenderDelegate(), RenderTestState(assert, 'glimmer'));
+    })(new ClientSideRenderDelegate(), RenderTestState(assert, 'glimmer'));
   });
 
   test('Can take nested snapshots', (assert) => {
@@ -41,7 +41,7 @@ module('Render Tests: I-N-U-R', ({ test }) => {
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [p, 'down', text, 'up', 'up']);
       }
-    })(new JitRenderDelegate(), RenderTestState(assert, 'glimmer'));
+    })(new ClientSideRenderDelegate(), RenderTestState(assert, 'glimmer'));
   });
 
   test('Can take nested snapshots of serialized blocks', (assert) => {
@@ -60,6 +60,6 @@ module('Render Tests: I-N-U-R', ({ test }) => {
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [open, text, close, 'up']);
       }
-    })(new JitRenderDelegate(), RenderTestState(assert, 'glimmer'));
+    })(new ClientSideRenderDelegate(), RenderTestState(assert, 'glimmer'));
   });
 });

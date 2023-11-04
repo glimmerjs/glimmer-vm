@@ -8,11 +8,11 @@ import type {
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE, type SomeReactive } from '@glimmer/reference';
 import {
+  ClientSideRenderDelegate,
   createTemplate,
   defineComponent,
   EmberishCurlyComponent,
   GlimmerishComponent,
-  JitRenderDelegate,
   type RenderDelegateOptions,
   RenderTestContext,
   test,
@@ -28,7 +28,7 @@ class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {
   }
 }
 
-class OwnerJitRenderDelegate extends JitRenderDelegate {
+class OwnerJitRenderDelegate extends ClientSideRenderDelegate {
   constructor(options?: RenderDelegateOptions) {
     super({
       ...options,

@@ -186,7 +186,6 @@ function getErrorMessage(assert: Assert, error: unknown): string {
   }
 }
 
-
 class ChaosMonkeyRehydration extends ChaosMonkeyContext {
   static suiteName = 'chaos-rehydration';
 
@@ -267,9 +266,7 @@ export const ChaosMonkeyTests = matrix(
       ctx.runIterations(template, ctx.self.ref, '<p>hello <div>world!</div></p>', 100);
     });
   }
-);
-
-ChaosMonkeyTests({ delegate: RehydrationDelegate, template: 'all' });
+).test(RehydrationDelegate);
 
 class ChaosMonkeyPartialRehydrationContext extends ChaosMonkeyContext {
   static suiteName = 'chaos-partial-rehydration';
@@ -284,7 +281,7 @@ class ChaosMonkeyPartialRehydrationContext extends ChaosMonkeyContext {
   }
 }
 
-const ChaosMonkeyPartialRehydration = matrix(
+matrix(
   {
     context: ChaosMonkeyPartialRehydrationContext,
   },
@@ -374,6 +371,4 @@ const ChaosMonkeyPartialRehydration = matrix(
       );
     });
   }
-);
-
-ChaosMonkeyPartialRehydration({ delegate: PartialRehydrationDelegate, template: 'all' });
+).test(PartialRehydrationDelegate);

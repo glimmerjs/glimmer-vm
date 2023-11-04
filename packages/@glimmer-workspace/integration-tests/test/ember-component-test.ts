@@ -4,6 +4,7 @@ import {
   type Attrs,
   type AttrsDiff,
   classes,
+  type ClientSideRenderDelegate,
   createTemplate,
   elementId,
   EmberishCurlyComponent,
@@ -12,7 +13,6 @@ import {
   firstElementChild,
   GlimmerishComponent,
   isSimpleElement,
-  type JitRenderDelegate,
   jitSuite,
   regex,
   render,
@@ -2046,7 +2046,7 @@ class CurlyTeardownTest extends CurlyTest {
 class CurlyLateLayoutTest extends CurlyTest {
   static suiteName = '[curly component] late bound layout';
 
-  declare delegate: JitRenderDelegate;
+  declare delegate: ClientSideRenderDelegate;
 
   @render
   'can bind the layout late'() {
@@ -2074,7 +2074,7 @@ class CurlyLateLayoutTest extends CurlyTest {
 class CurlyAppendableTest extends CurlyTest {
   static suiteName = '[curly component] appendable components';
 
-  declare delegate: JitRenderDelegate;
+  declare delegate: ClientSideRenderDelegate;
 
   @render
   'it does not work on optimized appends'() {

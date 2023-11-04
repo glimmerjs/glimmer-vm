@@ -12,13 +12,11 @@ import {
   componentSuite,
   type Content,
   content,
-  DynamicInitialRenderSuite,
   EMPTY,
   equalTokens,
   firstElementChild,
   GLIMMER_TEST_COMPONENT,
   InitialRenderTests,
-  jitSuite,
   OPEN,
   RehydrationDelegate,
   render,
@@ -86,7 +84,7 @@ class RehydrationContext extends RenderTestContext {
 
 const RehydrationTests = matrix(
   { context: RehydrationContext, extends: InitialRenderTests },
-  'rehydration2',
+  'rehydration',
   (test) => {
     test('rehydrates into element with pre-existing content', (ctx) => {
       let rootElement = ctx.delegate.serverDoc.createElement('div');
@@ -933,10 +931,7 @@ const RehydrationTests = matrix(
   }
 );
 
-RehydrationTests({
-  delegate: RehydrationDelegate,
-  template: 'all',
-});
+RehydrationTests.test(RehydrationDelegate);
 
 // On the server, elements come after block start boundaries.
 const SERVER_ELEMENT_OFFSET = 2;
@@ -1596,9 +1591,5 @@ class RehydratingComponents extends RehydrationContext {
     this.assertComponent('<ul><!----></ul><ul><li>Industry</li><li>Standard</li><li>2</li></ul>');
   }
 }
-
-jitSuite(DynamicInitialRenderSuite, {
-  test: ['error-recovery'],
-});
 
 componentSuite(RehydratingComponents, RehydrationDelegate);

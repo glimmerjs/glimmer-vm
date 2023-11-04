@@ -76,7 +76,7 @@ function toDynamicContentType(value: unknown): DynamicContentType {
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
   let reference = check(vm.stack.top(), CheckReactive);
 
-  const contentType = vm.deref(reference, toContentType);
+  const contentType = vm.derefReactive(reference, toContentType);
 
   if (vm.unwrap(contentType)) {
     vm.stack.push(contentType.value);
@@ -90,7 +90,7 @@ APPEND_OPCODES.add(Op.ContentType, (vm) => {
 APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
   let reference = check(vm.stack.top(), CheckReactive);
 
-  const result = vm.deref(reference, toDynamicContentType);
+  const result = vm.derefReactive(reference, toDynamicContentType);
 
   if (vm.unwrap(result)) {
     vm.stack.push(result.value);
@@ -104,7 +104,7 @@ APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
 APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
   let reference = check(vm.stack.pop(), CheckReactive);
 
-  const html = vm.deref(reference, (value) => {
+  const html = vm.derefReactive(reference, (value) => {
     return isEmpty(value) ? '' : String(value);
   });
 
@@ -116,7 +116,7 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
 APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
   let reference = check(vm.stack.pop(), CheckReactive);
 
-  const html = vm.deref(reference, (value) => {
+  const html = vm.derefReactive(reference, (value) => {
     const html = check(value, CheckSafeString).toHTML();
     return isEmpty(html) ? '' : check(html, CheckString);
   });
@@ -129,7 +129,7 @@ APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
 APPEND_OPCODES.add(Op.AppendText, (vm) => {
   let reference = check(vm.stack.pop(), CheckReactive);
 
-  let result = vm.deref(reference, (value) => (isEmpty(value) ? '' : String(value)));
+  let result = vm.derefReactive(reference, (value) => (isEmpty(value) ? '' : String(value)));
 
   if (vm.unwrap(result)) {
     let node = vm.elements().appendDynamicText(result.value);
@@ -142,7 +142,7 @@ APPEND_OPCODES.add(Op.AppendText, (vm) => {
 
 APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
   let reference = check(vm.stack.pop(), CheckReactive);
-  const result = vm.deref(reference);
+  const result = vm.derefReactive(reference);
 
   if (vm.unwrap(result)) {
     vm.elements().appendDynamicFragment(check(result.value, CheckDocumentFragment));
@@ -151,7 +151,7 @@ APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
 
 APPEND_OPCODES.add(Op.AppendNode, (vm) => {
   let reference = check(vm.stack.pop(), CheckReactive);
-  const result = vm.deref(reference);
+  const result = vm.derefReactive(reference);
 
   if (vm.unwrap(result)) {
     vm.elements().appendDynamicNode(check(result.value, CheckNode));

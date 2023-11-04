@@ -18,10 +18,10 @@ import {
 import { assign, expect } from '@glimmer/util';
 import {
   BaseEnv,
+  ClientSideRenderDelegate,
   createTemplate,
   type EmberishCurlyComponent,
   GlimmerishComponent,
-  JitRenderDelegate,
   RenderTestContext,
   test,
   testSuite,
@@ -49,7 +49,7 @@ interface ExpectedRenderNode {
   children: Expected<CapturedRenderNode['children']> | ExpectedRenderNode[];
 }
 
-class DebugRenderTreeDelegate extends JitRenderDelegate {
+class DebugRenderTreeDelegate extends ClientSideRenderDelegate {
   registerCustomComponent(
     name: string,
     template: string,

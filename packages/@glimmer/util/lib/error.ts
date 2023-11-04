@@ -1,4 +1,4 @@
-import type { UserException as UserExceptionInterface } from '@glimmer/interfaces';
+import type { SomeReactive, UserException as UserExceptionInterface } from '@glimmer/interfaces';
 
 import { isObject } from './collections';
 
@@ -8,6 +8,29 @@ export function isUserException(error: Error): error is UserException {
 
 export function isError(value: unknown): value is Error {
   return isObject(value) && value instanceof Error;
+}
+
+export class EarlyError extends Error {
+  static reactive(message: string, reactive: SomeReactive) {
+    return new EarlyError(message, reactive);
+  }
+
+  readonly reactive: SomeReactive | null;
+
+  constructor(message: string, reactive: SomeReactive | null = null) {
+    super(fullMessage(message, reactive));
+
+    this.reactive = reactive;
+  }
+}
+
+function fullMessage(message: string, reactive: SomeReactive | null) {
+  const label = reactive?.debugLabel;
+  if (label && message.includes('%r')) {
+    return message.replace('%r', `(${label})`);
+  } else {
+    return message;
+  }
 }
 
 export class UserException extends Error implements UserExceptionInterface {

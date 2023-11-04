@@ -8,7 +8,7 @@ import createHTMLDocument from '@simple-dom/document';
 import { toInnerHTML } from '../../dom/simple-utils';
 import type { RenderDelegateOptions } from '../../render-delegate';
 import { RenderTestContext } from '../../render-test';
-import { JitRenderDelegate } from '../jit/delegate';
+import { ClientSideRenderDelegate } from '../jit/delegate';
 
 export interface NodeEnvironmentOptions {
   document: SimpleDocument;
@@ -16,7 +16,7 @@ export interface NodeEnvironmentOptions {
   updateOperations?: GlimmerTreeChanges;
 }
 
-export class NodeJitRenderDelegate extends JitRenderDelegate {
+export class NodeJitRenderDelegate extends ClientSideRenderDelegate {
   static override style = 'node jit';
 
   constructor(options: RenderDelegateOptions = {}) {

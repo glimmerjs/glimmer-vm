@@ -1,6 +1,7 @@
 import type { DebugVmSnapshot, Dict, PresentArray } from '@glimmer/interfaces';
-import type { OperandList, Op, ShorthandStackReturn } from './utils';
+
 import type { UNCHANGED } from './stack/params';
+import type { Op, OperandList, ShorthandStackReturn } from './utils';
 
 export type UncheckedStack = { type: 'unchecked'; reason: string };
 export type StackCheck = DynamicStackFn | UncheckedStack;

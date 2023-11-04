@@ -1,27 +1,36 @@
 import type { Dict, Maybe } from '@glimmer/interfaces';
-import { FallibleFormula, readReactive, type SomeReactive } from '@glimmer/reference';
-import { enumerate } from '@glimmer/util';
+import { readReactive, ResultFormula, type SomeReactive } from '@glimmer/reference';
+import { enumerate, Ok } from '@glimmer/util';
 
 export function createConcatRef(partsRefs: SomeReactive[]) {
-  return FallibleFormula(() => {
-    let parts = new Array<string>();
+  return ResultFormula(
+    () => {
+      let parts = new Array<string>();
 
-    for (const [i, ref] of enumerate(partsRefs)) {
-      let result = readReactive(ref);
+      for (const [i, ref] of enumerate(partsRefs)) {
+        let result = readReactive(ref);
 
-      if (result.type === 'err') {
-        // @fixme a version of FallibleFormula that you can directly return results to
-        throw result.value;
+        if (result.type === 'err') {
+          return result;
+        }
+
+        const value = result.value as Maybe<Dict>;
+        if (value !== null && value !== undefined) {
+          parts[i] = castToString(value);
+        }
       }
 
-      const value = result.value as Maybe<Dict>;
-      if (value !== null && value !== undefined) {
-        parts[i] = castToString(value);
-      }
-    }
+      return Ok(parts.length > 0 ? parts.join('') : null);
+    },
+    import.meta.env.DEV ? concatLabel(partsRefs) : undefined
+  );
+}
 
-    return parts.length > 0 ? parts.join('') : null;
-  });
+function concatLabel(parts: SomeReactive[]) {
+  const body = parts
+    .map((reactive) => (reactive.debugLabel ? `{${reactive.debugLabel}}` : '{unknown}'))
+    .join(' + ');
+  return `(concat ${body})`;
 }
 
 function castToString(value: Dict) {

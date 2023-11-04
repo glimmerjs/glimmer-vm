@@ -635,7 +635,8 @@ export function readReactive<T>(reactive: SomeReactive<T>): ReactiveResult<T> {
   if (reactive.error) {
     return Err(reactive.error);
   } else {
-    return Ok(rawValueForRef(reactive as Reactive<T>));
+    const value = rawValueForRef(reactive as Reactive<T>);
+    return reactive.error ? Err(reactive.error) : Ok(value);
   }
 }
 

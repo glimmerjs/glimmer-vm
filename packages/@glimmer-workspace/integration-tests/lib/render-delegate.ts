@@ -51,8 +51,6 @@ export interface LogRender {
 }
 
 export default interface RenderDelegate {
-  readonly style: string;
-
   // Each registered value (using the `test.register.XXX` APIs) will be registered in each of these
   // registries. In rehydration tests, this causes values to be registered on both the emulated
   // server and client.

@@ -1,8 +1,6 @@
 import {
   check,
   CheckBlockSymbolTable,
-  type Checker,
-  CheckFunction,
   CheckHandle,
   CheckNullable,
   CheckNumber,
@@ -65,15 +63,16 @@ APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: catchPc }) => {
   if (handler === null) {
     vm.pushTryFrame(catchPc, null);
   } else {
-    const result = vm.deref(handler);
+    const result = vm.derefReactive(handler);
 
     // if the handler itself throws an error, propagate the error up to the next frame (and possibly
     // the top level)
     if (vm.unwrap(result)) {
-      vm.pushTryFrame(
-        catchPc,
-        check(result.value, CheckNullable(CheckFunction as Checker<ErrorHandler>))
-      );
+      if (result.value !== null && typeof result.value !== 'function') {
+        throw vm.earlyError('Expected try handler %r to be a function', handler);
+      }
+
+      vm.pushTryFrame(catchPc, result.value as ErrorHandler);
     }
   }
 });

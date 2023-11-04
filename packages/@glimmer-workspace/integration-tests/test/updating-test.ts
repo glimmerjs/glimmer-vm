@@ -6,10 +6,10 @@ import { expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 import {
   assertNodeTagName,
+  type ClientSideRenderDelegate,
   getElementByClassName,
   getElementsByTagName,
   GlimmerishComponent,
-  type JitRenderDelegate,
   jitSuite,
   RenderTestContext,
   stripTight,
@@ -37,7 +37,7 @@ class SafeStringImpl implements SafeString {
 class UpdatingTest extends RenderTestContext {
   static suiteName = 'Updating';
 
-  declare delegate: JitRenderDelegate;
+  declare delegate: ClientSideRenderDelegate;
 
   @test
   'updating a single curly'() {

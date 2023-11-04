@@ -1,304 +1,380 @@
+import { matrix } from '@glimmer-workspace/integration-tests';
+
 import { GlimmerishComponent } from '../components';
-import { RenderTestContext } from '../render-test';
-import { render } from '../test-decorator';
 
-export class HasBlockParamsHelperSuite extends RenderTestContext {
-  static suiteName = 'has-block-params';
+matrix('has-block-params', (spec) => {
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (subexpr, else) when else supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{#if (has-block-params "inverse")}}Yes{{else}}No{{/if}}',
+        template: 'block here',
+        else: 'else here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (subexpr, else) when else supplied without block params'() {
-    this.render.template({
-      layout: '{{#if (has-block-params "inverse")}}Yes{{else}}No{{/if}}',
-      template: 'block here',
-      else: 'else here',
-    });
-
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
-
-  @render('curly')
-  'has-block-params from within a yielded + invoked curried component'() {
-    class TestHarness extends GlimmerishComponent {
-      public Foo: any;
+      ctx.assertComponent('No');
+      ctx.assertStableRerender();
     }
-    this.register.component('Glimmer', 'TestHarness', '{{yield (component "Foo")}}', TestHarness);
-    this.register.component('Glimmer', 'Foo', '{{#if (has-block-params)}}Yes{{else}}No{{/if}}');
+  );
 
-    this.render.template('<TestHarness as |Foo|>{{Foo}}</TestHarness>');
+  spec(
+    { type: 'curly' },
+    'has-block-params from within a yielded + invoked curried component',
+    (ctx) => {
+      class TestHarness extends GlimmerishComponent {
+        public Foo: any;
+      }
+      ctx.register.component('Glimmer', 'TestHarness', '{{yield (component "Foo")}}', TestHarness);
+      ctx.register.component('Glimmer', 'Foo', '{{#if (has-block-params)}}Yes{{else}}No{{/if}}');
 
-    this.assertHTML('No');
-    this.assertStableRerender();
-  }
+      ctx.render.template('<TestHarness as |Foo|>{{Foo}}</TestHarness>');
 
-  @render('curly')
-  'parameterized has-block-params (subexpr, else) when else not supplied'() {
-    this.render.template({
-      layout: '{{#if (has-block-params "inverse")}}Yes{{else}}No{{/if}}',
-      template: 'block here',
-    });
+      ctx.assertHTML('No');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (subexpr, else) when else not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{#if (has-block-params "inverse")}}Yes{{else}}No{{/if}}',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (subexpr, default) when block supplied with block params'() {
-    this.render.template({
-      layout: '{{#if (has-block-params)}}Yes{{else}}No{{/if}}',
-      blockParams: ['param'],
-      template: 'block here',
-    });
+      ctx.assertComponent('No');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('Yes');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (subexpr, default) when block supplied with block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{#if (has-block-params)}}Yes{{else}}No{{/if}}',
+        blockParams: ['param'],
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (subexpr, default) when block supplied without block params'() {
-    this.render.template({
-      layout: '{{#if (has-block-params)}}Yes{{else}}No{{/if}}',
-      template: 'block here',
-    });
+      ctx.assertComponent('Yes');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (subexpr, default) when block supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{#if (has-block-params)}}Yes{{else}}No{{/if}}',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (subexpr, default) when block not supplied'() {
-    this.render.template({
-      layout: '{{#if (has-block-params)}}Yes{{else}}No{{/if}}',
-    });
+      ctx.assertComponent('No');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (subexpr, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{#if (has-block-params)}}Yes{{else}}No{{/if}}',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (content, else) when else supplied without block params'() {
-    this.render.template({
-      layout: '{{has-block-params "inverse"}}',
-      template: 'block here',
-      else: 'else here',
-    });
+      ctx.assertComponent('No');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('false');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (content, else) when else supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{has-block-params "inverse"}}',
+        template: 'block here',
+        else: 'else here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (content, else) when else not supplied'() {
-    this.render.template({
-      layout: '{{has-block-params "inverse"}}',
-      template: 'block here',
-    });
+      ctx.assertComponent('false');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('false');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (content, else) when else not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{has-block-params "inverse"}}',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (content, default) when block supplied with block params'() {
-    this.render.template({
-      layout: '{{has-block-params}}',
-      blockParams: ['param'],
-      template: 'block here',
-    });
+      ctx.assertComponent('false');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('true');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (content, default) when block supplied with block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{has-block-params}}',
+        blockParams: ['param'],
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (content, default) when block supplied without block params'() {
-    this.render.template({
-      layout: '{{has-block-params}}',
-      template: 'block here',
-    });
+      ctx.assertComponent('true');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('false');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (content, default) when block supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{has-block-params}}',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (content, default) when block not supplied'() {
-    this.render.template({
-      layout: '{{has-block-params}}',
-      template: 'block here',
-    });
+      ctx.assertComponent('false');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('false');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (content, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{has-block-params}}',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (prop, else) when else supplied without block params'() {
-    this.render.template({
-      layout: '<button name={{has-block-params "inverse"}}></button>',
-      template: 'block here',
-      else: 'else here',
-    });
+      ctx.assertComponent('false');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button name="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (prop, else) when else supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button name={{has-block-params "inverse"}}></button>',
+        template: 'block here',
+        else: 'else here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (prop, else) when else not supplied'() {
-    this.render.template({
-      layout: '<button name={{has-block-params "inverse"}}></button>',
-      template: 'block here',
-    });
+      ctx.assertComponent('<button name="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button name="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (prop, else) when else not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button name={{has-block-params "inverse"}}></button>',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (prop, default) when block supplied with block params'() {
-    this.render.template({
-      layout: '<button name={{has-block-params}}></button>',
-      blockParams: ['param'],
-      template: 'block here',
-    });
+      ctx.assertComponent('<button name="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button name="true"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (prop, default) when block supplied with block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button name={{has-block-params}}></button>',
+        blockParams: ['param'],
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (prop, default) when block supplied without block params'() {
-    this.render.template({
-      layout: '<button name={{has-block-params}}></button>',
-      template: 'block here',
-    });
+      ctx.assertComponent('<button name="true"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button name="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (prop, default) when block supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button name={{has-block-params}}></button>',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (prop, default) when block not supplied'() {
-    this.render.template({
-      layout: '<button name={{has-block-params}}></button>',
-    });
+      ctx.assertComponent('<button name="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button name="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (prop, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button name={{has-block-params}}></button>',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (attr, else) when else supplied without block params'() {
-    this.render.template({
-      layout: '<button data-has-block-params="{{has-block-params "inverse"}}"></button>',
-      template: 'block here',
-      else: 'else here',
-    });
+      ctx.assertComponent('<button name="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (attr, else) when else supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="{{has-block-params "inverse"}}"></button>',
+        template: 'block here',
+        else: 'else here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (attr, else) when else not supplied'() {
-    this.render.template({
-      layout: '<button data-has-block-params="{{has-block-params "inverse"}}"></button>',
-      template: 'block here',
-      else: 'else here',
-    });
+      ctx.assertComponent('<button data-has-block-params="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (attr, else) when else not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="{{has-block-params "inverse"}}"></button>',
+        template: 'block here',
+        else: 'else here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (attr, default) when block supplied with block params'() {
-    this.render.template({
-      layout: '<button data-has-block-params="{{has-block-params}}"></button>',
-      blockParams: ['param'],
-      template: 'block here',
-    });
+      ctx.assertComponent('<button data-has-block-params="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="true"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (attr, default) when block supplied with block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="{{has-block-params}}"></button>',
+        blockParams: ['param'],
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (attr, default) when block supplied without block params'() {
-    this.render.template({
-      layout: '<button data-has-block-params="{{has-block-params}}"></button>',
-      template: 'block here',
-    });
+      ctx.assertComponent('<button data-has-block-params="true"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (attr, default) when block supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="{{has-block-params}}"></button>',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (attr, default) when block not supplied'() {
-    this.render.template({
-      layout: '<button data-has-block-params="{{has-block-params}}"></button>',
-      template: 'block here',
-    });
+      ctx.assertComponent('<button data-has-block-params="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (attr, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="{{has-block-params}}"></button>',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (concatted attr, else) when else supplied without block params'() {
-    this.render.template({
-      layout: '<button data-has-block-params="is-{{has-block-params "inverse"}}"></button>',
-      template: 'block here',
-      else: 'else here',
-    });
+      ctx.assertComponent('<button data-has-block-params="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="is-false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (concatted attr, else) when else supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="is-{{has-block-params "inverse"}}"></button>',
+        template: 'block here',
+        else: 'else here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (concatted attr, else) when else not supplied'() {
-    this.render.template({
-      layout: '<button data-has-block-params="is-{{has-block-params "inverse"}}"></button>',
-      template: 'block here',
-    });
+      ctx.assertComponent('<button data-has-block-params="is-false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="is-false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (concatted attr, else) when else not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="is-{{has-block-params "inverse"}}"></button>',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (concatted attr, default) when block supplied with block params'() {
-    this.render.template({
-      layout: '<button data-has-block-params="is-{{has-block-params}}"></button>',
-      template: 'block here',
-      blockParams: ['param'],
-    });
+      ctx.assertComponent('<button data-has-block-params="is-false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="is-true"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (concatted attr, default) when block supplied with block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="is-{{has-block-params}}"></button>',
+        template: 'block here',
+        blockParams: ['param'],
+      });
 
-  @render('curly')
-  'parameterized has-block-params (concatted attr, default) when block supplied without block params'() {
-    this.render.template({
-      layout: '<button data-has-block-params="is-{{has-block-params}}"></button>',
-      template: 'block here',
-    });
+      ctx.assertComponent('<button data-has-block-params="is-true"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="is-false"></button>');
-    this.assertStableRerender();
-  }
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (concatted attr, default) when block supplied without block params',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="is-{{has-block-params}}"></button>',
+        template: 'block here',
+      });
 
-  @render('curly')
-  'parameterized has-block-params (concatted attr, default) when block not supplied'() {
-    this.render.template({
-      layout: '<button data-has-block-params="is-{{has-block-params}}"></button>',
-    });
+      ctx.assertComponent('<button data-has-block-params="is-false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-    this.assertComponent('<button data-has-block-params="is-false"></button>');
-    this.assertStableRerender();
-  }
-}
+  spec(
+    { type: 'curly' },
+    'parameterized has-block-params (concatted attr, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block-params="is-{{has-block-params}}"></button>',
+      });
+
+      ctx.assertComponent('<button data-has-block-params="is-false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
+}).client();

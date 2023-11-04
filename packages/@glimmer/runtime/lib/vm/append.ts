@@ -40,6 +40,7 @@ import {
 import { readReactive } from '@glimmer/reference/lib/reference';
 import {
   assert,
+  EarlyError,
   expect,
   LOCAL_LOGGER,
   mapResult,
@@ -164,10 +165,13 @@ export interface InternalVM {
 
   referenceForSymbol(symbol: number): SomeReactive;
 
-  deref<T>(reactive: SomeReactive<T>): Result<T>;
-  deref<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
+  deref<T>(reactive: SomeReactive<T>, then: (value: T) => void | Result<void>): void;
+
+  derefReactive<T>(reactive: SomeReactive<T>): Result<T>;
+  derefReactive<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
 
   unwrap<T>(result: Result<T>): result is OkResult<T>;
+  earlyError(message: string, reactive?: SomeReactive): never;
 
   execute(initialize?: (vm: this) => void): RenderResult;
   pushUpdating(list?: UpdatingOpcode[]): void;
@@ -308,6 +312,10 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
   public t0: unknown = null;
   public t1: unknown = null;
   public v0: unknown = null;
+
+  earlyError(message: string, from?: SomeReactive): never {
+    throw new EarlyError(message, from);
+  }
 
   // Fetch a value from a register onto the stack
   fetch(register: SyscallRegister): void {
@@ -709,9 +717,21 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     return this.scope().getSymbol(symbol);
   }
 
-  deref<T>(reference: SomeReactive<T>): Result<T>;
-  deref<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
-  deref(reference: SomeReactive<unknown>, map?: (value: unknown) => unknown): Result<unknown> {
+  deref<T>(reactive: SomeReactive<T>, then: (value: T) => void | Result<void>): void {
+    const result = this.derefReactive(reactive);
+
+    if (this.unwrap(result)) {
+      const thenResult = then(result.value);
+      if (thenResult) this.unwrap(thenResult);
+    }
+  }
+
+  derefReactive<T>(reference: SomeReactive<T>): Result<T>;
+  derefReactive<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
+  derefReactive(
+    reference: SomeReactive<unknown>,
+    map?: (value: unknown) => unknown
+  ): Result<unknown> {
     return this.#deref(reference, map);
   }
 

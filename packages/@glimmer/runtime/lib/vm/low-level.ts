@@ -167,7 +167,7 @@ export class Registers {
   try(catchPc: number, handler: ErrorHandler | null) {
     this.#packed[$up] = this.#packed[$up].child({
       ip: catchPc,
-      ra: this.#packed[$sp],
+      ra: this.#packed[$ra],
       fp: this.#packed[$fp],
       handler,
     });

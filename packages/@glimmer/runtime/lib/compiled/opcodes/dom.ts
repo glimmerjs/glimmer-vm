@@ -336,14 +336,16 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: _trusting, op3: _name
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
   let reference = check(vm.stack.pop(), CheckReactive);
-  let value = unwrapReactive(reference);
-  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
+  vm.deref(reference, (value) => {
+    let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  if (!isConstant(reference)) {
-    vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
-  }
+    let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
+
+    if (!isConstant(reference)) {
+      vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
+    }
+  });
 });
 
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
