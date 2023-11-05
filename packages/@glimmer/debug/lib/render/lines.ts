@@ -1,7 +1,9 @@
+import { getFlagValues } from '@glimmer/local-debug-flags';
 import type { LOCAL_LOGGER } from '@glimmer/util';
 
+import { prepend } from './combinators';
 import type { DisplayFragmentOptions, FlushedLines, Fragment, LogEntry } from './fragment';
-import { frag, type IntoFragment, intoFragment } from './presets';
+import { as, frag, type IntoFormat, type IntoFragment, intoFragment } from './presets';
 
 type FlatOp =
   | Atom
@@ -229,6 +231,23 @@ export class DebugLogger {
     const fragment = frag`${args}`;
 
     if (!fragment.isEmpty(this.#options)) this.#lines('debug', fragment.toLog(this.#options));
+  }
+
+  labelled(label: string, ...args: IntoFragment[]): void {
+    const fragment = frag`${args}`;
+
+    const styles: IntoFormat[] = ['kw'];
+
+    const { focus, focusColor } = getFlagValues('focus_highlight').includes(label)
+      ? ({ focus: ['focus'], focusColor: ['focusColor'] } as const)
+      : { focus: [], focusColor: [] };
+
+    this.log(
+      prepend(
+        frag`${as.label(label)} `.styleAll(...styles, ...focus, ...focusColor),
+        fragment.styleAll(...focus)
+      )
+    );
   }
 
   group(...args: IntoFragment[]): { expanded: () => () => void; collapsed: () => () => void } {

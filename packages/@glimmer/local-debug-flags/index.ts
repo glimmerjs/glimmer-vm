@@ -37,6 +37,11 @@ if (LOCAL_INTERNALS_LOGGING || LOCAL_EXPLAIN_LOGGING) {
     getFlag('audit_logging'),
     'Enables specific audit logs. These logs are useful during an internal refactor and can help pinpoint exactly where legacy code is being used (e.g. infallible_deref and throwing_deref).'
   );
+  log(
+    'focus_highlight',
+    getFlag('focus_highlight'),
+    `Enables focus highlighting of specific trace logs. This makes it easy to see specific aspects of the trace at a glance.`
+  );
   console.log();
   console.groupEnd();
 
@@ -120,6 +125,18 @@ export function hasFlagWith(flag: string, value: string): boolean {
     return url?.searchParams.getAll(flag).some((param) => pattern.test(param)) ?? false;
   } else {
     return false;
+  }
+}
+
+export function getFlagValues(flag: string): string[] {
+  if (import.meta.env.DEV) {
+    const url =
+      typeof window !== 'undefined' && window.location ? new URL(window.location.href) : null;
+
+    const all = url?.searchParams.getAll(flag);
+    return all?.filter((a) => a !== '') ?? [];
+  } else {
+    return [];
   }
 }
 

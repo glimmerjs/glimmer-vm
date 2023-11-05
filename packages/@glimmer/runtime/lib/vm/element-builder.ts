@@ -186,9 +186,9 @@ export abstract class AbstractElementBuilder implements ElementBuilder {
 
   get debug(): ElementBuilder['debug'] {
     return {
-      blocks: this.blockStack.asArray(),
+      blocks: this.blockStack.toArray(),
       constructing: this.constructing,
-      inserting: this.cursors.asArray(),
+      inserting: this.cursors.toArray(),
     };
   }
 

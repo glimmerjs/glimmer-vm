@@ -21,7 +21,6 @@ import type {
   Result,
   RichIteratorResult,
   RuntimeContext,
-  RuntimeHeap,
   RuntimeProgram,
   Scope,
   TargetState,
@@ -113,12 +112,12 @@ class VMState {
     );
   }
 
-  readonly scope: PresentStack<Scope>;
-  readonly dynamicScope: PresentStack<DynamicScope>;
-  readonly cache: Stack<JumpIfNotModifiedOpcode>;
-  readonly list: Stack<ListBlockOpcode>;
-  readonly updating: BalancedStack<UpdatingOpcode[]>;
-  readonly destructors: BalancedStack<Destroyable>;
+  #scope: PresentStack<Scope>;
+  #dynamicScope: PresentStack<DynamicScope>;
+  #cache: Stack<JumpIfNotModifiedOpcode>;
+  #list: Stack<ListBlockOpcode>;
+  #updating: BalancedStack<UpdatingOpcode[]>;
+  #destructors: BalancedStack<Destroyable>;
 
   constructor(
     scope: PresentStack<Scope>,
@@ -128,12 +127,60 @@ class VMState {
     updating: BalancedStack<UpdatingOpcode[]>,
     destructors: BalancedStack<Destroyable>
   ) {
-    this.scope = scope;
-    this.dynamicScope = dynamicScope;
-    this.cache = cache;
-    this.list = list;
-    this.updating = updating;
-    this.destructors = destructors;
+    this.#scope = scope;
+    this.#dynamicScope = dynamicScope;
+    this.#cache = cache;
+    this.#list = list;
+    this.#updating = updating;
+    this.#destructors = destructors;
+  }
+
+  get scope(): PresentStack<Scope> {
+    return this.#scope;
+  }
+
+  get dynamicScope(): PresentStack<DynamicScope> {
+    return this.#dynamicScope;
+  }
+
+  get cache(): Stack<JumpIfNotModifiedOpcode> {
+    return this.#cache;
+  }
+
+  get list(): Stack<ListBlockOpcode> {
+    return this.#list;
+  }
+
+  get updating(): BalancedStack<UpdatingOpcode[]> {
+    return this.#updating;
+  }
+
+  get destructors(): BalancedStack<Destroyable> {
+    return this.#destructors;
+  }
+
+  try() {
+    this.#cache = this.#cache.begin();
+    this.#scope = this.#scope.begin();
+    this.#dynamicScope = this.#dynamicScope.begin();
+    this.#list = this.#list.begin();
+    this.#destructors = this.#destructors.begin();
+  }
+
+  catch() {
+    this.#cache = this.#cache.rollback();
+    this.#scope = this.#scope.rollback();
+    this.#dynamicScope = this.#dynamicScope.rollback();
+    this.#list = this.#list.rollback();
+    this.#destructors = this.#destructors.rollback();
+  }
+
+  finally() {
+    this.#cache = this.#cache.finally();
+    this.#scope = this.#scope.finally();
+    this.#dynamicScope = this.#dynamicScope.finally();
+    this.#list = this.#list.finally();
+    this.#destructors = this.#destructors.finally();
   }
 }
 
@@ -159,7 +206,6 @@ export class VM implements PublicVM, SnapshottableVM {
 
   readonly #state: VMState;
   readonly #args: VMArgumentsImpl;
-  readonly #heap: RuntimeHeap;
   readonly #context: JitContext;
 
   readonly #inner: LowLevelVM;
@@ -181,7 +227,6 @@ export class VM implements PublicVM, SnapshottableVM {
     let evalStack = EvaluationStackImpl.restore(stack, pc, unwind);
 
     this.#context = context;
-    this.#heap = this.program.heap;
     this.elementStack = elementStack;
     this.#state = VMState.initial({ scope, dynamicScope });
     this.#args = new VMArgumentsImpl();
@@ -196,6 +241,10 @@ export class VM implements PublicVM, SnapshottableVM {
     if (import.meta.env.DEV) {
       this.#templates = new TemplateDebug();
     }
+  }
+
+  get #heap() {
+    return this.#context.heap;
   }
 
   get lowLevel(): LowLevelVM {
@@ -258,8 +307,8 @@ export class VM implements PublicVM, SnapshottableVM {
 
         stack: evalStack,
         scope: slots,
-        updating: this.#state.updating.asArray(),
-        destroyable: this.#state.destructors.asArray(),
+        updating: this.#state.updating.toArray(),
+        destroyable: this.#state.destructors.toArray(),
         threw: inner.debug.threw,
       } satisfies VmDebugState;
     }
@@ -353,18 +402,21 @@ export class VM implements PublicVM, SnapshottableVM {
    * Open an error recovery boundary.
    */
   pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>) {
+    this.#state.try();
     this.enter(0, { unwindTarget: true });
     this.elements().pushTryFrame();
     this.#inner.beginTry(catchPc, handler);
   }
 
   popTryFrame(): void {
-    this.elements().popTryFrame();
     this.#inner.popTryFrame();
+    this.elements().popTryFrame();
     this.exit();
+    this.#state.finally();
   }
 
   userException(error: unknown): TargetState {
+    this.#state.catch();
     this.elements().catch();
 
     return this.#inner.userException(error);

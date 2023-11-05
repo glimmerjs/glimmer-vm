@@ -122,18 +122,18 @@ export class Fragment<T extends FragmentType = FragmentType> {
     }
   }
 
-  styleAll(allStyle: IntoFormat | undefined): Fragment<T> {
-    if (allStyle === undefined) return this;
+  styleAll(...allStyle: IntoFormat[]): Fragment<T> {
+    if (allStyle.length === 0) return this;
 
     if (this.#type.kind === 'multi') {
       return new Fragment({
         ...this.#type,
-        value: this.#type.value.flatMap((f) => f.styleAll(allStyle).leaves()),
+        value: this.#type.value.flatMap((f) => f.styleAll(...allStyle).leaves()),
       });
     } else {
       return new Fragment({
         ...this.#type,
-        style: mergeStyle(this.#type.style, intoFormat(allStyle).style),
+        style: mergeStyle(this.#type.style, styles(...allStyle)),
       });
     }
   }
@@ -388,8 +388,8 @@ export class LogFragmentBuffer {
   }
 }
 
-function styles(...styles: (keyof typeof STYLES)[]) {
-  return styles.map((c) => STYLES[c]).join('; ');
+function styles(...styles: IntoFormat[]) {
+  return styles.map((c) => intoFormat(c).style).join('; ');
 }
 
 function mergeStyle(a?: string | undefined, b?: string | undefined): string | undefined {

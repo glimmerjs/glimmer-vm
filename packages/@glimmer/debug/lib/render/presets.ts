@@ -39,6 +39,8 @@ export const STYLES = {
   unbold: 'font-weight: normal',
   pointer: 'background-color: lavender; color: indigo',
   pointee: 'background-color: lavender; color: indigo',
+  focus: 'font-weight: bold',
+  focusColor: 'background-color: lightred; color: darkred',
 } as const;
 
 export const as = Object.fromEntries(

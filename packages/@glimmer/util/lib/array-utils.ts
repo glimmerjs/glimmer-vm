@@ -23,6 +23,21 @@ export function isEmptyArray(input: unknown[] | readonly unknown[]): boolean {
   return input === EMPTY_ARRAY;
 }
 
+export function* times(count: number) {
+  for (let i = 0; i < count; i++) {
+    yield i;
+  }
+}
+
+/**
+ * Returns an array of numbers from `start` up to `end` (inclusive)
+ */
+export function* range(start: number, end: number): IterableIterator<number> {
+  for (let i = start; i <= end; i++) {
+    yield i;
+  }
+}
+
 export function* reverse<T>(input: T[]): IterableIterator<T> {
   for (let i = input.length - 1; i >= 0; i--) {
     yield input[i]!;

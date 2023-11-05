@@ -207,19 +207,18 @@ export class DiffState {
   log(logger: DebugLogger, op?: DebugOpState) {
     logger.log(this.ra);
     logger.log(this.return);
-    logger.log(prepend(frag`${as.label('saved')} `.styleAll('kw'), this.saved));
-    logger.log(prepend(frag`${as.label('temporaries')} `.styleAll('kw'), this.temporaries));
+    logger.labelled('saved', this.saved);
+    logger.labelled('temporaries', this.temporaries);
+
     logger.log(tuple(this.#after.registers.frame, { as: intoFragment }).subtle());
     logger.log(this.up);
 
     if (op && this.#before) {
-      logger.log(
-        prepend(frag`${as.label('frame')} `.styleAll('kw'), this.frame(op.stack(this.#before)))
-      );
+      logger.labelled('frame', this.frame(op.stack(this.#before)));
     }
-    logger.log(prepend(frag`${as.label('scope')} `.styleAll('kw'), this.scope));
-    logger.log(prepend(frag`${as.label('updating')} `.styleAll('kw'), this.updating));
-    logger.log(prepend(frag`${as.label('destructors')} `.styleAll('kw'), this.destructors));
+    logger.labelled('scope', this.scope);
+    logger.labelled('updating', this.updating);
+    logger.labelled('destructors', this.destructors);
   }
 
   change<T>(compare: (state: DebugVmSnapshot) => T, create: (value: T) => Fragment) {

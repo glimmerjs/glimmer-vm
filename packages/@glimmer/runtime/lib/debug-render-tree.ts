@@ -114,14 +114,14 @@ export default class DebugRenderTreeImpl<TBucket extends object>
 
       // Clean up the root reference to prevent errors from happening if we
       // attempt to capture the render tree (Ember Inspector may do this)
-      let root = expect(this.stack.asArray()[0], 'expected root state when resetting render tree');
+      let root = expect(this.stack.toArray()[0], 'expected root state when resetting render tree');
       let ref = this.refs.get(root);
 
       if (ref !== undefined) {
         this.roots.delete(ref);
       }
 
-      while (!this.stack.isEmpty()) {
+      while (this.stack.size !== 0) {
         this.stack.pop();
       }
     }

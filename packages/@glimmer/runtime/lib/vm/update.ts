@@ -76,7 +76,7 @@ export class UpdatingVM implements IUpdatingVM {
 
     this.try(opcodes, { handler, unwind: true });
 
-    while (!frameStack.isEmpty()) {
+    while (frameStack.size !== 0) {
       let opcode = this.frame.nextStatement();
 
       if (opcode === undefined) {
@@ -219,7 +219,9 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     let children = this.updateChildren([]);
 
     let result = vm.execute((vm) => {
+      // emulate initial VM state
       vm.start();
+      // emulate TryOpcode on the stack
       vm.start(this);
 
       vm.pushUpdating(updating);
