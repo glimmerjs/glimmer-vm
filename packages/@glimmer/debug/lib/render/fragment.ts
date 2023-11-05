@@ -100,6 +100,10 @@ export class Fragment<T extends FragmentType = FragmentType> {
   }
 
   subtle(isSubtle = true): Fragment<T> {
+    if (this.isSubtle() === false && isSubtle === false) {
+      return this;
+    }
+
     const fragment = this.#subtle(isSubtle);
     return isSubtle ? fragment.styleAll('subtle') : fragment;
   }

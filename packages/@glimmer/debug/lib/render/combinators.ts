@@ -1,18 +1,31 @@
 import type {
   BlockBoundsDebug,
   Dict,
-  Maybe,
+  Nullable,
+  Optional,
   PartialBoundsDebug,
   ScopeSlot,
+  SnapshotArray,
   SomeBoundsDebug,
   SomeReactive,
+  UpdatingOpcode,
 } from '@glimmer/interfaces';
 import { readReactive } from '@glimmer/reference';
 import { isCompilable, zip } from '@glimmer/util';
 
 import { isReference } from '../utils';
 import type { Fragment } from './fragment';
-import { as, dom, empty, frag, type IntoFragment, intoFragment, join, value } from './presets';
+import {
+  as,
+  dom,
+  empty,
+  frag,
+  group,
+  type IntoFragment,
+  intoFragment,
+  join,
+  value,
+} from './presets';
 
 export function pick<const T extends object, const K extends keyof T>(
   obj: T,
@@ -20,8 +33,11 @@ export function pick<const T extends object, const K extends keyof T>(
 ): Pick<T, K> {
   return Object.fromEntries(keys.map((k) => [k, obj[k]])) as Pick<T, K>;
 }
+
+export type As<T> = (value: T) => Fragment;
+
 interface EntriesOptions<T> {
-  as?: (value: T) => Fragment;
+  as?: As<T>;
   subtle?: boolean | undefined | ((value: T) => boolean);
 }
 function normalizeOptions<T>(options: EntriesOptions<T> | undefined): {
@@ -81,8 +97,53 @@ function append(contents: Fragment, after: IntoFragment): Fragment {
 /**
  * The `wrap` function returns a subtle fragment if the contents are subtle.
  */
-function wrap(start: IntoFragment, contents: Fragment, end: IntoFragment) {
+export function wrap(start: IntoFragment, contents: Fragment, end: IntoFragment) {
   return append(prepend(start, contents), end);
+}
+
+export function nullableArray<T>(
+  items: Nullable<T[] | readonly T[]>,
+  options: EntriesOptions<T>
+): Fragment {
+  if (items === null) {
+    return value(null);
+  } else {
+    return array(items, options);
+  }
+}
+
+/**
+ * A compact array makes the wrapping `[]` subtle if there's only one element.
+ */
+export function compactArray<T>(
+  items: readonly T[],
+  options: EntriesOptions<T> & {
+    when: {
+      allSubtle: IntoFragment;
+      empty?: IntoFragment;
+    };
+  }
+): Fragment {
+  const [first] = items;
+
+  if (first === undefined) {
+    return options.when?.empty ? intoFragment(options.when.empty) : frag`[]`.subtle();
+  }
+
+  const { map, isSubtle } = normalizeOptions(options);
+
+  const contents = items.map((item) => (isSubtle(item) ? frag`${map(item)}`.subtle() : map(item)));
+  const body = join(contents, ', ');
+
+  const unsubtle = contents.filter((f) => !f.isSubtle());
+
+  if (unsubtle.length === 0) {
+    return intoFragment(options.when.allSubtle).subtle();
+  } else if (unsubtle.length === 1) {
+    return group(frag`[`.subtle(), body, frag`]`.subtle());
+  } else {
+    return wrap('[ ', body, ' ]');
+  }
 }
 
 export function array(items: IntoFragment[]): Fragment;
@@ -92,7 +153,7 @@ export function array(
   options?: EntriesOptions<unknown>
 ): Fragment {
   if (items.length === 0) {
-    return frag`[]`.subtle();
+    return frag`[]`;
   } else {
     const { map, isSubtle } = normalizeOptions(options);
 
@@ -147,6 +208,16 @@ export function stackValue(element: unknown): Fragment {
   }
 }
 
+export function updatingOpcodes(opcodes: SnapshotArray<UpdatingOpcode>): Fragment {
+  return array(opcodes, { as: updatingOpcode });
+}
+
+export function updatingOpcode(opcode: UpdatingOpcode): Fragment {
+  const name = as.kw(opcode.constructor.name);
+
+  return opcode.debug ? frag`<${name} ${stackValue(opcode.debug)}>` : name;
+}
+
 export function scopeValue(element: ScopeSlot): Fragment {
   if (Array.isArray(element)) {
     return frag`<${as.kw('block')}>`;
@@ -182,17 +253,64 @@ export function liveBlock(element: BlockBoundsDebug): Fragment {
   }
 }
 
-export function eqStack<T>(a: Maybe<readonly T[]>, b: Maybe<readonly T[]>) {
-  if (a === null || a === undefined || b === null || b === undefined) {
+export function stackChange<T>(
+  before: Nullable<SnapshotArray<T>>,
+  after: Nullable<SnapshotArray<T>>,
+  options: { as: As<T> }
+) {
+  if (eqStack(before, after)) {
+    return frag`${as.subtle('(unchanged)')} ${nullableArray(after, options)}`.subtle();
+  }
+
+  return describeDiff(diffStacks(before ?? [], after ?? []), options);
+}
+
+export function changeArray<T>(
+  a: Nullable<SnapshotArray<T>>,
+  b: Nullable<SnapshotArray<T>>,
+  {
+    eq = Object.is,
+    as,
+    or = value,
+  }: {
+    eq?: (a: Nullable<SnapshotArray<T>>, b: Nullable<SnapshotArray<T>>) => boolean;
+    as: As<T>;
+    or?: As<null | undefined>;
+  }
+): Fragment {
+  if (b === undefined || b === null) {
+    return or(b);
+  }
+
+  return array(b, { as, subtle: eq(a, b) });
+}
+
+export function eqStack<T>(a: Nullable<SnapshotArray<T>>, b: Nullable<SnapshotArray<T>>) {
+  if (a === null || b === null) {
     return a === b;
   }
 
   return a.length === b.length && a.every((a, i) => Object.is(a, b[i]));
 }
 
-export function diffStacks<T>(before: readonly T[], after: readonly T[]): Diffs<T> {
+export function eqStackStack<T>(
+  a: Optional<SnapshotArray<SnapshotArray<T>>>,
+  b: Optional<SnapshotArray<SnapshotArray<T>>>
+) {
+  if (a === null || a === undefined || b === null || b === undefined) {
+    return a === b;
+  }
+
+  return a.length === b.length && a.every((a, i) => eqStack(a, b[i] ?? null));
+}
+
+export function diffStacks<T>(
+  before: Nullable<readonly T[]>,
+  after: Nullable<readonly T[]>,
+  eq: (a: T, b: T) => boolean = Object.is
+): Diffs<T> {
   if (eqStack(before, after)) {
-    return { unused: after, popped: [], pushed: [], peeked: [] };
+    return { unused: after ?? [], popped: [], pushed: [], peeked: [] };
   }
 
   let diverged = false;
@@ -200,7 +318,7 @@ export function diffStacks<T>(before: readonly T[], after: readonly T[]): Diffs<
   const popped: T[] = [];
   const pushed: T[] = [];
 
-  for (const [a, b] of zip(before, after)) {
+  for (const [a, b] of zip(before ?? [], after ?? [])) {
     if (a === undefined || b === undefined) {
       diverged = true;
 
@@ -211,7 +329,7 @@ export function diffStacks<T>(before: readonly T[], after: readonly T[]): Diffs<
       }
 
       continue;
-    } else if (diverged || !Object.is(a, b)) {
+    } else if (diverged || !eq(a, b)) {
       popped.push(a as T);
       pushed.push(b as T);
     } else {
@@ -221,6 +339,7 @@ export function diffStacks<T>(before: readonly T[], after: readonly T[]): Diffs<
 
   return { unused: same, peeked: [], popped, pushed };
 }
+
 interface Diffs<T> {
   unused: readonly T[];
   // peeks can only be determined from a spec -- diffs will never produce them.
@@ -236,10 +355,14 @@ export function describeDiff<T>(
   return join(
     [
       array(unused, options).subtle(),
-      prepend(frag`${as.sublabel('peeks')} `, array(peeked, options)),
-      prepend(frag`${as.sublabel('pops')} `, array(popped, options)),
-      prepend(frag`${as.sublabel('pushes')} `, array(pushed, options)),
+      labelled('peeks', compactArray(peeked, { ...options, when: { allSubtle: 'no peeks' } })),
+      labelled('pops', compactArray(popped, { ...options, when: { allSubtle: 'no pops' } })),
+      labelled('pushes', compactArray(pushed, { ...options, when: { allSubtle: 'no pushes' } })),
     ],
     ' '
   );
+}
+
+export function labelled(label: string, value: Fragment): Fragment {
+  return prepend(frag`${as.sublabel(label)} `, value);
 }

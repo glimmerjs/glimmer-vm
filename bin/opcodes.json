@@ -11,6 +11,7 @@
     "PopTryFrame",
     "InvokeVirtual",
     "InvokeStatic",
+    "Start",
     "Return",
     "Helper",
     "SetNamedVariables",

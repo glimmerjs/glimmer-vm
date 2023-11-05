@@ -1,6 +1,6 @@
 import type {
   CompileTimeArtifacts,
-  CompileTimeCompilationContext,
+  JitContext,
   CompileTimeConstants,
   CompileTimeHeap,
   CompileTimeResolver,
@@ -12,7 +12,7 @@ import type {
 
 import { compileStd } from './opcode-builder/helpers/stdlib';
 
-export class CompileTimeCompilationContextImpl implements CompileTimeCompilationContext {
+export class CompileTimeCompilationContextImpl implements JitContext {
   readonly constants: CompileTimeConstants & ResolutionTimeConstants & DebugConstants;
   readonly heap: CompileTimeHeap;
   readonly stdlib: STDLib;

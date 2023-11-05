@@ -11,9 +11,9 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "experimentalDecorators": true,
     "verbatimModuleSyntax": true,
 
+    "experimentalDecorators": true,
     "outDir": "../../ts-dist/@glimmer-workspace",
 
     "strict": true,

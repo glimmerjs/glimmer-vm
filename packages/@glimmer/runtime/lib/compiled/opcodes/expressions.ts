@@ -34,7 +34,6 @@ import { $v0, CurriedTypes, Op } from '@glimmer/vm';
 import { isCurried, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
-import { CONSTANTS } from '../../symbols';
 import { reifyPositional } from '../../vm/arguments';
 import { createConcatRef } from '../expressions/concat';
 import {
@@ -63,7 +62,7 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
   if (import.meta.env.DEV) {
     // strict check only happens in import.meta.env.DEV builds, no reason to load it otherwise
-    isStrict = vm[CONSTANTS].getValue<boolean>(decodeHandle(_isStrict));
+    isStrict = vm.constants.getValue<boolean>(decodeHandle(_isStrict));
   }
 
   vm.loadValue(
@@ -90,7 +89,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
     if (isCurried(definition, CurriedTypes.Helper)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
 
-      let helper = resolveHelper(vm[CONSTANTS], resolvedDef, ref);
+      let helper = resolveHelper(vm.constants, resolvedDef, ref);
 
       if (named !== undefined) {
         args.named = assign({}, ...named, args.named);
@@ -104,7 +103,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 
       associateDestroyableChild(helperInstanceRef, helperRef);
     } else if (isObject(definition)) {
-      let helper = resolveHelper(vm[CONSTANTS], definition, ref);
+      let helper = resolveHelper(vm.constants, definition, ref);
       helperRef = helper(args, initialOwner);
 
       if (_hasDestroyableChildren(helperRef)) {
@@ -145,11 +144,11 @@ function resolveHelper(
 
 APPEND_OPCODES.add(Op.Helper, (vm, { op1: handle }) => {
   let stack = vm.stack;
-  let helper = check(vm[CONSTANTS].getValue(handle), CheckHelper);
+  let helper = check(vm.constants.getValue(handle), CheckHelper);
   let args = check(stack.pop(), CheckArguments);
 
   // @premerge throws but isn't a deref
-  let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope());
+  let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope);
 
   if (_hasDestroyableChildren(value)) {
     vm.associateDestroyable(value);
@@ -166,7 +165,7 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   let expr = check(vm.stack.pop(), CheckReactive);
-  vm.scope().bindSymbol(symbol, expr);
+  vm.scope.bindSymbol(symbol, expr);
 });
 
 APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
@@ -174,7 +173,7 @@ APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
   let scope = check(vm.stack.pop(), CheckScope);
   let table = check(vm.stack.pop(), CheckBlockSymbolTable);
 
-  vm.scope().bindBlock(symbol, [handle, scope, table]);
+  vm.scope.bindBlock(symbol, [handle, scope, table]);
 });
 
 APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
@@ -182,14 +181,14 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
 });
 
 APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
-  let key = vm[CONSTANTS].getValue<string>(_key);
+  let key = vm.constants.getValue<string>(_key);
   let expr = check(vm.stack.pop(), CheckReactive);
   vm.stack.push(getReactiveProperty(expr, key));
 });
 
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
   let { stack } = vm;
-  let block = vm.scope().getBlock(_block);
+  let block = vm.scope.getBlock(_block);
 
   stack.push(block);
 });
@@ -281,7 +280,7 @@ APPEND_OPCODES.add(Op.Not, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
-  let scope = vm.dynamicScope();
+  let scope = vm.dynamicScope;
   let stack = vm.stack;
   let nameRef = check(stack.pop(), CheckReactive);
 

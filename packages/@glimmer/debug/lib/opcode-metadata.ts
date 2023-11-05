@@ -54,6 +54,7 @@ export const InvokeStatic = define('InvokeStatic', (d) =>
   d.ops(['handle', 'handle/block']).unchanged().reads('$pc').changes('$ra', '$pc')
 );
 
+export const Start = define('Start', (d) => d.unchanged());
 export const Return = define('Return', (d) => d.unchanged().reads('$ra').changes('$pc'));
 
 export const Helper = define.throws('Helper', (d) =>
@@ -144,6 +145,7 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(`PopTryFrame as finally`)
     .add(`InvokeVirtual as vcall`, stack.delta(-1))
     .add(`InvokeStatic as scall`, ['offset:imm/u32'])
+    .add(`Start as start`)
     .add(`Return as ret`)
     .add(`Helper as ncall`, [`helper:handle`], stack.params(['args:args']).returns([]))
     .add(`SetNamedVariables as vsargs`, [`register:register`])

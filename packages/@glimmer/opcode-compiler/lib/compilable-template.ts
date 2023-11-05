@@ -5,7 +5,7 @@ import type {
   CompilableBlock,
   CompilableProgram,
   CompilableTemplate,
-  CompileTimeCompilationContext,
+  JitContext,
   HandleResult,
   HighLevelOp,
   LayoutWithContext,
@@ -42,7 +42,7 @@ class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplat
   ) {}
 
   // Part of CompilableTemplate
-  compile(context: CompileTimeCompilationContext): HandleResult {
+  compile(context: JitContext): HandleResult {
     return maybeCompile(this, context);
   }
 }
@@ -66,7 +66,7 @@ export function compilable(layout: LayoutWithContext, moduleName: string): Compi
 
 function maybeCompile(
   compilable: CompilableTemplateImpl<SymbolTable>,
-  context: CompileTimeCompilationContext
+  context: JitContext
 ): HandleResult {
   if (compilable.compiled !== null) return compilable.compiled;
 
@@ -83,7 +83,7 @@ function maybeCompile(
 export function compileStatements(
   statements: Statement[],
   meta: BlockMetadata,
-  syntaxContext: CompileTimeCompilationContext
+  syntaxContext: JitContext
 ): HandleResult {
   let sCompiler = STATEMENTS;
   let context = templateCompilationContext(syntaxContext, meta);

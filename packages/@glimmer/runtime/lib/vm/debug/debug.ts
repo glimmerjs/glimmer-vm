@@ -7,12 +7,9 @@ import {
   DiffState,
   frag,
   getOpSnapshot,
-  intoFragment,
-  prepend,
   record,
   recordStackSize,
   snapshotVM,
-  tuple,
   value,
 } from '@glimmer/debug';
 import type { BlockMetadata, DebugVmSnapshot, RuntimeOp } from '@glimmer/interfaces';
@@ -37,17 +34,8 @@ export function debugInit(vm: VM): void {
     const state = new DebugState(lastState);
     const diff = new DiffState(undefined, undefined, state);
 
-    const registers = state.registers;
-
     const done = logger.group(frag`Initial VM State`).expanded();
-    logger.log(diff.up);
-    logger.log(diff.ra);
-    logger.log(diff.return);
-    logger.log(prepend(frag`${as.label('saved')} `.styleAll('kw'), diff.saved));
-    logger.log(prepend(frag`${as.label('temporaries')} `.styleAll('kw'), diff.temporaries));
-
-    logger.log(tuple(registers.frame, { as: intoFragment }).subtle());
-
+    diff.log(logger);
     done();
   }
 }
@@ -130,19 +118,7 @@ export function debugBefore(
         }
 
         if (LOCAL_TRACE_LOGGING) {
-          const registers = afterState.registers;
-
-          logger.log(diff.up);
-          logger.log(diff.ra);
-          logger.log(diff.return);
-          logger.log(prepend(frag`${as.label('saved')} `.styleAll('kw'), diff.saved));
-          logger.log(prepend(frag`${as.label('temporaries')} `.styleAll('kw'), diff.temporaries));
-
-          logger.log(tuple(registers.frame, { as: intoFragment }).subtle());
-          logger.log(
-            prepend(frag`${as.label('frame')} `.styleAll('kw'), diff.frame(op.stack(beforeState)))
-          );
-          logger.log(prepend(frag`${as.label('scope')} `.styleAll('kw'), diff.scope));
+          diff.log(logger, op);
 
           done?.();
         }

@@ -52,6 +52,7 @@ import {
   TYPE_FOR,
   type TypeFor,
 } from './test-helpers/constants';
+import { Woops } from './test-helpers/error';
 import type { RenderTestState } from './test-helpers/module';
 import { RecordedEvents } from './test-helpers/recorded';
 
@@ -444,6 +445,22 @@ export class RenderTestContext implements IRenderTest {
     }
 
     return snapshot;
+  }
+
+  assertError(template: string, value: string, options: { ok: string; err: string }) {
+    const woops = Woops.error(value);
+    this.render.template(template, { result: woops, handleError: woops.handleError });
+
+    this.assertHTML(options.err);
+    this.assertStableRerender();
+  }
+
+  assertOk(template: string, value: string, options: { ok: string; err: string }) {
+    const woops = Woops.noop(value);
+    this.render.template(template, { result: woops, handleError: woops.handleError });
+
+    this.assertHTML(options.ok);
+    this.assertStableRerender();
   }
 
   assertStableRerender() {

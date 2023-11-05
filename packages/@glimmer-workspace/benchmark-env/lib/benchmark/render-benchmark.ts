@@ -1,5 +1,5 @@
 import type {
-  CompileTimeCompilationContext,
+  JitContext,
   Dict,
   ResolvedComponentDefinition,
   RuntimeArtifacts,
@@ -14,7 +14,7 @@ import { measureRender } from './util';
 
 export default async function renderBenchmark(
   artifacts: RuntimeArtifacts,
-  context: CompileTimeCompilationContext,
+  context: JitContext,
   runtimeResolver: RuntimeResolver,
   component: ResolvedComponentDefinition,
   args: Dict,

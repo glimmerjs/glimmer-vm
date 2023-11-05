@@ -277,8 +277,8 @@ STATEMENTS.add(SexpOpcodes.HandleError, (op, [, handler, block, _inverse]) => {
     //   }
     // );
     InvokeStaticBlock(op, block);
-    op(Op.Jump, op.target('FINALLY'));
     op(Op.PopTryFrame);
+    op(Op.Jump, op.target('FINALLY'));
     op.label('CATCH');
     op.label('FINALLY');
   });

@@ -1,4 +1,4 @@
-import type { Destroyable } from '../core';
+import type { Destroyable, Nullable } from '../core';
 import type { GlimmerTreeChanges } from '../dom/changes';
 import type { SomeReactive } from '../references';
 import type { Result } from '../result';
@@ -13,10 +13,19 @@ import type { DynamicScope } from './scope';
  */
 export interface VM<O extends Owner = Owner> {
   env: Environment;
-  dynamicScope(): DynamicScope;
+  readonly dynamicScope: DynamicScope;
+
   getOwner(): O;
   getSelf(): SomeReactive;
   associateDestroyable(child: Destroyable): void;
+}
+
+export interface HandleException {
+  readonly handler: ExceptionHandler;
+  /**
+   * If true, unwinding should stop at this frame.
+   */
+  readonly unwind: boolean;
 }
 
 export interface UpdatingVM {
@@ -26,12 +35,13 @@ export interface UpdatingVM {
 
   execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler): void;
   goto(index: number): void;
-  try(ops: UpdatingOpcode[], handler: ExceptionHandler | null): void;
+  try(ops: UpdatingOpcode[], error: Nullable<HandleException>): void;
   throw(): void;
 }
 
 export interface UpdatingOpcode {
   evaluate(vm: UpdatingVM): void;
+  debug?: unknown;
 }
 
 export interface TargetState {

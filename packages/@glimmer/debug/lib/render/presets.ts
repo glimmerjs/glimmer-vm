@@ -1,4 +1,4 @@
-import type { SimpleNode } from '@glimmer/interfaces';
+import type { Optional, SimpleNode } from '@glimmer/interfaces';
 
 import { Fragment, type LeafFragment } from './fragment';
 
@@ -41,7 +41,6 @@ export const STYLES = {
   pointee: 'background-color: lavender; color: indigo',
 } as const;
 
-
 export const as = Object.fromEntries(
   Object.entries(STYLES).map(([k, v]) => [
     k,
@@ -70,7 +69,7 @@ export function intoFragment(value: IntoFragment): Fragment {
   const fragments = intoFragments(value);
   const [first, ...rest] = fragments;
 
-  if (first && rest.length === 0) {
+  if (first !== undefined && rest.length === 0) {
     return first;
   }
 
@@ -152,27 +151,42 @@ export function empty(): LeafFragment {
   return new Fragment({ kind: 'string', value: '' });
 }
 
-export function join(frags: IntoFragment[], separator: IntoFragment): Fragment {
-  const sep = intoFragment(separator);
+export function join(frags: IntoFragment[], separator?: Optional<IntoFragment>): Fragment {
+  const sep = separator ? intoFragment(separator) : empty();
 
-  const [first, ...rest] = frags;
-
-  if (!first) {
+  if (frags.length === 0) {
     return empty();
   }
 
-  const output: LeafFragment[] = [...intoFragment(first).leaves()];
+  let seenUnsubtle = false;
+  let seenAny = false;
 
-  for (const frag of rest) {
+  const output: LeafFragment[] = [];
+
+  for (const frag of frags) {
     const fragment = intoFragment(frag);
+    const isSubtle = fragment.isSubtle();
+    const sepIsSubtle = isSubtle || !seenUnsubtle;
 
-    // if the succeeding fragment is subtle, the separator is also
-    // subtle, which ensure that separators are not ultimately
-    // present if the next element is not printed.
-    output.push(...sep.subtle(fragment.isSubtle()).leaves(), ...fragment.leaves());
+    // If the succeeding fragment is subtle, the separator is also subtle. If the succeeding
+    // fragment is unstubtle, the separator is unsubtle only if we've already seen an unsubtle
+    // fragment. This ensures that separators are not ultimately present if the next element is not
+    // printed.
+
+    if (seenAny) {
+      output.push(...sep.subtle(sepIsSubtle).leaves());
+    }
+
+    output.push(...fragment.leaves());
+    seenUnsubtle = !isSubtle;
+    seenAny = true;
   }
 
   return new Fragment({ kind: 'multi', value: output });
+}
+
+export function group(...frags: IntoFragment[]): Fragment {
+  return new Fragment({ kind: 'multi', value: frags.flatMap((f) => intoFragment(f).leaves()) });
 }
 
 export function frag(strings: TemplateStringsArray, ...values: IntoFragment[]): Fragment {

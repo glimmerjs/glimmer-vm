@@ -1,15 +1,16 @@
 import type {
+  BlockMetadata,
   BuilderOp,
   CompilableProgram,
-  CompileTimeCompilationContext,
-  BlockMetadata,
   HandleResult,
   HighLevelOp,
+  JitContext,
   LayoutWithContext,
   Nullable,
   ProgramSymbolTable,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
@@ -17,7 +18,6 @@ import { encodeOp } from './opcode-builder/encoder';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { meta } from './opcode-builder/helpers/shared';
 import { definePushOp, type HighLevelStatementOp } from './syntax/compilers';
-import { IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
@@ -50,7 +50,7 @@ export class WrappedBuilder implements CompilableProgram {
     };
   }
 
-  compile(syntax: CompileTimeCompilationContext): HandleResult {
+  compile(syntax: JitContext): HandleResult {
     if (this.compiled !== null) return this.compiled;
 
     let m = meta(this.layout);

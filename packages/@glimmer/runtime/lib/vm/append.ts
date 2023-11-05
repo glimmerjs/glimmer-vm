@@ -5,22 +5,21 @@ import type {
   BlockMetadata,
   CleanStack,
   CompilableTemplate,
-  CompileTimeCompilationContext,
   Destroyable,
   DynamicScope,
   ElementBuilder,
   Environment,
   ErrorHandler,
   InternalStack,
+  JitContext,
   Nullable,
   OkResult,
   Owner,
   PartialScope,
+  ProgramConstants,
   RenderResult,
-  ResolutionTimeConstants,
   Result,
   RichIteratorResult,
-  RuntimeConstants,
   RuntimeContext,
   RuntimeHeap,
   RuntimeProgram,
@@ -40,10 +39,12 @@ import {
 import { readReactive } from '@glimmer/reference/lib/reference';
 import {
   assert,
+  BalancedStack,
   EarlyError,
   expect,
   LOCAL_LOGGER,
   mapResult,
+  PresentStack,
   reverse,
   Stack,
   unreachable,
@@ -59,7 +60,6 @@ import {
   JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
 import { PartialScopeImpl } from '../scope';
-import { ARGS, CONSTANTS, HEAP, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import { debugInit } from './debug/debug';
 import type { LiveBlockList } from './element-builder';
@@ -69,122 +69,13 @@ import EvaluationStackImpl from './stack';
 import { UnwindTarget } from './unwind';
 import {
   type BlockOpcode,
+  type InitialVmState,
   ListBlockOpcode,
   ListItemOpcode,
-  type ResumableVMState,
-  ResumableVMStateImpl,
+  ResumableVMState,
   TryOpcode,
-  type VMState,
+  type VmStateSnapshot,
 } from './update';
-
-/**
- * This interface is used by internal opcodes, and is more stable than the implementation of the
- * Append VM itself.
- */
-export interface InternalVM {
-  readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
-  readonly [ARGS]: VMArgumentsImpl;
-
-  readonly env: Environment;
-  readonly stack: CleanStack;
-
-  /**
-   * This stack is used for:
-   *
-   * - internal debugging infrastructure
-   * - the implementation of `Args`
-   * - the implementation of the VM's `next` method
-   *
-   * It should not be used for other purposes, as it exposes internal implementation details that
-   * are not "stacky" behavior, which is not the dominant use-case for the stack (even internally),
-   * and causes confusion.
-   *
-   * @premerge verify that this distinction is useful
-   * @internal
-   */
-  readonly internalStack: InternalStack;
-  readonly argumentsStack: ArgumentsStack;
-  readonly runtime: RuntimeContext;
-  readonly context: CompileTimeCompilationContext;
-
-  readonly fp: number;
-  readonly sp: number;
-
-  loadValue(register: SyscallRegister, value: unknown): void;
-
-  // TODO: Something better than a type assertion?
-  fetchValue<T>(register: SyscallRegister): T;
-
-  load(register: Register): void;
-  fetch(register: Register): void;
-
-  compile(block: CompilableTemplate): number;
-
-  scope(): Scope;
-  elements(): ElementBuilder;
-
-  getOwner(): Owner;
-  getSelf(): SomeReactive;
-
-  updateWith(opcode: UpdatingOpcode): void;
-
-  associateDestroyable(d: Destroyable): void;
-
-  beginCacheGroup(name?: string): void;
-  commitCacheGroup(): void;
-
-  /// Iteration ///
-
-  enterList(iterableRef: SomeReactive<OpaqueIterator>, offset: number): void;
-  exitList(): void;
-  enterItem(item: OpaqueIterationItem): ListItemOpcode;
-  registerItem(item: ListItemOpcode): void;
-
-  pushRootScope(size: number, owner: Owner): PartialScope;
-  pushChildScope(): void;
-  popScope(): void;
-  pushScope(scope: Scope): void;
-
-  dynamicScope(): DynamicScope;
-  bindDynamicScope(names: string[]): void;
-  pushDynamicScope(): void;
-  popDynamicScope(): void;
-
-  enter(args: number): void;
-  exit(): void;
-
-  debugWillCall?(handle: Handle): void;
-  debugDidReturn?(): void;
-
-  goto(pc: number): void;
-  call(handle: number | null): void;
-  return(): void;
-  pushFrame(): void;
-  pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>): void;
-  popTryFrame(): void;
-
-  referenceForSymbol(symbol: number): SomeReactive;
-
-  deref<T>(reactive: SomeReactive<T>, then: (value: T) => void | Result<void>): void;
-
-  derefReactive<T>(reactive: SomeReactive<T>): Result<T>;
-  derefReactive<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
-
-  unwrap<T>(result: Result<T>): result is OkResult<T>;
-  earlyError(message: string, reactive?: SomeReactive): never;
-
-  execute(initialize?: (vm: this) => void): RenderResult;
-  pushUpdating(list?: UpdatingOpcode[]): void;
-  next(): RichIteratorResult<null, RenderResult>;
-}
-
-class Stacks {
-  readonly scope = new Stack<Scope>();
-  readonly dynamicScope = new Stack<DynamicScope>();
-  readonly updating = new Stack<UpdatingOpcode[]>();
-  readonly cache = new Stack<JumpIfNotModifiedOpcode>();
-  readonly list = new Stack<ListBlockOpcode>();
-}
 
 type Handle = number;
 
@@ -210,7 +101,43 @@ class TemplateDebug {
   }
 }
 
-export class VM implements PublicVM, InternalVM, SnapshottableVM {
+class VMState {
+  static initial(options: { scope: Scope; dynamicScope: DynamicScope }): VMState {
+    return new VMState(
+      PresentStack.initial(options.scope, 'scope stack'),
+      PresentStack.initial(options.dynamicScope, 'dynamic scope stack'),
+      Stack.empty('cache stack'),
+      Stack.empty('list stack'),
+      BalancedStack.empty('updating stack'),
+      BalancedStack.empty('destructor stack')
+    );
+  }
+
+  readonly scope: PresentStack<Scope>;
+  readonly dynamicScope: PresentStack<DynamicScope>;
+  readonly cache: Stack<JumpIfNotModifiedOpcode>;
+  readonly list: Stack<ListBlockOpcode>;
+  readonly updating: BalancedStack<UpdatingOpcode[]>;
+  readonly destructors: BalancedStack<Destroyable>;
+
+  constructor(
+    scope: PresentStack<Scope>,
+    dynamicScope: PresentStack<DynamicScope>,
+    cache: Stack<JumpIfNotModifiedOpcode>,
+    list: Stack<ListBlockOpcode>,
+    updating: BalancedStack<UpdatingOpcode[]>,
+    destructors: BalancedStack<Destroyable>
+  ) {
+    this.scope = scope;
+    this.dynamicScope = dynamicScope;
+    this.cache = cache;
+    this.list = list;
+    this.updating = updating;
+    this.destructors = destructors;
+  }
+}
+
+export class VM implements PublicVM, SnapshottableVM {
   static {
     if (import.meta.env.DEV) {
       Object.defineProperties(VM.prototype, {
@@ -230,17 +157,46 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     }
   }
 
-  private readonly [STACKS] = new Stacks();
-  private readonly [HEAP]: RuntimeHeap;
-  private readonly destructor: object;
-  readonly #destroyables = new Stack<object>();
-  readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
-  readonly [ARGS]: VMArgumentsImpl;
+  readonly #state: VMState;
+  readonly #args: VMArgumentsImpl;
+  readonly #heap: RuntimeHeap;
+  readonly #context: JitContext;
+
   readonly #inner: LowLevelVM;
   readonly #templates?: TemplateDebug;
 
   declare debugWillCall?: (handle: number) => void;
   declare debugDidReturn?: () => void;
+
+  constructor(
+    readonly runtime: RuntimeContext,
+    { pc, scope, dynamicScope, stack, unwind, context }: InitialVmState,
+    private readonly elementStack: ElementBuilder
+  ) {
+    if (import.meta.env.DEV) {
+      assertGlobalContextWasSet!();
+    }
+
+    assert(typeof pc === 'number', 'pc is a number');
+    let evalStack = EvaluationStackImpl.restore(stack, pc, unwind);
+
+    this.#context = context;
+    this.#heap = this.program.heap;
+    this.elementStack = elementStack;
+    this.#state = VMState.initial({ scope, dynamicScope });
+    this.#args = new VMArgumentsImpl();
+    this.#inner = LowLevelVM.create(
+      evalStack,
+      this.#heap,
+      runtime.program,
+      { debug: this },
+      evalStack.registers
+    );
+
+    if (import.meta.env.DEV) {
+      this.#templates = new TemplateDebug();
+    }
+  }
 
   get lowLevel(): LowLevelVM {
     return this.#inner;
@@ -258,6 +214,10 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     return this.#inner.forArguments;
   }
 
+  get args(): VMArgumentsImpl {
+    return this.#args;
+  }
+
   /* Registers */
 
   get sp(): number {
@@ -273,9 +233,8 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
       let inner = this.#inner;
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const vm = this;
-      const allStacks = this[STACKS];
       const templates = this.#templates!;
-      const currentSlots = allStacks.scope.current?.slots;
+      const currentSlots = this.#state.scope.current.slots;
       const slots = currentSlots ? [...currentSlots] : [];
       const registers = inner.debug.registers.debug;
       const dom = this.elements();
@@ -287,8 +246,8 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
         ...registers,
         currentPc: inner.debug.currentPc,
         constant: {
-          constants: vm[CONSTANTS],
-          heap: vm[HEAP],
+          constants: vm.constants,
+          heap: vm.#heap,
         },
 
         dom: dom.debug,
@@ -299,7 +258,8 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
 
         stack: evalStack,
         scope: slots,
-        destroyable: this.#destroyables.toArray(),
+        updating: this.#state.updating.asArray(),
+        destroyable: this.#state.destructors.asArray(),
         threw: inner.debug.threw,
       } satisfies VmDebugState;
     }
@@ -393,6 +353,7 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
    * Open an error recovery boundary.
    */
   pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>) {
+    this.enter(0, { unwindTarget: true });
     this.elements().pushTryFrame();
     this.#inner.beginTry(catchPc, handler);
   }
@@ -400,10 +361,12 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
   popTryFrame(): void {
     this.elements().popTryFrame();
     this.#inner.popTryFrame();
+    this.exit();
   }
 
   userException(error: unknown): TargetState {
     this.elements().catch();
+
     return this.#inner.userException(error);
   }
 
@@ -423,6 +386,10 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     }
   }
 
+  start(destructor = {}) {
+    this.#state.destructors.push(destructor);
+  }
+
   // Return to the `program` address stored in $ra
   return() {
     if (import.meta.env.DEV) {
@@ -432,92 +399,62 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     this.#inner.return();
   }
 
-  /**
-   * End of migrated.
-   */
+  static initial(runtime: RuntimeContext, context: JitContext, options: InitOptions) {
+    const { handle, dynamicScope, treeBuilder, owner } = options;
 
-  constructor(
-    readonly runtime: RuntimeContext,
-    { pc, scope, dynamicScope, stack, unwind }: VMState,
-    private readonly elementStack: ElementBuilder,
-    readonly context: CompileTimeCompilationContext
-  ) {
-    if (import.meta.env.DEV) {
-      assertGlobalContextWasSet!();
-    }
-
-    this.resume = initVM(context);
-    assert(typeof pc === 'number', 'pc is a number');
-    let evalStack = EvaluationStackImpl.restore(stack, pc, unwind);
-
-    this[HEAP] = this.program.heap;
-    this[CONSTANTS] = this.program.constants;
-    this.elementStack = elementStack;
-    this[STACKS].scope.push(scope);
-    this[STACKS].dynamicScope.push(dynamicScope);
-    this[ARGS] = new VMArgumentsImpl();
-    this.#inner = LowLevelVM.create(
-      evalStack,
-      this[HEAP],
-      runtime.program,
-      { debug: this },
-      evalStack.registers
-    );
-
-    this.destructor = {};
-    this.#destroyables.push(this.destructor);
-
-    if (import.meta.env.DEV) {
-      this.#templates = new TemplateDebug();
-    }
-  }
-
-  static initial(
-    runtime: RuntimeContext,
-    context: CompileTimeCompilationContext,
-    { handle, self, dynamicScope, treeBuilder, numSymbols, owner }: InitOptions
-  ) {
-    let scope = PartialScopeImpl.root(self, numSymbols, owner);
-    let state = vmState(
-      runtime.program.heap.getaddr(handle),
+    let scope =
+      'self' in options
+        ? PartialScopeImpl.root(options.self, options.numSymbols, owner)
+        : PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner);
+    let state: InitialVmState = {
+      pc: runtime.program.heap.getaddr(handle),
       scope,
       dynamicScope,
-      UnwindTarget.root()
-    );
-    let vm = initVM(context)(runtime, state, treeBuilder);
+      stack: [],
+      unwind: UnwindTarget.root(),
+      context,
+    };
+
+    let vm = new VM(runtime, state, treeBuilder);
     vm.pushUpdating();
+    vm.start();
     return vm;
   }
 
   static empty(
     runtime: RuntimeContext,
     { handle, treeBuilder, dynamicScope, owner }: MinimalInitOptions,
-    context: CompileTimeCompilationContext
+    context: JitContext
   ) {
-    let vm = initVM(context)(
+    const vm = new VM(
       runtime,
-      vmState(
-        runtime.program.heap.getaddr(handle),
-        PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
+      {
+        pc: runtime.program.heap.getaddr(handle),
+        scope: PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
         dynamicScope,
-        UnwindTarget.root()
-      ),
+        stack: [],
+        unwind: UnwindTarget.root(),
+        context,
+      },
       treeBuilder
     );
     vm.pushUpdating();
+    vm.start();
     return vm;
   }
 
-  private resume: VmInitCallback;
-
   compile(block: CompilableTemplate): number {
-    let handle = unwrapHandle(block.compile(this.context));
+    let handle = unwrapHandle(block.compile(this.#context));
 
     if (import.meta.env.DEV) {
       this.#templates?.register(handle, block.meta);
     }
 
     return handle;
+  }
+
+  get constants(): ProgramConstants {
+    return this.program.constants;
   }
 
   get program(): RuntimeProgram {
@@ -528,18 +465,20 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     return this.runtime.env;
   }
 
-  captureState(args: number, pc = this.#inner.pc): VMState {
+  captureState(args: number, pc = this.#inner.pc): VmStateSnapshot {
     return {
       pc,
-      scope: this.scope(),
-      dynamicScope: this.dynamicScope(),
+      scope: this.scope,
+      dynamicScope: this.dynamicScope,
       stack: this.argumentsStack.capture(args),
       ...this.#inner.capture(),
+      destructor: this.#destructor,
+      context: this.#context,
     };
   }
 
   capture(args: number, pc = this.#inner.pc): ResumableVMState {
-    return new ResumableVMStateImpl(this.captureState(args, pc), this.resume);
+    return new ResumableVMState(this.captureState(args, pc));
   }
 
   beginCacheGroup(name?: string) {
@@ -548,14 +487,14 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
 
     opcodes.push(guard);
     opcodes.push(new BeginTrackFrameOpcode(name));
-    this[STACKS].cache.push(guard);
+    this.#state.cache.push(guard);
 
     beginTrackFrame(name);
   }
 
   commitCacheGroup() {
     let opcodes = this.updating();
-    let guard = expect(this[STACKS].cache.pop(), 'VM BUG: Expected a cache group');
+    let guard = expect(this.#state.cache.pop(), 'VM BUG: Expected a cache group');
 
     let tag = endTrackFrame();
     opcodes.push(new EndTrackFrameOpcode(guard));
@@ -563,15 +502,15 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     guard.finalize(tag, opcodes.length);
   }
 
-  enter(args: number) {
+  enter(args: number, options: { unwindTarget: boolean }) {
     let updating: UpdatingOpcode[] = [];
 
     let state = this.capture(args);
     let block = this.elements().pushUpdatableBlock();
 
-    let tryOpcode = new TryOpcode(state, this.runtime, block, updating);
+    let tryOpcode = new TryOpcode(state, this.runtime, block, updating, options);
 
-    this.didEnter(tryOpcode);
+    this.#didEnter(tryOpcode);
   }
 
   enterItem({ key, value, memo }: OpaqueIterationItem): ListItemOpcode {
@@ -587,7 +526,7 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     let block = this.elements().pushUpdatableBlock();
 
     let opcode = new ListItemOpcode(state, this.runtime, block, key, memoRef, valueRef);
-    this.didEnter(opcode);
+    this.#didEnter(opcode);
 
     return opcode;
   }
@@ -605,35 +544,35 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
 
     let opcode = new ListBlockOpcode(state, this.runtime, list, updating, iterableRef);
 
-    this[STACKS].list.push(opcode);
+    this.#state.list.push(opcode);
 
-    this.didEnter(opcode);
+    this.#didEnter(opcode);
   }
 
-  private didEnter(opcode: BlockOpcode) {
+  #didEnter(opcode: BlockOpcode) {
     this.associateDestroyable(opcode);
-    this.#destroyables.push(opcode);
+    this.#state.destructors.push(opcode);
     this.updateWith(opcode);
     this.pushUpdating(opcode.children);
   }
 
   exit() {
-    this.#destroyables.pop();
+    this.#state.destructors.pop();
     this.elements().popBlock();
     this.popUpdating();
   }
 
   exitList() {
     this.exit();
-    this[STACKS].list.pop();
+    this.#state.list.pop();
   }
 
   pushUpdating(list: UpdatingOpcode[] = []): void {
-    this[STACKS].updating.push(list);
+    this.#state.updating.push(list);
   }
 
   popUpdating(): UpdatingOpcode[] {
-    return expect(this[STACKS].updating.pop(), "can't pop an empty stack");
+    return expect(this.#state.updating.pop(), "can't pop an empty stack");
   }
 
   updateWith(opcode: UpdatingOpcode) {
@@ -641,80 +580,77 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
   }
 
   listBlock(): ListBlockOpcode {
-    return expect(this[STACKS].list.current, 'expected a list block');
+    return expect(this.#state.list.current, 'expected a list block');
   }
 
   associateDestroyable(child: Destroyable): void {
-    let parent = expect(this.#destroyables.current, 'Expected destructor parent');
-    associateDestroyableChild(parent, child);
+    associateDestroyableChild(this.#destructor, child);
   }
 
   tryUpdating(): Nullable<UpdatingOpcode[]> {
-    return this[STACKS].updating.current;
+    return this.#state.updating.current;
   }
 
   updating(): UpdatingOpcode[] {
-    return expect(
-      this[STACKS].updating.current,
-      'expected updating opcode on the updating opcode stack'
-    );
+    return this.#state.updating.present;
   }
 
   elements(): ElementBuilder {
     return this.elementStack;
   }
 
-  scope(): Scope {
-    return expect(this[STACKS].scope.current, 'expected scope on the scope stack');
+  get #destructor(): Destroyable {
+    return this.#state.destructors.present;
   }
 
-  dynamicScope(): DynamicScope {
-    return expect(
-      this[STACKS].dynamicScope.current,
-      'expected dynamic scope on the dynamic scope stack'
-    );
+  get scope(): Scope {
+    return this.#state.scope.current;
+  }
+
+  get dynamicScope(): DynamicScope {
+    return this.#state.dynamicScope.current;
   }
 
   pushChildScope() {
-    this[STACKS].scope.push(this.scope().child());
+    this.#state.scope.push(this.scope.child());
   }
 
   pushDynamicScope(): DynamicScope {
-    let child = this.dynamicScope().child();
-    this[STACKS].dynamicScope.push(child);
+    let child = this.dynamicScope.child();
+    this.#state.dynamicScope.push(child);
     return child;
   }
 
   pushRootScope(size: number, owner: Owner): PartialScope {
     let scope = PartialScopeImpl.sized(size, owner);
-    this[STACKS].scope.push(scope);
+    this.#state.scope.push(scope);
     return scope;
   }
 
   pushScope(scope: Scope) {
-    this[STACKS].scope.push(scope);
+    this.#state.scope.push(scope);
   }
 
   popScope() {
-    this[STACKS].scope.pop();
+    this.#state.scope.pop();
   }
 
   popDynamicScope() {
-    this[STACKS].dynamicScope.pop();
+    this.#state.dynamicScope.pop();
   }
 
   /// SCOPE HELPERS
 
   getOwner(): Owner {
-    return this.scope().owner;
+    return this.scope.owner;
   }
 
   getSelf(): SomeReactive<unknown> {
-    return this.scope().getSelf();
+    return this.scope.getSelf();
   }
 
   referenceForSymbol(symbol: number): SomeReactive {
-    return this.scope().getSymbol(symbol);
+    return this.scope.getSymbol(symbol);
   }
 
   deref<T>(reactive: SomeReactive<T>, then: (value: T) => void | Result<void>): void {
@@ -840,13 +776,18 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
       // Unload the stack
       this.internalStack.reset();
 
+      assert(
+        this.#state.destructors.size === 1,
+        `Expected one destructor, got ${this.#state.destructors.size}`
+      );
+
       result = {
         done: true,
         value: new RenderResultImpl(
           env,
           this.popUpdating(),
           elementStack.popBlock(),
-          this.destructor
+          this.#destructor
         ),
       };
     }
@@ -854,7 +795,7 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
   }
 
   bindDynamicScope(names: string[]) {
-    let scope = this.dynamicScope();
+    let scope = this.dynamicScope;
 
     for (const name of reverse(names)) {
       scope.set(name, this.stack.pop<SomeReactive<unknown>>());
@@ -862,15 +803,17 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
   }
 }
 
-function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope, unwind: UnwindTarget) {
-  return {
-    pc,
-    scope,
-    dynamicScope,
-    stack: [],
-    unwind,
-  };
-}
+export type InternalVM = VM;
+
+// function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope, unwind: UnwindTarget): VmStateSnapshot {
+//   return {
+//     pc,
+//     scope,
+//     dynamicScope,
+//     stack: [],
+//     unwind,
+//   };
+// }
 
 export interface MinimalInitOptions {
   handle: number;
@@ -879,18 +822,16 @@ export interface MinimalInitOptions {
   owner: Owner;
 }
 
-export interface InitOptions extends MinimalInitOptions {
+export interface ScopedInitOptions extends MinimalInitOptions {
   self: SomeReactive;
   numSymbols: number;
 }
 
+export type InitOptions = ScopedInitOptions | MinimalInitOptions;
+
 export type VmInitCallback = (
   this: void,
   runtime: RuntimeContext,
-  state: VMState,
+  state: InitialVmState,
   builder: ElementBuilder
 ) => InternalVM;
-
-function initVM(context: CompileTimeCompilationContext): VmInitCallback {
-  return (runtime, state, builder) => new VM(runtime, state, builder, context);
-}

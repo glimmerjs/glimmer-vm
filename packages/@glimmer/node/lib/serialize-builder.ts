@@ -29,7 +29,7 @@ function currentNode(
   }
 }
 
-class SerializeBuilder extends AbstractElementBuilder<Cursor> implements ElementBuilder {
+class SerializeBuilder extends AbstractElementBuilder implements ElementBuilder {
   private serializeBlockDepth = 0;
 
   createCursor(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null): Cursor {
@@ -93,7 +93,7 @@ class SerializeBuilder extends AbstractElementBuilder<Cursor> implements Element
     if (tagName === 'TITLE' || tagName === 'SCRIPT' || tagName === 'STYLE') {
       return super.__appendText(string);
     } else if (string === '') {
-      return this.__appendComment('% %') as any as SimpleText;
+      return this.__appendComment('% %') as unknown as SimpleText;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     } else if (current && current.nodeType === TEXT_NODE) {
       this.__appendComment('%|%');

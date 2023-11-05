@@ -42,6 +42,12 @@ export function* enumerate<T>(input: Iterable<T>): IterableIterator<[number, T]>
   }
 }
 
+export function* enumerateReverse<T>(input: readonly T[]): IterableIterator<[number, T]> {
+  for (let i = input.length - 1; i >= 0; i--) {
+    yield [i, input[i]!];
+  }
+}
+
 export function* zip<const T>(
   left: readonly T[],
   right: readonly T[]

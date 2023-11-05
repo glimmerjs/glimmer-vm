@@ -18,7 +18,7 @@ export interface Checker<T> {
   got?: (value: unknown, expected?: string) => string | undefined;
 }
 
-export function wrap<T>(checker: () => Checker<T>): Checker<T> {
+export function WrapCheck<T>(checker: () => Checker<T>): Checker<T> {
   class Wrapped {
     declare type: T;
 

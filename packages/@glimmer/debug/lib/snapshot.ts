@@ -6,12 +6,14 @@ import type {
   DebugCursor,
   DebugStack,
   DebugVmSnapshot,
+  Destroyable,
   LiveBlock,
   Nullable,
   RuntimeHeap,
   ScopeSlot,
   SimpleElement,
   UnwindTarget,
+  UpdatingOpcode,
 } from '@glimmer/interfaces';
 
 /**
@@ -53,10 +55,11 @@ export function snapshotVM(vm: SnapshottableVM): DebugVmSnapshot {
       scope: debug.scope ? ([...debug.scope] as const) : [],
       stack: stack.frame,
       before: stack.before,
+      updating: Object.freeze(debug.updating.map((s) => [...s] as const)),
+      destructors: [...debug.destroyable] as const,
     },
 
     threw: debug.threw,
-    destroyable: [...debug.destroyable] as const,
   };
 }
 
@@ -73,8 +76,10 @@ export interface VmDebugState {
    */
   readonly scope: Nullable<ScopeSlot[]>;
 
+  readonly updating: UpdatingOpcode[][];
+
   /** @mutable */
-  readonly destroyable: object[];
+  readonly destroyable: Destroyable[];
 
   // The value of $pc minus the size of the current op. Since $pc represents the *next* op, this
   // produces the position of the current op.

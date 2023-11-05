@@ -50,7 +50,7 @@ export function logOpcodeSlice(context: TemplateCompilationContext, start: numbe
     let opcode = context.program.createOp(heap);
 
     let _size = 0;
-    for (let i = start; i < end; i = i + _size) {
+    for (let i = start; i <= end; i = i + _size) {
       opcode.offset = i;
       const op = new DebugOpState(constants, getOpSnapshot(opcode), context.meta);
 

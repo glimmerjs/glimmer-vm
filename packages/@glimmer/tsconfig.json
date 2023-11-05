@@ -13,7 +13,6 @@
     "verbatimModuleSyntax": true,
 
     // Environment Configuration
-    "experimentalDecorators": true,
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",

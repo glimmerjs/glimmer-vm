@@ -62,7 +62,6 @@ import {
 } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
-import { ARGS, CONSTANTS } from '../../symbols';
 import type { UpdatingVM } from '../../vm';
 import type { InternalVM } from '../../vm/append';
 import { type BlockArgumentsImpl, EMPTY_ARGS, VMArgumentsImpl } from '../../vm/arguments';
@@ -113,7 +112,7 @@ export interface PartialComponentDefinition {
 }
 
 APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
-  let definition = vm[CONSTANTS].getValue<ComponentDefinition>(handle);
+  let definition = vm.constants.getValue<ComponentDefinition>(handle);
   assert(!!definition, `Missing component for ${handle}`);
 
   let { manager, capabilities } = definition;
@@ -140,7 +139,7 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
 
   if (vm.unwrap(result)) {
     const component = check(result.value, CheckOr(CheckString, CheckCurriedComponentDefinition));
-    let constants = vm[CONSTANTS];
+    let constants = vm.constants;
     let owner = vm.getOwner();
     let isStrict = constants.getValue<boolean>(_isStrict);
 
@@ -177,7 +176,7 @@ APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
   let stack = vm.stack;
   let ref = check(stack.pop(), CheckReactive);
   let value = unwrapReactive(ref);
-  let constants = vm[CONSTANTS];
+  let constants = vm.constants;
 
   let definition: CurriedValue | ComponentDefinition | null;
 
@@ -229,21 +228,21 @@ APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
 
 APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags }) => {
   let stack = vm.argumentsStack;
-  let names = vm[CONSTANTS].getArray<string[]>(_names);
+  let names = vm.constants.getArray<string[]>(_names);
 
   let positionalCount = flags >> 4;
   let atNames = flags & 0b1000;
   let blockNames =
-    flags & 0b0111 ? vm[CONSTANTS].getArray<string[]>(_blockNames) : EMPTY_STRING_ARRAY;
+    flags & 0b0111 ? vm.constants.getArray<string[]>(_blockNames) : EMPTY_STRING_ARRAY;
 
-  vm[ARGS].setup(stack, names, blockNames, positionalCount, !!atNames);
-  stack.push(vm[ARGS]);
+  vm.args.setup(stack, names, blockNames, positionalCount, !!atNames);
+  stack.push(vm.args);
 });
 
 APPEND_OPCODES.add(Op.PushEmptyArgs, (vm) => {
   let { argumentsStack } = vm;
 
-  argumentsStack.push(vm[ARGS].empty(argumentsStack));
+  argumentsStack.push(vm.args.empty(argumentsStack));
 });
 
 APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
@@ -267,7 +266,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
       "If the component definition was curried, we don't yet have a manager"
     );
 
-    let constants = vm[CONSTANTS];
+    let constants = vm.constants;
 
     let {
       definition: resolvedDefinition,
@@ -369,7 +368,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
 
   let dynamicScope: Nullable<DynamicScope> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicScope)) {
-    dynamicScope = vm.dynamicScope();
+    dynamicScope = vm.dynamicScope;
   }
 
   let hasDefaultBlock = flags & 1;
@@ -446,10 +445,10 @@ APPEND_OPCODES.add(Op.PutComponentOperations, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getValue<string>(_name);
-  let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
+  let name = vm.constants.getValue<string>(_name);
+  let trusting = vm.constants.getValue<boolean>(_trusting);
   let reference = check(vm.stack.pop(), CheckReactive);
-  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
+  let namespace = _namespace ? vm.constants.getValue<string>(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
     name,
@@ -460,9 +459,9 @@ APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: _trusting, op3: _na
 });
 
 APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getValue<string>(_name);
-  let value = vm[CONSTANTS].getValue<string>(_value);
-  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
+  let name = vm.constants.getValue<string>(_name);
+  let value = vm.constants.getValue<string>(_value);
+  let namespace = _namespace ? vm.constants.getValue<string>(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setStaticAttribute(
     name,
@@ -610,12 +609,12 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
 
     let args: CapturedArguments;
 
-    if (vm.stack.top() === vm[ARGS]) {
-      args = vm[ARGS].capture();
+    if (vm.stack.top() === vm.args) {
+      args = vm.args.capture();
     } else {
-      let names = vm[CONSTANTS].getArray<string[]>(_names);
-      vm[ARGS].setup(vm.argumentsStack, names, [], 0, true);
-      args = vm[ARGS].capture();
+      let names = vm.constants.getArray<string[]>(_names);
+      vm.args.setup(vm.argumentsStack, names, [], 0, true);
+      args = vm.args.capture();
     }
 
     let moduleName: string;
@@ -723,14 +722,14 @@ APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
 
     if (compilable === null) {
       if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.wrapped)) {
-        compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asWrappedLayout();
+        compilable = unwrapTemplate(vm.constants.defaultTemplate).asWrappedLayout();
       } else {
-        compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asLayout();
+        compilable = unwrapTemplate(vm.constants.defaultTemplate).asLayout();
       }
     }
   }
 
-  let handle = compilable.compile(vm.context);
+  let handle = vm.compile(compilable);
 
   stack.push(compilable.symbolTable);
   stack.push(handle);
@@ -806,7 +805,7 @@ APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: register }) => {
 
   if (state.table.hasDebug) {
     let lookup = (state.lookup = dict<ScopeSlot>());
-    vm.scope().bindEvalScope(lookup);
+    vm.scope.bindEvalScope(lookup);
   }
 });
 
@@ -815,7 +814,7 @@ APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: register }) => {
     vm.fetchValue(check(register, CheckSyscallRegister)),
     CheckFinishedComponentInstance
   );
-  let scope = vm.scope();
+  let scope = vm.scope;
 
   let args = check(vm.stack.top(), CheckArguments);
   let callerNames = args.named.atNames;
@@ -840,7 +839,7 @@ function bindBlock(
   let symbol = state.table.symbols.indexOf(symbolName);
   let block = blocks.get(blockName);
 
-  if (symbol !== -1) vm.scope().bindBlock(symbol + 1, block);
+  if (symbol !== -1) vm.scope.bindBlock(symbol + 1, block);
   if (state.lookup) state.lookup[symbolName] = block;
 }
 

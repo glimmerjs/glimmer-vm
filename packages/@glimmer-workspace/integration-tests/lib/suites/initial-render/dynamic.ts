@@ -78,49 +78,26 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableNodes();
   });
 
-  spec('Quoted attribute string values (initial error)', (ctx) => {
-    const woops = Woops.error('image.png');
-    ctx.render.template(
-      "<p>{{#-try this.woops.handleError}}before<img src='{{this.woops.value}}'>after{{/-try}}</p>",
-      { woops }
-    );
-    ctx.assertHTML('<p></p>');
-    ctx.assertStableRerender();
+  type ErrorsArgs = [template: string, value: string, templates: { err: string; ok: string }];
 
-    // ctx.rerender({ src: 'newimage.png' });
-    // ctx.assertHTML("<img src='newimage.png'>");
-    // ctx.assertStableNodes();
+  function errors(description: string, ...args: ErrorsArgs) {
+    // spec(`${description} (errors: initial)`, (ctx) => {
+    //   ctx.assertError(...args);
+    // });
+    // spec(`${description} (errors: update)`, (ctx) => {
+    //   ctx.assertOk(...args);
+    // });
+  }
 
-    // ctx.rerender({ src: '' });
-    // ctx.assertHTML("<img src=''>");
-    // ctx.assertStableNodes();
-
-    // ctx.rerender({ src: 'image.png' });
-    // ctx.assertHTML("<img src='image.png'>");
-    // ctx.assertStableNodes();
-  });
-
-  spec('Quoted attribute string values (updating error)', (ctx) => {
-    const woops = Woops.noop('image.png');
-    ctx.render.template(
-      "<p>{{#-try this.woops.handleError}}before<img src='{{this.woops.value}}'>after{{/-try}}</p>",
-      { woops }
-    );
-    ctx.assertHTML("<p>before<img src='image.png'>after</p>");
-    ctx.assertStableRerender();
-
-    // ctx.rerender({ src: 'newimage.png' });
-    // ctx.assertHTML("<img src='newimage.png'>");
-    // ctx.assertStableNodes();
-
-    // ctx.rerender({ src: '' });
-    // ctx.assertHTML("<img src=''>");
-    // ctx.assertStableNodes();
-
-    // ctx.rerender({ src: 'image.png' });
-    // ctx.assertHTML("<img src='image.png'>");
-    // ctx.assertStableNodes();
-  });
+  errors(
+    'Quoted attribute string values',
+    "<p>{{#-try this.handleError}}before<img src='{{this.result.value}}'>after{{/-try}}</p>",
+    'image.png',
+    {
+      err: '<p></p>',
+      ok: '<p>before<img src="image.png">after</p>',
+    }
+  );
 
   spec('Unquoted attribute string values', (ctx) => {
     ctx.render.template('<img src={{this.src}}>', { src: 'image.png' });
@@ -139,6 +116,16 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertHTML("<img src='image.png'>");
     ctx.assertStableNodes();
   });
+
+  errors(
+    'Unquoted attribute string values',
+    '<p>{{#-try this.handleError}}before<img src={{this.result.value}}>after{{/-try}}</p>',
+    'image.png',
+    {
+      err: '<p></p>',
+      ok: '<p>before<img src="image.png">after</p>',
+    }
+  );
 
   spec('Unquoted img src attribute is not rendered when set to `null`', (ctx) => {
     ctx.render.template("<img src='{{this.src}}'>", { src: null });
@@ -211,6 +198,16 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertHTML('<a></a>');
     ctx.assertStableNodes();
   });
+
+  errors(
+    'Attribute expression can be followed by another attribute',
+    "<div>{{#-try this.handleError}}before<p foo='{{this.result.value}}' name='Alice' />after{{/-try}}</div>",
+    'oh my',
+    {
+      err: '<div></div>',
+      ok: '<div>before<p foo="oh my" name="Alice"></p>after</div>',
+    }
+  );
 
   spec('Attribute expression can be followed by another attribute', (ctx) => {
     ctx.render.template("<div foo='{{this.funstuff}}' name='Alice'></div>", { funstuff: 'oh my' });
@@ -414,6 +411,16 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertHTML('<div>content</div>');
     ctx.assertStableRerender();
   });
+
+  errors(
+    'Namespaced attribute',
+    `<svg xmlns:xlink="http://www.w3.org/1999/xlink">{{#-try this.handleError}}<use xlink:href="{{this.result.value}}"></use>{{/-try}}</svg>`,
+    'home',
+    {
+      ok: '<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="home"></use></svg>',
+      err: '<svg xmlns:xlink="http://www.w3.org/1999/xlink"></svg>',
+    }
+  );
 
   spec('Namespaced attribute', (ctx) => {
     ctx.render.template("<svg xlink:title='svg-title'>content</svg>");
@@ -663,6 +670,16 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertHTML('<div>hello<span>hello</span></div>');
     ctx.assertStableNodes();
   });
+
+  errors(
+    `Text curlies produce text nodes`,
+    `<div>{{#-try this.handleError}}{{this.result.value}}<span>{{this.result.value}}</span>{{/-try}}</div>`,
+    `<strong>hello</strong>`,
+    {
+      ok: `<div>&lt;strong&gt;hello&lt;/strong&gt;<span>&lt;strong>hello&lt;/strong&gt;</span></div>`,
+      err: '<div></div><!---->',
+    }
+  );
 
   spec('Text curlies perform escaping', (ctx) => {
     ctx.render.template('<div>{{this.title}}<span>{{this.title}}</span></div>', {

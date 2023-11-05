@@ -1,11 +1,14 @@
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import type {
   BlockBounds,
+  Destroyable,
   DynamicScope,
   ElementBuilder,
   Environment,
   ExceptionHandler,
   GlimmerTreeChanges,
+  HandleException,
+  JitContext,
   LiveBlock,
   Nullable,
   Result,
@@ -28,7 +31,7 @@ import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
 
 import { clear, move as moveBounds } from '../bounds';
-import type { InternalVM, VmInitCallback } from './append';
+import { VM } from './append';
 import { type LiveBlockList, NewElementBuilder } from './element-builder';
 import type { UnwindTarget } from './unwind';
 
@@ -37,7 +40,7 @@ export class UpdatingVM implements IUpdatingVM {
   public dom: GlimmerTreeChanges;
   public alwaysRevalidate: boolean;
 
-  private frameStack: Stack<UpdatingVMFrame> = new Stack<UpdatingVMFrame>();
+  readonly #frameStack = Stack.empty<UpdatingVMFrame>();
 
   constructor(env: Environment, { alwaysRevalidate = false }) {
     this.env = env;
@@ -69,9 +72,9 @@ export class UpdatingVM implements IUpdatingVM {
   }
 
   private _execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
-    let { frameStack } = this;
+    let frameStack = this.#frameStack;
 
-    this.try(opcodes, handler);
+    this.try(opcodes, { handler, unwind: true });
 
     while (!frameStack.isEmpty()) {
       let opcode = this.frame.nextStatement();
@@ -86,7 +89,7 @@ export class UpdatingVM implements IUpdatingVM {
   }
 
   private get frame() {
-    return expect(this.frameStack.current, 'bug: expected a frame');
+    return expect(this.#frameStack.current, 'bug: expected a frame');
   }
 
   deref<T>(reference: SomeReactive<T>): Result<T> {
@@ -97,36 +100,49 @@ export class UpdatingVM implements IUpdatingVM {
     this.frame.goto(index);
   }
 
-  try(ops: UpdatingOpcode[], handler: Nullable<ExceptionHandler>) {
-    this.frameStack.push(new UpdatingVMFrame(ops, handler));
+  try(ops: UpdatingOpcode[], handle: Nullable<HandleException>) {
+    this.#frameStack.push(new UpdatingVMFrame(ops, handle));
+  }
+
+  unwind() {
+    while (this.#frameStack.current) {
+      const unwound = this.frame.unwind();
+      this.#frameStack.pop();
+
+      if (unwound) return;
+    }
+
+    // @fixme something more rationalized here
+    throw Error(`unwind target not found`);
   }
 
   throw() {
     this.frame.handleException();
-    this.frameStack.pop();
+    this.#frameStack.pop();
   }
 }
 
-export interface VMState {
+export interface InitialVmState {
   readonly pc: number;
   readonly scope: Scope;
   readonly dynamicScope: DynamicScope;
   readonly stack: unknown[];
   readonly unwind: UnwindTarget;
+  readonly context: JitContext;
 }
 
-export interface ResumableVMState {
-  resume(runtime: RuntimeContext, builder: ElementBuilder): InternalVM;
+export interface VmStateSnapshot extends InitialVmState {
+  readonly destructor: Destroyable;
 }
 
-export class ResumableVMStateImpl implements ResumableVMState {
-  constructor(
-    readonly state: VMState,
-    private resumeCallback: VmInitCallback
-  ) {}
+export class ResumableVMState {
+  readonly #state: VmStateSnapshot;
+  constructor(state: VmStateSnapshot) {
+    this.#state = state;
+  }
 
-  resume(runtime: RuntimeContext, builder: ElementBuilder): InternalVM {
-    return this.resumeCallback(runtime, this.state, builder);
+  resume(runtime: RuntimeContext, builder: ElementBuilder): VM {
+    return new VM(runtime, this.#state, builder);
   }
 }
 
@@ -177,9 +193,18 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
   public type = 'try';
 
   protected declare bounds: UpdatableBlock; // Hides property on base class
+  readonly #unwindTarget: boolean;
+
+  constructor(
+    ...args: [...ConstructorParameters<typeof BlockOpcode>, options: { unwindTarget: boolean }]
+  ) {
+    const { unwindTarget } = args.pop() as { unwindTarget: boolean };
+    super(...(args as unknown as ConstructorParameters<typeof BlockOpcode>));
+    this.#unwindTarget = unwindTarget;
+  }
 
   override evaluate(vm: UpdatingVM) {
-    vm.try(this.children, this);
+    vm.try(this.children, { handler: this, unwind: this.#unwindTarget });
   }
 
   handleException() {
@@ -187,13 +212,16 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
     destroyChildren(this);
 
-      let elementStack = NewElementBuilder.resume(runtime.env, bounds);
+    let elementStack = NewElementBuilder.resume(runtime.env, bounds);
     let vm = state.resume(runtime, elementStack);
 
     let updating: UpdatingOpcode[] = [];
     let children = this.updateChildren([]);
 
     let result = vm.execute((vm) => {
+      vm.start();
+      vm.start(this);
+
       vm.pushUpdating(updating);
       vm.updateWith(this);
       vm.pushUpdating(children);
@@ -216,7 +244,7 @@ export class ListItemOpcode extends TryOpcode {
     memo: SomeReactive,
     public value: SomeReactive
   ) {
-    super(state, runtime, bounds, []);
+    super(state, runtime, bounds, [], { unwindTarget: false });
     this.#memo = memo;
   }
 
@@ -395,6 +423,7 @@ export class ListBlockOpcode extends BlockOpcode<ListItemOpcode> {
     let vm = state.resume(runtime, elementStack);
 
     vm.execute((vm) => {
+      vm.start();
       vm.pushUpdating();
       let opcode = vm.enterItem(item);
 
@@ -451,24 +480,39 @@ export class ListBlockOpcode extends BlockOpcode<ListItemOpcode> {
 }
 
 class UpdatingVMFrame {
-  private current = 0;
+  #current = 0;
+  readonly #ops: readonly UpdatingOpcode[];
+  readonly #error: Nullable<HandleException>;
 
-  constructor(
-    private ops: UpdatingOpcode[],
-    private exceptionHandler: Nullable<ExceptionHandler>
-  ) {}
+  constructor(ops: UpdatingOpcode[], handleException: Nullable<HandleException>) {
+    this.#ops = ops;
+    this.#error = handleException;
+  }
 
   goto(index: number) {
-    this.current = index;
+    this.#current = index;
   }
 
   nextStatement(): UpdatingOpcode | undefined {
-    return this.ops[this.current++];
+    return this.#ops[this.#current++];
   }
 
-  handleException() {
-    if (this.exceptionHandler) {
-      this.exceptionHandler.handleException();
+  /**
+   * unwind returns true if the frame is an unwind target (and therefore unwinding should stop at
+   * this frame).
+   */
+  unwind(): boolean {
+    if (this.#error) {
+      this.#error.handler.handleException();
+      if (this.#error.unwind) return true;
+    }
+
+    return false;
+  }
+
+  handleException(): void {
+    if (this.#error) {
+      this.#error.handler.handleException();
     }
   }
 }

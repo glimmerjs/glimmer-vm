@@ -2,7 +2,7 @@ import type { NodeType } from '@glimmer/interfaces';
 
 export * from './array-utils';
 export { default as assert, deprecate } from './assert';
-export { dict, isDict, isObject, StackImpl as Stack } from './collections';
+export * from './collections';
 export * from './constants';
 export { beginTestSteps, endTestSteps, logStep, verifySteps } from './debug-steps';
 export { default as debugToString } from './debug-to-string';
@@ -26,6 +26,7 @@ export {
   isElement,
   isSimpleElement,
 } from './simple-cast';
+export * from './stack';
 export * from './string';
 export * from './template';
 export * from './types';

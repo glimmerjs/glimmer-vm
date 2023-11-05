@@ -12,6 +12,7 @@ import type {
   SimpleNode,
   SimpleText,
 } from '@glimmer/interfaces';
+import type { PresentStack } from '@glimmer/util';
 import { assert, castToBrowser, castToSimple, COMMENT_NODE, expect, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds, CursorImpl } from '../bounds';
@@ -37,10 +38,9 @@ export class RehydratingCursor extends CursorImpl {
   }
 }
 
-export class RehydrateBuilder
-  extends AbstractElementBuilder<RehydratingCursor>
-  implements ElementBuilder
-{
+export class RehydrateBuilder extends AbstractElementBuilder implements ElementBuilder {
+  declare readonly cursors: PresentStack<RehydratingCursor>;
+
   private unmatchedAttributes: Nullable<SimpleAttr[]> = null;
   blockDepth = 0;
   startingBlockOffset: number;
@@ -49,7 +49,7 @@ export class RehydrateBuilder
     super(env, parentNode, nextSibling);
     if (nextSibling) throw new Error('Rehydration with nextSibling not supported');
 
-    let node = this.currentCursor!.element.firstChild;
+    let node = this.currentCursor.element.firstChild;
 
     while (node !== null) {
       if (isOpenBlock(node)) {
@@ -87,7 +87,7 @@ export class RehydrateBuilder
     }
   }
 
-  protected override createCursor(
+  override createCursor(
     element: SimpleElement,
     nextSibling: Nullable<SimpleNode>
   ): RehydratingCursor {
@@ -103,13 +103,13 @@ export class RehydrateBuilder
   }
 
   set candidate(node: Nullable<SimpleNode>) {
-    const currentCursor = this.currentCursor!;
+    const currentCursor = this.currentCursor;
 
     currentCursor.candidate = node;
   }
 
   disableRehydration(nextSibling: Nullable<SimpleNode>) {
-    const currentCursor = this.currentCursor!;
+    const currentCursor = this.currentCursor;
 
     // rehydration will be disabled until we either:
     // * hit popElement (and return to using the parent elements cursor)
@@ -120,7 +120,7 @@ export class RehydrateBuilder
   }
 
   enableRehydration(candidate: Nullable<SimpleNode>) {
-    const currentCursor = this.currentCursor!;
+    const currentCursor = this.currentCursor;
 
     currentCursor.candidate = candidate;
     currentCursor.nextSibling = null;
@@ -145,7 +145,7 @@ export class RehydrateBuilder
       this.candidate = element.nextSibling;
     }
 
-    this.pushCursor(cursor);
+    this.pushCursor(cursor as ReturnType<this['createCursor']>);
   }
 
   // clears until the end of the current container
@@ -373,7 +373,7 @@ export class RehydrateBuilder
     } else if (_candidate) {
       if (isElement(_candidate) && _candidate.tagName === 'TBODY') {
         this.pushElement(_candidate, null);
-        this.currentCursor!.injectedOmittedNode = true;
+        this.currentCursor.injectedOmittedNode = true;
         return this.__openElement(tag);
       }
       this.clearMismatch(_candidate);
@@ -471,7 +471,7 @@ export class RehydrateBuilder
     }
 
     const cursor = new RehydratingCursor(element, null, this.blockDepth);
-    this.pushCursor(cursor);
+    this.pushCursor(cursor as ReturnType<this['createCursor']>);
 
     if (marker === null) {
       this.disableRehydration(insertBefore);

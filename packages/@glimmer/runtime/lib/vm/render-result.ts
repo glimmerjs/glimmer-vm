@@ -40,7 +40,7 @@ export default class RenderResultImpl implements RenderResult {
     return this.bounds.lastNode();
   }
 
-  handleException() {
+  handleException(): never {
     throw 'this should never happen';
   }
 }

@@ -1,11 +1,11 @@
 import { InstructionEncoderImpl } from '@glimmer/encoder';
 import type {
+  BlockMetadata,
   BuilderOp,
   BuilderOpcode,
   CompileTimeConstants,
   CompileTimeHeap,
   CompileTimeResolver,
-  BlockMetadata,
   Dict,
   Encoder,
   EncoderError,
@@ -141,7 +141,7 @@ export function encodeOp(
 }
 
 export class EncoderImpl implements Encoder {
-  private labelsStack = new Stack<Labels>();
+  private labelsStack = Stack.empty<Labels>();
   private encoder: InstructionEncoder = new InstructionEncoderImpl([]);
   private errors: EncoderError[] = [];
   private handle: number;

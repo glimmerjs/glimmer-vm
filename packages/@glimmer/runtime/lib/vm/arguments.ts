@@ -135,6 +135,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   public base = 0;
   public length = 0;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private stack: ArgumentsStack = null as any;
 
   private _references: Nullable<readonly SomeReactive[]> = null;

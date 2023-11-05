@@ -18,7 +18,7 @@ import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
 import type RenderDelegate from '../../render-delegate';
 import type { RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
 import type { Self } from '../../render-test';
-import { type JitContext, JitDelegateContext } from '../jit/delegate';
+import { JitDelegateContext,type TestJitContext } from '../jit/delegate';
 import { TestJitRegistry } from '../jit/registry';
 import { renderTemplate } from '../jit/render';
 import { TestJitRuntimeResolver } from '../jit/resolver';
@@ -34,8 +34,8 @@ export class RehydrationDelegate implements RenderDelegate {
 
   readonly style: string = 'rehydration';
 
-  public clientEnv: JitContext;
-  public serverEnv: JitContext;
+  public clientEnv: TestJitContext;
+  public serverEnv: TestJitContext;
 
   private clientResolver: TestJitRuntimeResolver;
   private serverResolver: TestJitRuntimeResolver;
@@ -46,7 +46,7 @@ export class RehydrationDelegate implements RenderDelegate {
   public clientDoc: SimpleDocument;
   public serverDoc: SimpleDocument;
 
-  readonly context: JitContext;
+  readonly context: TestJitContext;
   readonly dom: RenderDelegate['dom'];
 
   public declare rehydrationStats: RehydrationStats;

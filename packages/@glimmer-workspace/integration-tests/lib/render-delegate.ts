@@ -14,7 +14,7 @@ import type {
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 
-import type { JitContext } from './modes/jit/delegate';
+import type { TestJitContext } from './modes/jit/delegate';
 import type { TestJitRegistry } from './modes/jit/registry';
 import type { TestJitRuntimeResolver } from './modes/jit/resolver';
 import type { Self } from './render-test';
@@ -57,7 +57,7 @@ export default interface RenderDelegate {
   readonly registries: TestJitRegistry[];
 
   // The compilation and runtime contexts for the current testing environment.
-  readonly context: JitContext;
+  readonly context: TestJitContext;
 
   readonly dom: {
     document: SimpleDocument | Document;

@@ -1,11 +1,11 @@
 import type {
   CompilableProgram,
-  CompileTimeCompilationContext,
   ComponentDefinitionState,
   DynamicScope,
   ElementBuilder,
   Environment,
   Invocation,
+  JitContext,
   Owner,
   RenderResult,
   RichIteratorResult,
@@ -18,7 +18,6 @@ import { debug } from '@glimmer/validator';
 
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';
-import { ARGS, CONSTANTS } from './symbols';
 import { type InternalVM, VM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
@@ -46,7 +45,7 @@ export function renderSync(env: Environment, iterator: TemplateIterator): Render
 
 export function renderMain(
   runtime: RuntimeContext,
-  context: CompileTimeCompilationContext,
+  context: JitContext,
   owner: Owner,
   self: SomeReactive,
   treeBuilder: ElementBuilder,
@@ -68,7 +67,7 @@ export function renderMain(
 
 function renderInvocation(
   vm: InternalVM,
-  _context: CompileTimeCompilationContext,
+  _context: JitContext,
   owner: Owner,
   definition: ComponentDefinitionState,
   args: Record<string, SomeReactive>
@@ -81,7 +80,7 @@ function renderInvocation(
   // Prefix argument names with `@` symbol
   const argNames = argList.map(([name]) => `@${name}`);
 
-  let reified = vm[CONSTANTS].component(definition, owner);
+  let reified = vm.constants.component(definition, owner);
 
   vm.pushFrame();
 
@@ -98,7 +97,7 @@ function renderInvocation(
   });
 
   // Configure VM based on blocks and args just pushed on to the stack.
-  vm[ARGS].setup(vm.argumentsStack, argNames, blockNames, 0, true);
+  vm.args.setup(vm.argumentsStack, argNames, blockNames, 0, true);
 
   const compilable = expect(
     reified.compilable,
@@ -113,7 +112,7 @@ function renderInvocation(
 
   // Needed for the Op.Main opcode: arguments, component invocation object, and component
   // definition.
-  vm.stack.push(vm[ARGS]);
+  vm.stack.push(vm.args);
   vm.stack.push(invocation);
   vm.stack.push(reified);
 
@@ -125,17 +124,19 @@ function renderInvocation(
 export function renderComponent(
   runtime: RuntimeContext,
   treeBuilder: ElementBuilder,
-  context: CompileTimeCompilationContext,
+  context: JitContext,
   owner: Owner,
   definition: ComponentDefinitionState,
   args: Record<string, unknown> = {},
   dynamicScope: DynamicScope = new DynamicScopeImpl()
 ): TemplateIterator {
-  let vm = VM.empty(
-    runtime,
-    { treeBuilder, handle: context.stdlib.main, dynamicScope, owner },
-    context
-  );
+  let vm = VM.initial(runtime, context, {
+    treeBuilder,
+    self: undefined,
+    handle: context.stdlib.main,
+    dynamicScope,
+  owner,
+  });
   return renderInvocation(vm, context, owner, definition, recordToReference(args));
 }
 

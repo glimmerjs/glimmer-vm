@@ -14,7 +14,7 @@ import {
   CheckProgramSymbolTable,
   CheckString,
   CheckUnknown,
-  wrap,
+  WrapCheck,
 } from '@glimmer/debug';
 import type {
   BlockMetadata,
@@ -48,7 +48,7 @@ export const CheckTag: Checker<Tag> = CheckInterface({
   [COMPUTE]: CheckFunction,
 });
 
-export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wrap(() =>
+export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = WrapCheck(() =>
   CheckNullable(CheckInstanceof(ComponentElementOperations))
 );
 
@@ -69,7 +69,7 @@ export const CheckIterator: Checker<OpaqueIterator> = CheckInterface({
   isEmpty: CheckFunction,
 });
 
-export const CheckArguments: Checker<VMArgumentsImpl> = wrap(() =>
+export const CheckArguments: Checker<VMArgumentsImpl> = WrapCheck(() =>
   CheckInstanceof(VMArgumentsImpl)
 );
 
@@ -90,11 +90,11 @@ export class UndefinedReferenceChecker implements Checker<SomeReactive> {
 export const CheckUndefinedReference = new UndefinedReferenceChecker();
 
 export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface({
-  positional: wrap(() => CheckArray(CheckReactive)),
-  named: wrap(() => CheckDict(CheckReactive)),
+  positional: WrapCheck(() => CheckArray(CheckReactive)),
+  named: WrapCheck(() => CheckDict(CheckReactive)),
 });
 
-export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(PartialScopeImpl));
+export const CheckScope: Checker<Scope> = WrapCheck(() => CheckInstanceof(PartialScopeImpl));
 
 export const CheckComponentManager: Checker<InternalComponentManager<unknown>> = CheckInterface({
   getCapabilities: CheckFunction,

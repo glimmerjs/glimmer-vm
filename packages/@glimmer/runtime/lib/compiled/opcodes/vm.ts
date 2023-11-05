@@ -12,6 +12,7 @@ import type {
   CompilableTemplate,
   ErrorHandler,
   Nullable,
+  ReactiveResult,
   Result,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
@@ -51,7 +52,6 @@ import {
 import { $sp, Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
-import { CONSTANTS } from '../../symbols';
 import type { UpdatingVM } from '../../vm';
 import type { InternalVM } from '../../vm/append';
 import { CheckArguments, CheckReactive, CheckScope } from './-debug-strip';
@@ -90,11 +90,11 @@ APPEND_OPCODES.add(Op.PushDynamicScope, (vm) => vm.pushDynamicScope());
 APPEND_OPCODES.add(Op.PopDynamicScope, (vm) => vm.popDynamicScope());
 
 APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
-  vm.stack.push(vm[CONSTANTS].getValue(decodeHandle(other)));
+  vm.stack.push(vm.constants.getValue(decodeHandle(other)));
 });
 
 APPEND_OPCODES.add(Op.ConstantReference, (vm, { op1: other }) => {
-  vm.stack.push(ReadonlyCell(vm[CONSTANTS].getValue(decodeHandle(other)), false));
+  vm.stack.push(ReadonlyCell(vm.constants.getValue(decodeHandle(other)), false));
 });
 
 APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
@@ -102,7 +102,7 @@ APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
 
   if (isHandle(primitive)) {
     // it is a handle which does not already exist on the stack
-    let value = vm[CONSTANTS].getValue(decodeHandle(primitive));
+    let value = vm.constants.getValue(decodeHandle(primitive));
     stack.push(value as object);
   } else {
     // is already an encoded immediate or primitive handle
@@ -132,6 +132,7 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
 
 APPEND_OPCODES.add(Op.InvokeStatic, (vm, { op1: handle }) => vm.call(handle));
 APPEND_OPCODES.add(Op.InvokeVirtual, (vm) => vm.call(vm.stack.pop()));
+APPEND_OPCODES.add(Op.Start, (vm) => vm.start());
 APPEND_OPCODES.add(Op.Return, (vm) => vm.return());
 
 APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
@@ -152,12 +153,12 @@ APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
 });
 
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm[CONSTANTS].getArray<string[]>(_names);
+  let names = vm.constants.getArray<string[]>(_names);
   vm.bindDynamicScope(names);
 });
 
 APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => {
-  vm.enter(args);
+  vm.enter(args, { unwindTarget: false });
 });
 
 APPEND_OPCODES.add(Op.Exit, (vm) => {
@@ -166,12 +167,12 @@ APPEND_OPCODES.add(Op.Exit, (vm) => {
 
 APPEND_OPCODES.add(Op.PushSymbolTable, (vm, { op1: _table }) => {
   let stack = vm.stack;
-  stack.push(vm[CONSTANTS].getValue(_table));
+  stack.push(vm.constants.getValue(_table));
 });
 
 APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
   let stack = vm.stack;
-  stack.push(vm.scope());
+  stack.push(vm.scope);
 });
 
 APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
@@ -206,7 +207,7 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
     // push 2
     vm.pushFrame();
     // push 0
-    vm.pushScope(scope ?? vm.scope());
+    vm.pushScope(scope ?? vm.scope);
 
     return;
   }
@@ -292,19 +293,35 @@ APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
 });
 
 export class Assert implements UpdatingOpcode {
-  private last: unknown;
+  readonly #reactive: SomeReactive;
+  #last: ReactiveResult<unknown>;
 
-  constructor(private ref: SomeReactive) {
-    this.last = unwrapReactive(ref);
+  constructor(reactive: SomeReactive) {
+    this.#last = readReactive(reactive);
+    this.#reactive = reactive;
   }
 
   evaluate(vm: UpdatingVM) {
-    let { last, ref } = this;
-    let current = unwrapReactive(ref);
+    const current = readReactive(this.#reactive);
+    const last = this.#last;
 
-    if (last !== current) {
-      vm.throw();
+    switch (current.type) {
+      case 'err': {
+        if (last.type !== 'err' || last.value !== current.value) {
+          vm.unwind();
+        }
+        break;
+      }
+
+      case 'ok': {
+        if (last.type !== 'ok' || last.value !== current.value) {
+          vm.throw();
+        }
+        break;
+      }
     }
+
+    this.#last = current;
   }
 }
 
@@ -327,7 +344,7 @@ export class AssertFilter<T, U> implements UpdatingOpcode {
 
     if (result.type === 'err') {
       this.#last = { type: 'err', value: result.value };
-      vm.throw();
+      vm.unwind();
     } else {
       const update = mapResult(result, (value) => this.#filter(value));
       if (this.#last.type !== update.type) {

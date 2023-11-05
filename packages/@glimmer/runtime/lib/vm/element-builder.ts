@@ -24,7 +24,7 @@ import type {
   SomeBoundsDebug,
   UpdatableBlock,
 } from '@glimmer/interfaces';
-import { assert, expect, Stack } from '@glimmer/util';
+import { assert, BalancedStack, expect, PresentStack, Stack } from '@glimmer/util';
 
 import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
@@ -105,7 +105,7 @@ class TryState {
   }
 
   catch() {
-    clear(this.#block);
+    if (!this.#block.isEmpty()) clear(this.#block);
     return this.#parent;
   }
 
@@ -114,15 +114,15 @@ class TryState {
   }
 }
 
-export abstract class AbstractElementBuilder<C extends Cursor> implements ElementBuilder {
+export abstract class AbstractElementBuilder implements ElementBuilder {
   static forInitialRender<
     This extends new (
       env: Environment,
       element: SimpleElement,
       nextSibling: Nullable<SimpleNode>
-    ) => AbstractElementBuilder<C>,
-    C extends Cursor,
-  >(this: This, env: Environment, cursor: CursorImpl): InstanceType<This> {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ) => any,
+  >(this: This, env: Environment, cursor: Cursor): InstanceType<This> {
     return new this(env, cursor.element, cursor.nextSibling).initialize() as InstanceType<This>;
   }
 
@@ -132,13 +132,13 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
   public operations: Nullable<ElementOperations> = null;
   private env: Environment;
 
-  readonly #cursors = new Stack<C>();
-  private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
-  private blockStack = new Stack<LiveBlock>();
+  readonly cursors: PresentStack<Cursor>;
+  private modifierStack = Stack.empty<Nullable<ModifierInstance[]>>();
+  private blockStack = BalancedStack.empty<LiveBlock>();
   #try: TryState;
 
   constructor(env: Environment, parentNode: SimpleElement, nextSibling: Nullable<SimpleNode>) {
-    this.pushElement(parentNode, nextSibling);
+    this.cursors = PresentStack.initial(this.createCursor(parentNode, nextSibling));
 
     this.env = env;
     this.dom = env.getAppendOperations();
@@ -146,14 +146,15 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
     this.#try = TryState.root(parentNode);
   }
 
-  protected abstract createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): C;
+  abstract createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): Cursor;
 
   debugBlocks(): LiveBlock[] {
     throw new Error('Method not implemented.');
   }
 
-  get currentCursor(): Nullable<C> {
-    return this.#cursors.current;
+  get currentCursor(): ReturnType<this['createCursor']> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.cursors.current as any;
   }
 
   pushTryFrame(): void {
@@ -174,8 +175,8 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
     );
   }
 
-  pushCursor(cursor: C): void {
-    this.#cursors.push(cursor);
+  pushCursor(cursor: ReturnType<this['createCursor']>): void {
+    this.cursors.push(cursor);
   }
 
   protected initialize(): this {
@@ -185,18 +186,18 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
 
   get debug(): ElementBuilder['debug'] {
     return {
-      blocks: this.blockStack.toArray(),
+      blocks: this.blockStack.asArray(),
       constructing: this.constructing,
-      inserting: this.#cursors.toArray(),
+      inserting: this.cursors.asArray(),
     };
   }
 
   get element(): SimpleElement {
-    return this.#cursors.current!.element;
+    return this.cursors.current.element;
   }
 
   get nextSibling(): Nullable<SimpleNode> {
-    return this.#cursors.current!.nextSibling;
+    return this.cursors.current.nextSibling;
   }
 
   get hasBlocks() {
@@ -204,12 +205,11 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
   }
 
   protected block(): LiveBlock {
-    return expect(this.blockStack.current, 'Expected a current live block');
+    return this.blockStack.present;
   }
 
   popElement() {
-    this.#cursors.pop();
-    expect(this.#cursors.current, "can't pop past the last element");
+    this.cursors.pop();
   }
 
   pushSimpleBlock(): LiveBlock {
@@ -318,7 +318,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
   }
 
   protected pushElement(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null) {
-    this.#cursors.push(this.createCursor(element, nextSibling));
+    this.cursors.push(this.createCursor(element, nextSibling));
   }
 
   private pushModifiers(modifiers: Nullable<ModifierInstance[]>): void {
@@ -450,7 +450,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
   }
 }
 
-export class NewElementBuilder extends AbstractElementBuilder<Cursor> {
+export class NewElementBuilder extends AbstractElementBuilder {
   static resume(env: Environment, block: UpdatableBlock): NewElementBuilder {
     let parentNode = block.parentElement();
     let nextSibling = block.reset(env);
@@ -461,7 +461,7 @@ export class NewElementBuilder extends AbstractElementBuilder<Cursor> {
     return stack;
   }
 
-  protected createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): Cursor {
+  createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): Cursor {
     return new CursorImpl(element, nextSibling);
   }
 }
@@ -482,6 +482,10 @@ export class SimpleLiveBlock implements LiveBlock {
 
   parentElement() {
     return this.parent;
+  }
+
+  isEmpty(): boolean {
+    return this.first === null;
   }
 
   firstNode(): SimpleNode {

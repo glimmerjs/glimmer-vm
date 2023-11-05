@@ -56,7 +56,7 @@ export class Ref<T extends object> {
 export default class DebugRenderTreeImpl<TBucket extends object>
   implements DebugRenderTree<TBucket>
 {
-  private stack = new Stack<TBucket>();
+  private stack = Stack.empty<TBucket>();
 
   private refs = new WeakMap<TBucket, Ref<TBucket>>();
   private roots = new Set<Ref<TBucket>>();
@@ -114,7 +114,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
 
       // Clean up the root reference to prevent errors from happening if we
       // attempt to capture the render tree (Ember Inspector may do this)
-      let root = expect(this.stack.toArray()[0], 'expected root state when resetting render tree');
+      let root = expect(this.stack.asArray()[0], 'expected root state when resetting render tree');
       let ref = this.refs.get(root);
 
       if (ref !== undefined) {

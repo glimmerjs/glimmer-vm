@@ -2,11 +2,13 @@ import type {
   BlockBoundsDebug,
   BlockMetadata,
   DebugConstants,
+  Destroyable,
   Nullable,
   RuntimeHeap,
   ScopeSlot,
   SimpleElement,
   SimpleNode,
+  UpdatingOpcode,
 } from '@glimmer/interfaces';
 
 // Make assignment fail in both directions (univariant).
@@ -44,13 +46,14 @@ export interface DebugVmSnapshot {
   };
 
   readonly frame: {
-    scope: SnapshotArray<ScopeSlot> | null;
+    scope: Nullable<SnapshotArray<ScopeSlot>>;
     stack: SnapshotArray;
     before: SnapshotArray;
+    updating: SnapshotArray<SnapshotArray<UpdatingOpcode>>;
+    destructors: SnapshotArray<Destroyable>;
   };
 
   readonly threw: Error | undefined;
-  readonly destroyable: SnapshotArray<object>;
 }
 
 export interface ReadonlyStack {

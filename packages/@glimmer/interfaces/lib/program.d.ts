@@ -55,7 +55,7 @@ export interface DebugConstants {
   getArray<T extends Nullable<unknown[]>>(value: number): T;
 }
 
-export interface CompileTimeCompilationContext {
+export interface JitContext {
   // The offsets to stdlib functions
   readonly stdlib: STDLib;
 
@@ -77,7 +77,7 @@ export interface CompileTimeCompilationContext {
  * template when compiling blocks nested inside of it.
  */
 export interface TemplateCompilationContext {
-  readonly program: CompileTimeCompilationContext;
+  readonly program: JitContext;
   readonly encoder: Encoder;
   readonly meta: BlockMetadata;
 }

@@ -63,7 +63,6 @@ export function tsconfig(updates) {
     verbatimModuleSyntax: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
     ...updates,
   };
 }

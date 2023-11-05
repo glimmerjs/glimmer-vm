@@ -1,6 +1,6 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
-import { Registers, PackedRegisters, type ArgumentsStack } from './low-level';
+import { type ArgumentsStack, PackedRegisters, Registers } from './low-level';
 import type { UnwindTarget } from './unwind';
 
 export default class EvaluationStackImpl implements ArgumentsStack {

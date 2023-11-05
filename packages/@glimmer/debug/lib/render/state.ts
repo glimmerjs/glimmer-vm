@@ -7,23 +7,30 @@ import type {
   RuntimeHeap,
   SnapshotArray,
 } from '@glimmer/interfaces';
-import { decodeHandle } from '@glimmer/util';
+import { decodeHandle, enumerate } from '@glimmer/util';
 
 import { debug, type OpSnapshot, type SomeDisassembledOperand } from '../debug';
 import type { OpcodeMetadata, StackSpec } from '../metadata';
 import { opcodeMetadata } from '../opcode-metadata';
 import {
   array,
+  changeArray,
+  compactArray,
   describeDiff,
   diffStacks,
   eqStack,
   liveBlock,
   pick,
+  prepend,
   scopeValue,
   stackValue,
+  tuple,
+  updatingOpcode,
+  wrap,
 } from './combinators';
 import type { Fragment } from './fragment';
-import { as, frag, type IntoFragment, intoFragment, join, value } from './presets';
+import type { DebugLogger } from './lines';
+import { as, frag, group, type IntoFragment, intoFragment, join, value } from './presets';
 import { SerializeBlockContext } from './serialize';
 
 export class DebugState {
@@ -197,6 +204,24 @@ export class DiffState {
     }
   }
 
+  log(logger: DebugLogger, op?: DebugOpState) {
+    logger.log(this.ra);
+    logger.log(this.return);
+    logger.log(prepend(frag`${as.label('saved')} `.styleAll('kw'), this.saved));
+    logger.log(prepend(frag`${as.label('temporaries')} `.styleAll('kw'), this.temporaries));
+    logger.log(tuple(this.#after.registers.frame, { as: intoFragment }).subtle());
+    logger.log(this.up);
+
+    if (op && this.#before) {
+      logger.log(
+        prepend(frag`${as.label('frame')} `.styleAll('kw'), this.frame(op.stack(this.#before)))
+      );
+    }
+    logger.log(prepend(frag`${as.label('scope')} `.styleAll('kw'), this.scope));
+    logger.log(prepend(frag`${as.label('updating')} `.styleAll('kw'), this.updating));
+    logger.log(prepend(frag`${as.label('destructors')} `.styleAll('kw'), this.destructors));
+  }
+
   change<T>(compare: (state: DebugVmSnapshot) => T, create: (value: T) => Fragment) {
     if (this.#before === undefined) {
       return create(compare(this.#after.snapshot));
@@ -214,6 +239,10 @@ export class DiffState {
 
   get return(): Fragment {
     return this.#formatState('$v0', { as: value, desc: 'return value' });
+  }
+
+  get pc(): Fragment {
+    return this.#formatState('$pc', { as: intoFragment }).subtle();
   }
 
   get up(): Fragment {
@@ -238,22 +267,87 @@ export class DiffState {
     return array([t0, t1]);
   }
 
+  get destructors(): Fragment {
+    const befores = this.#before?.snapshot.frame.destructors ?? null;
+    const afters = this.#after?.snapshot.frame.destructors ?? null;
+
+    return describeDiff(diffStacks(befores, afters), { as: stackValue });
+  }
+
+  get updating(): Fragment {
+    const befores = this.#before?.snapshot.frame.updating ?? null;
+    const afters = this.#after?.snapshot.frame.updating ?? null;
+
+    let fragments: [
+      change: 'pops list' | 'pushes' | 'changes' | 'retains' | 'inner',
+      index: number,
+      fragment: Fragment,
+    ][] = [];
+
+    for (const [i, before] of enumerate(befores ?? [])) {
+      const after = afters.at(i);
+
+      if (after === undefined) {
+        fragments.push(['pops list', i, array(before, { as: updatingOpcode })]);
+        continue;
+      }
+
+      if (eqStack(before, after)) {
+        fragments.push([
+          'retains',
+          i,
+          compactArray(after, { as: updatingOpcode, when: { allSubtle: '' } }).subtle(),
+        ]);
+        continue;
+      }
+
+      fragments.push([
+        'changes',
+        i,
+        describeDiff(diffStacks(before, after), { as: updatingOpcode }),
+      ]);
+    }
+
+    const pushAfter = befores?.length ?? 0;
+    const pushes = afters.slice(pushAfter);
+
+    for (const [i, push] of enumerate(pushes)) {
+      fragments.push([
+        'pushes',
+        i + pushAfter,
+        compactArray(push, {
+          as: updatingOpcode,
+          when: { empty: as.specialString('new list'), allSubtle: '' },
+        }),
+      ]);
+    }
+
+    const body = fragments.map(([kind, originalIndex, fragment]) => {
+      const isSubtle = kind === 'changes' && pushes.length === 0;
+      return prepend(frag`  ${String(originalIndex)}. ${kind} `.subtle(isSubtle), fragment);
+    });
+
+    const needsWrapper = fragments.some(([type]) => {
+      return type === 'pops list' || type === 'pushes';
+    });
+
+    if (needsWrapper) {
+      return wrap('[\n', join(body, ',\n'), '\n]');
+    } else {
+      return group(frag`[\n`.subtle(), join(body, ',\n'), frag`\n]`.subtle());
+    }
+  }
+
   get scope(): Fragment {
     const before = this.#before?.snapshot.frame.scope ?? null;
     const after = this.#after?.snapshot.frame.scope ?? null;
 
-    if (eqStack(before, after)) {
-      return frag`${as.subtle('(unchanged)')} ${
-        Array.isArray(after) ? array(after, { as: scopeValue }) : value(after)
-      }`.subtle();
-    }
-
-    return after === null ? value(null) : array(after, { as: scopeValue });
+    return changeArray(before, after, { eq: eqStack, as: scopeValue, or: value });
   }
 
   get blocks(): Fragment {
-    const before = this.#before?.snapshot.dom.blocks;
-    const after = this.#after?.snapshot.dom.blocks;
+    const before = this.#before?.snapshot.dom.blocks ?? null;
+    const after = this.#after?.snapshot.dom.blocks ?? null;
 
     if (eqStack(before, after)) {
       return frag`${as.subtle('(unchanged)')} ${array(after, { as: liveBlock })}`.subtle();
@@ -274,22 +368,17 @@ export class DiffState {
       return describeDiff(diffStacks(before, after), { as: stackValue });
     }
 
-    // from end of before: popped: spec.pop peeked: spec.peek same: rest
-
-    // const popped =
-
     const { before: beforePopped, after: popped } = partitionFromEnd(before, spec.pop);
     const { before: unused, after: peeked } = partitionFromEnd(beforePopped, spec.peek);
     const pushed = partitionFromEnd(after, spec.push).after;
 
-    // const paramSize = spec.peek + spec.pop; const same = paramSize === 0 ? before :
-    // before.slice(0, -paramSize); const peeked = spec.peek === 0 ? [] : before.slice(spec.peek,
-    // -spec.pop); const popped = spec.pops === 0 ? [] : before.slice(-spec.pops); const pushed =
-    // spec.pushes === 0 ? [] : after.slice(-spec.pushes);
-
     return describeDiff({ unused, peeked, pushed, popped }, { as: stackValue });
   }
 
+  /**
+   * If the state has changed, returns a fragment that describes the change. Otherwise, returns a
+   * subtle fragment describing the state.
+   */
   #formatState<K extends keyof DebugVmSnapshot>(
     key: K,
     {

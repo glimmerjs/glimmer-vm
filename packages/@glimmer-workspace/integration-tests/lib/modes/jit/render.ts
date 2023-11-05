@@ -5,11 +5,11 @@ import type { PrecompileOptions } from '@glimmer/syntax';
 import { unwrapTemplate } from '@glimmer/util';
 
 import { preprocess } from '../../compile';
-import type { JitContext } from './delegate';
+import type { TestJitContext } from './delegate';
 
 export function renderTemplate(
   src: string,
-  { runtime, program }: JitContext,
+  { runtime, program }: TestJitContext,
   self: SomeReactive,
   builder: ElementBuilder,
   options?: PrecompileOptions

@@ -130,6 +130,17 @@ export class EachSuite extends RenderTestContext {
   }
 
   @render
+  'an empty list'() {
+    let list: number[] = [];
+    this.render.template(
+      '{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}',
+      { list }
+    );
+    this.assertHTML('Empty');
+    this.assertStableRerender();
+  }
+
+  @render
   'receives the index as the second parameter'() {
     let list = [1, 2, 3, 4];
     this.render.template(

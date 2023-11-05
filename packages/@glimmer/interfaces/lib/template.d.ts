@@ -3,7 +3,7 @@ import type { Operand, SerializedInlineBlock, SerializedTemplateBlock } from './
 import type { EncoderError } from './compile/encoder';
 import type { Nullable } from './core';
 import type { InternalComponentCapabilities } from './managers/internal/component';
-import type { CompileTimeCompilationContext, ConstantPool, SerializedHeap } from './program';
+import type { JitContext, ConstantPool, SerializedHeap } from './program';
 import type { Owner } from './runtime';
 import type { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './tier1/symbol-table';
 
@@ -115,5 +115,5 @@ export interface CompilableTemplate<S extends SymbolTable = SymbolTable> {
   readonly [IS_COMPILABLE_TEMPLATE_BRAND]: true;
   symbolTable: S;
   meta: BlockMetadata;
-  compile(context: CompileTimeCompilationContext): HandleResult;
+  compile(context: JitContext): HandleResult;
 }

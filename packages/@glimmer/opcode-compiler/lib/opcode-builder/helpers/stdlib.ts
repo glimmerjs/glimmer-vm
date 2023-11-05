@@ -1,10 +1,13 @@
-import type {
-  BuilderOp,
-  CompileTimeCompilationContext,
-  BlockMetadata,
-  HighLevelOp,
-} from '@glimmer/interfaces';
+import type { BlockMetadata, BuilderOp, HighLevelOp, JitContext } from '@glimmer/interfaces';
 import { $s0, Op } from '@glimmer/vm';
+import {
+  COMPONENT_CONTENT,
+  FRAGMENT_CONTENT,
+  HELPER_CONTENT,
+  NODE_CONTENT,
+  SAFE_STRING_CONTENT,
+  STRING_CONTENT,
+} from '@glimmer/vm/lib/content';
 
 import {
   definePushOp,
@@ -16,14 +19,6 @@ import { StdLib } from '../stdlib';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';
 import { CallDynamic } from './vm';
-import {
-  COMPONENT_CONTENT,
-  FRAGMENT_CONTENT,
-  HELPER_CONTENT,
-  NODE_CONTENT,
-  SAFE_STRING_CONTENT,
-  STRING_CONTENT,
-} from '@glimmer/vm/lib/content';
 
 export function main(op: PushStatementOp): void {
   op(Op.Main, $s0);
@@ -98,7 +93,7 @@ export function StdAppend(
   );
 }
 
-export function compileStd(context: CompileTimeCompilationContext): StdLib {
+export function compileStd(context: JitContext): StdLib {
   let mainHandle = build(context, (op) => main(op));
   let trustingGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, true, null));
   let cautiousGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, false, null));
@@ -131,10 +126,7 @@ export const STDLIB_META: BlockMetadata = {
   size: 0,
 };
 
-function build(
-  program: CompileTimeCompilationContext,
-  builder: (op: PushStatementOp) => void
-): number {
+function build(program: JitContext, builder: (op: PushStatementOp) => void): number {
   let { constants, heap, resolver } = program;
   let encoder = new EncoderImpl(heap, STDLIB_META);
 

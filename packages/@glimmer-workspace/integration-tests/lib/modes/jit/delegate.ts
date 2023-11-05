@@ -1,10 +1,10 @@
 import type {
   CapturedRenderNode,
-  CompileTimeCompilationContext,
   Cursor,
   ElementBuilder,
   Environment,
   HandleResult,
+  JitContext,
   Nullable,
   RenderResult,
   RuntimeContext,
@@ -30,8 +30,7 @@ import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
-import type RenderDelegate from '../../render-delegate';
-import type { RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
+import type { RenderDelegate, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
 import type { Self } from '../../render-test';
 import JitCompileTimeLookup from './compilation-context';
 import { componentHelper } from './register';
@@ -39,16 +38,16 @@ import { TestJitRegistry } from './registry';
 import { renderTemplate } from './render';
 import { TestJitRuntimeResolver } from './resolver';
 
-export interface JitContext {
+export interface TestJitContext {
   runtime: RuntimeContext;
-  program: CompileTimeCompilationContext;
+  program: JitContext;
 }
 
 export function JitDelegateContext(
   doc: SimpleDocument,
   resolver: TestJitRuntimeResolver,
   env: EnvironmentDelegate
-): JitContext {
+): TestJitContext {
   let sharedArtifacts = artifacts();
   let context = programCompilationContext(
     sharedArtifacts,
@@ -70,7 +69,7 @@ export class ClientSideRenderDelegate implements RenderDelegate {
   private env: EnvironmentDelegate;
 
   readonly registries: TestJitRegistry[];
-  readonly context: JitContext;
+  readonly context: TestJitContext;
 
   constructor({
     doc: specifiedDoc,
