@@ -78,24 +78,32 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableNodes();
   });
 
-  type ErrorsArgs = [template: string, value: string, templates: { err: string; ok: string }];
+  function errors(
+    description: string,
+    actual: { template: string; value: string },
+    expected: { result: (body: string) => string; ok: string }
+  ) {
+    const ok = expected.result(expected.ok);
+    const err = expected.result('<!---->');
 
-  function errors(description: string, ...args: ErrorsArgs) {
-    // spec(`${description} (errors: initial)`, (ctx) => {
-    //   ctx.assertError(...args);
-    // });
-    // spec(`${description} (errors: update)`, (ctx) => {
-    //   ctx.assertOk(...args);
-    // });
+    spec(`${description} (errors: initial)`, (ctx) => {
+      ctx.assertError(actual.template, actual.value, { ok, err });
+    });
+    spec(`${description} (errors: update)`, (ctx) => {
+      ctx.assertOk(actual.template, actual.value, { ok, err });
+    });
   }
 
   errors(
     'Quoted attribute string values',
-    "<p>{{#-try this.handleError}}before<img src='{{this.result.value}}'>after{{/-try}}</p>",
-    'image.png',
     {
-      err: '<p></p>',
-      ok: '<p>before<img src="image.png">after</p>',
+      template:
+        "<p>{{#-try this.handleError}}before<img src='{{this.result.value}}'>after{{/-try}}</p>",
+      value: 'image.png',
+    },
+    {
+      result: (body) => `<p>${body}</p>`,
+      ok: `before<img src="image.png">after`,
     }
   );
 
@@ -119,11 +127,14 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
 
   errors(
     'Unquoted attribute string values',
-    '<p>{{#-try this.handleError}}before<img src={{this.result.value}}>after{{/-try}}</p>',
-    'image.png',
     {
-      err: '<p></p>',
-      ok: '<p>before<img src="image.png">after</p>',
+      template:
+        '<p>{{#-try this.handleError}}before<img src={{this.result.value}}>after{{/-try}}</p>',
+      value: 'image.png',
+    },
+    {
+      result: (body) => `<p>${body}</p>`,
+      ok: `before<img src="image.png">after`,
     }
   );
 
@@ -201,11 +212,14 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
 
   errors(
     'Attribute expression can be followed by another attribute',
-    "<div>{{#-try this.handleError}}before<p foo='{{this.result.value}}' name='Alice' />after{{/-try}}</div>",
-    'oh my',
     {
-      err: '<div></div>',
-      ok: '<div>before<p foo="oh my" name="Alice"></p>after</div>',
+      template:
+        "<div>{{#-try this.handleError}}before<p foo='{{this.result.value}}' name='Alice' />after{{/-try}}</div>",
+      value: 'oh my',
+    },
+    {
+      result: (body) => `<div>${body}</div>`,
+      ok: 'before<p foo="oh my" name="Alice"></p>after',
     }
   );
 
@@ -414,11 +428,13 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
 
   errors(
     'Namespaced attribute',
-    `<svg xmlns:xlink="http://www.w3.org/1999/xlink">{{#-try this.handleError}}<use xlink:href="{{this.result.value}}"></use>{{/-try}}</svg>`,
-    'home',
     {
-      ok: '<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="home"></use></svg>',
-      err: '<svg xmlns:xlink="http://www.w3.org/1999/xlink"></svg>',
+      template: `<svg xmlns:xlink="http://www.w3.org/1999/xlink">{{#-try this.handleError}}<use xlink:href="{{this.result.value}}"></use>{{/-try}}</svg>`,
+      value: 'home',
+    },
+    {
+      result: (body) => `<svg xmlns:xlink="http://www.w3.org/1999/xlink">${body}</svg>`,
+      ok: `<use xlink:href="home"></use>`,
     }
   );
 
@@ -673,11 +689,13 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
 
   errors(
     `Text curlies produce text nodes`,
-    `<div>{{#-try this.handleError}}{{this.result.value}}<span>{{this.result.value}}</span>{{/-try}}</div>`,
-    `<strong>hello</strong>`,
     {
-      ok: `<div>&lt;strong&gt;hello&lt;/strong&gt;<span>&lt;strong>hello&lt;/strong&gt;</span></div>`,
-      err: '<div></div><!---->',
+      template: `<div>{{#-try this.handleError}}{{this.result.value}}<span>{{this.result.value}}</span>{{/-try}}</div>`,
+      value: `<strong>hello</strong>`,
+    },
+    {
+      result: (body) => `<div>${body}</div>`,
+      ok: '&lt;strong&gt;hello&lt;/strong&gt;<span>&lt;strong>hello&lt;/strong&gt;</span>',
     }
   );
 

@@ -1,7 +1,8 @@
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import type {
+  BlockBounds,
   Environment,
-  LiveBlock,
+  Nullable,
   RenderResult,
   SimpleElement,
   SimpleNode,
@@ -9,17 +10,25 @@ import type {
 } from '@glimmer/interfaces';
 
 import { clear } from '../bounds';
-import { UpdatingVM } from './update';
+import { type BlockOpcode, UpdatingVM } from './update';
 
-export default class RenderResultImpl implements RenderResult {
+export default class RenderResultImpl implements BlockOpcode, RenderResult {
   constructor(
     public env: Environment,
     private updating: UpdatingOpcode[],
-    private bounds: LiveBlock,
+    private bounds: BlockBounds,
     readonly drop: object
   ) {
     associateDestroyableChild(this, drop);
     registerDestructor(this, () => clear(this.bounds));
+  }
+
+  get children() {
+    return this.updating;
+  }
+
+  evaluate(vm: UpdatingVM): void {
+    vm.execute(this.updating, this);
   }
 
   rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
@@ -32,15 +41,27 @@ export default class RenderResultImpl implements RenderResult {
     return this.bounds.parentElement();
   }
 
+  get first(): Nullable<SimpleNode> {
+    return this.bounds.first;
+  }
+
   firstNode(): SimpleNode {
     return this.bounds.firstNode();
+  }
+
+  get last(): Nullable<SimpleNode> {
+    return this.bounds.last;
   }
 
   lastNode(): SimpleNode {
     return this.bounds.lastNode();
   }
 
-  handleException(): never {
-    throw 'this should never happen';
+  handleException(): void {
+    // @fixme
+  }
+
+  unwind() {
+    return false;
   }
 }

@@ -18,7 +18,13 @@ import type {
   UpdatingOpcode,
   UpdatingVM,
 } from '@glimmer/interfaces';
-import { FallibleFormula, isConstant, type SomeReactive, unwrapReactive } from '@glimmer/reference';
+import {
+  FallibleFormula,
+  isConstant,
+  readReactive,
+  type SomeReactive,
+  unwrapReactive,
+} from '@glimmer/reference';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
 import {
   consumeTag,
@@ -366,7 +372,11 @@ export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
     unwrapReactive(this.updateRef);
   }
 
-  evaluate() {
-    unwrapReactive(this.updateRef);
+  evaluate(vm: UpdatingVM) {
+    const result = readReactive(this.updateRef);
+
+    if (result.type === 'err') {
+      vm.unwind();
+    }
   }
 }

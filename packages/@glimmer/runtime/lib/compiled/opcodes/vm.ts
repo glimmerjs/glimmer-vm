@@ -57,11 +57,11 @@ import type { InternalVM } from '../../vm/append';
 import { CheckArguments, CheckReactive, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 
-APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: catchPc }) => {
+APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: relativePc }) => {
   const handler = check(vm.stack.pop(), CheckNullable(CheckReactive));
 
   if (handler === null) {
-    vm.pushTryFrame(catchPc, null);
+    vm.begin(vm.target(relativePc), null);
   } else {
     const result = vm.derefReactive(handler);
 
@@ -72,13 +72,13 @@ APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: catchPc }) => {
         throw vm.earlyError('Expected try handler %r to be a function', handler);
       }
 
-      vm.pushTryFrame(catchPc, result.value as ErrorHandler);
+      vm.begin(vm.target(relativePc), result.value as ErrorHandler);
     }
   }
 });
 
 APPEND_OPCODES.add(Op.PopTryFrame, (vm) => {
-  vm.popTryFrame();
+  vm.finally();
 });
 
 APPEND_OPCODES.add(Op.ChildScope, (vm) => vm.pushChildScope());
@@ -158,7 +158,7 @@ APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
 });
 
 APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => {
-  vm.enter(args, { unwindTarget: false });
+  vm.enter(args);
 });
 
 APPEND_OPCODES.add(Op.Exit, (vm) => {

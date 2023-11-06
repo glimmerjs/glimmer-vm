@@ -103,7 +103,7 @@ export class ErrorRecoverySuite extends RenderTestContext {
     );
 
     actions.expect(['get woops', 'error handled']);
-    this.assertHTML('<p>outer:before||outer:after</p>');
+    this.assertHTML('<p>outer:before|<!---->|outer:after</p>');
   }
 
   // @test

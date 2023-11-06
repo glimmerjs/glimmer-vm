@@ -20,12 +20,20 @@ export interface VM<O extends Owner = Owner> {
   associateDestroyable(child: Destroyable): void;
 }
 
+export interface CatchState {
+  /**
+   * An absolute instruction.
+   */
+  tryFrame: boolean;
+  handler: Nullable<ErrorHandler>;
+}
+
 export interface HandleException {
   readonly handler: ExceptionHandler;
   /**
-   * If true, unwinding should stop at this frame.
+   * If present, unwinding should stop at this frame.
    */
-  readonly unwind: boolean;
+  readonly unwind: Nullable<CatchState>;
 }
 
 export interface UpdatingVM {
@@ -36,6 +44,7 @@ export interface UpdatingVM {
   execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler): void;
   goto(index: number): void;
   try(ops: UpdatingOpcode[], error: Nullable<HandleException>): void;
+  unwind(): void;
   throw(): void;
 }
 

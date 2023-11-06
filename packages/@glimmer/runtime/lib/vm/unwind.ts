@@ -27,6 +27,10 @@ export class UnwindTarget implements UnwindTargetInterface {
     this.#target = target;
   }
 
+  get handler() {
+    return this.#target.handler;
+  }
+
   child(state: TargetState): UnwindTarget {
     return new UnwindTarget(this, state);
   }

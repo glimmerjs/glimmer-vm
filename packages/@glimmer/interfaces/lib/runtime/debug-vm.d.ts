@@ -1,5 +1,5 @@
 import type {
-  BlockBoundsDebug,
+  BlockBounds,
   BlockMetadata,
   DebugConstants,
   Destroyable,
@@ -42,7 +42,7 @@ export interface DebugVmSnapshot {
   readonly dom: {
     readonly constructing: SimpleElement | null;
     readonly inserting: SnapshotArray<DebugCursor>;
-    readonly blocks: SnapshotArray<BlockBoundsDebug>;
+    readonly blocks: SnapshotArray<BlockBounds>;
   };
 
   readonly frame: {

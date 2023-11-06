@@ -135,6 +135,7 @@ export class Self {
 
 export class RenderTestContext implements IRenderTest {
   readonly events = new RecordedEvents();
+  readonly name?: string;
 
   readonly self = new Self({});
   #element: SimpleElement;
@@ -372,9 +373,9 @@ export class RenderTestContext implements IRenderTest {
     );
   }
 
-  rerender(properties: Dict<unknown> = {}): void {
+  rerender(properties: Dict<unknown> = {}, message?: string): void {
     try {
-      QUnit.assert.ok(true, `rerender ${JSON.stringify(properties)}`);
+      QUnit.assert.ok(true, `rerender ${message ?? JSON.stringify(properties)}`);
     } catch {
       // couldn't stringify, possibly has a circular dependency
     }
@@ -447,20 +448,31 @@ export class RenderTestContext implements IRenderTest {
     return snapshot;
   }
 
-  assertError(template: string, value: string, options: { ok: string; err: string }) {
+  assertError(template: string, value: string, { ok, err }: { ok: string; err: string }) {
     const woops = Woops.error(value);
     this.render.template(template, { result: woops, handleError: woops.handleError });
 
-    this.assertHTML(options.err);
+    this.assertHTML(err);
     this.assertStableRerender();
+
+    // @fixme the next step is making these tests pass -- it may be a problem in the reactive error
+    // system, so writing some tests around this scenario is probably the next thing to do.
+    // ---
+    // woops.isError = false;
+    // this.rerender(undefined, `an ok value`);
+    // this.assertHTML(ok, `after rerendering an ok value`);
   }
 
-  assertOk(template: string, value: string, options: { ok: string; err: string }) {
+  assertOk(template: string, value: string, { ok, err }: { ok: string; err: string }) {
     const woops = Woops.noop(value);
     this.render.template(template, { result: woops, handleError: woops.handleError });
 
-    this.assertHTML(options.ok);
+    this.assertHTML(ok);
     this.assertStableRerender();
+
+    woops.isError = true;
+    this.rerender(undefined, `an error`);
+    this.assertHTML(err, `after rerendering an error`);
   }
 
   assertStableRerender() {

@@ -1,5 +1,4 @@
 import type {
-  BlockBoundsDebug,
   BlockMetadata,
   Cursor,
   DebugConstants,
@@ -48,7 +47,7 @@ export function snapshotVM(vm: SnapshottableVM): DebugVmSnapshot {
     dom: {
       constructing: dom.constructing,
       inserting: snapshotCursors(dom.inserting),
-      blocks: snapshotBlocks(dom.blocks),
+      blocks: [...dom.blocks] as const,
     },
 
     frame: {
@@ -134,8 +133,4 @@ function snapshotCursors(cursors: readonly Cursor[]): readonly DebugCursor[] {
       })();
     }
   });
-}
-
-function snapshotBlocks(cursors: LiveBlock[]): readonly BlockBoundsDebug[] {
-  return cursors.map((c) => c.debug?.()).filter((c): c is BlockBoundsDebug => c !== undefined);
 }

@@ -3,6 +3,7 @@ import type { SomeBoundsDebug } from './attributes';
 import type { SimpleElement, SimpleNode } from './simple';
 
 export interface FirstNode {
+  readonly first: Nullable<SimpleNode>;
   debug?: () => SomeBoundsDebug;
 
   // `firstNode()` is allowed to throw during construction
@@ -10,6 +11,7 @@ export interface FirstNode {
 }
 
 export interface LastNode {
+  readonly last: Nullable<SimpleNode>;
   debug?: () => SomeBoundsDebug;
 
   // `lastNode()` is allowed to throw during construction

@@ -54,6 +54,7 @@ import {
   validateTag,
   valueForTag,
 } from '@glimmer/validator';
+import { $REVISION } from '@glimmer/validator/lib/validators';
 
 export const REFERENCE: ReferenceSymbol = Symbol('REFERENCE') as ReferenceSymbol;
 
@@ -92,6 +93,7 @@ class Reactive<T = unknown, K extends ReactiveType = ReactiveType> implements Ra
   public lastRevision: Revision = INITIAL;
 
   public error: Nullable<UserExceptionInterface> = null;
+  public errorRevision: Nullable<Revision> = null;
 
   /**
    * In a data cell, lastValue is the value of the cell, and `lastValue` or `error` is always set.
@@ -240,7 +242,7 @@ export function FallibleFormula<T = unknown>(
     try {
       return compute();
     } catch (e) {
-      ref.error = UserException.from(e, `An error occured in ${ref.debugLabel}`);
+      setError(ref, UserException.from(e, `An error occured in ${ref.debugLabel}`));
     }
   };
 
@@ -267,7 +269,7 @@ export function ResultFormula<T = unknown>(
       case 'ok':
         return result.value;
       case 'err':
-        ref.error = result.value;
+        setError(ref, result.value);
     }
   };
 
@@ -296,8 +298,7 @@ export function ResultAccessor<T = unknown>(
       case 'ok':
         return result.value;
       case 'err':
-        ref.error = result.value;
-        ref.lastValue = null;
+        setError(ref, result.value);
     }
   };
 
@@ -307,8 +308,7 @@ export function ResultAccessor<T = unknown>(
     if (setResult.type === 'ok') {
       ref.lastValue = value;
     } else {
-      ref.error = setResult.value;
-      ref.lastValue = null;
+      setError(ref, setResult.value);
     }
   };
 
@@ -331,7 +331,7 @@ export function Accessor<T = unknown>(
     try {
       return get();
     } catch (e) {
-      ref.error = UserException.from(e, `An error occured getting ${ref.debugLabel}`);
+      setError(ref, UserException.from(e, `An error occured in ${ref.debugLabel}`));
     }
   };
 
@@ -340,7 +340,7 @@ export function Accessor<T = unknown>(
       set(value);
       return value;
     } catch (e) {
-      ref.error = UserException.from(e, `An error occured setting ${ref.debugLabel}`);
+      setError(ref, UserException.from(e, `An error occured setting ${ref.debugLabel}`));
     }
   };
 
@@ -385,9 +385,23 @@ function rawValueForRef<T>(ref: Reactive<T>): T {
   );
 
   ref.tag = newTag;
-  ref.lastRevision = valueForTag(newTag);
+  updateRevision(ref, valueForTag(newTag));
   consumeTag(newTag);
   return ref.lastValue as T;
+}
+
+function setError<T>(reactive: Reactive<T>, error: UserExceptionInterface) {
+  reactive.lastValue = null;
+  reactive.error = error;
+  reactive.errorRevision = $REVISION;
+}
+
+function updateRevision<T>(reactive: Reactive<T>, revision: Revision) {
+  if (reactive.errorRevision) {
+    reactive.lastRevision = Math.max(revision, reactive.errorRevision);
+  } else {
+    reactive.lastRevision = revision;
+  }
 }
 
 /**
@@ -408,24 +422,6 @@ export function InfallibleFormula<T = unknown>(
 
   return ref as RETURN_TYPE;
 }
-
-// export function FallibleFormula<T = unknown>( compute: () => Result<T>, update: Nullable<(value:
-//   T) => void> = null, debugLabel: false | string = 'unknown' ): FallibleReference<T> { const ref
-//   = new Reactive<Result<T>>(FALLIBLE) as FallibleReferenceImpl<T>;
-
-//   ref.compute = compute; ref.update = (value: Result<T>) => { switch (value.type) { case 'err': {
-//   ref.error = UserException.from(value.value, `An error occured in ${describeRef(ref)}`); break;
-//     }
-
-//       case 'ok': { if (update) { update(value.value); } }
-//     }
-//   };
-
-//   if (import.meta.env.DEV && debugLabel) { ref.debugLabel = `(fallible result of a
-//     \`${debugLabel}\` helper)`; }
-
-//   return ref;
-// }
 
 export function createPrimitiveCell<T>(value: T): ReadonlyReactiveCell<T> {
   const ref = ReadonlyCell(value);
@@ -505,7 +501,9 @@ export function getReactiveProperty(
       if (parent.type === 'err') {
         return initialize(ConstantError(parent.value));
       } else {
-        return initialize(DeeplyConstant(parent.value[property]));
+        if (isDict(parent.value)) {
+          return initialize(DeeplyConstant(parent.value[property as keyof typeof parent.value]));
+        }
       }
     } catch (e) {
       return initialize(
@@ -526,9 +524,9 @@ export function getReactiveProperty(
     get: () => {
       const parent = unwrapReactive(parentReactive);
       if (isDict(parent)) {
-        if (isObject(parent)) consumeTag(tagFor(parent, property));
+        if (isObject(parent)) consumeTag(tagFor(parent, property as keyof typeof parent));
 
-        return getProperty(parent, property);
+        return getProperty(parent, property as keyof typeof parent);
       }
     },
     set: (value: unknown): ReactiveResult<void> => {
@@ -541,7 +539,8 @@ export function getReactiveProperty(
           try {
             setProperty(parentResult.value, property as any, value);
 
-            if (isObject(parentResult.value)) dirtyTagFor(parentResult.value, property);
+            if (isObject(parentResult.value))
+              dirtyTagFor(parentResult.value, property as keyof typeof parentResult.value);
           } catch (e) {
             return Err(
               UserException.from(
@@ -643,7 +642,7 @@ export function readReactive<T>(reactive: SomeReactive<T>): ReactiveResult<T> {
 export function updateRefWithResult<T>(ref: SomeReactive<T>, value: ReactiveResult<T>) {
   switch (value.type) {
     case 'err':
-      ref.error = value.value;
+      setError(ref as Reactive, value.value);
       break;
     case 'ok':
       updateRef(ref, value.value);

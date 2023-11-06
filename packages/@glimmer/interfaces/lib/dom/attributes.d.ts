@@ -11,13 +11,15 @@ import type {
   SimpleText,
 } from './simple';
 
-export type PartialBoundsDebug = {
-  type: 'first';
-  node: SimpleNode;
-} | {
-  type: 'last';
-  node: SimpleNode;
-}
+export type PartialBoundsDebug =
+  | {
+      type: 'first';
+      node: SimpleNode;
+    }
+  | {
+      type: 'last';
+      node: SimpleNode;
+    };
 
 export type BlockBoundsDebug =
   | {
@@ -42,6 +44,12 @@ export interface LiveBlock extends BlockBounds {
   didAppendNode(node: SimpleNode): void;
   didAppendBounds(bounds: BlockBounds): void;
   finalize(stack: ElementBuilder): void;
+
+  /**
+   * This is called when an error occurred in the block. Any existing nodes are cleared and a
+   * comment is inserted instead.
+   */
+  catch(stack: ElementBuilder): void;
 }
 
 export interface SimpleLiveBlock extends LiveBlock {
@@ -111,15 +119,16 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   readonly element: SimpleElement;
 
   readonly hasBlocks: boolean;
+  readonly block: LiveBlock;
 
-  pushTryFrame(): void;
-  popTryFrame(): void;
+  begin(): LiveBlock;
+  finally(): void;
   catch(): void;
 
   pushSimpleBlock(): LiveBlock;
   pushUpdatableBlock(): UpdatableBlock;
   pushBlockList(list: BlockBounds[]): LiveBlock;
-  popBlock(): LiveBlock;
+  popBlock(isRemote: boolean): LiveBlock;
 
   didAppendBounds(bounds: BlockBounds): void;
 }

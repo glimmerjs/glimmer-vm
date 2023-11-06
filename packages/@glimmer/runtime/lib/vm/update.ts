@@ -1,9 +1,9 @@
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import type {
   BlockBounds,
+  CatchState,
   Destroyable,
   DynamicScope,
-  ElementBuilder,
   Environment,
   ExceptionHandler,
   GlimmerTreeChanges,
@@ -15,6 +15,8 @@ import type {
   RuntimeContext,
   Scope,
   SimpleComment,
+  SimpleNode,
+  SomeBoundsDebug,
   UpdatableBlock,
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
@@ -74,7 +76,15 @@ export class UpdatingVM implements IUpdatingVM {
   private _execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
     let frameStack = this.#frameStack;
 
-    this.try(opcodes, { handler, unwind: true });
+    this.try(opcodes, {
+      handler,
+      unwind: {
+        tryFrame: false,
+        handler: () => {
+          throw Error(`unwind target not found`);
+        },
+      },
+    });
 
     while (frameStack.size !== 0) {
       let opcode = this.frame.nextStatement();
@@ -104,6 +114,13 @@ export class UpdatingVM implements IUpdatingVM {
     this.#frameStack.push(new UpdatingVMFrame(ops, handle));
   }
 
+  /**
+   * Attempt to unwind the stack until a target is found. This will continue unwinding to the
+   * nearest `TryOpcode` error boundary, which will then handle the error.
+   *
+   * When the `TryOpcode` handles the error, it clears its child DOM, destroys all descendant
+   * destructors, and re-renders itself.
+   */
   unwind() {
     while (this.#frameStack.current) {
       const unwound = this.frame.unwind();
@@ -135,32 +152,30 @@ export interface VmStateSnapshot extends InitialVmState {
   readonly destructor: Destroyable;
 }
 
-export class ResumableVMState {
-  readonly #state: VmStateSnapshot;
-  constructor(state: VmStateSnapshot) {
-    this.#state = state;
-  }
-
-  resume(runtime: RuntimeContext, builder: ElementBuilder): VM {
-    return new VM(runtime, this.#state, builder);
-  }
+export interface BlockOpcode extends Omit<UpdatingOpcode & BlockBounds, 'debug'> {
+  readonly children: UpdatingOpcode[];
 }
 
-export abstract class BlockOpcode<Child extends UpdatingOpcode = UpdatingOpcode>
-  implements UpdatingOpcode, BlockBounds
+export abstract class AbstractBlockOpcode<Child extends UpdatingOpcode = UpdatingOpcode>
+  implements BlockOpcode
 {
   #children: Child[];
 
   protected readonly bounds: LiveBlock;
+  readonly debug?: () => SomeBoundsDebug;
 
   constructor(
-    protected state: ResumableVMState,
+    protected state: VmStateSnapshot,
     protected runtime: RuntimeContext,
     bounds: LiveBlock,
     children: Child[]
   ) {
     this.#children = children;
     this.bounds = bounds;
+
+    if (import.meta.env.DEV) {
+      if (bounds.debug) this.debug = bounds.debug;
+    }
   }
 
   get children() {
@@ -176,6 +191,14 @@ export abstract class BlockOpcode<Child extends UpdatingOpcode = UpdatingOpcode>
     return this.bounds.parentElement();
   }
 
+  get first(): Nullable<SimpleNode> {
+    return this.bounds.first;
+  }
+
+  get last(): Nullable<SimpleNode> {
+    return this.bounds.last;
+  }
+
   firstNode() {
     return this.bounds.firstNode();
   }
@@ -189,22 +212,36 @@ export abstract class BlockOpcode<Child extends UpdatingOpcode = UpdatingOpcode>
   }
 }
 
-export class TryOpcode extends BlockOpcode implements ExceptionHandler {
+export class TryOpcode extends AbstractBlockOpcode implements ExceptionHandler {
   public type = 'try';
 
   protected declare bounds: UpdatableBlock; // Hides property on base class
-  readonly #unwindTarget: boolean;
+  readonly #unwind: Nullable<CatchState>;
 
   constructor(
-    ...args: [...ConstructorParameters<typeof BlockOpcode>, options: { unwindTarget: boolean }]
+    ...args: [
+      ...ConstructorParameters<typeof AbstractBlockOpcode>,
+      options: { unwind: Nullable<CatchState> },
+    ]
   ) {
-    const { unwindTarget } = args.pop() as { unwindTarget: boolean };
-    super(...(args as unknown as ConstructorParameters<typeof BlockOpcode>));
-    this.#unwindTarget = unwindTarget;
+    const { unwind } = args.pop() as { unwind: Nullable<CatchState> };
+
+    super(...(args as unknown as ConstructorParameters<typeof AbstractBlockOpcode>));
+
+    this.#unwind = unwind;
   }
 
   override evaluate(vm: UpdatingVM) {
-    vm.try(this.children, { handler: this, unwind: this.#unwindTarget });
+    vm.try(this.children, { handler: this, unwind: this.#unwind });
+  }
+
+  unwind() {
+    if (this.#unwind?.tryFrame) {
+      this.handleException();
+      return true;
+    } else {
+      return false;
+    }
   }
 
   handleException() {
@@ -213,23 +250,16 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     destroyChildren(this);
 
     let elementStack = NewElementBuilder.resume(runtime.env, bounds);
-    let vm = state.resume(runtime, elementStack);
-
-    let updating: UpdatingOpcode[] = [];
-    let children = this.updateChildren([]);
+    let vm = VM.resume(runtime, state, elementStack, this.#unwind);
 
     let result = vm.execute((vm) => {
-      // emulate initial VM state
-      vm.start();
-      // emulate TryOpcode on the stack
-      vm.start(this);
-
-      vm.pushUpdating(updating);
-      vm.updateWith(this);
-      vm.pushUpdating(children);
+      if (this.#unwind?.tryFrame) {
+        vm.begin(-1, this.#unwind.handler);
+      }
     });
 
     associateDestroyableChild(this, result.drop);
+    this.updateChildren(result.children);
   }
 }
 
@@ -239,14 +269,14 @@ export class ListItemOpcode extends TryOpcode {
   #memo: SomeReactive;
 
   constructor(
-    state: ResumableVMState,
+    state: VmStateSnapshot,
     runtime: RuntimeContext,
     bounds: UpdatableBlock,
     public key: unknown,
     memo: SomeReactive,
     public value: SomeReactive
   ) {
-    super(state, runtime, bounds, [], { unwindTarget: false });
+    super(state, runtime, bounds, [], { unwind: null });
     this.#memo = memo;
   }
 
@@ -265,7 +295,7 @@ export class ListItemOpcode extends TryOpcode {
   }
 }
 
-export class ListBlockOpcode extends BlockOpcode<ListItemOpcode> {
+export class ListBlockOpcode extends AbstractBlockOpcode<ListItemOpcode> {
   readonly type = 'list-block';
 
   #opcodeMap = new Map<unknown, ListItemOpcode>();
@@ -275,7 +305,7 @@ export class ListBlockOpcode extends BlockOpcode<ListItemOpcode> {
   protected declare readonly bounds: LiveBlockList;
 
   constructor(
-    state: ResumableVMState,
+    state: VmStateSnapshot,
     runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],
@@ -422,11 +452,9 @@ export class ListBlockOpcode extends BlockOpcode<ListItemOpcode> {
       nextSibling,
     });
 
-    let vm = state.resume(runtime, elementStack);
+    let vm = VM.resume(runtime, state, elementStack, null);
 
     vm.execute((vm) => {
-      vm.start();
-      vm.pushUpdating();
       let opcode = vm.enterItem(item);
 
       opcode.index = children.length;
@@ -504,12 +532,11 @@ class UpdatingVMFrame {
    * this frame).
    */
   unwind(): boolean {
-    if (this.#error) {
-      this.#error.handler.handleException();
-      if (this.#error.unwind) return true;
+    if (this.#error && this.#error.handler.unwind()) {
+      return true;
+    } else {
+      return false;
     }
-
-    return false;
   }
 
   handleException(): void {

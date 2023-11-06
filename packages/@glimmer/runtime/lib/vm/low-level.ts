@@ -310,12 +310,18 @@ export class LowLevelVM {
     return this.#registers.fp;
   }
 
-  beginTry(catchPc: number, handler: Nullable<ErrorHandler>) {
-    // resolve the catchPc to a specific instruction pointer immediately.
-    this.#registers.try(this.target(catchPc), handler);
+  get up(): UnwindTarget {
+    return this.#registers.up;
   }
 
-  userException(error: unknown): TargetState {
+  /**
+   * `begin` takes an absolute instruction.
+   */
+  begin(instruction: number, handler: Nullable<ErrorHandler>) {
+    this.#registers.try(instruction, handler);
+  }
+
+  catch(error: unknown): TargetState {
     if (import.meta.env.DEV) {
       THROWN?.set(UserException.from(error, `A user exception occurred`));
     }
@@ -327,7 +333,7 @@ export class LowLevelVM {
     return target;
   }
 
-  popTryFrame() {
+  finally() {
     this.#registers.finally();
   }
 

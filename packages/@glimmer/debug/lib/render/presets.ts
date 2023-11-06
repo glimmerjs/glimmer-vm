@@ -204,3 +204,7 @@ export function frag(strings: TemplateStringsArray, ...values: IntoFragment[]): 
 
   return new Fragment({ kind: 'multi', value: buffer });
 }
+
+export function subtle(strings: TemplateStringsArray, ...values: IntoFragment[]): Fragment {
+  return frag(strings, ...values).subtle();
+}

@@ -54,7 +54,7 @@ export function debugAround(vm: VM, op: RuntimeOp, perform: () => void): void {
       lastState = snapshotVM(vm);
       after(lastState);
     } finally {
-      LOCAL_LOGGER.groupEnd();
+      // LOCAL_LOGGER.groupEnd();
     }
   } else {
     perform();
@@ -117,11 +117,8 @@ export function debugBefore(
           }
         }
 
-        if (LOCAL_TRACE_LOGGING) {
-          diff.log(logger, op);
-
-          done?.();
-        }
+        diff.log(logger, op);
+        done?.();
       }
     };
   }

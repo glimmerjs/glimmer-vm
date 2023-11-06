@@ -14,12 +14,15 @@ import type { OpcodeMetadata, StackSpec } from '../metadata';
 import { opcodeMetadata } from '../opcode-metadata';
 import {
   array,
+  bounds,
   changeArray,
   compactArray,
+  cursor,
   describeDiff,
   diffStacks,
+  eqBlock,
+  eqCursor,
   eqStack,
-  liveBlock,
   pick,
   prepend,
   scopeValue,
@@ -30,7 +33,7 @@ import {
 } from './combinators';
 import type { Fragment } from './fragment';
 import type { DebugLogger } from './lines';
-import { as, frag, group, type IntoFragment, intoFragment, join, value } from './presets';
+import { as, frag, group, type IntoFragment, intoFragment, join, subtle, value } from './presets';
 import { SerializeBlockContext } from './serialize';
 
 export class DebugState {
@@ -219,6 +222,10 @@ export class DiffState {
     logger.labelled('scope', this.scope);
     logger.labelled('updating', this.updating);
     logger.labelled('destructors', this.destructors);
+
+    logger.labelled('cursors', this.cursors);
+    logger.labelled('constructing', this.constructing);
+    logger.labelled('blocks', this.blocks);
   }
 
   change<T>(compare: (state: DebugVmSnapshot) => T, create: (value: T) => Fragment) {
@@ -344,15 +351,37 @@ export class DiffState {
     return changeArray(before, after, { eq: eqStack, as: scopeValue, or: value });
   }
 
+  get cursors(): Fragment {
+    const before = this.#before?.snapshot.dom.inserting ?? null;
+    const after = this.#after?.snapshot.dom.inserting ?? null;
+
+    return describeDiff(diffStacks(before, after, eqCursor), { as: cursor });
+  }
+
+  get constructing(): Fragment {
+    const before = this.#before?.snapshot.dom.constructing ?? null;
+    const after = this.#after?.snapshot.dom.constructing ?? null;
+
+    if ((before === null && after === null) || before === after) {
+      return subtle`(unchanged) ${value(before)}`;
+    }
+
+    if (before === null) {
+      return frag`${subtle`null -> `}${value(after)}`;
+    }
+
+    if (after === null) {
+      return frag`${subtle`${value(before)} -> `}null`;
+    }
+
+    return frag`${subtle`${value(before)} -> `}${value(after)}`;
+  }
+
   get blocks(): Fragment {
     const before = this.#before?.snapshot.dom.blocks ?? null;
     const after = this.#after?.snapshot.dom.blocks ?? null;
 
-    if (eqStack(before, after)) {
-      return frag`${as.subtle('(unchanged)')} ${array(after, { as: liveBlock })}`.subtle();
-    }
-
-    return describeDiff(diffStacks(before ?? [], after ?? []), { as: liveBlock });
+    return describeDiff(diffStacks(before ?? [], after ?? [], eqBlock), { as: bounds });
   }
 
   frame(spec: StackSpec): Fragment {

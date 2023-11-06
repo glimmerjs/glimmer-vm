@@ -80,10 +80,10 @@ APPEND_OPCODES.add(Op.ContentType, (vm) => {
 
   if (vm.unwrap(contentType)) {
     vm.stack.push(contentType.value);
-  }
 
-  if (!isConstant(reference)) {
-    vm.updateWith(new AssertFilter(contentType, reference, toContentType));
+    if (!isConstant(reference)) {
+      vm.updateWith(new AssertFilter(contentType, reference, toContentType));
+    }
   }
 });
 

@@ -1,12 +1,12 @@
 import type {
-  BlockBoundsDebug,
+  BlockBounds,
+  DebugCursor,
   Dict,
   Nullable,
   Optional,
   PartialBoundsDebug,
   ScopeSlot,
   SnapshotArray,
-  SomeBoundsDebug,
   SomeReactive,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
@@ -218,6 +218,18 @@ export function updatingOpcode(opcode: UpdatingOpcode): Fragment {
   return opcode.debug ? frag`<${name} ${stackValue(opcode.debug)}>` : name;
 }
 
+export function eqCursor(a: DebugCursor, b: DebugCursor) {
+  return a.parent === b.parent && a.next === b.next;
+}
+
+export function cursor({ parent, next }: DebugCursor): Fragment {
+  if (next) {
+    return frag`<${as.kw('insert')} before ${stackValue(next)}>`;
+  } else {
+    return frag`<${as.kw('append to')} ${stackValue(parent)}>`;
+  }
+}
+
 export function scopeValue(element: ScopeSlot): Fragment {
   if (Array.isArray(element)) {
     return frag`<${as.kw('block')}>`;
@@ -228,29 +240,25 @@ export function scopeValue(element: ScopeSlot): Fragment {
   }
 }
 
-export function bounds(bounds: SomeBoundsDebug): Fragment {
-  return bounds.type === 'first' || bounds.type === 'last'
-    ? partialBounds(bounds)
-    : liveBlock(bounds);
+export function bounds(bounds: BlockBounds): Fragment {
+  const parent = bounds.parentElement();
+  const { first, last } = bounds;
+
+  if (first === null) {
+    return frag`<${as.kw('bounds')} (empty) ${dom(parent)}>`;
+  } else if (first === last) {
+    return frag`<${as.kw('bounds')} ${dom(first)}>`;
+  } else {
+    return frag`<${as.kw('bounds')} ${dom(first)}..${last ? dom(last) : as.kw('unfinished')}>`;
+  }
 }
 
 export function partialBounds(bounds: PartialBoundsDebug): Fragment {
   return frag`<${as.kw('partial')}:${as.sublabel(bounds.type)} ${dom(bounds.node)}>`;
 }
 
-export function liveBlock(element: BlockBoundsDebug): Fragment {
-  switch (element.type) {
-    case 'empty':
-      return frag`<${as.kw('block')} ${as.subtle('(empty)')} ${dom(element.parent)}>`;
-
-    case 'range': {
-      if (element.collapsed) {
-        return frag`<${as.kw('block')} ${dom(element.range[0])}>`;
-      } else {
-        return frag`<${as.kw('block')} ${dom(element.range[0])}..${dom(element.range[1])}>`;
-      }
-    }
-  }
+export function eqBlock(a: BlockBounds, b: BlockBounds) {
+  return a.constructor === b.constructor && a.parentElement() === b.parentElement();
 }
 
 export function stackChange<T>(
