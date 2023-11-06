@@ -6,4 +6,5 @@
 4. [Resolver Delegate](./04-compile-time-resolver-delegate.md)
 5. [Handles](./05-handles.md)
 6. [Template Compilation](./06-templates.md)
-7. [Error Recovery](./07-error-recovery.md)
+7. [Error Recovery](./07-error-recovery/index.md)
+8. [Trace Logging](./09-trace-logging.md)

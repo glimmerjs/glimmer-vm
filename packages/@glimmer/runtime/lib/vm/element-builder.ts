@@ -4,6 +4,7 @@ import type {
   BlockBounds,
   BlockBoundsDebug,
   Cursor,
+  DebugStackAspectFrame,
   ElementBuilder,
   ElementOperations,
   Environment,
@@ -23,9 +24,10 @@ import type {
   SimpleText,
   SomeBoundsDebug,
   UpdatableBlock,
+  VmStackAspect,
 } from '@glimmer/interfaces';
 import type { Stack } from '@glimmer/util';
-import { assert, BalancedStack, expect, PresentStack } from '@glimmer/util';
+import { assert, BalancedStack, expect, parentDebugFrames, PresentStack } from '@glimmer/util';
 
 import { clear, clearRange, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
@@ -93,7 +95,7 @@ export class Fragment implements BlockBounds {
   }
 }
 
-class ElementBuilderState {
+class ElementBuilderState implements VmStackAspect {
   static initial(cursor: Cursor) {
     return new ElementBuilderState({
       inserting: PresentStack.initial(cursor, 'cursor stack'),
@@ -102,6 +104,8 @@ class ElementBuilderState {
       constructing: BalancedStack.empty('constructing stack'),
     });
   }
+
+  readonly debug?: { frames: DebugStackAspectFrame[] };
 
   #inserting: PresentStack<Cursor>;
   #modifiers: BalancedStack<ModifierInstance[]>;
@@ -123,6 +127,20 @@ class ElementBuilderState {
     this.#modifiers = modifiers;
     this.#blocks = blocks;
     this.#constructing = constructing;
+
+    if (import.meta.env.DEV) {
+      Object.defineProperty(this, 'debug', {
+        configurable: true,
+        get: function (this: ElementBuilderState): { frames: DebugStackAspectFrame[] } {
+          return parentDebugFrames('element builder', {
+            inserting: this.#inserting,
+            modifiers: this.#modifiers,
+            blocks: this.#blocks,
+            constructing: this.#constructing,
+          });
+        },
+      });
+    }
   }
 
   get inserting(): PresentStack<Cursor> {
@@ -145,34 +163,28 @@ class ElementBuilderState {
     return this.#inserting.current;
   }
 
-  get debug() {
-    return {
-      inserting: this.#inserting.toArray(),
-      modifiers: this.#modifiers.toArray(),
-      blocks: this.#blocks.toArray(),
-      constructing: this.#constructing.current,
-    };
-  }
-
-  begin() {
+  begin(): this {
     this.#inserting = this.#inserting.begin();
     this.#modifiers = this.#modifiers.begin();
     this.#blocks = this.#blocks.begin();
     this.#constructing = this.#constructing.begin();
+    return this;
   }
 
-  catch() {
-    this.#inserting = this.#inserting.rollback();
-    this.#modifiers = this.#modifiers.rollback();
-    this.#blocks = this.#blocks.rollback();
-    this.#constructing = this.#constructing.rollback();
+  catch(): this {
+    this.#inserting = this.#inserting.catch();
+    this.#modifiers = this.#modifiers.catch();
+    this.#blocks = this.#blocks.catch();
+    this.#constructing = this.#constructing.catch();
+    return this;
   }
 
-  finally() {
+  finally(): this {
     this.#inserting = this.#inserting.finally();
     this.#modifiers = this.#modifiers.finally();
     this.#blocks = this.#blocks.finally();
     this.#constructing = this.#constructing.finally();
+    return this;
   }
 }
 
@@ -241,7 +253,11 @@ export abstract class AbstractElementBuilder implements ElementBuilder {
   }
 
   get debug(): ElementBuilder['debug'] {
-    return this.#state.debug;
+    return {
+      blocks: this.#state.blocks.toArray(),
+      constructing: this.constructing,
+      inserting: this.#state.inserting.toArray(),
+    };
   }
 
   get element(): SimpleElement {

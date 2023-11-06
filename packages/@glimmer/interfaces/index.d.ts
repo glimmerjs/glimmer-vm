@@ -14,15 +14,16 @@ export * from './lib/dom/tree-construction';
 export * from './lib/managers';
 export * from './lib/program';
 export * from './lib/references';
+export * from './lib/result';
 export * from './lib/runtime';
 export * from './lib/runtime/vm';
 export * from './lib/serialize';
 export * from './lib/stack';
+export * from './lib/stack-aspect';
 export * from './lib/tags';
 export * from './lib/template';
 export * from './lib/tier1/symbol-table';
 export * from './lib/type-utils';
 export * from './lib/vm-opcodes';
-export * from './lib/result';
 
 export { WireFormat };

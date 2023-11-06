@@ -9,6 +9,7 @@ import type {
   MonomorphicTagId,
   Tag,
   TagComputeSymbol,
+  TagForId,
   TagTypeSymbol,
   UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
   UpdatableTag,
@@ -95,15 +96,22 @@ function allowsCycles(tag: Tag): boolean {
 }
 
 class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
-  static combine(this: void, tags: Tag[]): Tag {
+  static combine(this: void, tags: Tag[], debugKind?: string): Tag {
     switch (tags.length) {
       case 0:
         return CONSTANT_TAG;
       case 1:
-        return tags[0] as Tag;
+        if (!import.meta.env.DEV) {
+          return tags[0] as Tag;
+        }
       default: {
         let tag: MonomorphicTagImpl = new MonomorphicTagImpl(COMBINATOR_TAG_ID);
-        tag.subtag = tags;
+
+        if (import.meta.env.DEV && debugKind) {
+          tag.debugKind = debugKind;
+        }
+
+        updateSubtags(tag, tags);
         return tag;
       }
     }
@@ -114,10 +122,13 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
   private lastValue = INITIAL;
 
   private isUpdating = false;
-  public subtag: Tag | Tag[] | null = null;
+  public subtags: Tag | Tag[] | null = null;
   private subtagBufferCache: Revision | null = null;
 
   [TYPE]: T;
+
+  public debugKind?: string;
+  public debugLabel?: string;
 
   constructor(type: T) {
     this[TYPE] = type;
@@ -137,16 +148,16 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
       this.lastChecked = $REVISION;
 
       try {
-        let { subtag, revision } = this;
+        let { subtags, revision } = this;
 
-        if (subtag !== null) {
-          if (Array.isArray(subtag)) {
-            for (const tag of subtag) {
+        if (subtags !== null) {
+          if (Array.isArray(subtags)) {
+            for (const tag of subtags) {
               let value = tag[COMPUTE]();
               revision = Math.max(value, revision);
             }
           } else {
-            let subtagValue = subtag[COMPUTE]();
+            let subtagValue = subtags[COMPUTE]();
 
             if (subtagValue === this.subtagBufferCache) {
               revision = Math.max(revision, this.lastValue);
@@ -177,7 +188,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
     let subtag = _subtag as MonomorphicTagImpl;
 
     if (subtag === CONSTANT_TAG) {
-      tag.subtag = null;
+      emptySubtag(tag);
     } else {
       // There are two different possibilities when updating a subtag:
       //
@@ -198,7 +209,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
       // parent's previous value. Once the subtag changes for the first time,
       // we clear the cache and everything is finally in sync with the parent.
       tag.subtagBufferCache = subtag[COMPUTE]();
-      tag.subtag = subtag;
+      updateSubtag(tag, subtag);
     }
   }
 
@@ -231,12 +242,65 @@ export const UPDATE_TAG = MonomorphicTagImpl.updateTag;
 
 //////////
 
-export function createTag(): DirtyableTag {
-  return new MonomorphicTagImpl(DIRYTABLE_TAG_ID);
+export function createTag(label?: string): DirtyableTag {
+  return createTagWithId(DIRYTABLE_TAG_ID, label);
 }
 
-export function createUpdatableTag(): UpdatableTag {
-  return new MonomorphicTagImpl(UPDATABLE_TAG_ID);
+export function createUpdatableTag(label?: string): UpdatableTag {
+  return createTagWithId(UPDATABLE_TAG_ID, label);
+}
+
+function updateSubtag(tag: MonomorphicTagImpl, subtag: Tag) {
+  tag.subtags = subtag;
+
+  if (import.meta.env.DEV) {
+    tag.debugLabel = `${tag.debugKind ?? 'updatable'}(${describeTag(subtag)})`;
+  }
+}
+
+function updateSubtags(tag: MonomorphicTagImpl, subtags: Tag[]) {
+  tag.subtags = subtags;
+
+  if (import.meta.env.DEV) {
+    applyComboLabel(tag, subtags);
+  }
+}
+
+function emptySubtag(tag: MonomorphicTagImpl) {
+  tag.subtags = null;
+
+  if (import.meta.env.DEV) {
+    delete tag.debugLabel;
+  }
+}
+
+function createTagWithId<Id extends MonomorphicTagId>(id: Id, label?: string): TagForId<Id> {
+  if (import.meta.env.DEV && label) {
+    const tag = new MonomorphicTagImpl(id);
+    tag.debugLabel = label;
+    return tag as unknown as TagForId<Id>;
+  } else {
+    return new MonomorphicTagImpl(id) as unknown as TagForId<Id>;
+  }
+}
+
+/**
+ * @category devmode
+ */
+function applyComboLabel(parent: MonomorphicTagImpl, tags: Tag | Tag[]) {
+  const kind = parent.debugKind ?? 'combine';
+  if (Array.isArray(tags)) {
+    parent.debugLabel = `${kind}(${tags.map(describeTag).join(', ')})`;
+  } else {
+    parent.debugLabel = `${kind}(${describeTag(tags)})`;
+  }
+}
+
+/**
+ * @category devmode
+ */
+function describeTag(tag: Tag) {
+  return tag.debugLabel ?? `tag(type=${tag[TYPE]})`;
 }
 
 //////////

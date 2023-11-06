@@ -1,4 +1,4 @@
-import type { Tag } from "@glimmer/interfaces";
+import type { Tag } from '@glimmer/interfaces';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
@@ -17,6 +17,13 @@ import {
 class Tracker {
   private tags = new Set<Tag>();
   private last: Tag | null = null;
+  private label?: string;
+
+  constructor(label?: string) {
+    if (import.meta.env.DEV && label) {
+      this.label = label;
+    }
+  }
 
   add(tag: Tag) {
     if (tag === CONSTANT_TAG) return;
@@ -35,12 +42,12 @@ class Tracker {
 
     if (tags.size === 0) {
       return CONSTANT_TAG;
-    } else if (tags.size === 1) {
+    } else if (!import.meta.env.DEV && tags.size === 1) {
       return this.last as Tag;
     } else {
       let tagsArr: Tag[] = [];
       tags.forEach((tag) => tagsArr.push(tag));
-      return combine(tagsArr);
+      return import.meta.env.DEV && this.label ? combine(tagsArr, this.label) : combine(tagsArr);
     }
   }
 }
@@ -65,7 +72,8 @@ const OPEN_TRACK_FRAMES: (Tracker | null)[] = [];
 export function beginTrackFrame(debuggingContext?: string | false): void {
   OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
 
-  CURRENT_TRACKER = new Tracker();
+  CURRENT_TRACKER =
+    import.meta.env.DEV && debuggingContext ? new Tracker(debuggingContext) : new Tracker();
 
   if (import.meta.env.DEV) {
     unwrap(debug.beginTrackingTransaction)(debuggingContext);
@@ -176,7 +184,7 @@ export function getValue<T>(cache: Cache<T>): T | undefined {
   let snapshot = cache[SNAPSHOT];
 
   if (tag === undefined || !validateTag(tag, snapshot)) {
-    beginTrackFrame();
+    import.meta.env.DEV && tag?.debugLabel ? beginTrackFrame(tag.debugLabel) : beginTrackFrame();
 
     try {
       cache[LAST_VALUE] = fn();

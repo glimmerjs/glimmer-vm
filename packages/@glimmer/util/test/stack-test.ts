@@ -222,7 +222,7 @@ function StackTests({ create, initial }: TestSpec) {
             test('unwind', ({ stack, assertInitial }) => {
               pushing((number) => {
                 stack.push(number);
-                stack = stack.rollback();
+                stack = stack.catch();
                 assertInitial(stack, 'calling unwind() on a frame with items in it');
               });
             });

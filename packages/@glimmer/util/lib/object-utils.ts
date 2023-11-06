@@ -1,4 +1,4 @@
-import type { Expand } from '@glimmer/interfaces';
+import type { Dict, Expand } from '@glimmer/interfaces';
 
 export let assign = Object.assign;
 
@@ -38,4 +38,8 @@ export type ObjectEntry<D extends object> = { [P in keyof D]: [P, D[P]] }[keyof 
 
 export function entries<D extends object>(dict: D): ObjectEntry<D>[] {
   return Object.entries(dict) as ObjectEntry<D>[];
+}
+
+export function mapDict<T, U>(dict: Dict<T>, mapper: (value: T) => U): Dict<U> {
+  return Object.fromEntries(entries(dict).map(([k, v]) => [k, mapper(v)])) as Dict<U>;
 }

@@ -1,6 +1,7 @@
+import type { VmStackAspect } from '..';
 import type { Nullable } from './core';
 
-export interface Stack<in out T> extends Iterable<T> {
+export interface Stack<in out T> extends Iterable<T>, VmStackAspect {
   readonly current: Nullable<T>;
   readonly size: number;
   push(item: T): void;
@@ -52,7 +53,7 @@ export interface Stack<in out T> extends Iterable<T> {
    *
    * `rollback()` returns the original stack.
    */
-  rollback(): this;
+  catch(): this;
 
   /**
    * Validates that there were balanced pushes and pops during the transaction and returns the

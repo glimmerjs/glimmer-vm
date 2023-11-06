@@ -1,13 +1,21 @@
-import type { Nullable, Stack as StackInterface } from '@glimmer/interfaces';
+import type {
+  DebugParentStackFrame,
+  LeafStackAspect,
+  Nullable,
+  Stack as StackInterface,
+  VmStackAspect,
+} from '@glimmer/interfaces';
 
-import { assert } from './assert';
+import { enumerate } from './array-utils';
+import { assert, unwrap } from './assert';
+import { entries, mapDict } from './object-utils';
 
 abstract class AbstractStack<
     T extends unknown[],
     Pop extends Nullable<T[number]>,
     Current extends Nullable<T[number]>,
   >
-  implements Stack<T[number]>, Iterable<T[number]>
+  implements Stack<T[number]>, Iterable<T[number]>, VmStackAspect
 {
   readonly #stack: T;
   readonly #parent: Nullable<this>;
@@ -24,6 +32,14 @@ abstract class AbstractStack<
     if (import.meta.env.DEV) {
       this.label = label;
     }
+  }
+
+  get debug(): { frames: LeafStackAspect[] } {
+    const parentFrames = this.#parent?.debug.frames ?? [];
+
+    return {
+      frames: [...parentFrames, { label: this.label ?? 'stack', values: this.#stack }],
+    };
   }
 
   *[Symbol.iterator](): IterableIterator<T[number]> {
@@ -56,7 +72,7 @@ abstract class AbstractStack<
     return this.child();
   }
 
-  rollback(): this {
+  catch(): this {
     assert(this.#parent, `${this.label ?? 'Stack'}: Expected a parent frame in unwind`);
     return this.#parent;
   }
@@ -173,3 +189,26 @@ export class PresentStack<T> extends AbstractStack<[T, ...T[]], T, T> {
 
 export type Stack<T> = StackInterface<T>;
 export const Stack = StackImpl;
+
+export function parentDebugFrames(label: string, aspects: Record<string, VmStackAspect>) {
+  const record = mapDict(aspects, (v) => unwrap(v.debug).frames);
+
+  const frames: DebugParentStackFrame[] = [];
+
+  for (const [i, [k, aspectFrames]] of enumerate(entries(record))) {
+    if (i >= frames.length) {
+      frames.push({ label, aspects: {} });
+    }
+
+    const frame = unwrap(frames[i]);
+    const aspectFrame = aspectFrames[i];
+
+    if (aspectFrame) {
+      frame.aspects[k] = aspectFrame;
+    } else {
+      console.warn(`didn't find frames for ${k}`);
+    }
+  }
+
+  return { label, frames: frames };
+}

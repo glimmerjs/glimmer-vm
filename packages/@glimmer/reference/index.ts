@@ -9,13 +9,13 @@ export {
 } from './lib/iterable';
 export {
   Accessor,
-  clearRefError,
   createDebugAliasRef,
   createPrimitiveCell,
   DeeplyConstant,
   FALLIBLE_FORMULA as FALLIBLE_FORMULA_TYPE,
   FallibleFormula,
   FALSE_REFERENCE,
+  getLastRevision,
   getReactiveProperty,
   INFALLIBLE_FORMULA as INFALLIBLE_FORMULA_TYPE,
   InfallibleFormula,
@@ -23,6 +23,7 @@ export {
   isAccessor,
   isConstant,
   isUpdatableRef,
+  Marker,
   MUTABLE_CELL as MUTABLE_CELL_TYPE,
   MutableCell,
   NULL_REFERENCE,
@@ -42,4 +43,5 @@ export {
   UNDEFINED_REFERENCE,
   unwrapReactive,
   updateRef,
+  validateReactive,
 } from './lib/reference';

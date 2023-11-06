@@ -61,6 +61,7 @@ export type {
   CombinatorTag,
   ConstantTag,
   DirtyableTag,
+  SomeTag,
   Tag,
   UpdatableTag,
 } from '@glimmer/interfaces';

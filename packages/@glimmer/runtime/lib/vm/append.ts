@@ -28,6 +28,7 @@ import type {
   TargetState,
   UpdatingOpcode,
   VM as PublicVM,
+  VmStackAspect,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
@@ -45,6 +46,7 @@ import {
   expect,
   LOCAL_LOGGER,
   mapResult,
+  parentDebugFrames,
   PresentStack,
   reverse,
   Stack,
@@ -101,7 +103,7 @@ class TemplateDebug {
   }
 }
 
-class VMState {
+class VMState implements VmStackAspect {
   static initial(options: { scope: Scope; dynamicScope: DynamicScope }): VMState {
     return new VMState(
       PresentStack.initial(options.scope, 'scope stack'),
@@ -134,6 +136,22 @@ class VMState {
     this.#list = list;
     this.#updating = updating;
     this.#destructors = destructors;
+
+    if (import.meta.env.DEV) {
+      Object.defineProperty(this, 'debug', {
+        configurable: true,
+        get: function (this: VMState) {
+          return parentDebugFrames('vm state', {
+            scope: this.#scope,
+            dynamicScope: this.#dynamicScope,
+            cache: this.#cache,
+            list: this.#list,
+            updating: this.#updating,
+            destructors: this.#destructors,
+          });
+        },
+      });
+    }
   }
 
   get scope(): PresentStack<Scope> {
@@ -160,28 +178,31 @@ class VMState {
     return this.#destructors;
   }
 
-  try() {
+  begin(): this {
     this.#cache = this.#cache.begin();
     this.#scope = this.#scope.begin();
     this.#dynamicScope = this.#dynamicScope.begin();
     this.#list = this.#list.begin();
     this.#destructors = this.#destructors.begin();
+    return this;
   }
 
-  catch() {
-    this.#cache = this.#cache.rollback();
-    this.#scope = this.#scope.rollback();
-    this.#dynamicScope = this.#dynamicScope.rollback();
-    this.#list = this.#list.rollback();
-    this.#destructors = this.#destructors.rollback();
+  catch(): this {
+    this.#cache = this.#cache.catch();
+    this.#scope = this.#scope.catch();
+    this.#dynamicScope = this.#dynamicScope.catch();
+    this.#list = this.#list.catch();
+    this.#destructors = this.#destructors.catch();
+    return this;
   }
 
-  finally() {
+  finally(): this {
     this.#cache = this.#cache.finally();
     this.#scope = this.#scope.finally();
     this.#dynamicScope = this.#dynamicScope.finally();
     this.#list = this.#list.finally();
     this.#destructors = this.#destructors.finally();
+    return this;
   }
 }
 
@@ -554,7 +575,7 @@ export class VM implements PublicVM, SnapshottableVM {
    * Open an error recovery boundary.
    */
   begin(instruction: number, handler: Nullable<ErrorHandler>) {
-    this.#state.try();
+    this.#state.begin();
 
     let tryOpcode = new TryOpcode(this.capture(0), this.runtime, this.elements().begin(), [], {
       unwind: { tryFrame: true, handler },

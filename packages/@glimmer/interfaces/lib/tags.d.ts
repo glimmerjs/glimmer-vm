@@ -33,6 +33,7 @@ export type Revision = number;
 export interface Tag {
   readonly [TYPE]: TagId;
   readonly subtag?: Tag | Tag[] | null | undefined;
+  readonly debugLabel?: string;
   [COMPUTE](): Revision;
 }
 
@@ -55,3 +56,8 @@ export interface ConstantTag extends MonomorphicTag {
 export interface CombinatorTag extends MonomorphicTag {
   readonly [TYPE]: COMBINATOR_TAG_ID;
 }
+
+export type SomeTag = UpdatableTag | DirtyableTag | ConstantTag | CombinatorTag;
+export type TagForId<Id extends MonomorphicTagId> = SomeTag extends infer T extends { [TYPE]: Id }
+  ? T
+  : never;

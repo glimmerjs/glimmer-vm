@@ -54,7 +54,6 @@ import {
   validateTag,
   valueForTag,
 } from '@glimmer/validator';
-import { $REVISION } from '@glimmer/validator/lib/validators';
 
 export const REFERENCE: ReferenceSymbol = Symbol('REFERENCE') as ReferenceSymbol;
 
@@ -93,7 +92,6 @@ class Reactive<T = unknown, K extends ReactiveType = ReactiveType> implements Ra
   public lastRevision: Revision = INITIAL;
 
   public error: Nullable<UserExceptionInterface> = null;
-  public errorRevision: Nullable<Revision> = null;
 
   /**
    * In a data cell, lastValue is the value of the cell, and `lastValue` or `error` is always set.
@@ -151,7 +149,8 @@ function updateReactive(reactive: Reactive, value: unknown): ReactiveResult<void
     reactive.lastValue = value;
 
     if (tag === null) {
-      reactive.tag = createTag();
+      reactive.tag =
+        import.meta.env.DEV && reactive.debugLabel ? createTag(reactive.debugLabel) : createTag();
     } else {
       dirtyTag(tag);
     }
@@ -197,10 +196,20 @@ export function ConstantError(
   return ref as RETURN_TYPE;
 }
 
+export function Marker(debugLabel?: false | string): { mark: () => void; consume: () => void } {
+  const tag = import.meta.env.DEV && debugLabel ? createTag(debugLabel) : createTag();
+
+  return {
+    mark: () => dirtyTag(tag),
+    consume: () => consumeTag(tag),
+  };
+}
+
 export function MutableCell<T>(value: T, debugLabel?: false | string): MutableReactiveCell<T> {
   const ref = new Reactive(MUTABLE_CELL);
 
-  const tag = (ref.tag = createUpdatableTag());
+  const tag = (ref.tag =
+    import.meta.env.DEV && debugLabel ? createTag(debugLabel) : createUpdatableTag());
   ref.lastValue = value;
 
   ref.update = (value) => {
@@ -238,16 +247,10 @@ export function FallibleFormula<T = unknown>(
 ): FallibleReactiveFormula<T> {
   const ref = new Reactive<T>(FALLIBLE_FORMULA);
 
-  ref.compute = () => {
-    try {
-      return compute();
-    } catch (e) {
-      setError(ref, UserException.from(e, `An error occured in ${ref.debugLabel}`));
-    }
-  };
+  ref.compute = () => setFromFallibleCompute(ref, compute);
 
   if (import.meta.env.DEV && debugLabel) {
-    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+    ref.debugLabel = debugLabel;
   }
 
   return ref as RETURN_TYPE;
@@ -262,19 +265,10 @@ export function ResultFormula<T = unknown>(
 ) {
   const ref = new Reactive<T>(FALLIBLE_FORMULA);
 
-  ref.compute = () => {
-    const result = compute();
-
-    switch (result.type) {
-      case 'ok':
-        return result.value;
-      case 'err':
-        setError(ref, result.value);
-    }
-  };
+  ref.compute = () => setResult(ref, compute());
 
   if (import.meta.env.DEV && debugLabel) {
-    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+    ref.debugLabel = debugLabel;
   }
 
   return ref as RETURN_TYPE;
@@ -282,7 +276,7 @@ export function ResultFormula<T = unknown>(
 
 export function ResultAccessor<T = unknown>(
   options: {
-    get: () => ReactiveResult<T | undefined>;
+    get: () => ReactiveResult<T>;
     set: (val: T) => ReactiveResult<void>;
   },
   debugLabel?: false | string
@@ -291,16 +285,7 @@ export function ResultAccessor<T = unknown>(
 
   const ref = new Reactive<T>(ACCESSOR);
 
-  ref.compute = () => {
-    const result = get();
-
-    switch (result.type) {
-      case 'ok':
-        return result.value;
-      case 'err':
-        setError(ref, result.value);
-    }
-  };
+  ref.compute = () => setResult(ref, get());
 
   ref.update = (value: T) => {
     const setResult = set(value);
@@ -327,13 +312,7 @@ export function Accessor<T = unknown>(
 
   const ref = new Reactive<T>(ACCESSOR);
 
-  ref.compute = () => {
-    try {
-      return get();
-    } catch (e) {
-      setError(ref, UserException.from(e, `An error occured in ${ref.debugLabel}`));
-    }
-  };
+  ref.compute = () => setFromFallibleCompute(ref, get);
 
   ref.update = (value: T) => {
     try {
@@ -351,56 +330,82 @@ export function Accessor<T = unknown>(
   return ref as RETURN_TYPE;
 }
 
-function rawValueForRef<T>(ref: Reactive<T>): T {
-  const { tag, compute, lastRevision } = ref;
+function getValidResult<T>(ref: Reactive<T>): ReactiveResult<T> {
+  return ref.error ? Err(ref.error) : Ok(ref.lastValue as T);
+}
 
-  if (ref.tag === CONSTANT_TAG) {
-    return ref.lastValue as T;
-  }
+export function readReactive<T>(reactive: SomeReactive<T>): ReactiveResult<T> {
+  const internal = reactive as Reactive<T>;
+  const { tag, compute } = internal;
 
-  if (compute === null) {
-    if (tag) consumeTag(tag);
-    return ref.lastValue as T;
-  }
-
-  if (tag !== null && validateTag(tag, lastRevision)) {
-    consumeTag(tag);
-    return ref.lastValue as T;
+  if (internal.tag === CONSTANT_TAG && !internal.error) {
+    return Ok(internal.lastValue as T);
   }
 
   // a data cell
-  if (!compute) {
-    ref.tag ??= createTag();
-    consumeTag(ref.tag);
-    return ref.lastValue as T;
+  if (compute === null) {
+    if (tag) consumeTag(tag);
+    return getValidResult(internal);
+  }
+
+  if (validateInternalReactive(internal) && !internal.error) {
+    consumeTag(internal.tag);
+    return getValidResult(internal);
   }
 
   // a formula
-  const newTag = track(
-    () => {
-      const result = compute();
-      ref.lastValue = ref.error ? null : (result as T);
-    },
-    import.meta.env.DEV && ref.debugLabel
-  );
+  const newTag = track(compute, import.meta.env.DEV && internal.debugLabel);
 
-  ref.tag = newTag;
-  updateRevision(ref, valueForTag(newTag));
+  internal.tag = newTag;
+  internal.lastRevision = valueForTag(newTag);
   consumeTag(newTag);
-  return ref.lastValue as T;
+  return getValidResult(internal);
 }
 
 function setError<T>(reactive: Reactive<T>, error: UserExceptionInterface) {
   reactive.lastValue = null;
   reactive.error = error;
-  reactive.errorRevision = $REVISION;
 }
 
-function updateRevision<T>(reactive: Reactive<T>, revision: Revision) {
-  if (reactive.errorRevision) {
-    reactive.lastRevision = Math.max(revision, reactive.errorRevision);
-  } else {
-    reactive.lastRevision = revision;
+/**
+ * @internal
+ */
+
+export function validateReactive(reactive: SomeReactive): boolean {
+  return validateInternalReactive(reactive as Reactive);
+}
+
+function validateInternalReactive<T>(
+  reactive: Reactive<T>
+): reactive is Reactive<T> & { tag: Tag; error: null } {
+  const { tag, lastRevision } = reactive;
+
+  // not yet computed
+  if (tag === null) return false;
+
+  return validateTag(tag, lastRevision);
+}
+
+function setResult<T>(reactive: Reactive<T>, result: ReactiveResult<T>) {
+  switch (result.type) {
+    case 'ok':
+      return setLastValue(reactive, result.value);
+    case 'err':
+      setError(reactive, result.value);
+  }
+}
+
+function setLastValue<T>(reactive: Reactive<T>, value: T): T {
+  reactive.lastValue = value;
+  reactive.error = null;
+  return value;
+}
+
+function setFromFallibleCompute<T>(reactive: Reactive<T>, compute: () => T): T | undefined {
+  try {
+    return setLastValue(reactive, compute());
+  } catch (e) {
+    setError(reactive, UserException.from(e, `An error occured in ${reactive.debugLabel}`));
   }
 }
 
@@ -417,7 +422,7 @@ export function InfallibleFormula<T = unknown>(
   ref.compute = compute;
 
   if (import.meta.env.DEV && debugLabel) {
-    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+    ref.debugLabel = debugLabel;
   }
 
   return ref as RETURN_TYPE;
@@ -579,9 +584,9 @@ function childDebug(parentReactive: SomeReactive, path: PropertyKey) {
   const IDENT = /^\p{XID_Start}\p{XID_Continue}*$/u;
 
   if (IDENT.test(String(path))) {
-    return `${parentReactive.debugLabel}.${path}`;
+    return `${parentReactive.debugLabel ?? '(object)'}.${path}`;
   } else {
-    return `${parentReactive.debugLabel}[${JSON.stringify(path)}]`;
+    return `${parentReactive.debugLabel ?? '(object)'}[${JSON.stringify(path)}]`;
   }
 }
 
@@ -618,25 +623,12 @@ export function isConstantError<T>(_ref: SomeReactive<T>): _ref is ConstantReact
   return _ref[REFERENCE] === CONSTANT_ERROR;
 }
 
-export function clearRefError(_ref: SomeReactive) {
-  _ref.error = null;
-}
-
 /**
  * This is generally not what you want, as it rethrows errors. It's useful in testing and console
  * situations, and as a transitional mechanism away from valueForRef.
  */
 export function unwrapReactive<T>(reactive: SomeReactive<T>): T {
   return unwrapResult(readReactive(reactive));
-}
-
-export function readReactive<T>(reactive: SomeReactive<T>): ReactiveResult<T> {
-  if (reactive.error) {
-    return Err(reactive.error);
-  } else {
-    const value = rawValueForRef(reactive as Reactive<T>);
-    return reactive.error ? Err(reactive.error) : Ok(value);
-  }
 }
 
 export function updateRefWithResult<T>(ref: SomeReactive<T>, value: ReactiveResult<T>) {
@@ -656,6 +648,10 @@ export function updateRef(_ref: SomeReactive, value: unknown) {
   const update = expect(ref.update, 'called update on a non-updatable reference');
 
   update(value);
+}
+
+export function getLastRevision(reactive: SomeReactive): Nullable<Revision> {
+  return (reactive as Reactive).lastRevision;
 }
 
 /**
