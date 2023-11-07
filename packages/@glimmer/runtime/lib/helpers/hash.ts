@@ -86,7 +86,7 @@ export const hash = internalHelper(({ named }: CapturedArguments): SomeReactive<
     children.set(name, named[name]);
   }
 
-  ref.children = children;
+  ref.properties = children;
 
   return ref;
 });

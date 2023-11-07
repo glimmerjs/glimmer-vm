@@ -18,6 +18,7 @@ export {
 export { array, assign, entries, fillNulls, type FixedArray, values } from './object-utils';
 export * from './platform-utils';
 export * from './present';
+export * from './reference';
 export * from './result';
 export {
   castToBrowser,

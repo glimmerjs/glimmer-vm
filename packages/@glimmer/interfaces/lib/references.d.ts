@@ -60,16 +60,49 @@ export interface UserException extends Error {
   readonly exception: unknown;
 }
 
+/**
+ * A cell can be read from (or written to without any chance of error). Computing a formula (or
+ * writing to an accessor) may produce an error. A poisoned value is permanently an error and any
+ * attempt to read or write it will produce an error.
+ */
+type ReferenceKind = 'cell' | 'formula' | 'property' | 'poisoned' | 'alias';
+
+export type DebugLabel = [string, ...(string | symbol)[]];
+
+interface Description {
+  /**
+   * Deeply readonly references also have deeply readonly property references.
+   */
+  readonly readonly: boolean | 'deep';
+  readonly kind?: ReferenceKind | undefined;
+
+  /**
+   * A fallible reactive value can produce an error.
+   */
+  readonly fallible: boolean;
+
+  /**
+   * If serialization is `String`, the value can be converted to a string using `String()`. If the
+   * serialization is `JSON`, the value can be converted to a useful string using `JSON.stringify`.
+   * Otherwise, the value is a regular object and cannot be easily serialized for debugging purposes.
+   */
+  readonly serialization?: 'String' | 'JSON' | undefined;
+
+  /**
+   * Each part in a label represents a property path.
+   */
+  readonly label: DebugLabel;
+}
+
 export interface RawReactive<T = unknown, K = ReactiveType> {
   [REFERENCE]: K;
   error: UserException | null;
-  debugLabel?: string | undefined;
-  debug?: { isPrimitive: boolean } | undefined;
+  debug?: Description;
   /**
    * If `compute` produces an error, it should set `error` and return `undefined`.
    */
   compute: Nullable<() => Optional<T>>;
-  children: null | Map<PropertyKey | RawReactive, RawReactive>;
+  properties: null | Map<PropertyKey | RawReactive, RawReactive>;
 }
 
 export type SomeReactive<T = unknown> =

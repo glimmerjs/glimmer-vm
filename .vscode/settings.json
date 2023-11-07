@@ -43,7 +43,7 @@
   "javascript.preferences.importModuleSpecifier": "project-relative",
   "typescript.preferences.importModuleSpecifier": "project-relative",
 
-  "typescript.preferences.importModuleSpecifierEnding": "auto",
+  "typescript.preferences.importModuleSpecifierEnding": "index",
   "typescript.preferences.useAliasesForRenames": false,
 
   "typescript.tsc.autoDetect": "on",

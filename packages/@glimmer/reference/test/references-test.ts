@@ -13,7 +13,7 @@ import {
   toMut,
   toReadonly,
   unwrapReactive,
-  updateRef,
+  updateReactive,
 } from '@glimmer/reference';
 import { dict, unwrap } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
@@ -205,7 +205,7 @@ module('@glimmer/reference', () => {
 
         assert.true(isUpdatableRef(childRef), 'childRef is updatable');
 
-        updateRef(childRef, 789);
+        updateReactive(childRef, 789);
         validChild.updated(789, 'value updated correctly');
       });
     });
@@ -320,7 +320,7 @@ module('@glimmer/reference', () => {
 
         assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
 
-        updateRef(valueRef, 789);
+        updateReactive(valueRef, 789);
 
         assert.strictEqual(unwrapReactive(valueRef), 789, 'value updated correctly');
         assert.strictEqual(getCount, 3, 'get called correct number of times');
@@ -406,7 +406,7 @@ module('@glimmer/reference', () => {
 
         assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
 
-        updateRef(valueRef, 789);
+        updateReactive(valueRef, 789);
 
         assert.strictEqual(unwrapReactive(valueRef), 789, 'value updated correctly');
         assert.strictEqual(getCount, 3, 'get called correct number of times');
@@ -436,7 +436,7 @@ module('@glimmer/reference', () => {
         const ref = MutableCell(123);
         const mutable = toMut(ref);
 
-        updateRef(mutable, 456);
+        updateReactive(mutable, 456);
         assert.strictEqual(unwrapReactive(mutable), 456, 'mut wrapper was updated');
         assert.strictEqual(unwrapReactive(ref), 456, 'original reactive was updated');
       });
@@ -491,7 +491,7 @@ module('@glimmer/reference', () => {
 
         assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
 
-        updateRef(valueRef, 789);
+        updateReactive(valueRef, 789);
 
         assert.strictEqual(unwrapReactive(valueRef), 789, 'value updated correctly');
         assert.strictEqual(getCount, 3, 'get called correct number of times');
@@ -528,7 +528,7 @@ module('@glimmer/reference', () => {
           assert.strictEqual(unwrapReactive(alias), 123, 'alias returns correct value');
           assert.ok(isUpdatableRef(alias), 'alias is updatable');
 
-          updateRef(alias, 456);
+          updateReactive(alias, 456);
 
           assert.strictEqual(unwrapReactive(original), 456, 'alias returns correct value');
           assert.strictEqual(unwrapReactive(alias), 456, 'alias returns correct value');

@@ -23,6 +23,13 @@ import { unwrap } from './utils';
 
 export type Revision = number;
 
+/**
+ * The INVALID revision is guaranteed to be invalid, even if the tag is CONSTANT. This makes it
+ * possible for a reference to become invalid temporarily and then become valid again.
+ *
+ * It's meant to be used in cached revisions, so there is no `INVALID_TAG`.
+ */
+export const INVALID_REVISION: Revision = -1;
 export const CONSTANT: Revision = 0;
 export const INITIAL: Revision = 1;
 export const VOLATILE: Revision = NaN;
@@ -242,11 +249,11 @@ export const UPDATE_TAG = MonomorphicTagImpl.updateTag;
 
 //////////
 
-export function createTag(label?: string): DirtyableTag {
+export function createTag(label?: string | undefined): DirtyableTag {
   return createTagWithId(DIRYTABLE_TAG_ID, label);
 }
 
-export function createUpdatableTag(label?: string): UpdatableTag {
+export function createUpdatableTag(label?: string | undefined): UpdatableTag {
   return createTagWithId(UPDATABLE_TAG_ID, label);
 }
 
@@ -274,7 +281,10 @@ function emptySubtag(tag: MonomorphicTagImpl) {
   }
 }
 
-function createTagWithId<Id extends MonomorphicTagId>(id: Id, label?: string): TagForId<Id> {
+function createTagWithId<Id extends MonomorphicTagId>(
+  id: Id,
+  label?: string | undefined
+): TagForId<Id> {
   if (import.meta.env.DEV && label) {
     const tag = new MonomorphicTagImpl(id);
     tag.debugLabel = label;

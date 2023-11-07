@@ -28,7 +28,14 @@ import {
   UNDEFINED_REFERENCE,
   unwrapReactive,
 } from '@glimmer/reference';
-import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
+import {
+  assert,
+  assign,
+  debugToString,
+  decodeHandle,
+  getDebugLabel,
+  isObject,
+} from '@glimmer/util';
 import { $v0, CurriedTypes, Op } from '@glimmer/vm';
 
 import { isCurried, resolveCurriedValue } from '../../curried-value';
@@ -130,12 +137,12 @@ function resolveHelper(
   let handle = constants.helper(definition, null, true)!;
 
   if (import.meta.env.DEV && handle === null) {
+    const label = getDebugLabel(ref);
+
     throw new Error(
-      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${
-        ref.debugLabel
-      }}}\` or \`(${ref.debugLabel})\`, and the incorrect definition is the value at the path \`${
-        ref.debugLabel
-      }\`, which was: ${debugToString!(definition)}`
+      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${label}}}\` or \`(${label})\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
+        definition
+      )}`
     );
   }
 

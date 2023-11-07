@@ -8,7 +8,7 @@ import type {
 } from '@glimmer/interfaces';
 import { setInternalModifierManager } from '@glimmer/manager';
 import { unwrapReactive } from '@glimmer/reference';
-import { buildUntouchableThis, expect } from '@glimmer/util';
+import { buildUntouchableThis, expect, getDebugLabel } from '@glimmer/util';
 import { createUpdatableTag, type UpdatableTag } from '@glimmer/validator';
 
 import { reifyNamed } from '../vm/arguments';
@@ -123,7 +123,9 @@ export class OnModifierState {
       (actual) => {
         return `You must pass a function as the second argument to the \`on\` modifier; you passed ${
           actual === null ? 'null' : typeof actual
-        }. While rendering:\n\n${userProvidedCallbackReference.debugLabel ?? `{unlabeled value}`}`;
+        }. While rendering:\n\n${
+          getDebugLabel(userProvidedCallbackReference) ?? `{unlabeled value}`
+        }`;
       }
     ) as EventListener;
 

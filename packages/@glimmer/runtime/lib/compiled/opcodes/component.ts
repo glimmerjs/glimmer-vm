@@ -47,6 +47,7 @@ import {
   EMPTY_STRING_ARRAY,
   enumerate,
   expect,
+  getDebugLabel,
   unwrap,
   unwrapTemplate,
 } from '@glimmer/util';
@@ -184,8 +185,10 @@ APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
     import.meta.env.DEV &&
     !(typeof value === 'function' || (typeof value === 'object' && value !== null))
   ) {
+    const label = getDebugLabel(ref);
+
     throw new Error(
-      `Expected a component definition, but received ${value}. You may have accidentally done <${ref.debugLabel}>, where "${ref.debugLabel}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
+      `Expected a component definition, but received ${value}. You may have accidentally done <${label}>, where "${label}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
     );
   }
 
@@ -195,14 +198,11 @@ APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
     definition = constants.component(value as object, vm.getOwner(), true);
 
     if (import.meta.env.DEV && definition === null) {
+      const label = getDebugLabel(ref);
       throw new Error(
-        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${
-          ref.debugLabel
-        }>\` or \`{{${
-          ref.debugLabel
-        }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
-        }\`, which was: ${debugToString!(value)}`
+        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${label}>\` or \`{{${label}}}\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
+          value
+        )}`
       );
     }
   }

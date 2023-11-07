@@ -8,6 +8,7 @@ import type {
 
 import { enumerate } from './array-utils';
 import { assert, unwrap } from './assert';
+import { LOCAL_LOGGER } from './index';
 import { entries, mapDict } from './object-utils';
 
 abstract class AbstractStack<
@@ -206,7 +207,7 @@ export function parentDebugFrames(label: string, aspects: Record<string, VmStack
     if (aspectFrame) {
       frame.aspects[k] = aspectFrame;
     } else {
-      console.warn(`didn't find frames for ${k}`);
+      LOCAL_LOGGER.warn(`didn't find frames for ${k}`);
     }
   }
 

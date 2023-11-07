@@ -1,6 +1,7 @@
 import type { SomeReactive, UserException as UserExceptionInterface } from '@glimmer/interfaces';
 
 import { isObject } from './collections';
+import { getDebugLabel } from './reference';
 
 export function isUserException(error: Error): error is UserException {
   return error instanceof UserException;
@@ -25,7 +26,7 @@ export class EarlyError extends Error {
 }
 
 function fullMessage(message: string, reactive: SomeReactive | null) {
-  const label = reactive?.debugLabel;
+  const label = reactive ? getDebugLabel(reactive) : null;
   if (label && message.includes('%r')) {
     return message.replace('%r', `(${label})`);
   } else {

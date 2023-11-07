@@ -4,18 +4,18 @@ import {
   MutableCell,
   readReactive,
   ResultFormula,
-  type SomeReactive,
   unwrapReactive,
-  updateRef,
-  validateReactive,
+  updateReactive,
 } from '@glimmer/reference';
+
+import { Validate } from './utils/validate';
 
 const { module, test } = QUnit;
 
 module('@glimmer/reference', () => {
   module('errors', () => {
     module('FallibleFormula', () => {
-      test(`when the underlying computation becomes stale, there's a chance to recover`, (assert) => {
+      test(`when the underlying computation becomes stale, there's a chance to recover`, () => {
         const isError = MutableCell(false, 'isError');
 
         const child = FallibleFormula(() => {
@@ -33,19 +33,19 @@ module('@glimmer/reference', () => {
         const validate = new Validate(parent);
 
         // the reactive value is stale before the first time it is read
-        assert.true(validate.assertingStale(), `the initial value is true`);
+        validate.assertingStale(true, 'initial');
 
-        updateRef(isError, true);
+        updateReactive(isError, true);
         validate.assertingStaleError(/^Error: womp womp$/u);
 
-        updateRef(isError, false);
-        assert.true(validate.assertingStale(), `the value is now false`);
+        updateReactive(isError, false);
+        validate.assertingStale(true, 'updated');
 
-        updateRef(isError, true);
+        updateReactive(isError, true);
         validate.assertingStaleError(/^Error: womp womp$/u);
       });
 
-      test(`an externally recoverable error`, (assert) => {
+      test(`an externally recoverable error`, () => {
         // represent state that isn't tracked by the reactivity system, but which we might know has
         // changed enough to justify recovery.
         let isError = true;
@@ -75,54 +75,8 @@ module('@glimmer/reference', () => {
 
         isError = false;
         tryRecover.mark();
-        assert.true(validate.assertingStale());
+        validate.assertingStale(true, 'after recovery');
       });
     });
   });
 });
-
-class Validate<T> {
-  readonly #reference: SomeReactive<T>;
-
-  constructor(reactive: SomeReactive<T>) {
-    this.#reference = reactive;
-  }
-
-  assertingStaleError(expected: RegExp): void {
-    QUnit.assert.ok(this.isStale, `expected reference to be stale`);
-    QUnit.assert.throws(() => this.value, expected, `expected reference to throw`);
-    this.#assertingFreshError(expected, `immediately after throwing`);
-  }
-
-  assertingFreshError(expected: RegExp): void {
-    this.#assertingFreshError(expected);
-    this.#assertingFreshError(expected, `immediately after a fresh error`);
-  }
-
-  #assertingFreshError(expected: RegExp, message?: string): void {
-    QUnit.assert.ok(!this.isStale, `expected reference to be fresh`);
-    QUnit.assert.throws(
-      () => this.value,
-      expected,
-      `${message ? `${message}: ` : ''}expected reference to throw`
-    );
-  }
-
-  assertingStale(): T {
-    QUnit.assert.true(this.isStale, `expected reference to be stale`);
-    return this.value;
-  }
-
-  assertingFresh() {
-    QUnit.assert.false(this.isStale, `expected reference to be fresh`);
-    return this.value;
-  }
-
-  get isStale() {
-    return !validateReactive(this.#reference);
-  }
-
-  get value() {
-    return unwrapReactive(this.#reference);
-  }
-}

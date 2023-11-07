@@ -46,6 +46,7 @@ export {
   DIRTY_TAG as dirtyTag,
   DIRYTABLE_TAG_ID,
   INITIAL,
+  INVALID_REVISION,
   isConstTag,
   type Revision,
   TAG_TYPE,

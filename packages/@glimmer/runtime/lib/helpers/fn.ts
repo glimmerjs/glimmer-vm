@@ -5,9 +5,9 @@ import {
   isAccessor,
   type SomeReactive,
   unwrapReactive,
-  updateRef,
+  updateReactive,
 } from '@glimmer/reference';
-import { buildUntouchableThis } from '@glimmer/util';
+import { buildUntouchableThis, getDebugLabel } from '@glimmer/util';
 
 import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
@@ -89,7 +89,7 @@ export const fn = internalHelper(({ positional }: CapturedArguments) => {
 
       if (isAccessor(callbackRef)) {
         let value = args.length > 0 ? args[0] : invocationArgs[0];
-        return updateRef(callbackRef, value);
+        return updateReactive(callbackRef, value);
       } else {
         return (fn as Function).call(context, ...args, ...invocationArgs);
       }
@@ -106,7 +106,7 @@ function assertCallbackIsFn(
     throw new Error(
       `You must pass a function as the \`fn\` helper's first argument, you passed ${
         callbackRef ? unwrapReactive(callbackRef) : callbackRef
-      }. While rendering:\n\n${callbackRef?.debugLabel}`
+      }. While rendering${callbackRef ? ':\n\n' + getDebugLabel(callbackRef) : ''}`
     );
   }
 }

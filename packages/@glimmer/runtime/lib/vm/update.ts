@@ -27,7 +27,7 @@ import {
   type OpaqueIterator,
   readReactive,
   type SomeReactive,
-  updateRef,
+  updateReactive,
 } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
@@ -282,8 +282,8 @@ export class ListItemOpcode extends TryOpcode {
 
   updateReferences(item: OpaqueIterationItem) {
     this.retained = true;
-    updateRef(this.value, item.value);
-    updateRef(this.#memo, item.memo);
+    updateReactive(this.value, item.value);
+    updateReactive(this.#memo, item.memo);
   }
 
   shouldRemove(): boolean {
