@@ -47,7 +47,6 @@ import {
   stringifyChildLabel,
   stringifyDebugLabel,
   toDescription,
-  unwrap,
   unwrapResult,
   UserException,
 } from '@glimmer/util';
@@ -59,7 +58,6 @@ import {
   dirtyTagFor,
   DIRYTABLE_TAG_ID,
   INITIAL,
-  INVALID_REVISION,
   type Revision,
   type Tag,
   TAG_TYPE,
@@ -117,11 +115,6 @@ class Reactive<T = unknown, K extends ReactiveType = ReactiveType>
    * A reactive is in an error state if its `compute` function produced an error.
    */
   public error: Nullable<UserExceptionInterface> = null;
-
-  /**
-   * A reactive is poisoned if its `update` function threw an error.
-   */
-  public poison: Nullable<UserExceptionInterface> = null;
 
   /**
    * In a data cell, lastValue is the value of the cell, and `lastValue` or `error` is always set.
@@ -248,13 +241,23 @@ const MARKER_DEFAULTS = devmode(() => ({
   label: [`(Marker)`],
 }));
 
-export function Marker(debugLabel?: DescriptionSpec): { mark: () => void; consume: () => void } {
-  const tag = createTag(toDescription(debugLabel, MARKER_DEFAULTS));
+interface Marker extends Described<ReferenceDescription> {
+  mark: () => void;
+  consume: () => void;
+}
 
-  return {
+export function Marker(debugLabel?: DescriptionSpec): Marker {
+  const description = toDescription(debugLabel, MARKER_DEFAULTS);
+  const tag = createTag(description);
+
+  const marker = {
     mark: () => dirtyTag(tag),
     consume: () => consumeTag(tag),
   };
+
+  setDescription(marker, description);
+
+  return marker;
 }
 
 const MUTABLE_CELL_DEFAULTS = devmode(() => ({
@@ -302,12 +305,6 @@ export function ReadonlyCell<T>(value: T, description?: DescriptionSpec): Reacti
   );
 
   return ref as RETURN_TYPE;
-}
-
-export function RecoverableFormula<T = unknown>(compute: () => T, debugLabel?: false | string) {
-  const tryRecover = import.meta.env.DEV
-    ? Marker(`${debugLabel ?? `RecoverableFormula`}`)
-    : Marker();
 }
 
 const FALLIBLE_FORMULA_DEFAULTS = devmode(() => ({
@@ -422,7 +419,7 @@ export function Accessor<T = unknown>(
       set(value);
       return value;
     } catch (e) {
-      setPoison(
+      setError(
         ref,
         UserException.from(
           e,
@@ -445,18 +442,13 @@ function getValidResult<T>(ref: Reactive<T>): ReactiveResult<T> {
 }
 
 export function readReactive<T>(reactive: SomeReactive<T>): ReactiveResult<T> {
-  return readInternalReactive(reactive as Reactive<T>, false);
+  return readInternalReactive(reactive as Reactive<T>);
 }
 
-function readInternalReactive<T>(reactive: Reactive<T>, forceError: boolean): ReactiveResult<T> {
+function readInternalReactive<T>(reactive: Reactive<T>): ReactiveResult<T> {
   const { tag, compute } = reactive;
 
-  if (reactive.poison) {
-    (reactive as Reactive).lastRevision = valueForTag(unwrap(tag));
-    return Err(reactive.poison);
-  }
-
-  if (validateInternalReactive(reactive, forceError)) {
+  if (validateReactive(reactive)) {
     consumeTag(reactive.tag);
     return getValidResult(reactive);
   }
@@ -479,47 +471,23 @@ function readInternalReactive<T>(reactive: Reactive<T>, forceError: boolean): Re
 function setError<T>(reactive: Reactive<T>, error: UserExceptionInterface) {
   reactive.lastValue = null;
   reactive.error = error;
-}
 
-function setPoison<T>(reactive: Reactive<T>, error: UserExceptionInterface) {
-  reactive.lastValue = null;
-  reactive.error = null;
-  reactive.poison = error;
-
-  reactive.tag = CONSTANT_TAG;
-  // Even though the tag is constant, we want the reference to be invalidated so that any consumers
-  // of the reference see the error.
-  reactive.lastRevision = INVALID_REVISION;
+  // since the setter threw, we want the reference to be invalid so that its consumers will see the
+  // invalidation and handle the error.
+  reactive.tag = null;
 }
 
 /**
  * @internal
  */
 
-export function validateReactive(reactive: SomeReactive): boolean {
-  return validateInternalReactive(reactive as Reactive, false);
-}
-
-function validateInternalReactive<T>(
-  reactive: Reactive<T>,
-  forceError: false
-): reactive is Reactive<T> & { tag: Tag; error: null };
-function validateInternalReactive<T>(
-  reactive: Reactive<T>,
-  forceError: boolean
-): reactive is Reactive<T> & { tag: Tag };
-function validateInternalReactive<T>(
-  reactive: Reactive<T>,
-  forceError: boolean
-): reactive is Reactive<T> & { tag: Tag } {
-  const { tag, lastRevision } = reactive;
+export function validateReactive<T>(
+  reactive: SomeReactive<T> | Reactive<T>
+): reactive is SomeReactive<T> & { tag: Tag } {
+  const { tag, lastRevision } = reactive as Reactive<T>;
 
   // not yet computed
   if (tag === null) return false;
-
-  if (reactive.error && forceError) {
-    return false;
-  }
 
   return validateTag(tag, lastRevision);
 }
@@ -619,7 +587,7 @@ export function toMut<T>(maybeMut: SomeReactive<T>): SomeReactive<T> {
   const reactive = maybeMut as Reactive;
 
   return ResultAccessor({
-    get: () => readInternalReactive(maybeMut as Reactive<T>, false),
+    get: () => readInternalReactive(maybeMut as Reactive<T>),
     set: (value: unknown) => updateInternalReactive(reactive, value),
   });
 }
@@ -666,7 +634,7 @@ export function getReactiveProperty(
     // We need an extra try/catch here because any reactive value can be turned into a deeply
     // constant value.
     try {
-      const parent = readInternalReactive(parentReactive as Reactive, false);
+      const parent = readInternalReactive(parentReactive as Reactive);
 
       if (parent.type === 'err') {
         return initialize(Poison(parent.value));
@@ -700,7 +668,7 @@ export function getReactiveProperty(
       }
     },
     set: (value: unknown): ReactiveResult<void> => {
-      const parentResult = readInternalReactive(parentReactive as Reactive, false);
+      const parentResult = readInternalReactive(parentReactive as Reactive);
 
       if (parentResult.type === 'err') {
         return parentResult;
@@ -753,7 +721,7 @@ export function isConstant(reactive: SomeReactive) {
     case DEEPLY_CONSTANT:
       return true;
     default:
-      return (reactive as Reactive).tag === CONSTANT_TAG && !(reactive as Reactive).poison;
+      return false;
   }
 }
 
@@ -784,7 +752,7 @@ export function writeCell<T>(reactive: MutableReactiveCell<T>, value: T): void {
 }
 
 export function hasError(reactive: SomeReactive): boolean {
-  return !!((reactive as Reactive).error || (reactive as Reactive).poison);
+  return !!(reactive as Reactive).error;
 }
 
 /**
@@ -792,7 +760,7 @@ export function hasError(reactive: SomeReactive): boolean {
  * situations, and as a transitional mechanism away from valueForRef.
  */
 export function unwrapReactive<T>(reactive: SomeReactive<T>): T {
-  return unwrapResult(readInternalReactive(reactive as Reactive<T>, false));
+  return unwrapResult(readInternalReactive(reactive as Reactive<T>));
 }
 
 export function updateRefWithResult<T>(ref: SomeReactive<T>, value: ReactiveResult<T>) {
@@ -812,6 +780,17 @@ export function updateReactive(_ref: SomeReactive, value: unknown) {
   const update = expect(ref.update, 'called update on a non-updatable reference');
 
   update(value);
+}
+
+export function clearError(reactive: SomeReactive) {
+  const internal = reactive as Reactive;
+
+  internal.error = null;
+
+  // clearing the tag will cause the reference to be invalidated.
+  internal.tag = null;
+
+  internal.lastValue = null;
 }
 
 /** @category compat */

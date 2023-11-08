@@ -6,7 +6,7 @@ import type {
   DescriptionSpec,
   DevMode,
   Optional,
-  TagDescription,
+  ReferenceDescription,
 } from '@glimmer/interfaces';
 
 import { isArray } from '../array-utils';
@@ -68,7 +68,7 @@ export function setDescription<Desc extends Description>(
   object: Described<Desc>,
   description: DevMode<Desc>
 ): void;
-export function setDescription<Desc extends Description, D extends Omit<Described, 'description'>>(
+export function setDescription<Desc extends Description, D>(
   object: D,
   description: DevMode<Desc>
 ): asserts object is D & { description: DevMode<Desc> };
@@ -84,10 +84,10 @@ export function setDescription(
 export function toDescription(
   spec: Optional<DescriptionSpec>,
   defaults: DevMode<DefaultDescriptionFields>
-): DevMode<TagDescription> {
+): DevMode<ReferenceDescription> {
   return mapDevmode(
     () => defaults,
-    (defaults): TagDescription => {
+    (defaults): ReferenceDescription => {
       if (!spec) return defaults;
 
       if (typeof spec === 'string') {
@@ -101,7 +101,7 @@ export function toDescription(
           label: spec,
         };
       } else {
-        const normalizedSpec: Pick<TagDescription, 'label' | 'serialization' | 'internal'> = {
+        const normalizedSpec: Pick<ReferenceDescription, 'label' | 'serialization' | 'internal'> = {
           ...spec,
           label: typeof spec.label === 'string' ? ([spec.label] as const) : spec.label,
         };

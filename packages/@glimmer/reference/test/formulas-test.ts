@@ -10,6 +10,7 @@ import {
 } from '@glimmer/reference';
 import { Err, Ok, UserException } from '@glimmer/util';
 
+import { step } from './error-test';
 import { Validate } from './utils/validate';
 
 const { module, test } = QUnit;
@@ -74,11 +75,12 @@ module('@glimmer/reference', () => {
 
       const validate = testResult(accessor, getError);
 
+      step('updating the reactive');
       updateReactive(accessor, false);
       validate.assertingStale(false, 'updated');
 
       setError = true;
-
+      step('updating the reactive again, but the setter throws');
       updateReactive(accessor, true);
 
       validate.assertingStaleError(/^Error: set: womp womp$/u);

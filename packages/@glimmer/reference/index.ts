@@ -9,6 +9,7 @@ export {
 } from './lib/iterable';
 export {
   Accessor,
+  clearError,
   createDebugAliasRef,
   createPrimitiveCell,
   DeeplyConstant,

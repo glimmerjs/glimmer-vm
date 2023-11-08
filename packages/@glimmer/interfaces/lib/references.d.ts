@@ -137,7 +137,7 @@ interface ValidatableDescription extends Description {
    */
   readonly serialization?: 'String' | 'JSON' | undefined;
 
-  readonly internal?: {
+  internal?: {
     readonly parent?: ValidatableDescription;
     readonly internal?: string;
   };

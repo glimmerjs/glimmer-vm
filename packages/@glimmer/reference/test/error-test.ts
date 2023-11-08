@@ -1,9 +1,8 @@
 import {
+  clearError,
   FallibleFormula,
-  Marker,
   MutableCell,
   readReactive,
-  ResultFormula,
   unwrapReactive,
   updateReactive,
 } from '@glimmer/reference';
@@ -67,11 +66,10 @@ module('@glimmer/reference', () => {
         // represent state that isn't tracked by the reactivity system, but which we might know has
         // changed enough to justify recovery.
         let isError = true;
-        const tryRecover = Marker('tryRecover');
 
         // this formula will never invalidate on its own, since it doesn't read from any reactive
         // state.
-        const child = FallibleFormula(() => {
+        const formula = FallibleFormula(() => {
           if (isError) {
             throw new Error('womp womp');
           }
@@ -79,29 +77,24 @@ module('@glimmer/reference', () => {
           return true;
         }, 'child');
 
-        const withRecovery = ResultFormula(() => {
-          tryRecover.consume();
-          return readReactive(child);
-        }, 'parent');
-
-        const validate = new Validate(withRecovery);
+        const validate = new Validate(formula);
 
         step(`initial state`);
         validate.assertingStaleError(/^Error: womp womp$/u);
 
         step(`updating, still an error`);
-        tryRecover.mark();
+        clearError(formula);
         validate.assertingStaleError(/^Error: womp womp$/u);
 
         step(`updating, not an error`);
         isError = false;
-        tryRecover.mark();
+        clearError(formula);
         validate.assertingStale(true, 'after recovery');
       });
     });
   });
 });
 
-function step(message: string) {
+export function step(message: string) {
   QUnit.assert.ok(true, `>> ${message} <<`);
 }
