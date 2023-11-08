@@ -353,11 +353,17 @@ class StatementNormalizer {
     let loc = this.block.loc(node.loc);
     let textLoc: SourceSpan;
 
-    if (loc.asString().slice(0, 5) === '{{!--') {
-      textLoc = loc.slice({ skipStart: 5, skipEnd: 4 });
-    } else {
-      textLoc = loc.slice({ skipStart: 3, skipEnd: 2 });
+    let locStr = loc.asString();
+
+    let skipStart = locStr.startsWith('{{~') ? 4 : 3;
+    let skipEnd = locStr.endsWith('~}}') ? 3 : 2;
+
+    if (locStr.slice(skipStart-1).startsWith('!--')) {
+      skipStart += 2;
+      skipEnd += 2;
     }
+
+    textLoc = loc.slice({ skipStart, skipEnd });
 
     return new ASTv2.GlimmerComment({
       loc,
