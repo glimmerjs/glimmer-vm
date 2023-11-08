@@ -10,6 +10,8 @@ import {
 import { toBool } from '@glimmer/global-context';
 import type {
   CompilableTemplate,
+  Description,
+  DevMode,
   ErrorHandler,
   Nullable,
   ReactiveResult,
@@ -34,6 +36,7 @@ import {
   decodeHandle,
   decodeImmediate,
   expect,
+  getDescription,
   isHandle,
   mapResult,
   unwrap,
@@ -387,10 +390,12 @@ export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
 }
 
 export class BeginTrackFrameOpcode implements UpdatingOpcode {
-  constructor(private debugLabel?: string) {}
+  declare description: DevMode<Description>;
+
+  constructor() {}
 
   evaluate() {
-    beginTrackFrame(this.debugLabel);
+    beginTrackFrame(getDescription(this));
   }
 }
 

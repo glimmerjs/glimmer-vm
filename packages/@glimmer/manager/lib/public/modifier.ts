@@ -2,16 +2,25 @@ import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Arguments,
   CapturedArguments,
+  DevMode,
   InternalModifierManager,
   ModifierCapabilities,
   ModifierCapabilitiesVersions,
   ModifierManager,
   Owner,
   SimpleElement,
+  TagDescription,
   UpdatableTag,
 } from '@glimmer/interfaces';
 import { unwrapReactive } from '@glimmer/reference';
-import { castToBrowser, dict } from '@glimmer/util';
+import {
+  castToBrowser,
+  devmode,
+  devmodeOr,
+  dict,
+  setDescription,
+  stringifyDebugLabel,
+} from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
 
 import { argsProxyFor } from '../util/args-proxy';
@@ -37,7 +46,7 @@ export interface CustomModifierState<ModifierInstance> {
   modifier: ModifierInstance;
   delegate: ModifierManager<ModifierInstance>;
   args: Arguments;
-  debugName?: string;
+  description: DevMode<TagDescription>;
 }
 
 /**
@@ -101,10 +110,19 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     let args = argsProxyFor(capturedArgs, 'modifier');
     let instance: ModifierInstance = delegate.createModifier(definition, args);
 
-    let tag = createUpdatableTag();
-    let state: CustomModifierState<ModifierInstance>;
+    const description = devmode(
+      () =>
+        ({
+          kind: 'modifier',
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
+          label: typeof definition === 'function' ? [definition.name] : [`${definition}`],
+        }) satisfies TagDescription
+    );
 
-    state = {
+    let tag = createUpdatableTag(description);
+    // let state: CustomModifierState<ModifierInstance>;
+
+    const state = {
       tag,
       element,
       delegate,
@@ -112,18 +130,15 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
       modifier: instance,
     };
 
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
-      state.debugName = typeof definition === 'function' ? definition.name : `${definition}`;
-    }
+    setDescription(state, description);
 
     registerDestructor(state, () => delegate.destroyModifier(instance, args));
 
     return state;
   }
 
-  getDebugName({ debugName }: CustomModifierState<ModifierInstance>) {
-    return debugName!;
+  getDebugName(state: CustomModifierState<ModifierInstance>) {
+    return devmodeOr(() => stringifyDebugLabel(state), 'modifier');
   }
 
   getTag({ tag }: CustomModifierState<ModifierInstance>) {

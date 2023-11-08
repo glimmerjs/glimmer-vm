@@ -1,5 +1,5 @@
 import type { SimpleNode } from '@glimmer/interfaces';
-import { assertNever, isObject, isUserException } from '@glimmer/util';
+import { assertNever,isObject, isUserException  } from '@glimmer/util';
 
 import { type IntoFormat, intoFormat, STYLES } from './presets';
 

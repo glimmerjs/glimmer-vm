@@ -1,4 +1,4 @@
-import type { Result } from '@glimmer/interfaces';
+import type { DevMode, Result } from '@glimmer/interfaces';
 
 import type { Nullable, Optional } from './core';
 
@@ -65,21 +65,70 @@ export interface UserException extends Error {
  * writing to an accessor) may produce an error. A poisoned value is permanently an error and any
  * attempt to read or write it will produce an error.
  */
-type ReferenceKind = 'cell' | 'formula' | 'property' | 'poisoned' | 'alias';
+type ReferenceKind =
+  | 'cell'
+  | 'formula'
+  | 'property'
+  | 'poisoned'
+  | 'alias'
+  | 'modifier'
+  | 'component'
+  | 'unknown';
 
-export type DebugLabel = [string, ...(string | symbol)[]];
+type TagKind = ReferenceKind | 'tag';
+
+type RenderingKind = 'template' | 'updating';
+
+export type DebugLabel = readonly [string, ...(string | symbol)[]];
+
+export type DebugLabelSpec = DebugLabel | string;
+
+export type DescriptionSpec =
+  | DebugLabelSpec
+  | false
+  | undefined
+  | {
+      readonly label: DebugLabelSpec;
+
+      readonly serialization?: 'String' | 'JSON' | undefined;
+
+      /**
+       * If the reactive value represents an internal implementation detail, you should populate this
+       * field.
+       */
+      readonly internal?: {
+        parent: ReferenceDescription;
+        reason: string;
+      };
+    };
+
+/**
+ * These fields are provided by the reference constructors, and provide defaults for specific
+ * reference types.
+ */
+export interface DefaultDescriptionFields {
+  readonly label: DebugLabel;
+  readonly readonly: boolean | 'deep';
+  readonly kind: ReferenceKind | undefined;
+  readonly fallible: boolean;
+  readonly serialization?: 'String' | 'JSON' | undefined;
+}
+
+interface Described<D extends Description = Description> {
+  description: DevMode<D>;
+}
 
 interface Description {
-  /**
-   * Deeply readonly references also have deeply readonly property references.
-   */
-  readonly readonly: boolean | 'deep';
-  readonly kind?: ReferenceKind | undefined;
+  readonly kind?: ReferenceKind | TagKind | RenderingKind | 'tracking' | undefined;
 
   /**
-   * A fallible reactive value can produce an error.
+   * Each part in a label represents a property path.
    */
-  readonly fallible: boolean;
+  readonly label: DebugLabel;
+}
+
+interface ValidatableDescription extends Description {
+  readonly kind?: ReferenceKind | TagKind | undefined;
 
   /**
    * If serialization is `String`, the value can be converted to a string using `String()`. If the
@@ -88,16 +137,32 @@ interface Description {
    */
   readonly serialization?: 'String' | 'JSON' | undefined;
 
-  /**
-   * Each part in a label represents a property path.
-   */
-  readonly label: DebugLabel;
+  readonly internal?: {
+    readonly parent?: ValidatableDescription;
+    readonly internal?: string;
+  };
 }
 
-export interface RawReactive<T = unknown, K = ReactiveType> {
+interface ReferenceDescription extends ValidatableDescription {
+  /**
+   * Deeply readonly references also have deeply readonly property references.
+   */
+  readonly readonly: boolean | 'deep';
+
+  /**
+   * A fallible reactive value can produce an error.
+   */
+  readonly fallible: boolean;
+}
+
+interface TagDescription extends ValidatableDescription {
+  subtags?: readonly TagDescription[];
+}
+
+export interface RawReactive<T = unknown, K = ReactiveType>
+  extends Described<ReferenceDescription> {
   [REFERENCE]: K;
   error: UserException | null;
-  debug?: Description;
   /**
    * If `compute` produces an error, it should set `error` and return `undefined`.
    */

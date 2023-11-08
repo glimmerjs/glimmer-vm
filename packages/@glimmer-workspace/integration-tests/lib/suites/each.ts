@@ -1,5 +1,6 @@
+import type { TagDescription } from '@glimmer/interfaces/index';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { beginTestSteps, endTestSteps, verifySteps } from '@glimmer/util';
+import { beginTestSteps, devmode, endTestSteps, verifySteps } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
 import { RenderTestContext } from '../render-test';
@@ -58,7 +59,17 @@ export class EachSuite extends RenderTestContext {
 
     let list = {
       arr: [1, 2, 3, 4],
-      tag: createTag(),
+      tag: createTag(
+        devmode(
+          () =>
+            ({
+              kind: 'cell',
+              fallible: false,
+              readonly: true,
+              label: ['list'],
+            }) satisfies TagDescription
+        )
+      ),
 
       [Symbol.iterator]() {
         consumeTag(this.tag);

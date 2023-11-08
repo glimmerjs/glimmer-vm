@@ -6,7 +6,9 @@ import type {
   CatchState,
   CleanStack,
   CompilableTemplate,
+  Description,
   Destroyable,
+  DevMode,
   DynamicScope,
   ElementBuilder,
   Environment,
@@ -42,6 +44,7 @@ import { readReactive } from '@glimmer/reference/lib/reference';
 import {
   assert,
   BalancedStack,
+  createWithDescription,
   EarlyError,
   expect,
   LOCAL_LOGGER,
@@ -546,15 +549,17 @@ export class VM implements PublicVM, SnapshottableVM {
     return this.captureState(args, pc);
   }
 
-  beginCacheGroup(name?: string) {
+  beginCacheGroup(description: DevMode<Description>) {
     let opcodes = this.updating();
     let guard = new JumpIfNotModifiedOpcode();
 
     opcodes.push(guard);
-    opcodes.push(new BeginTrackFrameOpcode(name));
+
+    opcodes.push(createWithDescription(() => new BeginTrackFrameOpcode(), description));
+
     this.#state.cache.push(guard);
 
-    beginTrackFrame(name);
+    beginTrackFrame(description);
   }
 
   commitCacheGroup() {

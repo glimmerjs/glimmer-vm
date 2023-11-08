@@ -5,6 +5,7 @@ import type {
   CapturedPositionalArguments,
 } from '@glimmer/interfaces';
 import { unwrapReactive } from '@glimmer/reference';
+import { devmode } from '@glimmer/util';
 import { type Tag, track } from '@glimmer/validator';
 
 const CUSTOM_TAG_FOR = new WeakMap<object, (obj: object, key: string) => Tag>();
@@ -28,27 +29,35 @@ function convertToInt(prop: number | string | symbol): number | null {
 }
 
 function tagForNamedArg(namedArgs: CapturedNamedArguments, key: string): Tag {
-  return track(() => {
-    if (key in namedArgs) {
-      unwrapReactive(namedArgs[key]!);
-    }
-  });
+  return track(
+    () => {
+      if (key in namedArgs) {
+        unwrapReactive(namedArgs[key]!);
+      }
+    },
+    devmode(() => ({
+      label: [`@${key}`],
+    }))
+  );
 }
 
 function tagForPositionalArg(positionalArgs: CapturedPositionalArguments, key: string): Tag {
-  return track(() => {
-    if (key === '[]') {
-      // consume all of the tags in the positional array
-      positionalArgs.forEach(unwrapReactive);
-    }
+  return track(
+    () => {
+      if (key === '[]') {
+        // consume all of the tags in the positional array
+        positionalArgs.forEach(unwrapReactive);
+      }
 
-    const parsed = convertToInt(key);
+      const parsed = convertToInt(key);
 
-    if (parsed !== null && parsed < positionalArgs.length) {
-      // consume the tag of the referenced index
-      unwrapReactive(positionalArgs[parsed]!);
-    }
-  });
+      if (parsed !== null && parsed < positionalArgs.length) {
+        // consume the tag of the referenced index
+        unwrapReactive(positionalArgs[parsed]!);
+      }
+    },
+    devmode(() => ({ label: [`#${key}`] }))
+  );
 }
 
 class NamedArgsProxy implements ProxyHandler<{}> {

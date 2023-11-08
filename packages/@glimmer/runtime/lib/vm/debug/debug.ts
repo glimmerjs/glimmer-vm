@@ -19,7 +19,7 @@ import {
   LOCAL_SUBTLE_LOGGING,
   LOCAL_TRACE_LOGGING,
 } from '@glimmer/local-debug-flags';
-import { LOCAL_LOGGER } from '@glimmer/util';
+import { LOCAL_LOGGER } from "@glimmer/util";
 
 import type { VM } from '../../vm';
 

@@ -1,6 +1,7 @@
 import type {
   CompilableProgram,
   ComponentDefinitionState,
+  Description,
   DynamicScope,
   ElementBuilder,
   Environment,
@@ -28,7 +29,10 @@ class TemplateIteratorImpl implements TemplateIterator {
 
   sync(): RenderResult {
     if (import.meta.env.DEV) {
-      return debug.runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
+      return debug.runInTrackingTransaction!(() => this.vm.execute(), {
+        kind: 'template',
+        label: ['- While rendering:'],
+      } satisfies Description);
     } else {
       return this.vm.execute();
     }
@@ -135,7 +139,7 @@ export function renderComponent(
     self: undefined,
     handle: context.stdlib.main,
     dynamicScope,
-  owner,
+    owner,
   });
   return renderInvocation(vm, context, owner, definition, recordToReference(args));
 }

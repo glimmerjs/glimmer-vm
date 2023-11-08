@@ -1,6 +1,6 @@
 import { getPath, toIterator } from '@glimmer/global-context';
-import type { Dict, Nullable, SomeReactive } from '@glimmer/interfaces';
-import { EMPTY_ARRAY, isObject } from '@glimmer/util';
+import type { Dict, Nullable, SomeReactive, TagDescription } from '@glimmer/interfaces';
+import { devmode, EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
 import { Accessor, FallibleFormula, type ReferenceEnvironment, unwrapReactive } from './reference';
@@ -180,7 +180,15 @@ export function createIteratorRef(listRef: SomeReactive, key: string) {
 
 export function createIteratorItemRef(_value: unknown) {
   let value = _value;
-  let tag = createTag();
+  let tag = createTag(
+    devmode(
+      () =>
+        ({
+          kind: 'formula',
+          label: ['(iterator)'],
+        }) satisfies TagDescription
+    )
+  );
 
   return Accessor({
     get: () => {

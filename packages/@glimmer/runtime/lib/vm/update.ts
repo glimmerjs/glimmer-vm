@@ -54,10 +54,10 @@ export class UpdatingVM implements IUpdatingVM {
     if (import.meta.env.DEV) {
       let hasErrored = true;
       try {
-        debug.runInTrackingTransaction!(
-          () => this._execute(opcodes, handler),
-          '- While rendering:'
-        );
+        debug.runInTrackingTransaction!(() => this._execute(opcodes, handler), {
+          kind: 'updating',
+          label: ['- While rendering:'],
+        });
 
         // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions" which
         // would happen with a `catch` + `throw`

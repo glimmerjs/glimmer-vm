@@ -11,7 +11,7 @@ import type {
   UpdatingOpcode,
 } from '@glimmer/interfaces';
 import { readReactive, unwrapReactive } from '@glimmer/reference';
-import { getDebugLabel, isCompilable, unwrap, zip } from '@glimmer/util';
+import { inDevmode, isCompilable, stringifyDebugLabel, zip } from '@glimmer/util';
 
 import { isReference } from '../utils';
 import type { Fragment } from './fragment';
@@ -165,7 +165,7 @@ export function array(
 }
 
 function describeRef(ref: SomeReactive): Fragment {
-  const debug = unwrap(ref.debug);
+  const debug = inDevmode(ref.description);
 
   if (debug.fallible === false) {
     if (debug.serialization === 'String') {
@@ -173,7 +173,7 @@ function describeRef(ref: SomeReactive): Fragment {
     }
   }
 
-  const label = as.type(String(getDebugLabel(ref)) ?? '');
+  const label = as.type(String(stringifyDebugLabel(ref)) ?? '');
   const result = readReactive(ref);
 
   switch (result.type) {

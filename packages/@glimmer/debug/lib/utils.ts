@@ -1,6 +1,7 @@
 import type { Nullable, Optional, SomeReactive, VmOpName } from '@glimmer/interfaces';
 import { REFERENCE } from '@glimmer/reference';
-import { assertNever, fillNulls } from '@glimmer/util';
+import { fillNulls } from '@glimmer/util';
+import { assertNever } from '../../util/lib/devmode/logging';
 import { OpSize } from '@glimmer/vm';
 
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports

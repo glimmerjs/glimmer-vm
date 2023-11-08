@@ -25,7 +25,7 @@ import {
   type SomeReactive,
   unwrapReactive,
 } from '@glimmer/reference';
-import { assign, debugToString, expect, getDebugLabel, isObject } from '@glimmer/util';
+import { assign, debugToString, expect, isObject, stringifyDebugLabel } from '@glimmer/util';
 import {
   consumeTag,
   CURRENT_TAG,
@@ -200,9 +200,11 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
     let handle = constants.modifier(hostDefinition, null, true);
 
     if (import.meta.env.DEV && handle === null) {
-      const label = getDebugLabel(ref);
+      const label = stringifyDebugLabel(ref);
       throw new Error(
-        `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${label}}}\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
+        `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${String(
+          label
+        )}}}\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
           hostDefinition
         )}`
       );

@@ -6,6 +6,7 @@ export * from './lib/components';
 export * from './lib/content';
 export * from './lib/core';
 export * from './lib/curry';
+export * from './lib/devmode';
 export * from './lib/dom/attributes';
 export * from './lib/dom/bounds';
 export * from './lib/dom/changes';

@@ -2,7 +2,7 @@ import { associateDestroyableChild, registerDestructor } from '@glimmer/destroya
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { createPrimitiveCell, FallibleFormula, ReadonlyCell } from '@glimmer/reference';
 import type { SafeString } from '@glimmer/runtime';
-import { expect } from '@glimmer/util';
+import { devmode, expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 import {
   assertNodeTagName,
@@ -486,7 +486,14 @@ class UpdatingTest extends RenderTestContext {
     let { template, truthyValue, falsyValue, element } = arg1;
     let didCreate = 0;
     let didDestroy = 0;
-    let tag = createTag();
+    let tag = createTag(
+      devmode(() => ({
+        kind: 'formula',
+        fallible: true,
+        readonly: true,
+        label: ['(stateful helper)'],
+      }))
+    );
     let currentValue: T | U = truthyValue;
 
     this.register.internalHelper('stateful-foo', (_args) => {

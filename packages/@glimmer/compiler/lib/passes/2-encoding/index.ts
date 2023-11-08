@@ -1,6 +1,6 @@
 import type { WireFormat } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import { LOCAL_LOGGER } from '@glimmer/util';
+import { LOCAL_LOGGER } from '../../../../util/lib/devmode/logging';
 
 import WireFormatDebugger from '../../wire-format-debug';
 import { CONTENT } from './content';

@@ -45,6 +45,24 @@ module('@glimmer/reference', () => {
         validate.assertingStaleError(/^Error: womp womp$/u);
       });
 
+      test(`a getter doesn't run again after it happened`, (assert) => {
+        let events: string[] = [];
+
+        const formula = FallibleFormula(() => {
+          events.push('formula ran');
+
+          throw Error('womp womp');
+        });
+
+        assert.strictEqual(readReactive(formula).type, 'err', 'the formula is in an error state');
+        assert.deepEqual(events, ['formula ran']);
+
+        events = [];
+
+        assert.strictEqual(readReactive(formula).type, 'err', 'the formula is in an error state');
+        assert.deepEqual(events, []);
+      });
+
       test(`an externally recoverable error`, () => {
         // represent state that isn't tracked by the reactivity system, but which we might know has
         // changed enough to justify recovery.
@@ -68,11 +86,14 @@ module('@glimmer/reference', () => {
 
         const validate = new Validate(withRecovery);
 
+        step(`initial state`);
         validate.assertingStaleError(/^Error: womp womp$/u);
 
+        step(`updating, still an error`);
         tryRecover.mark();
         validate.assertingStaleError(/^Error: womp womp$/u);
 
+        step(`updating, not an error`);
         isError = false;
         tryRecover.mark();
         validate.assertingStale(true, 'after recovery');
@@ -80,3 +101,7 @@ module('@glimmer/reference', () => {
     });
   });
 });
+
+function step(message: string) {
+  QUnit.assert.ok(true, `>> ${message} <<`);
+}

@@ -1,5 +1,6 @@
 import type {
   ComponentInstanceWithCreate,
+  Description,
   Environment,
   EnvironmentOptions,
   GlimmerTreeChanges,
@@ -13,7 +14,7 @@ import type {
   TransactionSymbol,
 } from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
-import { assert, expect } from '@glimmer/util';
+import { assert, devmode, expect } from '@glimmer/util';
 import { track, updateTag } from '@glimmer/validator';
 
 import DebugRenderTree from './debug-render-tree';
@@ -67,10 +68,16 @@ class TransactionImpl implements Transaction {
       if (modifierTag !== null) {
         let tag = track(
           () => manager.install(state),
-          import.meta.env.DEV &&
-            `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(definition.state)
-            }\` modifier)`
+          devmode(() => {
+            return {
+              kind: 'modifier',
+              label: [
+                `- While rendering:\n  (instance of a \`${
+                  definition.resolvedName || manager.getDebugName(definition.state)
+                }\` modifier)`,
+              ],
+            } satisfies Description;
+          })
         );
         updateTag(modifierTag, tag);
       } else {
@@ -84,10 +91,14 @@ class TransactionImpl implements Transaction {
       if (modifierTag !== null) {
         let tag = track(
           () => manager.update(state),
-          import.meta.env.DEV &&
-            `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(definition.state)
-            }\` modifier)`
+          devmode(() => ({
+            kind: 'modifier',
+            label: [
+              `- While rendering:\n  (instance of a \`${
+                definition.resolvedName || manager.getDebugName(definition.state)
+              }\` modifier)`,
+            ],
+          }))
         );
         updateTag(modifierTag, tag);
       } else {

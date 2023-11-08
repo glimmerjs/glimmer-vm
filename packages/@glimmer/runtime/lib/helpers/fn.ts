@@ -7,7 +7,7 @@ import {
   unwrapReactive,
   updateReactive,
 } from '@glimmer/reference';
-import { buildUntouchableThis, getDebugLabel } from '@glimmer/util';
+import { buildUntouchableThis, stringifyDebugLabel } from '@glimmer/util';
 
 import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
@@ -106,7 +106,7 @@ function assertCallbackIsFn(
     throw new Error(
       `You must pass a function as the \`fn\` helper's first argument, you passed ${
         callbackRef ? unwrapReactive(callbackRef) : callbackRef
-      }. While rendering${callbackRef ? ':\n\n' + getDebugLabel(callbackRef) : ''}`
+      }. While rendering${callbackRef ? ':\n\n' + stringifyDebugLabel(callbackRef) : ''}`
     );
   }
 }

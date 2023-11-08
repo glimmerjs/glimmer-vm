@@ -13,6 +13,7 @@ import type {
   Owner,
   PreparedArguments,
   SomeReactive,
+  TagDescription,
   Template,
   VMArguments,
   WithCreateInstance,
@@ -28,7 +29,7 @@ import {
   unwrapReactive,
 } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
-import { assign, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
+import { assign, devmode, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
 import {
   consumeTag,
   createTag,
@@ -56,7 +57,17 @@ let GUID = 1;
 export class EmberishCurlyComponent {
   public static positionalParams: string[] | string = [];
 
-  public dirtinessTag: DirtyableTag = createTag();
+  public dirtinessTag: DirtyableTag = createTag(
+    devmode(
+      () =>
+        ({
+          kind: 'component',
+          label: ['(emberish)'],
+          fallible: true,
+          readonly: true,
+        }) satisfies TagDescription
+    )
+  );
   public declare layout: Template;
   public declare name: string;
   public tagName: Nullable<string> = null;

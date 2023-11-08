@@ -7,8 +7,8 @@ import type {
 } from '@glimmer/interfaces';
 
 import { enumerate } from './array-utils';
-import { assert, unwrap } from './assert';
-import { LOCAL_LOGGER } from './index';
+import { assert, unwrap } from './devmode/assert';
+import { LOCAL_LOGGER } from './devmode/logging';
 import { entries, mapDict } from './object-utils';
 
 abstract class AbstractStack<

@@ -12,7 +12,7 @@ import {
   src,
   type TemplateIdFn,
 } from '@glimmer/syntax';
-import { LOCAL_LOGGER } from '@glimmer/util';
+import { LOCAL_LOGGER } from '../../util/lib/devmode/logging';
 
 import pass0 from './passes/1-normalization/index';
 import { visit as pass2 } from './passes/2-encoding/index';

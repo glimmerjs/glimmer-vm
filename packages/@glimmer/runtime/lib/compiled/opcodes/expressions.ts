@@ -33,8 +33,8 @@ import {
   assign,
   debugToString,
   decodeHandle,
-  getDebugLabel,
   isObject,
+  stringifyDebugLabel,
 } from '@glimmer/util';
 import { $v0, CurriedTypes, Op } from '@glimmer/vm';
 
@@ -137,10 +137,12 @@ function resolveHelper(
   let handle = constants.helper(definition, null, true)!;
 
   if (import.meta.env.DEV && handle === null) {
-    const label = getDebugLabel(ref);
+    const label = stringifyDebugLabel(ref);
 
     throw new Error(
-      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${label}}}\` or \`(${label})\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
+      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${String(
+        label
+      )}}}\` or \`(${label})\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
         definition
       )}`
     );

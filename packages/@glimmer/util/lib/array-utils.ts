@@ -23,6 +23,14 @@ export function isEmptyArray(input: unknown[] | readonly unknown[]): boolean {
   return input === EMPTY_ARRAY;
 }
 
+/**
+ * This function does a better job of narrowing values to arrays (including readonly arrays) than
+ * the default Array.isArray.
+ */
+export function isArray<T extends unknown[] | readonly unknown[]>(value: unknown | T): value is T {
+  return Array.isArray(value);
+}
+
 export function* times(count: number) {
   for (let i = 0; i < count; i++) {
     yield i;

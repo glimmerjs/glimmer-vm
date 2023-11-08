@@ -1,7 +1,7 @@
 
 
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { assertNever } from '@glimmer/util';
+import { assertNever } from '../../../../util/lib/devmode/logging';
 
 import {
   BROKEN_LOCATION,

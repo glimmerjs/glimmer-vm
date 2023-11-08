@@ -9,7 +9,6 @@ import type {
 } from '@glimmer/interfaces';
 import {
   assert,
-  assertNever,
   dict,
   exhausted,
   expect,
@@ -19,6 +18,7 @@ import {
   NS_XMLNS,
   values,
 } from '@glimmer/util';
+import { assertNever } from '../../../util/lib/devmode/logging';
 import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
 
 import {

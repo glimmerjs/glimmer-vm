@@ -1,3 +1,5 @@
+import type { Described, TagDescription } from './references';
+
 declare const TYPE: unique symbol;
 export type TagTypeSymbol = typeof TYPE;
 
@@ -30,10 +32,9 @@ export type TagId = MonomorphicTagId | PolymorphicTagId;
 
 export type Revision = number;
 
-export interface Tag {
+export interface Tag extends Described<TagDescription> {
   readonly [TYPE]: TagId;
   readonly subtag?: Tag | Tag[] | null | undefined;
-  readonly debugLabel?: string;
   [COMPUTE](): Revision;
 }
 

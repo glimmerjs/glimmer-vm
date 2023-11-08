@@ -8,7 +8,7 @@ import {
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { isConstant } from '@glimmer/reference';
-import { isObject, LOCAL_LOGGER } from '@glimmer/util';
+import { isObject , LOCAL_LOGGER } from '@glimmer/util';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CurriedTypes, Op } from '@glimmer/vm';
 import {
   COMPONENT_CONTENT,

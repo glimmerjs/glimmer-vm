@@ -1,5 +1,5 @@
 import { getFlagValues } from '@glimmer/local-debug-flags';
-import type { LOCAL_LOGGER } from '@glimmer/util';
+import type { LOCAL_LOGGER } from "@glimmer/util";
 
 import { prepend } from './combinators';
 import type { DisplayFragmentOptions, FlushedLines, Fragment, LogEntry } from './fragment';

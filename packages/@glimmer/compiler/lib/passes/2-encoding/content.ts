@@ -12,7 +12,8 @@ import type {
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { ASTv2 } from '@glimmer/syntax';
 import { SourceSpan } from '@glimmer/syntax/lib/source/span';
-import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
+import { exhausted } from '@glimmer/util';
+import { LOCAL_LOGGER } from '../../../../util/lib/devmode/logging';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';

@@ -1,4 +1,13 @@
-import type { Tag } from '@glimmer/interfaces';
+import type {
+  DefaultDescriptionFields,
+  Described,
+  Description,
+  DescriptionSpec,
+  DevMode,
+  Tag,
+  TagDescription,
+} from '@glimmer/interfaces';
+import { devmode, getDescription, inDevmode, setDescription, toDescription } from '@glimmer/util';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
@@ -14,16 +23,10 @@ import {
 /**
  * An object that that tracks @tracked properties that were consumed.
  */
-class Tracker {
+class Tracker implements Described<Description> {
   private tags = new Set<Tag>();
   private last: Tag | null = null;
-  private label?: string;
-
-  constructor(label?: string) {
-    if (import.meta.env.DEV && label) {
-      this.label = label;
-    }
-  }
+  declare description: DevMode<Description>;
 
   add(tag: Tag) {
     if (tag === CONSTANT_TAG) return;
@@ -47,7 +50,8 @@ class Tracker {
     } else {
       let tagsArr: Tag[] = [];
       tags.forEach((tag) => tagsArr.push(tag));
-      return import.meta.env.DEV && this.label ? combine(tagsArr, this.label) : combine(tagsArr);
+      const tag = combine(tagsArr, this.description);
+      return tag;
     }
   }
 }
@@ -69,14 +73,22 @@ let CURRENT_TRACKER: Tracker | null = null;
 
 const OPEN_TRACK_FRAMES: (Tracker | null)[] = [];
 
-export function beginTrackFrame(debuggingContext?: string | false): void {
+export function beginTrackFrame(
+  context: DevMode<Description> = devmode(
+    () =>
+      ({
+        kind: 'formula',
+        label: ['(tracking frame)'],
+      }) satisfies Description
+  )
+): void {
   OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
 
-  CURRENT_TRACKER =
-    import.meta.env.DEV && debuggingContext ? new Tracker(debuggingContext) : new Tracker();
+  CURRENT_TRACKER = new Tracker();
+  setDescription(CURRENT_TRACKER, context);
 
   if (import.meta.env.DEV) {
-    unwrap(debug.beginTrackingTransaction)(debuggingContext);
+    unwrap(debug.beginTrackingTransaction)(inDevmode(context));
   }
 }
 
@@ -137,7 +149,7 @@ export function consumeTag(tag: Tag): void {
 const CACHE_KEY = Symbol('CACHE_KEY');
 
 // public interface
-export interface Cache<T = unknown> {
+export interface Cache<T = unknown> extends Described<Description> {
   [CACHE_KEY]: T;
 }
 
@@ -147,7 +159,7 @@ const TAG = Symbol('TAG');
 const SNAPSHOT = Symbol('SNAPSHOT');
 const DEBUG_LABEL = Symbol('DEBUG_LABEL');
 
-interface InternalCache<T = unknown> {
+interface InternalCache<T = unknown> extends Described<TagDescription> {
   [FN]: (...args: unknown[]) => T;
   [LAST_VALUE]: T | undefined;
   [TAG]: Tag | undefined;
@@ -155,23 +167,34 @@ interface InternalCache<T = unknown> {
   [DEBUG_LABEL]?: string | false | undefined;
 }
 
-export function createCache<T>(fn: () => T, debuggingLabel?: string | false): Cache<T> {
+const CACHE_DEFAULTS = devmode(
+  () =>
+    ({
+      kind: 'formula',
+      fallible: true,
+      readonly: true,
+      label: ['(cache)'],
+    }) satisfies DefaultDescriptionFields
+);
+
+export function createCache<T>(fn: () => T, debuggingLabel?: DescriptionSpec): Cache<T> {
   if (import.meta.env.DEV && !(typeof fn === 'function')) {
     throw new Error(
       `createCache() must be passed a function as its first parameter. Called with: ${String(fn)}`
     );
   }
 
-  let cache: InternalCache<T> = {
+  let cache: Omit<InternalCache<T>, 'description'> = {
     [FN]: fn,
     [LAST_VALUE]: undefined,
     [TAG]: undefined,
     [SNAPSHOT]: -1,
   };
 
-  if (import.meta.env.DEV) {
-    cache[DEBUG_LABEL] = debuggingLabel;
-  }
+  setDescription(
+    cache,
+    devmode(() => toDescription(debuggingLabel, CACHE_DEFAULTS))
+  );
 
   return cache as unknown as Cache<T>;
 }
@@ -184,7 +207,7 @@ export function getValue<T>(cache: Cache<T>): T | undefined {
   let snapshot = cache[SNAPSHOT];
 
   if (tag === undefined || !validateTag(tag, snapshot)) {
-    import.meta.env.DEV && tag?.debugLabel ? beginTrackFrame(tag.debugLabel) : beginTrackFrame();
+    beginTrackFrame(getDescription(cache));
 
     try {
       cache[LAST_VALUE] = fn();
@@ -243,8 +266,13 @@ function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is T
 // refactors are merged, and we should generally be moving away from it. It may
 // be necessary in Ember for a while longer, but I think we'll be able to drop
 // it in favor of cache sooner rather than later.
-export function track(block: () => void, debugLabel?: string | false): Tag {
-  beginTrackFrame(debugLabel);
+export function track(
+  block: () => void,
+  description: DevMode<Description> = devmode(
+    () => ({ kind: 'tracking', label: ['(track)'] }) satisfies Description
+  )
+): Tag {
+  beginTrackFrame(description);
 
   let tag;
 

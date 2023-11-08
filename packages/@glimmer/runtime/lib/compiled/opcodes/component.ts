@@ -20,6 +20,7 @@ import type {
   ComponentInstance,
   ComponentInstanceState,
   ComponentInstanceWithCreate,
+  Description,
   Dict,
   DynamicScope,
   ElementOperations,
@@ -43,11 +44,12 @@ import {
   assert,
   assign,
   debugToString,
+  devmode,
   dict,
   EMPTY_STRING_ARRAY,
   enumerate,
   expect,
-  getDebugLabel,
+  stringifyDebugLabel,
   unwrap,
   unwrapTemplate,
 } from '@glimmer/util';
@@ -185,10 +187,12 @@ APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
     import.meta.env.DEV &&
     !(typeof value === 'function' || (typeof value === 'object' && value !== null))
   ) {
-    const label = getDebugLabel(ref);
+    const label = stringifyDebugLabel(ref);
 
     throw new Error(
-      `Expected a component definition, but received ${value}. You may have accidentally done <${label}>, where "${label}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
+      `Expected a component definition, but received ${value}. You may have accidentally done <${String(
+        label
+      )}>, where "${label}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
     );
   }
 
@@ -198,7 +202,7 @@ APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
     definition = constants.component(value as object, vm.getOwner(), true);
 
     if (import.meta.env.DEV && definition === null) {
-      const label = getDebugLabel(ref);
+      const label = stringifyDebugLabel(ref);
       throw new Error(
         `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${label}>\` or \`{{${label}}}\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
           value
@@ -425,18 +429,19 @@ APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: _state }) => {
-  let name;
-
-  if (import.meta.env.DEV) {
+  const description = devmode(() => {
     let { definition, manager } = check(
       vm.fetchValue(check(_state, CheckSyscallRegister)),
       CheckComponentInstance
     );
 
-    name = definition.resolvedName ?? manager.getDebugName(definition.state);
-  }
+    return {
+      kind: 'component',
+      label: [definition.resolvedName ?? manager.getDebugName(definition.state)],
+    } satisfies Description;
+  });
 
-  vm.beginCacheGroup(name);
+  vm.beginCacheGroup(description);
   vm.elements().pushSimpleBlock();
 });
 

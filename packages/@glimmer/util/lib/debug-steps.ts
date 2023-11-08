@@ -2,9 +2,8 @@
 
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 
-import { LOCAL_LOGGER } from '.';
-import assert from './assert';
-import { expect } from './platform-utils';
+import assert, { expect } from './devmode/assert';
+import { LOCAL_LOGGER } from './devmode/logging';
 
 export let beginTestSteps: (() => void) | undefined;
 export let endTestSteps: (() => void) | undefined;

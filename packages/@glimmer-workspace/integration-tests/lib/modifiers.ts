@@ -9,6 +9,7 @@ import type {
   SimpleElement,
 } from '@glimmer/interfaces';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
+import { devmode } from '@glimmer/util';
 import { createUpdatableTag, type UpdatableTag } from '@glimmer/validator';
 
 export interface TestModifierConstructor {
@@ -78,7 +79,14 @@ export class TestModifierManager
 }
 
 export class TestModifier {
-  public tag = createUpdatableTag();
+  public tag = createUpdatableTag(
+    devmode(() => ({
+      kind: 'modifier',
+      label: ['test'],
+      readonly: true,
+      fallible: true,
+    }))
+  );
 
   constructor(
     public element: SimpleElement,

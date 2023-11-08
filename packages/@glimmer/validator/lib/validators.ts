@@ -4,17 +4,28 @@ import type {
   CONSTANT_TAG_ID as ICONSTANT_TAG_ID,
   ConstantTag,
   CURRENT_TAG_ID as ICURRENT_TAG_ID,
+  Description,
+  DevMode,
   DIRTYABLE_TAG_ID as IDIRTYABLE_TAG_ID,
   DirtyableTag,
   MonomorphicTagId,
   Tag,
   TagComputeSymbol,
+  TagDescription,
   TagForId,
   TagTypeSymbol,
   UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
   UpdatableTag,
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
 } from '@glimmer/interfaces';
+import {
+  createWithDescription,
+  devmode,
+  expect,
+  inDevmode,
+  mapDevmode,
+  setDescription,
+} from '@glimmer/util';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
@@ -102,8 +113,12 @@ function allowsCycles(tag: Tag): boolean {
   }
 }
 
-class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
-  static combine(this: void, tags: Tag[], debugKind?: string): Tag {
+class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> implements Tag {
+  static combine(
+    this: void,
+    tags: Tag[],
+    description: DevMode<Description> = devmode(() => ({ kind: 'tag', label: ['(combine)'] }))
+  ): Tag {
     switch (tags.length) {
       case 0:
         return CONSTANT_TAG;
@@ -112,14 +127,13 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
           return tags[0] as Tag;
         }
       default: {
-        let tag: MonomorphicTagImpl = new MonomorphicTagImpl(COMBINATOR_TAG_ID);
-
-        if (import.meta.env.DEV && debugKind) {
-          tag.debugKind = debugKind;
-        }
+        let tag: MonomorphicTagImpl = createWithDescription(
+          () => new MonomorphicTagImpl(COMBINATOR_TAG_ID),
+          description
+        );
 
         updateSubtags(tag, tags);
-        return tag;
+        return tag as Tag;
       }
     }
   }
@@ -134,8 +148,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
 
   [TYPE]: T;
 
-  public debugKind?: string;
-  public debugLabel?: string;
+  declare description: DevMode<TagDescription>;
 
   constructor(type: T) {
     this[TYPE] = type;
@@ -249,20 +262,50 @@ export const UPDATE_TAG = MonomorphicTagImpl.updateTag;
 
 //////////
 
-export function createTag(label?: string | undefined): DirtyableTag {
-  return createTagWithId(DIRYTABLE_TAG_ID, label);
+export function createTag(label?: DevMode<TagDescription>): DirtyableTag {
+  return createTagWithId(
+    DIRYTABLE_TAG_ID,
+    label ??
+      devmode(
+        () =>
+          ({
+            kind: 'cell',
+            label: ['(dirtyable)'],
+          }) satisfies TagDescription
+      )
+  );
 }
 
-export function createUpdatableTag(label?: string | undefined): UpdatableTag {
-  return createTagWithId(UPDATABLE_TAG_ID, label);
+export function createUpdatableTag(label?: DevMode<TagDescription>): UpdatableTag {
+  return createTagWithId(
+    UPDATABLE_TAG_ID,
+    label ??
+      devmode(
+        () =>
+          ({
+            kind: 'cell',
+            label: ['(updatable)'],
+          }) satisfies TagDescription
+      )
+  );
 }
 
 function updateSubtag(tag: MonomorphicTagImpl, subtag: Tag) {
   tag.subtags = subtag;
 
-  if (import.meta.env.DEV) {
-    tag.debugLabel = `${tag.debugKind ?? 'updatable'}(${describeTag(subtag)})`;
-  }
+  setDescription(
+    tag,
+    devmode(() =>
+      mapDevmode(
+        () => tag.description,
+        (desc) =>
+          ({
+            ...desc,
+            subtags: [inDevmode(subtag.description)],
+          }) satisfies TagDescription
+      )
+    )
+  );
 }
 
 function updateSubtags(tag: MonomorphicTagImpl, subtags: Tag[]) {
@@ -277,17 +320,19 @@ function emptySubtag(tag: MonomorphicTagImpl) {
   tag.subtags = null;
 
   if (import.meta.env.DEV) {
-    delete tag.debugLabel;
+    delete inDevmode(tag.description).subtags;
   }
 }
 
 function createTagWithId<Id extends MonomorphicTagId>(
   id: Id,
-  label?: string | undefined
+  label: DevMode<TagDescription>
 ): TagForId<Id> {
+  expect(label, `Expected a tag description`);
+
   if (import.meta.env.DEV && label) {
     const tag = new MonomorphicTagImpl(id);
-    tag.debugLabel = label;
+    setDescription(tag, label);
     return tag as unknown as TagForId<Id>;
   } else {
     return new MonomorphicTagImpl(id) as unknown as TagForId<Id>;
@@ -298,19 +343,16 @@ function createTagWithId<Id extends MonomorphicTagId>(
  * @category devmode
  */
 function applyComboLabel(parent: MonomorphicTagImpl, tags: Tag | Tag[]) {
-  const kind = parent.debugKind ?? 'combine';
-  if (Array.isArray(tags)) {
-    parent.debugLabel = `${kind}(${tags.map(describeTag).join(', ')})`;
-  } else {
-    parent.debugLabel = `${kind}(${describeTag(tags)})`;
-  }
-}
+  const debug = inDevmode(parent.description);
 
-/**
- * @category devmode
- */
-function describeTag(tag: Tag) {
-  return tag.debugLabel ?? `tag(type=${tag[TYPE]})`;
+  if (Array.isArray(tags)) {
+    parent.description = devmode(() => ({
+      ...debug,
+      subtags: tags.map((tag) => inDevmode(tag.description)),
+    }));
+  } else {
+    parent.description = devmode(() => ({ ...debug, subtags: [inDevmode(tags.description)] }));
+  }
 }
 
 //////////
@@ -326,6 +368,8 @@ export function isConstTag(tag: Tag): tag is ConstantTag {
 const VOLATILE_TAG_ID: IVOLATILE_TAG_ID = 100;
 
 export class VolatileTag implements Tag {
+  subtag?: Tag | Tag[] | null | undefined;
+  declare description: DevMode<TagDescription>;
   readonly [TYPE] = VOLATILE_TAG_ID;
   [COMPUTE](): Revision {
     return VOLATILE;
@@ -333,12 +377,24 @@ export class VolatileTag implements Tag {
 }
 
 export const VOLATILE_TAG = new VolatileTag();
+setDescription(
+  VOLATILE_TAG,
+  devmode(
+    () =>
+      ({
+        kind: 'cell',
+        label: ['(volatile)'],
+      }) satisfies TagDescription
+  )
+);
 
 //////////
 
 const CURRENT_TAG_ID: ICURRENT_TAG_ID = 101;
 
 export class CurrentTag implements Tag {
+  subtag?: Tag | Tag[] | null | undefined;
+  declare description: DevMode<TagDescription>;
   readonly [TYPE] = CURRENT_TAG_ID;
   [COMPUTE](): Revision {
     return $REVISION;
@@ -346,6 +402,16 @@ export class CurrentTag implements Tag {
 }
 
 export const CURRENT_TAG = new CurrentTag();
+setDescription(
+  CURRENT_TAG,
+  devmode(
+    () =>
+      ({
+        kind: 'cell',
+        label: ['(current)'],
+      }) satisfies TagDescription
+  )
+);
 
 //////////
 
@@ -357,23 +423,3 @@ export const combine = MonomorphicTagImpl.combine;
  * @internal
  */
 export const TAG_TYPE: TagTypeSymbol = TYPE;
-
-// Warm
-
-let tag1 = createUpdatableTag();
-let tag2 = createUpdatableTag();
-let tag3 = createUpdatableTag();
-
-valueForTag(tag1);
-DIRTY_TAG(tag1);
-valueForTag(tag1);
-UPDATE_TAG(tag1, combine([tag2, tag3]));
-valueForTag(tag1);
-DIRTY_TAG(tag2);
-valueForTag(tag1);
-DIRTY_TAG(tag3);
-valueForTag(tag1);
-UPDATE_TAG(tag1, tag3);
-valueForTag(tag1);
-DIRTY_TAG(tag3);
-valueForTag(tag1);

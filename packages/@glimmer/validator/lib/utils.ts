@@ -1,3 +1,6 @@
+import type { Optional } from '@glimmer/interfaces';
+import { expect } from '@glimmer/util';
+
 export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (
   k: infer I
 ) => void
@@ -12,7 +15,6 @@ export function indexable<T extends object>(input: T): T & Indexable {
 }
 
 export function getGlobal(): Indexable {
-  // eslint-disable-next-line n/no-unsupported-features/es-builtins
   if (typeof globalThis !== 'undefined') return indexable(globalThis);
   if (typeof self !== 'undefined') return indexable(self);
   if (typeof window !== 'undefined') return indexable(window);
