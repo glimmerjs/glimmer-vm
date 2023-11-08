@@ -5,10 +5,11 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
 } from '@glimmer/interfaces';
+import type { NodeTokensImpl } from './node-tokens';
+
 import { NS_HTML } from '@glimmer/util';
 
 import { OperationsBuilder, run } from './dom-operations';
-import type { NodeTokensImpl } from './node-tokens';
 
 // https://github.com/whatwg/dom/issues/270
 

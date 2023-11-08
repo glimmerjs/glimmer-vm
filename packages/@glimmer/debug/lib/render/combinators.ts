@@ -10,21 +10,22 @@ import type {
   SomeReactive,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
+import type { Fragment } from './fragment';
+import type {IntoFragment} from './presets';
+
 import { readReactive, unwrapReactive } from '@glimmer/reference';
 import { inDevmode, isCompilable, stringifyDebugLabel, zip } from '@glimmer/util';
 
 import { isReference } from '../utils';
-import type { Fragment } from './fragment';
 import {
   as,
   dom,
   empty,
   frag,
   group,
-  type IntoFragment,
   intoFragment,
   join,
-  value,
+  value
 } from './presets';
 
 export function pick<const T extends object, const K extends keyof T>(

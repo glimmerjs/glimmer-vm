@@ -1,12 +1,13 @@
-import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { createPrimitiveCell, FallibleFormula, ReadonlyCell } from '@glimmer/reference';
 import type { SafeString } from '@glimmer/runtime';
+import type {ClientSideRenderDelegate} from '@glimmer-workspace/integration-tests';
+
+import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
+import { createPrimitiveCell, FallibleFormula, ReadonlyCell } from '@glimmer/reference';
 import { devmode, expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 import {
   assertNodeTagName,
-  type ClientSideRenderDelegate,
   getElementByClassName,
   getElementsByTagName,
   GlimmerishComponent,
@@ -15,7 +16,7 @@ import {
   stripTight,
   test,
   tracked,
-  trimLines,
+  trimLines
 } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';

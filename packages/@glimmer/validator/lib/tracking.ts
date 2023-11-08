@@ -7,6 +7,8 @@ import type {
   Tag,
   TagDescription,
 } from '@glimmer/interfaces';
+import type {Revision} from './validators';
+
 import { devmode, getDescription, inDevmode, setDescription, toDescription } from '@glimmer/util';
 
 import { debug } from './debug';
@@ -15,9 +17,8 @@ import {
   combine,
   CONSTANT_TAG,
   isConstTag,
-  type Revision,
   validateTag,
-  valueForTag,
+  valueForTag
 } from './validators';
 
 /**

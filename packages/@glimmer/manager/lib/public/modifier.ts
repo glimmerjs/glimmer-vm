@@ -1,4 +1,3 @@
-import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Arguments,
   CapturedArguments,
@@ -12,6 +11,9 @@ import type {
   TagDescription,
   UpdatableTag,
 } from '@glimmer/interfaces';
+import type { ManagerFactory } from '.';
+
+import { registerDestructor } from '@glimmer/destroyable';
 import { unwrapReactive } from '@glimmer/reference';
 import {
   castToBrowser,
@@ -25,7 +27,6 @@ import { createUpdatableTag, untrack } from '@glimmer/validator';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
-import type { ManagerFactory } from '.';
 
 export function modifierCapabilities<Version extends keyof ModifierCapabilitiesVersions>(
   managerAPI: Version,

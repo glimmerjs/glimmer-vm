@@ -1,4 +1,3 @@
-import { InstructionEncoderImpl } from '@glimmer/encoder';
 import type {
   BlockMetadata,
   BuilderOp,
@@ -17,6 +16,8 @@ import type {
   SingleBuilderOperand,
   STDLib,
 } from '@glimmer/interfaces';
+
+import { InstructionEncoderImpl } from '@glimmer/encoder';
 import {
   assert,
   dict,

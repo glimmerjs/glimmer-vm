@@ -1,13 +1,3 @@
-import {
-  check,
-  CheckBlockSymbolTable,
-  CheckHandle,
-  CheckNullable,
-  CheckNumber,
-  CheckPrimitive,
-  CheckSyscallRegister,
-} from '@glimmer/debug';
-import { toBool } from '@glimmer/global-context';
 import type {
   CompilableTemplate,
   Description,
@@ -18,6 +8,21 @@ import type {
   Result,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+import type {Revision, Tag} from '@glimmer/validator';
+import type { UpdatingVM } from '../../vm';
+import type { InternalVM } from '../../vm/append';
+
+import {
+  check,
+  CheckBlockSymbolTable,
+  CheckHandle,
+  CheckNullable,
+  CheckNumber,
+  CheckPrimitive,
+  CheckSyscallRegister,
+} from '@glimmer/debug';
+import { toBool } from '@glimmer/global-context';
 import {
   createPrimitiveCell,
   FallibleFormula,
@@ -26,10 +31,9 @@ import {
   NULL_REFERENCE,
   ReadonlyCell,
   readReactive,
-  type SomeReactive,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  unwrapReactive,
+  unwrapReactive
 } from '@glimmer/reference';
 import {
   assert,
@@ -47,16 +51,12 @@ import {
   consumeTag,
   endTrackFrame,
   INITIAL,
-  type Revision,
-  type Tag,
   validateTag,
-  valueForTag,
+  valueForTag
 } from '@glimmer/validator';
 import { $sp, Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
-import type { UpdatingVM } from '../../vm';
-import type { InternalVM } from '../../vm/append';
 import { CheckArguments, CheckReactive, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 

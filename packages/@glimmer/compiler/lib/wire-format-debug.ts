@@ -5,6 +5,7 @@ import type {
   SerializedTemplateBlock,
   WireFormat,
 } from '@glimmer/interfaces';
+
 import { dict, exhausted } from '@glimmer/util';
 import { CurriedTypes } from '@glimmer/vm';
 import { SexpOpcodes as Op } from '@glimmer/wire-format';

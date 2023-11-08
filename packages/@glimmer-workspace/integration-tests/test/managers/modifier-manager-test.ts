@@ -1,7 +1,8 @@
-import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type { Arguments, ModifierManager, Owner } from '@glimmer/interfaces';
-import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
 import type { RecordedEvents } from '@glimmer-workspace/integration-tests';
+
+import { destroy, registerDestructor } from '@glimmer/destroyable';
+import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
 import {
   defineComponent,
   jitSuite,

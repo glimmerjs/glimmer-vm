@@ -5,10 +5,11 @@ import type {
   InternalHelperManager,
   ModifierManager,
 } from '@glimmer/interfaces';
+import type {CustomHelperManager} from '@glimmer/manager';
+
 import {
   componentCapabilities,
   CustomComponentManager,
-  type CustomHelperManager,
   CustomModifierManager,
   getInternalComponentManager,
   getInternalHelperManager,
@@ -20,7 +21,7 @@ import {
   setInternalComponentManager,
   setInternalHelperManager,
   setInternalModifierManager,
-  setModifierManager,
+  setModifierManager
 } from '@glimmer/manager';
 import { UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { createUpdatableTag } from '@glimmer/validator';

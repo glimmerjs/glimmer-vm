@@ -9,6 +9,7 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
+
 import { assert, assign, dict, NS_HTML } from '@glimmer/util';
 
 import { NodeTokensImpl } from './node-tokens';

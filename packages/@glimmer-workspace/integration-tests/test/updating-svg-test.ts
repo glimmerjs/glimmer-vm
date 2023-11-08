@@ -1,4 +1,5 @@
 import type { SimpleElement } from '@glimmer/interfaces';
+
 import { NS_HTML, NS_SVG, NS_XLINK } from '@glimmer/util';
 import {
   assertNodeTagName,

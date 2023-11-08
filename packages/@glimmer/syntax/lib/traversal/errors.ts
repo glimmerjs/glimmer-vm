@@ -1,5 +1,4 @@
 import type { Nullable } from '@glimmer/interfaces';
-
 import type * as ASTv1 from '../v1/api';
 
 export interface TraversalError extends Error {

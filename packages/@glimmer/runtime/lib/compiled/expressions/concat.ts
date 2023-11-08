@@ -1,5 +1,7 @@
 import type { Dict, Maybe } from '@glimmer/interfaces';
-import { readReactive, ResultFormula, type SomeReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { readReactive, ResultFormula  } from '@glimmer/reference';
 import { enumerate, Ok, stringifyDebugLabel } from '@glimmer/util';
 
 export function createConcatRef(partsRefs: SomeReactive[]) {

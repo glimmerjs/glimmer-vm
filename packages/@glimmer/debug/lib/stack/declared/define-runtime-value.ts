@@ -1,7 +1,7 @@
-import type { InfallibleVmCheck, FallibleVmCheck, VmCheck } from '../types';
-import type { NamedSpecValue } from './shared';
-import type { RuntimeValueSpecName } from './runtime-value';
 import type { NullableName } from '../../debug';
+import type { FallibleVmCheck, InfallibleVmCheck, VmCheck } from '../types';
+import type { RuntimeValueSpecName } from './runtime-value';
+import type { NamedSpecValue } from './shared';
 
 export type VmRuntimeValueCheck<N extends RuntimeValueSpecName> = VmCheck<unknown, N>;
 

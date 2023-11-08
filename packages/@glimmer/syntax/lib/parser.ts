@@ -1,14 +1,14 @@
 import type { Nullable } from '@glimmer/interfaces';
+import type * as src from './source/api';
+import type * as ASTv1 from './v1/api';
+import type * as HBS from './v1/handlebars-ast';
+
 import { asPresentArray, assert, assign, expect, getLast, unwrap } from '@glimmer/util';
 import {
   EntityParser,
   EventedTokenizer,
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
-
-import type * as src from './source/api';
-import type * as ASTv1 from './v1/api';
-import type * as HBS from './v1/handlebars-ast';
 
 export type ParserNodeBuilder<N extends { loc: src.SourceSpan }> = Omit<N, 'loc'> & {
   loc: src.SourceOffset;

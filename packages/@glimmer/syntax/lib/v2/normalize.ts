@@ -1,32 +1,34 @@
 import type { PresentArray } from '@glimmer/interfaces';
+import type {PrecompileOptions, PrecompileOptionsWithLexicalScope} from '../parser/tokenizer-event-handlers';
+import type { SourceLocation } from '../source/location';
+import type { Source } from '../source/source';
+import type { SourceSpan } from '../source/span';
+import type {BlockSymbolTable, ProgramSymbolTable} from '../symbol-table';
+import type * as ASTv1 from '../v1/api';
+import type {BuildElement, CallParts} from './builders';
+import type {Resolution} from './loose-resolution';
+
 import { asPresentArray, assert, assign, isPresentArray } from '@glimmer/util';
 
 import Printer from '../generation/printer';
 import {
-  type PrecompileOptions,
-  type PrecompileOptionsWithLexicalScope,
-  preprocess,
+  preprocess
 } from '../parser/tokenizer-event-handlers';
-import type { SourceLocation } from '../source/location';
 import { SourceSlice } from '../source/slice';
-import type { Source } from '../source/source';
-import type { SourceSpan } from '../source/span';
 import { SpanList } from '../source/span-list';
-import { type BlockSymbolTable, type ProgramSymbolTable, SymbolTable } from '../symbol-table';
+import {   SymbolTable } from '../symbol-table';
 import { generateSyntaxError } from '../syntax-error';
 import { isLowerCase, isUpperCase } from '../utils';
-import type * as ASTv1 from '../v1/api';
 import b from '../v1/parser-builders';
 import * as ASTv2 from './api';
-import { type BuildElement, Builder, type CallParts } from './builders';
+import {  Builder  } from './builders';
 import {
   AppendSyntaxContext,
   AttrValueSyntaxContext,
   BlockSyntaxContext,
   ComponentSyntaxContext,
   ModifierSyntaxContext,
-  type Resolution,
-  SexpSyntaxContext,
+  SexpSyntaxContext
 } from './loose-resolution';
 
 export function normalize(

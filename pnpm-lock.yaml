@@ -174,6 +174,9 @@ importers:
       prettier:
         specifier: ^3.0.3
         version: 3.0.3
+      prettier-plugin-organize-imports:
+        specifier: ^3.2.3
+        version: 3.2.3(prettier@3.0.3)(typescript@5.2.2)
       puppeteer:
         specifier: ^21.5.0
         version: 21.5.0(typescript@5.2.2)
@@ -348,7 +351,7 @@ importers:
     devDependencies:
       '@types/qunit':
         specifier: ^2.19.7
-        version: link:@types/qunit
+        version: 2.19.8
       vite:
         specifier: ^4.3.9
         version: 4.3.9(@types/node@20.8.10)
@@ -576,7 +579,7 @@ importers:
         version: link:../../@types/js-reporters
       '@types/qunit':
         specifier: ^2.19.7
-        version: link:../../@types/qunit
+        version: 2.19.8
 
   packages/@glimmer-workspace/integration-tests/test:
     dependencies:
@@ -880,7 +883,7 @@ importers:
         version: link:../compiler
       '@types/qunit':
         specifier: ^2.19.7
-        version: link:../../@types/qunit
+        version: 2.19.8
 
   packages/@glimmer/opcode-compiler:
     dependencies:
@@ -1080,7 +1083,7 @@ importers:
         version: link:../opcode-compiler
       '@types/qunit':
         specifier: ^2.19.7
-        version: link:../../@types/qunit
+        version: 2.19.8
 
   packages/@glimmer/syntax:
     dependencies:
@@ -1108,7 +1111,7 @@ importers:
         version: link:../local-debug-flags
       '@types/qunit':
         specifier: ^2.19.7
-        version: link:../../@types/qunit
+        version: 2.19.8
 
   packages/@glimmer/syntax/test:
     dependencies:
@@ -1145,7 +1148,7 @@ importers:
         version: link:../local-debug-flags
       '@types/qunit':
         specifier: ^2.19.7
-        version: link:../../@types/qunit
+        version: 2.19.8
 
   packages/@glimmer/util/test:
     dependencies:
@@ -4012,6 +4015,10 @@ packages:
 
   /@types/qs@6.9.7:
     resolution: {integrity: sha512-FGa1F62FT09qcrueBA6qYTrJPVDzah9a+493+o2PCXsesWHIn27G98TsSMs3WPNbZIEj4+VJf6saSFpvD+3Zsw==}
+    dev: true
+
+  /@types/qunit@2.19.8:
+    resolution: {integrity: sha512-L4JyeRG1CJGSzJKd1b78DX/ll91E8e50IXkkl8KzW6W0IWz6FTHWEYvTEi8QVNHkUqUu6hjTffwV7ffxcoka0g==}
     dev: true
 
   /@types/range-parser@1.2.4:
@@ -10972,6 +10979,23 @@ packages:
     engines: {node: '>=6.0.0'}
     dependencies:
       fast-diff: 1.2.0
+
+  /prettier-plugin-organize-imports@3.2.3(prettier@3.0.3)(typescript@5.2.2):
+    resolution: {integrity: sha512-KFvk8C/zGyvUaE3RvxN2MhCLwzV6OBbFSkwZ2OamCrs9ZY4i5L77jQ/w4UmUr+lqX8qbaqVq6bZZkApn+IgJSg==}
+    peerDependencies:
+      '@volar/vue-language-plugin-pug': ^1.0.4
+      '@volar/vue-typescript': ^1.0.4
+      prettier: '>=2.0'
+      typescript: ^5.2.2 || 5
+    peerDependenciesMeta:
+      '@volar/vue-language-plugin-pug':
+        optional: true
+      '@volar/vue-typescript':
+        optional: true
+    dependencies:
+      prettier: 3.0.3
+      typescript: 5.2.2
+    dev: true
 
   /prettier@2.8.8:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}

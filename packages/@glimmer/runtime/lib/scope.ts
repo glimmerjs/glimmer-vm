@@ -8,7 +8,9 @@ import type {
   ScopeBlock,
   ScopeSlot,
 } from "@glimmer/interfaces";
-import { type SomeReactive, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import {  UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { assign, unwrap } from '@glimmer/util';
 
 export class DynamicScopeImpl implements DynamicScope {

@@ -1,12 +1,3 @@
-import {
-  check,
-  CheckElement,
-  CheckMaybe,
-  CheckNode,
-  CheckNullable,
-  CheckString,
-} from '@glimmer/debug';
-import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import type {
   CapturedPositionalArguments,
   Environment,
@@ -18,27 +9,37 @@ import type {
   UpdatingOpcode,
   UpdatingVM,
 } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+import type {Revision, Tag} from '@glimmer/validator';
+import type {CurriedValue} from '../../curried-value';
+import type { DynamicAttribute } from '../../vm/attributes/dynamic';
+
+import {
+  check,
+  CheckElement,
+  CheckMaybe,
+  CheckNode,
+  CheckNullable,
+  CheckString,
+} from '@glimmer/debug';
+import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import {
   FallibleFormula,
   isConstant,
   readReactive,
-  type SomeReactive,
-  unwrapReactive,
+  unwrapReactive
 } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject, stringifyDebugLabel } from '@glimmer/util';
 import {
   consumeTag,
   CURRENT_TAG,
-  type Revision,
-  type Tag,
   validateTag,
-  valueForTag,
+  valueForTag
 } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
 
-import { type CurriedValue, isCurried, resolveCurriedValue } from '../../curried-value';
+import {  isCurried, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
-import type { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { CheckArguments, CheckOperations, CheckReactive } from './-debug-strip';
 import { Assert } from './vm';
 

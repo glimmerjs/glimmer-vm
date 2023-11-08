@@ -1,4 +1,5 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
+
 import { toMut } from '@glimmer/reference';
 import {
   GlimmerishComponent,

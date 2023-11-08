@@ -1,6 +1,4 @@
 import type { SnapshottableVM, VmDebugState } from '@glimmer/debug';
-import { associateDestroyableChild } from '@glimmer/destroyable';
-import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import type {
   BlockMetadata,
   CatchState,
@@ -32,15 +30,20 @@ import type {
   VM as PublicVM,
   VmStackAspect,
 } from '@glimmer/interfaces';
+import type {OpaqueIterationItem, OpaqueIterator, SomeReactive} from '@glimmer/reference';
+import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
+import type { LiveBlockList } from './element-builder';
+import type {ArgumentsStack} from './low-level';
+import type {BlockOpcode, InitialVmState, VmStateSnapshot} from './update';
+
+import { associateDestroyableChild } from '@glimmer/destroyable';
+import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
   createIteratorItemRef,
-  type OpaqueIterationItem,
-  type OpaqueIterator,
-  type SomeReactive,
-  UNDEFINED_REFERENCE,
+  UNDEFINED_REFERENCE
 } from '@glimmer/reference';
-import { readReactive } from '@glimmer/reference/lib/reference';
+import { readReactive } from '@glimmer/reference/lib/api';
 import {
   assert,
   BalancedStack,
@@ -57,7 +60,6 @@ import {
   unwrapHandle,
 } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
-import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 
 import {
@@ -68,18 +70,14 @@ import {
 import { PartialScopeImpl } from '../scope';
 import { VMArgumentsImpl } from './arguments';
 import { debugInit } from './debug/debug';
-import type { LiveBlockList } from './element-builder';
-import { type ArgumentsStack, LowLevelVM } from './low-level';
+import {  LowLevelVM } from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
 import { UnwindTarget } from './unwind';
 import {
-  type BlockOpcode,
-  type InitialVmState,
   ListBlockOpcode,
   ListItemOpcode,
-  TryOpcode,
-  type VmStateSnapshot,
+  TryOpcode
 } from './update';
 
 type Handle = number;

@@ -1,5 +1,4 @@
 import type { SimpleElement, SimpleNode } from '@simple-dom/interface';
-
 import type { RichIteratorResult } from '../core';
 import type { BlockBounds } from '../dom/bounds';
 import type { Environment } from './environment';

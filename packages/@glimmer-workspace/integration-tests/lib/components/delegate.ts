@@ -1,4 +1,8 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
+import type { TestJitRegistry } from '../modes/jit/registry';
+import type { DeclaredComponentType } from '../test-helpers/constants';
+import type {BuildInvocation, BuildTemplate} from './styles';
+import type { ComponentBlueprint, ComponentTypes } from './types';
 
 import { assertElementShape, assertEmberishElement } from '../dom/assertions';
 import {
@@ -6,19 +10,14 @@ import {
   registerGlimmerishComponent,
   registerTemplateOnlyComponent,
 } from '../modes/jit/register';
-import type { TestJitRegistry } from '../modes/jit/registry';
-import type { DeclaredComponentType } from '../test-helpers/constants';
 import {
   BuildCurlyInvoke,
   BuildCurlyTemplate,
   BuildDynamicInvoke,
   BuildDynamicTemplate,
   BuildGlimmerInvoke,
-  BuildGlimmerTemplate,
-  type BuildInvocation,
-  type BuildTemplate,
+  BuildGlimmerTemplate
 } from './styles';
-import type { ComponentBlueprint, ComponentTypes } from './types';
 
 export function buildTemplate<K extends DeclaredComponentType>(
   delegate: ComponentDelegate<K>,

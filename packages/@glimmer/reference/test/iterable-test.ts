@@ -1,10 +1,11 @@
-import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
+import type {GlobalContext} from '@glimmer/global-context';
+import type {OpaqueIterationItem, SomeReactive} from '@glimmer/reference';
+
+import {  testOverrideGlobalContext } from '@glimmer/global-context';
 import {
   createIteratorRef,
   FallibleFormula,
-  type OpaqueIterationItem,
-  type SomeReactive,
-  unwrapReactive,
+  unwrapReactive
 } from '@glimmer/reference';
 import { unwrap } from '@glimmer/util';
 import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';

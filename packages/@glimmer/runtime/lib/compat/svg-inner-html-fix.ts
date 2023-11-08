@@ -5,6 +5,8 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
+import type {DOMOperations} from '../dom/operations';
+
 import {
   assert,
   castToBrowser,
@@ -15,7 +17,7 @@ import {
   unwrap,
 } from '@glimmer/util';
 
-import { type DOMOperations, moveNodesBefore } from '../dom/operations';
+import {  moveNodesBefore } from '../dom/operations';
 
 export enum InsertPosition {
   beforebegin = 'beforebegin',

@@ -1,4 +1,3 @@
-import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Arguments,
   ComponentCapabilities,
@@ -16,11 +15,14 @@ import type {
   Owner,
   VMArguments,
 } from '@glimmer/interfaces';
-import { ReadonlyCell, type SomeReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+import type { ManagerFactory } from './api';
+
+import { registerDestructor } from '@glimmer/destroyable';
+import { ReadonlyCell  } from '@glimmer/reference';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
-import type { ManagerFactory } from './api';
 
 const CAPABILITIES = {
   dynamicLayout: false,

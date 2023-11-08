@@ -1,5 +1,4 @@
 import type { SimpleDocument } from '@simple-dom/interface';
-
 import type {
   ComponentDefinitionState,
   ComponentInstance,
@@ -7,9 +6,9 @@ import type {
 } from '../components';
 import type { Nullable } from '../core';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
+import type { WithCreateInstance } from '../managers';
 import type { DebugRenderTree } from './debug-render-tree';
 import type { ModifierInstance } from './modifier';
-import type { WithCreateInstance } from '../managers';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;

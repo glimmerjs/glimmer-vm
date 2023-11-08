@@ -1,6 +1,6 @@
 import type { VmOp } from '@glimmer/interfaces';
-
 import type { OpcodeMetadata } from './metadata';
+
 import { define } from './stack/define-metadata';
 import { UNCHANGED } from './stack/params';
 import { MetadataBuilder, RESERVED } from './utils';

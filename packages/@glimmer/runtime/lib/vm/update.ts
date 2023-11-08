@@ -1,4 +1,3 @@
-import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import type {
   BlockBounds,
   CatchState,
@@ -21,21 +20,22 @@ import type {
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
 } from '@glimmer/interfaces';
+import type {OpaqueIterationItem, OpaqueIterator, SomeReactive} from '@glimmer/reference';
+import type {LiveBlockList} from './element-builder';
+import type { UnwindTarget } from './unwind';
+
+import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
-  type OpaqueIterationItem,
-  type OpaqueIterator,
   readReactive,
-  type SomeReactive,
-  updateReactive,
+  updateReactive
 } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
 
 import { clear, move as moveBounds } from '../bounds';
 import { VM } from './append';
-import { type LiveBlockList, NewElementBuilder } from './element-builder';
-import type { UnwindTarget } from './unwind';
+import {  NewElementBuilder } from './element-builder';
 
 export class UpdatingVM implements IUpdatingVM {
   public env: Environment;

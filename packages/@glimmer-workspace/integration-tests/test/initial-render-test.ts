@@ -1,5 +1,7 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
+import type {ComponentBlueprint, Content} from '@glimmer-workspace/integration-tests';
+
 import { castToBrowser, expect } from '@glimmer/util';
 import {
   assertElementShape,
@@ -8,16 +10,14 @@ import {
   assertSerializedInElement,
   blockStack,
   CLOSE,
-  type ComponentBlueprint,
   componentSuite,
-  type Content,
   content,
   EMPTY,
   equalTokens,
   firstElementChild,
   GLIMMER_TEST_COMPONENT,
   InitialRenderTests,
-  OPEN,
+matrix,  OPEN,
   RehydrationDelegate,
   render,
   RenderTestContext,
@@ -25,9 +25,8 @@ import {
   strip,
   suite,
   toInnerHTML,
-  toTextContent,
-} from '@glimmer-workspace/integration-tests';
-import { matrix } from '@glimmer-workspace/integration-tests';
+  toTextContent
+ } from '@glimmer-workspace/integration-tests';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions

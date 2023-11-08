@@ -1,9 +1,11 @@
 import type { BlockMetadata, DebugVmSnapshot } from '@glimmer/interfaces';
+import type { DisassembledOperand, RegisterName, SomeDisassembledOperand } from '../debug';
+import type {IntoFragment} from './presets';
+
 import { exhausted } from '@glimmer/util';
 
-import type { DisassembledOperand, RegisterName, SomeDisassembledOperand } from '../debug';
 import { stackValue } from './combinators';
-import { as,frag, type IntoFragment } from './presets';
+import { as,frag  } from './presets';
 
 export class SerializeBlockContext {
   readonly #block: Pick<BlockMetadata, 'debugSymbols'> | null;

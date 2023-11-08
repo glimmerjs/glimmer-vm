@@ -1,8 +1,9 @@
 import type { Nullable } from '@glimmer/interfaces';
-import { assert } from '@glimmer/util';
-
 import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation, SourcePosition } from './location';
+
+import { assert } from '@glimmer/util';
+
 import { SourceOffset, SourceSpan } from './span';
 
 export class Source {
@@ -10,7 +11,7 @@ export class Source {
     return new Source(source, options.meta?.moduleName);
   }
 
-  constructor(readonly source: string, readonly module: string = 'an unknown module') {}
+  constructor(readonly source: string, readonly module = 'an unknown module') {}
 
   /**
    * Validate that the character offset represents a position in the source string.

@@ -1,4 +1,5 @@
 import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+
 import { dict, ELEMENT_NODE, isSimpleElement } from '@glimmer/util';
 
 export interface DebugElement {

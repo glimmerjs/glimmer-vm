@@ -1,10 +1,10 @@
 import {
+  decodeImmediate,
+  encodeImmediate,
   MAX_INT,
   MAX_SMI,
   MIN_INT,
   MIN_SMI,
-  decodeImmediate,
-  encodeImmediate,
 } from '@glimmer/util';
 
 const { module, test } = QUnit;

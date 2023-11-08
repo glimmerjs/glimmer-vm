@@ -1,4 +1,5 @@
 import type { SimpleElement } from '@glimmer/interfaces';
+
 import { normalizeProperty } from '@glimmer/runtime';
 import { castToBrowser, expect, NS_SVG } from '@glimmer/util';
 import {

@@ -5,12 +5,14 @@ import type {
   Scope,
   ScopeBlock,
 } from '@glimmer/interfaces';
-import { readReactive, type SomeReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
 import type { AnyFunction } from '@glimmer/util';
-
 import type { DebugState } from '../../render/state';
-import { isReference } from '../../utils';
 import type { FallibleCheckResult } from '../types';
+
+import { readReactive  } from '@glimmer/reference';
+
+import { isReference } from '../../utils';
 import { define } from './define-runtime-value';
 import { MISMATCH, ok } from './shared';
 

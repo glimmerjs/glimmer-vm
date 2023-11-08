@@ -1,7 +1,7 @@
 import type { CapturedArguments, CapturedNamedArguments, SomeReactive } from '@glimmer/interfaces';
-import { unwrapReactive } from '@glimmer/reference';
-
 import type { ComponentArgs } from '../interfaces';
+
+import { unwrapReactive } from '@glimmer/reference';
 
 class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
   isExtensible() {

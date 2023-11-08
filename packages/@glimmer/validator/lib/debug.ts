@@ -1,5 +1,6 @@
-import { assert } from '@glimmer/global-context';
 import type { Description, DevMode, Tag } from '@glimmer/interfaces';
+
+import { assert } from '@glimmer/global-context';
 import { asPresentArray, devmode, getLast, inDevmode, stringifyDebugLabel } from '@glimmer/util';
 
 interface DebugTransaction {

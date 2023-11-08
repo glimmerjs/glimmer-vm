@@ -56,6 +56,7 @@ export {
   dynamicAttribute,
   SimpleDynamicAttribute,
 } from './lib/vm/attributes/dynamic';
+export { AbstractElementBuilder } from './lib/vm/element-builder';
 export {
   clientBuilder,
   NewElementBuilder,

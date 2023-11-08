@@ -1,6 +1,4 @@
 import type { PresentArray } from '@glimmer/interfaces';
-
-import { SourceSlice } from '../../source/slice';
 import type * as ASTv2 from '../api';
 import type {
   SerializedAppendContent,
@@ -33,6 +31,8 @@ import type {
   SerializedThisReference,
   SerializedVariableReference,
 } from './types';
+
+import { SourceSlice } from '../../source/slice';
 
 export class RefSerializer {
   arg(ref: ASTv2.ArgReference): SerializedArgReference {

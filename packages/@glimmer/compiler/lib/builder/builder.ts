@@ -7,8 +7,27 @@ import type {
   PresentArray,
   WireFormat,
 } from '@glimmer/interfaces';
+import type {
+  BuilderComment,
+  BuilderStatement,
+  NormalizedAngleInvocation,
+  NormalizedAttrs,
+  NormalizedBlock,
+  NormalizedBlocks,
+  NormalizedElement,
+  NormalizedExpression,
+  NormalizedHash,
+  NormalizedHead,
+  NormalizedKeywordStatement,
+  NormalizedParams,
+  NormalizedPath,
+  NormalizedStatement,
+  Variable,
+} from './builder-interface';
+
 import {
   assert,
+  assertNever,
   dict,
   exhausted,
   expect,
@@ -18,29 +37,13 @@ import {
   NS_XMLNS,
   values,
 } from '@glimmer/util';
-import { assertNever } from '../../../util/lib/devmode/logging';
 import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
 
 import {
   Builder,
-  type BuilderComment,
-  type BuilderStatement,
   ExpressionKind,
   HeadKind,
-  type NormalizedAngleInvocation,
-  type NormalizedAttrs,
-  type NormalizedBlock,
-  type NormalizedBlocks,
-  type NormalizedElement,
-  type NormalizedExpression,
-  type NormalizedHash,
-  type NormalizedHead,
-  type NormalizedKeywordStatement,
-  type NormalizedParams,
-  type NormalizedPath,
-  type NormalizedStatement,
   normalizeStatement,
-  type Variable,
   VariableKind,
 } from './builder-interface';
 

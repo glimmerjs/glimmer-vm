@@ -1,4 +1,6 @@
 import type { BlockMetadata, BuilderOp, HighLevelOp, JitContext } from '@glimmer/interfaces';
+import type {HighLevelStatementOp, PushStatementOp} from '../../syntax/compilers';
+
 import { $s0, Op } from '@glimmer/vm';
 import {
   COMPONENT_CONTENT,
@@ -10,9 +12,7 @@ import {
 } from '@glimmer/vm/lib/content';
 
 import {
-  definePushOp,
-  type HighLevelStatementOp,
-  type PushStatementOp,
+  definePushOp
 } from '../../syntax/compilers';
 import { encodeOp, EncoderImpl } from '../encoder';
 import { StdLib } from '../stdlib';

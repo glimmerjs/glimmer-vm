@@ -1,4 +1,6 @@
-import { EmberishCurlyComponent, type EmberishCurlyComponentFactory, jitSuite, test } from '../lib';
+import type {EmberishCurlyComponentFactory} from '../lib';
+
+import { EmberishCurlyComponent,  jitSuite, test } from '../lib';
 import { AttributesTests } from './attributes-test';
 
 abstract class RangeTests extends AttributesTests {

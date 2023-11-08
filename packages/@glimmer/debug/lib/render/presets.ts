@@ -1,6 +1,7 @@
 import type { Optional, SimpleNode } from '@glimmer/interfaces';
+import type {LeafFragment} from './fragment';
 
-import { Fragment, type LeafFragment } from './fragment';
+import { Fragment  } from './fragment';
 
 // inspired by https://github.com/ChromeDevTools/devtools-frontend/blob/c2c17396c9e0da3f1ce6514c3a946f88a06b17f2/front_end/ui/legacy/themeColors.css#L65
 export const STYLES = {

@@ -1,5 +1,4 @@
 import type { SimpleElement } from '@simple-dom/interface';
-
 import type { Destroyable } from '../../core';
 import type { Owner } from '../../runtime';
 import type { CapturedArguments } from '../../runtime/arguments';

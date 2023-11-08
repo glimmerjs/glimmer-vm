@@ -1,6 +1,6 @@
 import type { Expand, VmOpName } from '@glimmer/interfaces';
 import type { SpecName } from './declared/shared';
-import type { OpSpec, OpcodeSpec, StackParamSpec, StackSpec, StateSpec } from './types';
+import type { OpcodeSpec, OpSpec, StackParamSpec, StackSpec, StateSpec } from './types';
 
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 

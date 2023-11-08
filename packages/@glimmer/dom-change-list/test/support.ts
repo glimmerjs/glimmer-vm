@@ -8,6 +8,7 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
 } from '@glimmer/interfaces';
+
 import { COMMENT_NODE, ELEMENT_NODE, NS_SVG, NS_XLINK, TEXT_NODE } from '@glimmer/util';
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';

@@ -1,5 +1,7 @@
 import type { SimpleText, UpdatingOpcode } from '@glimmer/interfaces';
-import { type SomeReactive, unwrapReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import {  unwrapReactive } from '@glimmer/reference';
 
 import { isEmpty, isString } from '../../dom/normalize';
 

@@ -1,5 +1,3 @@
-import type { Optional } from '@glimmer/interfaces';
-import { expect } from '@glimmer/util';
 
 export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (
   k: infer I

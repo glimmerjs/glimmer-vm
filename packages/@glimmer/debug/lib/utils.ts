@@ -1,13 +1,14 @@
 import type { Nullable, Optional, SomeReactive, VmOpName } from '@glimmer/interfaces';
-import { REFERENCE } from '@glimmer/reference';
-import { fillNulls } from '@glimmer/util';
-import { assertNever } from '../../util/lib/devmode/logging';
-import { OpSize } from '@glimmer/vm';
-
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import type { DebugOpList } from './generated/op-list';
 import type { DynamicStackFn, OpcodeMetadata } from './metadata';
-import { type STACK_TYPES, UNCHANGED } from './stack/params';
+import type { STACK_TYPES } from './stack/params';
+
+import { REFERENCE } from '@glimmer/reference';
+import { assertNever, fillNulls } from '@glimmer/util';
+import { OpSize } from '@glimmer/vm';
+
+import { UNCHANGED } from './stack/params';
 
 type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
   ? null

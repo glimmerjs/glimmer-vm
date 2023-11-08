@@ -1,4 +1,7 @@
-import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
+import type {GlobalContext} from '@glimmer/global-context';
+import type {SomeReactive} from '@glimmer/reference';
+
+import {  testOverrideGlobalContext } from '@glimmer/global-context';
 import {
   Accessor,
   createDebugAliasRef,
@@ -9,11 +12,10 @@ import {
   isUpdatableRef,
   MutableCell,
   ReadonlyCell,
-  type SomeReactive,
   toMut,
   toReadonly,
   unwrapReactive,
-  updateReactive,
+  updateReactive
 } from '@glimmer/reference';
 import { dict, unwrap } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';

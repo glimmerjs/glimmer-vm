@@ -11,27 +11,27 @@ import type {
   SimpleDocument,
   SimpleElement,
 } from '@glimmer/interfaces';
+import type {CurriedValue, EnvironmentDelegate} from '@glimmer/runtime';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
+import type { RenderDelegate, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
+import type { Self } from '../../render-test';
+
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
 import {
   array,
   clientBuilder,
   concat,
-  type CurriedValue,
-  type EnvironmentDelegate,
   fn,
   get,
   hash,
   on,
-  runtimeContext,
+  runtimeContext
 } from '@glimmer/runtime';
-import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
-import type { RenderDelegate, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
-import type { Self } from '../../render-test';
 import JitCompileTimeLookup from './compilation-context';
 import { componentHelper } from './register';
 import { TestJitRegistry } from './registry';

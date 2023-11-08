@@ -1,4 +1,3 @@
-import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import type {
   BlockBounds,
   Environment,
@@ -8,9 +7,12 @@ import type {
   SimpleNode,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
+import type {BlockOpcode} from './update';
+
+import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 
 import { clear } from '../bounds';
-import { type BlockOpcode, UpdatingVM } from './update';
+import {  UpdatingVM } from './update';
 
 export default class RenderResultImpl implements BlockOpcode, RenderResult {
   constructor(

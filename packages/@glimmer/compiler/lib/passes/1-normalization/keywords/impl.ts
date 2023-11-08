@@ -1,14 +1,15 @@
+import type {ASTv2, KeywordType} from '@glimmer/syntax';
+import type {Result} from '../../../shared/result';
+import type { NormalizationState } from '../context';
+
 import {
-  type ASTv2,
   generateSyntaxError,
   isKeyword,
-  KEYWORDS_TYPES,
-  type KeywordType,
+  KEYWORDS_TYPES
 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/util';
 
-import { Err, type Result } from '../../../shared/result';
-import type { NormalizationState } from '../context';
+import { Err  } from '../../../shared/result';
 
 export interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
   assert(options: Match, state: NormalizationState): Result<V>;

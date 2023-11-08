@@ -1,5 +1,7 @@
 import type { Dict, Expand, VM } from '@glimmer/interfaces';
-import { REFERENCE, type SomeReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { REFERENCE  } from '@glimmer/reference';
 import { enumerate, isObject } from '@glimmer/util';
 
 export const UNCHANGED = Symbol('UNCHANGED');

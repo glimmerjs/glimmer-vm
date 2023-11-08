@@ -1,3 +1,5 @@
+import type {DynamicContentType} from '@glimmer/vm/lib/content';
+
 import {
   check,
   CheckDocumentFragment,
@@ -12,12 +14,11 @@ import { isObject , LOCAL_LOGGER } from '@glimmer/util';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CurriedTypes, Op } from '@glimmer/vm';
 import {
   COMPONENT_CONTENT,
-  type DynamicContentType,
   FRAGMENT_CONTENT,
   HELPER_CONTENT,
   NODE_CONTENT,
   SAFE_STRING_CONTENT,
-  STRING_CONTENT,
+  STRING_CONTENT
 } from '@glimmer/vm/lib/content';
 
 import { isCurried } from '../../curried-value';

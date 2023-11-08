@@ -1,15 +1,17 @@
+import type * as ASTv1 from '../v1/api';
+import type {VisitorKey, VisitorKeys} from '../v1/visitor-keys';
+import type { KeyHandler, KeyTraversal, NodeHandler, NodeTraversal, NodeVisitor } from './visitor';
+
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { deprecate, unwrap } from '@glimmer/util';
 
-import type * as ASTv1 from '../v1/api';
-import visitorKeys, { type VisitorKey, type VisitorKeys } from '../v1/visitor-keys';
+import visitorKeys from '../v1/visitor-keys';
 import {
   cannotRemoveNode,
   cannotReplaceNode,
   cannotReplaceOrRemoveInKeyHandlerYet,
 } from './errors';
 import WalkerPath from './path';
-import type { KeyHandler, KeyTraversal, NodeHandler, NodeTraversal, NodeVisitor } from './visitor';
 
 function getEnterFunction<N extends ASTv1.Node>(
   handler: NodeTraversal<N>

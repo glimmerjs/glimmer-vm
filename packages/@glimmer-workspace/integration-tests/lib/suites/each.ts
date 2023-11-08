@@ -1,4 +1,5 @@
 import type { TagDescription } from '@glimmer/interfaces/index';
+
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { beginTestSteps, devmode, endTestSteps, verifySteps } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
@@ -64,8 +65,6 @@ export class EachSuite extends RenderTestContext {
           () =>
             ({
               kind: 'cell',
-              fallible: false,
-              readonly: true,
               label: ['list'],
             }) satisfies TagDescription
         )

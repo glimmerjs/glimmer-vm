@@ -1,14 +1,12 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type {Attrs, AttrsDiff, ClientSideRenderDelegate, EmberishCurlyComponentFactory} from '@glimmer-workspace/integration-tests';
+
 import { assign, castToSimple, unwrap } from '@glimmer/util';
 import {
-  type Attrs,
-  type AttrsDiff,
   classes,
-  type ClientSideRenderDelegate,
   createTemplate,
   elementId,
   EmberishCurlyComponent,
-  type EmberishCurlyComponentFactory,
   equalsElement,
   firstElementChild,
   GlimmerishComponent,
@@ -18,7 +16,7 @@ import {
   render,
   RenderTestContext,
   stripTight,
-  suite,
+  suite
 } from '@glimmer-workspace/integration-tests';
 
 import { ErrorRecoverySuite } from '../lib/suites/error-recovery';

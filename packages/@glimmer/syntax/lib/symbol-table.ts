@@ -1,4 +1,5 @@
 import type { Core, Dict } from '@glimmer/interfaces';
+
 import { dict, unwrap } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 

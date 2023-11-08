@@ -1,4 +1,5 @@
 import type { SerializedTemplateBlock, SerializedTemplateWithLazyBlock } from "@glimmer/interfaces";
+
 import { SexpOpcodes as op } from '@glimmer/wire-format';
 
 /**

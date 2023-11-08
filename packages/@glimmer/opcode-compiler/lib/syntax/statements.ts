@@ -5,6 +5,8 @@ import type {
   WellKnownTagName,
   WireFormat,
 } from '@glimmer/interfaces';
+import type {PushStatementOp} from './compilers';
+
 import { $fp, $sp, COMPONENT_CONTENT, HELPER_CONTENT, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
@@ -36,7 +38,7 @@ import {
 import { HighLevelBuilderOpcodes, HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
 import { debugSymbolsOperand, labelOperand, stdlibOperand } from '../opcode-builder/operands';
 import { namedBlocks } from '../utils';
-import { Compilers, type PushStatementOp } from './compilers';
+import { Compilers  } from './compilers';
 
 export const STATEMENTS = new Compilers<PushStatementOp, StatementSexpOpcode>();
 

@@ -1,21 +1,4 @@
-import {
-  CheckArray,
-  CheckBlockSymbolTable,
-  CheckDict,
-  type Checker,
-  CheckFunction,
-  CheckHandle,
-  CheckInstanceof,
-  CheckInterface,
-  CheckNullable,
-  CheckNumber,
-  CheckObject,
-  CheckOr,
-  CheckProgramSymbolTable,
-  CheckString,
-  CheckUnknown,
-  WrapCheck,
-} from '@glimmer/debug';
+import type {Checker} from '@glimmer/debug';
 import type {
   BlockMetadata,
   CapabilityMask,
@@ -32,13 +15,31 @@ import type {
   Scope,
   ScopeBlock,
 } from '@glimmer/interfaces';
+import type {OpaqueIterator, SomeReactive} from '@glimmer/reference';
+import type {Tag} from '@glimmer/validator';
+
 import {
-  type OpaqueIterator,
+  CheckArray,
+  CheckBlockSymbolTable,
+  CheckDict,
+  CheckFunction,
+  CheckHandle,
+  CheckInstanceof,
+  CheckInterface,
+  CheckNullable,
+  CheckNumber,
+  CheckObject,
+  CheckOr,
+  CheckProgramSymbolTable,
+  CheckString,
+  CheckUnknown,
+  WrapCheck
+} from '@glimmer/debug';
+import {
   REFERENCE,
-  type SomeReactive,
-  UNDEFINED_REFERENCE,
+  UNDEFINED_REFERENCE
 } from '@glimmer/reference';
-import { COMPUTE, type Tag } from '@glimmer/validator';
+import { COMPUTE  } from '@glimmer/validator';
 
 import { PartialScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';

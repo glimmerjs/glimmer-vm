@@ -1,21 +1,19 @@
 import type { EnvironmentDelegate } from '@glimmer/runtime';
+import type { RenderDelegate, RenderDelegateOptions } from '../render-delegate';
+import type { IRenderTest, RenderTestContext } from '../render-test';
+import type {ComponentTestFunction, ComponentTestMeta, RenderSuiteMeta} from '../test-decorator';
+import type { DeclaredComponentType } from './constants';
 
 import { ClientSideRenderDelegate,ErrorRecoveryRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
-import type { RenderDelegate, RenderDelegateOptions } from '../render-delegate';
-import type { IRenderTest, RenderTestContext } from '../render-test';
 import { Count } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 import {
-  type ComponentTestFunction,
-  type ComponentTestMeta,
   getComponentTestMeta,
   getSuiteMetadata,
   isComponentTest,
-  isSuite,
-  type RenderSuiteMeta,
+  isSuite
 } from '../test-decorator';
-import type { DeclaredComponentType } from './constants';
 import { RecordedEvents } from './recorded';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {

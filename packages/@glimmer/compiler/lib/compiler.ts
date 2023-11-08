@@ -4,15 +4,15 @@ import type {
   SerializedTemplateWithLazyBlock,
   TemplateJavascript,
 } from '@glimmer/interfaces';
-import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import {
-  normalize,
-  type PrecompileOptions,
-  type PrecompileOptionsWithLexicalScope,
-  src,
-  type TemplateIdFn,
+import type {
+  PrecompileOptions,
+  PrecompileOptionsWithLexicalScope,
+  TemplateIdFn,
 } from '@glimmer/syntax';
-import { LOCAL_LOGGER } from '../../util/lib/devmode/logging';
+
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { normalize, src } from '@glimmer/syntax';
+import { LOCAL_LOGGER } from '@glimmer/util';
 
 import pass0 from './passes/1-normalization/index';
 import { visit as pass2 } from './passes/2-encoding/index';

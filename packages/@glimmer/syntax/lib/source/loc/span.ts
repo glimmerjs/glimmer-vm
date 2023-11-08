@@ -1,26 +1,16 @@
-
+import type { SourceLocation, SourcePosition } from '../location';
+import type { Source } from '../source';
+import type { MatchFn } from './match';
+import type { AnyPosition, SourceOffset } from './offset';
 
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { assertNever } from '../../../../util/lib/devmode/logging';
+import { assertNever } from '@glimmer/util';
 
-import {
-  BROKEN_LOCATION,
-  NON_EXISTENT_LOCATION,
-  type SourceLocation,
-  type SourcePosition,
-} from '../location';
+import { BROKEN_LOCATION, NON_EXISTENT_LOCATION } from '../location';
 import { SourceSlice } from '../slice';
-import type { Source } from '../source';
 import { OffsetKind } from './kinds';
-import { IsInvisible, match, MatchAny, type MatchFn } from './match';
-import {
-  type AnyPosition,
-  BROKEN,
-  CharPosition,
-  HbsPosition,
-  InvisiblePosition,
-  type SourceOffset,
-} from './offset';
+import { IsInvisible, match, MatchAny } from './match';
+import { BROKEN, CharPosition, HbsPosition, InvisiblePosition } from './offset';
 
 /**
  * All spans have these details in common.

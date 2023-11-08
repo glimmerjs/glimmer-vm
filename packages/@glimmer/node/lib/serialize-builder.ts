@@ -10,8 +10,9 @@ import type {
   SimpleNode,
   SimpleText,
 } from '@glimmer/interfaces';
-import { ConcreteBounds, CursorImpl, type RemoteLiveBlock } from '@glimmer/runtime';
-import { AbstractElementBuilder } from '@glimmer/runtime/lib/vm/element-builder';
+import type { RemoteLiveBlock } from '@glimmer/runtime';
+
+import { AbstractElementBuilder, ConcreteBounds, CursorImpl } from '@glimmer/runtime';
 
 const TEXT_NODE = 3;
 

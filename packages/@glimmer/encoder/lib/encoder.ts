@@ -5,6 +5,7 @@ import type {
   Operand,
   VmOp,
 } from '@glimmer/interfaces';
+
 import { ARG_SHIFT, MAX_SIZE, TYPE_SIZE } from '@glimmer/vm';
 
 export class InstructionEncoderImpl implements InstructionEncoder {

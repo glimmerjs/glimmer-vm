@@ -1,4 +1,3 @@
-import { registerDestructor } from '@glimmer/destroyable';
 import type {
   BlockBounds,
   CapturedNamedArguments,
@@ -20,6 +19,11 @@ import type {
   WithDynamicLayout,
   WithDynamicTagName,
 } from '@glimmer/interfaces';
+import type { DirtyableTag } from '@glimmer/validator';
+import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
+import type { TestComponentConstructor } from './types';
+
+import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalComponentManager } from '@glimmer/manager';
 import {
   createPrimitiveCell,
@@ -30,16 +34,7 @@ import {
 } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
 import { assign, devmode, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
-import {
-  consumeTag,
-  createTag,
-  type DirtyableTag,
-  dirtyTag,
-  dirtyTagFor,
-} from '@glimmer/validator';
-
-import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
-import type { TestComponentConstructor } from './types';
+import { consumeTag, createTag, dirtyTag, dirtyTagFor } from '@glimmer/validator';
 
 export type Attrs = Dict;
 export type AttrsDiff = { oldAttrs: Nullable<Attrs>; newAttrs: Attrs };
@@ -63,8 +58,6 @@ export class EmberishCurlyComponent {
         ({
           kind: 'component',
           label: ['(emberish)'],
-          fallible: true,
-          readonly: true,
         }) satisfies TagDescription
     )
   );

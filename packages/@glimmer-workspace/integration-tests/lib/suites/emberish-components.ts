@@ -1,4 +1,6 @@
 import type { SimpleElement } from '@glimmer/interfaces';
+import type { RenderTestState } from '../test-helpers/module';
+
 import { unwrap } from '@glimmer/util';
 
 import { EmberishCurlyComponent } from '../components';
@@ -8,7 +10,6 @@ import { RenderTestContext } from '../render-test';
 import { equalTokens } from '../snapshot';
 import { render, suite } from '../test-decorator';
 import { defineComponent } from '../test-helpers/define';
-import type { RenderTestState } from '../test-helpers/module';
 
 @suite('Emberish', 'curly')
 export class EmberishComponentTests extends RenderTestContext {

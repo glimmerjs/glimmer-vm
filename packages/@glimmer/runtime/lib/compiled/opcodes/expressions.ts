@@ -1,13 +1,3 @@
-import {
-  check,
-  CheckBlockSymbolTable,
-  CheckHandle,
-  CheckMaybe,
-  CheckNullable,
-  CheckOr,
-} from '@glimmer/debug';
-import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
-import { toBool } from '@glimmer/global-context';
 import type {
   CapturedPositionalArguments,
   CurriedType,
@@ -19,14 +9,25 @@ import type {
   ScopeBlock,
   VM as PublicVM,
 } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+
+import {
+  check,
+  CheckBlockSymbolTable,
+  CheckHandle,
+  CheckMaybe,
+  CheckNullable,
+  CheckOr,
+} from '@glimmer/debug';
+import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
+import { toBool } from '@glimmer/global-context';
 import {
   FallibleFormula,
   FALSE_REFERENCE,
   getReactiveProperty,
-  type SomeReactive,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  unwrapReactive,
+  unwrapReactive
 } from '@glimmer/reference';
 import {
   assert,

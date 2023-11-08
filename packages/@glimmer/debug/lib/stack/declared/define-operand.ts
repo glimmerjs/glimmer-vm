@@ -1,9 +1,9 @@
-import { NULL_HANDLE } from '@glimmer/util';
-
 import type { NullableName } from '../../debug';
 import type { FallibleVmCheck, InfallibleVmCheck, VmCheck } from '../types';
 import type { OperandSpecName } from './operands';
 import type { NamedSpecValue } from './shared';
+
+import { NULL_HANDLE } from '@glimmer/util';
 
 export type VmOperandCheck<N extends OperandSpecName = OperandSpecName> = VmCheck<number, N>;
 

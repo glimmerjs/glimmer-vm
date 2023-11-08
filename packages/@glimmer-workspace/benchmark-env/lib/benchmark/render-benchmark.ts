@@ -1,14 +1,15 @@
 import type {
-  JitContext,
   Dict,
+  JitContext,
   ResolvedComponentDefinition,
   RuntimeArtifacts,
   RuntimeResolver,
   SimpleElement,
 } from "@glimmer/interfaces";
+import type { UpdateBenchmark } from '../interfaces';
+
 import { NewElementBuilder, renderComponent, renderSync, runtimeContext } from '@glimmer/runtime';
 
-import type { UpdateBenchmark } from '../interfaces';
 import createEnvDelegate, { registerResult } from './create-env-delegate';
 import { measureRender } from './util';
 

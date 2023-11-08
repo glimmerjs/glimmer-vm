@@ -13,13 +13,16 @@ import type {
   RuntimeContext,
   TemplateIterator,
 } from '@glimmer/interfaces';
-import { getReactiveProperty, ReadonlyCell, type SomeReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+import type {InternalVM} from './vm/append';
+
+import { getReactiveProperty, ReadonlyCell  } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
 import { debug } from '@glimmer/validator';
 
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';
-import { type InternalVM, VM } from './vm/append';
+import {  VM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
   constructor(private vm: InternalVM) {}

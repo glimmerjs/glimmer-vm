@@ -1,5 +1,7 @@
 import type { Scope } from '@glimmer/interfaces';
-import { getReactiveProperty, type SomeReactive, unwrapReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { getReactiveProperty,  unwrapReactive } from '@glimmer/reference';
 import { decodeHandle, dict, unwrap } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
 

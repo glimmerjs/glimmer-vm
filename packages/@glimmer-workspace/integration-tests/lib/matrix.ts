@@ -1,12 +1,10 @@
+import type {DeclaredComponentType, RenderDelegate, RenderDelegateOptions} from '@glimmer-workspace/integration-tests';
+
 import {
   ClientSideRenderDelegate,
-  type DeclaredComponentType,
   ErrorRecoveryRenderDelegate,
-  type RenderDelegate,
-  type RenderDelegateOptions,
-  RenderTestState,
-} from '@glimmer-workspace/integration-tests';
-import { RenderTestContext } from '@glimmer-workspace/integration-tests';
+RenderTestContext,  RenderTestState
+ } from '@glimmer-workspace/integration-tests';
 
 const { module, test } = QUnit;
 

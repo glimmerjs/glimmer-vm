@@ -5,7 +5,9 @@ import type {
   SexpOpcode,
   SexpOpcodeMap,
 } from '@glimmer/interfaces';
+
 import { assert, unwrap } from '@glimmer/util';
+
 import { HighLevelBuilderOpcodes } from '../opcode-builder/opcodes';
 import { labelOperand } from '../opcode-builder/operands';
 

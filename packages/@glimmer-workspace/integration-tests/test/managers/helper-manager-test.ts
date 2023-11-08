@@ -1,4 +1,5 @@
 import type { Arguments, Owner } from '@glimmer/interfaces';
+
 import { helperCapabilities, setHelperManager, setModifierManager } from '@glimmer/manager';
 import {
   defineComponent,

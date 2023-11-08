@@ -8,23 +8,24 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
+import type {TemplateOnlyComponent} from '@glimmer/runtime';
+import type {EmberishCurlyComponent} from '@glimmer-workspace/integration-tests';
+
 import { setComponentTemplate } from '@glimmer/manager';
 import {
   EMPTY_ARGS,
-  type TemplateOnlyComponent,
   templateOnlyComponent,
-  TemplateOnlyComponentManager,
+  TemplateOnlyComponentManager
 } from '@glimmer/runtime';
 import { assign, expect } from '@glimmer/util';
 import {
   BaseEnv,
   ClientSideRenderDelegate,
   createTemplate,
-  type EmberishCurlyComponent,
   GlimmerishComponent,
   RenderTestContext,
   test,
-  testSuite,
+  testSuite
 } from '@glimmer-workspace/integration-tests';
 
 interface CapturedBounds {

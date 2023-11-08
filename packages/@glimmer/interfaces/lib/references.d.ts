@@ -1,5 +1,4 @@
 import type { DevMode, Result } from '@glimmer/interfaces';
-
 import type { Nullable, Optional } from './core';
 
 /**

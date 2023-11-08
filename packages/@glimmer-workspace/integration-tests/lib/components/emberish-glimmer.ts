@@ -1,5 +1,6 @@
-import { destroy, isDestroyed, isDestroying, registerDestructor } from '@glimmer/destroyable';
 import type { Arguments, ComponentManager, Dict, Owner } from '@glimmer/interfaces';
+
+import { destroy, isDestroyed, isDestroying, registerDestructor } from '@glimmer/destroyable';
 import { componentCapabilities, setComponentManager } from '@glimmer/manager';
 import { setOwner } from '@glimmer/owner';
 

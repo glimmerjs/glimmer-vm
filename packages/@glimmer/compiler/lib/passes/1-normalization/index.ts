@@ -1,8 +1,9 @@
-import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import type { ASTv2, src } from '@glimmer/syntax';
-import { LOCAL_LOGGER } from '../../../../util/lib/devmode/logging';
-
 import type { Result } from '../../shared/result';
+
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
+
 import * as mir from '../2-encoding/mir';
 import { NormalizationState } from './context';
 import { VISIT_STMTS } from './visitors/statements';

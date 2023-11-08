@@ -1,11 +1,12 @@
-import { check } from '@glimmer/debug';
 import type { CapturedArguments } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { check } from '@glimmer/debug';
 import {
   FallibleFormula,
   isAccessor,
-  type SomeReactive,
   unwrapReactive,
-  updateReactive,
+  updateReactive
 } from '@glimmer/reference';
 import { buildUntouchableThis, stringifyDebugLabel } from '@glimmer/util';
 

@@ -1,11 +1,11 @@
 import type {
   CompileTimeArtifacts,
-  JitContext,
   CompileTimeConstants,
   CompileTimeHeap,
   CompileTimeResolver,
   CreateRuntimeOp,
   DebugConstants,
+  JitContext,
   ResolutionTimeConstants,
   STDLib,
 } from '@glimmer/interfaces';

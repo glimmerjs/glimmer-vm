@@ -1,9 +1,13 @@
-import { getPath, toIterator } from '@glimmer/global-context';
 import type { Dict, Nullable, SomeReactive, TagDescription } from '@glimmer/interfaces';
+import type { ReferenceEnvironment } from './reference';
+
+import { getPath, toIterator } from '@glimmer/global-context';
 import { devmode, EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
-import { Accessor, FallibleFormula, type ReferenceEnvironment, unwrapReactive } from './reference';
+import { unwrapReactive } from './api';
+import { Accessor } from './api/accessor';
+import { FallibleFormula } from './api/formula';
 
 export interface IterationItem<T, U> {
   key: unknown;

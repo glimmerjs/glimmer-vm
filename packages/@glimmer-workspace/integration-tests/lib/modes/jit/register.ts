@@ -5,27 +5,30 @@ import type {
   ResolutionTimeConstants,
   TemplateFactory,
 } from '@glimmer/interfaces';
+import type {CurriedValue} from '@glimmer/runtime';
+import type { ComponentTypes } from '../../components';
+import type {UserHelper} from '../../helpers';
+import type {TestModifierConstructor} from '../../modifiers';
+import type { DeclaredComponentType } from '../../test-helpers/constants';
+import type { TestJitRegistry } from './registry';
+
 import {
   getInternalComponentManager,
   setComponentTemplate,
   setInternalHelperManager,
   setInternalModifierManager,
 } from '@glimmer/manager';
-import { type CurriedValue, curry, templateOnlyComponent } from '@glimmer/runtime';
+import {  curry, templateOnlyComponent } from '@glimmer/runtime';
 import { CurriedTypes } from '@glimmer/vm';
 
 import { createTemplate } from '../../compile';
-import type { ComponentTypes } from '../../components';
 import { EmberishCurlyComponent } from '../../components/emberish-curly';
 import { GlimmerishComponent } from '../../components/emberish-glimmer';
-import { createHelperRef, type UserHelper } from '../../helpers';
+import { createHelperRef  } from '../../helpers';
 import {
-  type TestModifierConstructor,
   TestModifierDefinitionState,
-  TestModifierManager,
+  TestModifierManager
 } from '../../modifiers';
-import type { DeclaredComponentType } from '../../test-helpers/constants';
-import type { TestJitRegistry } from './registry';
 
 export function registerTemplateOnlyComponent(
   registry: TestJitRegistry,

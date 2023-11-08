@@ -1,7 +1,8 @@
 import type {
-  JitContext,
   CompileTimeComponent,
+  JitContext,
 } from "@glimmer/interfaces";
+
 import { unwrapHandle } from '@glimmer/util';
 
 export function compileEntry(entry: CompileTimeComponent, context: JitContext) {

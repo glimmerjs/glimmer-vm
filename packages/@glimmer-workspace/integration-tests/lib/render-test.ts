@@ -1,4 +1,3 @@
-import { destroy } from '@glimmer/destroyable';
 import type {
   Dict,
   DynamicScope,
@@ -10,31 +9,37 @@ import type {
   SimpleNode,
   SomeReactive,
 } from '@glimmer/interfaces';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
+import type { NTuple } from '@glimmer-workspace/test-utils';
+import type {ComponentBlueprint, ComponentKind, ComponentTypes} from './components';
+import type {ComponentDelegate} from './components/delegate';
+import type { UserHelper } from './helpers';
+import type { TestModifierConstructor } from './modifiers';
+import type RenderDelegate from './render-delegate';
+import type { DomDelegate, LogRender } from './render-delegate';
+import type {NodesSnapshot} from './snapshot';
+import type {DeclaredComponentType, TypeFor} from './test-helpers/constants';
+import type { RenderTestState } from './test-helpers/module';
+
+import { destroy } from '@glimmer/destroyable';
 import { hasFlagWith } from '@glimmer/local-debug-flags';
 import { ReadonlyCell } from '@glimmer/reference';
 import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
-import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { clearElement, dict, expect, isPresent, LOCAL_LOGGER, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
-import type { NTuple } from '@glimmer-workspace/test-utils';
 
 import {
-  type ComponentBlueprint,
-  type ComponentKind,
-  type ComponentTypes,
-  GLIMMER_TEST_COMPONENT,
+  GLIMMER_TEST_COMPONENT
 } from './components';
 import {
   buildInvoke,
   buildTemplate,
-  type ComponentDelegate,
   CurlyDelegate,
   DynamicDelegate,
   getDelegate,
-  GlimmerDelegate,
+  GlimmerDelegate
 } from './components/delegate';
 import { assertingElement, toInnerHTML } from './dom/simple-utils';
-import type { UserHelper } from './helpers';
 import { BuildDomDelegate } from './modes/jit/dom';
 import {
   registerComponent,
@@ -42,18 +47,12 @@ import {
   registerInternalHelper,
   registerModifier,
 } from './modes/jit/register';
-import type { TestModifierConstructor } from './modifiers';
-import type RenderDelegate from './render-delegate';
-import type { DomDelegate, LogRender } from './render-delegate';
-import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
+import { equalTokens, isServerMarker,  normalizeSnapshot } from './snapshot';
 import {
-  type DeclaredComponentType,
   KIND_FOR,
-  TYPE_FOR,
-  type TypeFor,
+  TYPE_FOR
 } from './test-helpers/constants';
 import { Woops } from './test-helpers/error';
-import type { RenderTestState } from './test-helpers/module';
 import { RecordedEvents } from './test-helpers/recorded';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;

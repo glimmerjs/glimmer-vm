@@ -13,6 +13,7 @@ import type {
   SimpleText,
 } from '@glimmer/interfaces';
 import type { PresentStack } from '@glimmer/util';
+
 import { assert, castToBrowser, castToSimple, COMMENT_NODE, expect, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds, CursorImpl } from '../bounds';

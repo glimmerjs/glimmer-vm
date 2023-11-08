@@ -7,6 +7,9 @@ import type {
   RuntimeOp,
   TemplateCompilationContext,
 } from '@glimmer/interfaces';
+import type { Primitive } from './stack-check';
+import type { OperandLabel } from './utils';
+
 import { LOCAL_DEBUG, LOCAL_SUBTLE_LOGGING, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
   decodeHandle,
@@ -34,8 +37,6 @@ import { DebugLogger, frag } from '..';
 import { OPERANDS } from './dism/operands';
 import { opcodeMetadata } from './opcode-metadata';
 import { DebugOpState } from './render/state';
-import type { Primitive } from './stack-check';
-import type { OperandLabel } from './utils';
 
 export function logOpcodeSlice(context: TemplateCompilationContext, start: number, end: number) {
   if (LOCAL_TRACE_LOGGING) {

@@ -1,6 +1,7 @@
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { castToSimple, COMMENT_NODE, TEXT_NODE, unwrap } from '@glimmer/util';
 import type { EndTag, Token,TokenType } from 'simple-html-tokenizer';
+
+import { castToSimple, COMMENT_NODE, TEXT_NODE, unwrap } from '@glimmer/util';
 import { tokenize } from 'simple-html-tokenizer';
 
 import { replaceHTML, toInnerHTML } from './dom/simple-utils';

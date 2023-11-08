@@ -5,19 +5,21 @@ import type {
   WithCreateInstance,
   WithSubOwner,
 } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+import type {RenderDelegateOptions} from '@glimmer-workspace/integration-tests';
+
 import { setInternalComponentManager } from '@glimmer/manager';
-import { NULL_REFERENCE, type SomeReactive } from '@glimmer/reference';
+import { NULL_REFERENCE  } from '@glimmer/reference';
 import {
   ClientSideRenderDelegate,
   createTemplate,
   defineComponent,
   EmberishCurlyComponent,
   GlimmerishComponent,
-  type RenderDelegateOptions,
   RenderTestContext,
   test,
   TestJitRuntimeResolver,
-  testSuite,
+  testSuite
 } from '@glimmer-workspace/integration-tests';
 
 class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {

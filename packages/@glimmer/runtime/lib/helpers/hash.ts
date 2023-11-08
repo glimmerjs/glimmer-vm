@@ -1,6 +1,8 @@
-import { deprecate } from '@glimmer/global-context';
 import type { CapturedArguments, Dict } from '@glimmer/interfaces';
-import { FallibleFormula, type SomeReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { deprecate } from '@glimmer/global-context';
+import { FallibleFormula  } from '@glimmer/reference';
 
 import { reifyNamed } from '../vm/arguments';
 import { internalHelper } from './internal-helper';

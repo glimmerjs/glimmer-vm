@@ -13,7 +13,6 @@ import type {
 } from '@glimmer/interfaces';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
-
 import type { TestJitContext } from './modes/jit/delegate';
 import type { TestJitRegistry } from './modes/jit/registry';
 import type { TestJitRuntimeResolver } from './modes/jit/resolver';

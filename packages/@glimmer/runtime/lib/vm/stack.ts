@@ -1,7 +1,9 @@
+import type {ArgumentsStack} from './low-level';
+import type { UnwindTarget } from './unwind';
+
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
-import { type ArgumentsStack, PackedRegisters, Registers } from './low-level';
-import type { UnwindTarget } from './unwind';
+import {  PackedRegisters, Registers } from './low-level';
 
 export default class EvaluationStackImpl implements ArgumentsStack {
   static restore(snapshot: unknown[], pc: number, unwind: UnwindTarget): EvaluationStackImpl {

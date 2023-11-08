@@ -8,7 +8,9 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import { $s0, $s1, $t0, $t1, $v0, type SyscallRegister } from '@glimmer/vm';
+import type {SyscallRegister} from '@glimmer/vm';
+
+import { $s0, $s1, $t0, $t1, $v0  } from '@glimmer/vm';
 
 export interface Checker<T> {
   type: T;

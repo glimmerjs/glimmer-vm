@@ -1,4 +1,7 @@
 import type { ComponentDefinition, Nullable } from '@glimmer/interfaces';
+import type { Primitive } from '../../stack-check';
+import type { AnyFunction } from './shared';
+
 import { decodeHandle, decodeImmediate, isHandle } from '@glimmer/util';
 import {
   $fp,
@@ -13,9 +16,7 @@ import {
   CURRIED_MODIFIER,
 } from '@glimmer/vm';
 
-import type { Primitive } from '../../stack-check';
 import { define, nullable } from './define-operand';
-import type { AnyFunction } from './shared';
 import { MISMATCH, ok } from './shared';
 
 export const ImmU32 = define('unsigned', (value) => {

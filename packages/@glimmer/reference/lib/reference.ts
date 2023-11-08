@@ -1,4 +1,3 @@
-import { getProperty, setProperty } from '@glimmer/global-context';
 import type {
   AccessorType,
   ConstantErrorType,
@@ -13,7 +12,6 @@ import type {
   FallibleFormulaType,
   FallibleReactiveFormula,
   InfallibleFormulaType,
-  InfallibleReactiveFormula,
   MutableCellType,
   MutableReactiveCell,
   Nullable,
@@ -24,30 +22,26 @@ import type {
   ReactiveResult,
   ReactiveType,
   ReadonlyCellType,
-  ReadonlyReactiveCell,
   ReferenceDescription,
   ReferenceSymbol,
   SomeReactive,
   UpdatableTag,
   UserException as UserExceptionInterface,
 } from '@glimmer/interfaces';
+import type {Revision, Tag} from '@glimmer/validator';
+
 import {
   assert,
   devmode,
   devmodeOr,
   Err,
-  expect,
   getDescription,
   inDevmode,
-  isDict,
-  isObject,
-  mapDevmode,
   Ok,
   setDescription,
   stringifyChildLabel,
   stringifyDebugLabel,
   toDescription,
-  unwrapResult,
   UserException,
 } from '@glimmer/util';
 import {
@@ -55,18 +49,18 @@ import {
   consumeTag,
   createTag,
   dirtyTag,
-  dirtyTagFor,
   DIRYTABLE_TAG_ID,
   INITIAL,
-  type Revision,
-  type Tag,
   TAG_TYPE,
-  tagFor,
   track,
   UPDATABLE_TAG_ID,
-  validateTag,
-  valueForTag,
+  valueForTag
 } from '@glimmer/validator';
+
+import { unwrapReactive, updateReactive } from './api';
+import { Accessor } from './api/accessor';
+import { FallibleFormula } from './api/formula';
+import { validateReactive } from './internal';
 
 export const REFERENCE: ReferenceSymbol = Symbol('REFERENCE') as ReferenceSymbol;
 
@@ -98,7 +92,7 @@ export interface ReferenceEnvironment {
   setProp(obj: unknown, path: string, value: unknown): unknown;
 }
 
-class Reactive<T = unknown, K extends ReactiveType = ReactiveType>
+export class Reactive<T = unknown, K extends ReactiveType = ReactiveType>
   implements RawReactive<T, K>, Described<ReferenceDescription>
 {
   readonly [REFERENCE]: K;
@@ -145,7 +139,7 @@ class Reactive<T = unknown, K extends ReactiveType = ReactiveType>
   }
 }
 
-function updateInternalReactive(reactive: Reactive, value: unknown): ReactiveResult<void> {
+export function updateInternalReactive(reactive: Reactive, value: unknown): ReactiveResult<void> {
   if (reactive.update) {
     reactive.update(value);
   } else {
@@ -179,7 +173,7 @@ function updateInternalReactive(reactive: Reactive, value: unknown): ReactiveRes
   return Ok(undefined);
 }
 
-function getChildLabel(parent: Described<Description>, child: PropertyKey) {
+export function getChildLabel(parent: Described<Description>, child: PropertyKey) {
   if (import.meta.env.DEV) {
     return stringifyChildLabel(...inDevmode(parent.description).label, child as string | symbol);
   } else {
@@ -190,7 +184,7 @@ function getChildLabel(parent: Described<Description>, child: PropertyKey) {
 /*
   eslint-disable-next-line @typescript-eslint/no-explicit-any -- inferred from the return type
  */
-type RETURN_TYPE = any;
+export type RETURN_TYPE = any;
 
 export function DeeplyConstant<T>(
   value: T,
@@ -307,145 +301,11 @@ export function ReadonlyCell<T>(value: T, description?: DescriptionSpec): Reacti
   return ref as RETURN_TYPE;
 }
 
-const FALLIBLE_FORMULA_DEFAULTS = devmode(() => ({
-  readonly: false,
-  fallible: false,
-  kind: 'cell',
-  label: ['(FallibleFormula)'],
-}));
-
-/**
- * A fallible formula invokes user code. If the user code throws an exception, the formula returns
- * an error {@linkcode Result}. Otherwise, it returns an ok {@linkcode Result}.
- */
-export function FallibleFormula<T = unknown>(
-  compute: () => T,
-  debugLabel?: DescriptionSpec
-): FallibleReactiveFormula<T> {
-  const ref = new Reactive<T>(FALLIBLE_FORMULA);
-
-  ref.compute = () => setFromFallibleCompute(ref, compute);
-
-  setDescription(
-    ref,
-    devmode(() => toDescription(debugLabel, FALLIBLE_FORMULA_DEFAULTS))
-  );
-
-  return ref as RETURN_TYPE;
-}
-
-const RESULT_FORMULA_DEFAULTS = devmode(() => ({
-  readonly: true,
-  fallible: true,
-  kind: 'formula',
-  label: [`(ResultFormula)`],
-}));
-
-/**
- * The `compute` function must be infallible and convert any errors to results.
- */
-export function ResultFormula<T = unknown>(
-  compute: () => ReactiveResult<T>,
-  description?: DescriptionSpec
-) {
-  const ref = new Reactive<T>(FALLIBLE_FORMULA);
-
-  ref.compute = () => setResult(ref, compute());
-
-  setDescription(
-    ref,
-    devmode(() => toDescription(description, RESULT_FORMULA_DEFAULTS))
-  );
-
-  return ref as RETURN_TYPE;
-}
-
-const RESULT_ACCESSOR_DEFAULTS = devmode(() => ({
-  readonly: false,
-  fallible: true,
-  kind: 'formula',
-  label: [`(ResultAccessor)`],
-}));
-
-export function ResultAccessor<T = unknown>(
-  options: {
-    get: () => ReactiveResult<T>;
-    set: (val: T) => ReactiveResult<void>;
-  },
-  description?: DescriptionSpec
-): SomeReactive<T> {
-  const { get, set } = options;
-
-  const ref = new Reactive<T>(ACCESSOR);
-
-  ref.compute = () => setResult(ref, get());
-
-  ref.update = (value: T) => {
-    const setResult = set(value);
-
-    if (setResult.type === 'ok') {
-      ref.lastValue = value;
-    } else {
-      setError(ref, setResult.value);
-    }
-  };
-
-  setDescription(
-    ref,
-    devmode(() => toDescription(description, RESULT_ACCESSOR_DEFAULTS))
-  );
-  return ref as RETURN_TYPE;
-}
-
-const ACCESSOR_DEFAULTS = devmode(() => ({
-  readonly: false,
-  fallible: true,
-  kind: 'formula',
-  label: [`(Accessor)`],
-}));
-
-export function Accessor<T = unknown>(
-  options: { get: () => T; set: (val: T) => void },
-  description?: DescriptionSpec
-): SomeReactive<T> {
-  const { get, set } = options;
-
-  const ref = new Reactive<T>(ACCESSOR);
-
-  ref.compute = () => setFromFallibleCompute(ref, get);
-
-  ref.update = (value: T) => {
-    try {
-      set(value);
-      return value;
-    } catch (e) {
-      setError(
-        ref,
-        UserException.from(
-          e,
-          `An error occured setting ${devmodeOr(() => stringifyDebugLabel(ref), `an accessor`)}`
-        )
-      );
-    }
-  };
-
-  setDescription(
-    ref,
-    devmode(() => toDescription(description, ACCESSOR_DEFAULTS))
-  );
-
-  return ref as RETURN_TYPE;
-}
-
 function getValidResult<T>(ref: Reactive<T>): ReactiveResult<T> {
   return ref.error ? Err(ref.error) : Ok(ref.lastValue as T);
 }
 
-export function readReactive<T>(reactive: SomeReactive<T>): ReactiveResult<T> {
-  return readInternalReactive(reactive as Reactive<T>);
-}
-
-function readInternalReactive<T>(reactive: Reactive<T>): ReactiveResult<T> {
+export function readInternalReactive<T>(reactive: Reactive<T>): ReactiveResult<T> {
   const { tag, compute } = reactive;
 
   if (validateReactive(reactive)) {
@@ -468,7 +328,7 @@ function readInternalReactive<T>(reactive: Reactive<T>): ReactiveResult<T> {
   return getValidResult(reactive);
 }
 
-function setError<T>(reactive: Reactive<T>, error: UserExceptionInterface) {
+export function setError<T>(reactive: Reactive<T>, error: UserExceptionInterface) {
   reactive.lastValue = null;
   reactive.error = error;
 
@@ -477,22 +337,7 @@ function setError<T>(reactive: Reactive<T>, error: UserExceptionInterface) {
   reactive.tag = null;
 }
 
-/**
- * @internal
- */
-
-export function validateReactive<T>(
-  reactive: SomeReactive<T> | Reactive<T>
-): reactive is SomeReactive<T> & { tag: Tag } {
-  const { tag, lastRevision } = reactive as Reactive<T>;
-
-  // not yet computed
-  if (tag === null) return false;
-
-  return validateTag(tag, lastRevision);
-}
-
-function setResult<T>(reactive: Reactive<T>, result: ReactiveResult<T>) {
+export function setResult<T>(reactive: Reactive<T>, result: ReactiveResult<T>) {
   switch (result.type) {
     case 'ok':
       return setLastValue(reactive, result.value);
@@ -507,7 +352,7 @@ function setLastValue<T>(reactive: Reactive<T>, value: T): T {
   return value;
 }
 
-function setFromFallibleCompute<T>(reactive: Reactive<T>, compute: () => T): T | undefined {
+export function setFromFallibleCompute<T>(reactive: Reactive<T>, compute: () => T): T | undefined {
   try {
     return setLastValue(reactive, compute());
   } catch (e) {
@@ -521,207 +366,6 @@ function setFromFallibleCompute<T>(reactive: Reactive<T>, compute: () => T): T |
         )}`
       )
     );
-  }
-}
-
-const INFALLIBLE_FORMULA_DEFAULTS = devmode(() => ({
-  readonly: true,
-  fallible: false,
-  kind: 'formula',
-  label: [`(InfallibleFormula)`],
-}));
-
-/**
- * An infallible formula does not invoke user code. If an infallible formula's compute function
- * throws an error, it's a bug and there is no error recovery.
- */
-export function InfallibleFormula<T = unknown>(
-  compute: () => T,
-  description?: DescriptionSpec
-): InfallibleReactiveFormula<T> {
-  const ref = new Reactive<T>(INFALLIBLE_FORMULA);
-
-  ref.compute = compute;
-
-  setDescription(
-    ref,
-    devmode(() => toDescription(description, INFALLIBLE_FORMULA_DEFAULTS))
-  );
-
-  return ref as RETURN_TYPE;
-}
-
-type Primitive = string | number | boolean | null | undefined | bigint | symbol;
-
-export function createPrimitiveCell<T extends Primitive>(value: T): ReadonlyReactiveCell<T> {
-  const ref = ReadonlyCell(value);
-
-  if (import.meta.env.DEV) {
-    ref.description = devmode(() => ({
-      readonly: 'deep',
-      fallible: false,
-      label: [`${JSON.stringify(value)}`],
-      kind: 'cell',
-      serialization: 'String',
-    }));
-  }
-
-  return ref as RETURN_TYPE;
-}
-
-function initializeChildren(parent: SomeReactive) {
-  let children = parent.properties;
-
-  if (children === null) {
-    children = parent.properties = new Map();
-  }
-
-  return children;
-}
-
-export function toReadonly<T>(reactive: SomeReactive<T>): FallibleReactiveFormula<T> {
-  return FallibleFormula(() => unwrapReactive(reactive));
-}
-
-export function toMut<T>(maybeMut: SomeReactive<T>): SomeReactive<T> {
-  const reactive = maybeMut as Reactive;
-
-  return ResultAccessor({
-    get: () => readInternalReactive(maybeMut as Reactive<T>),
-    set: (value: unknown) => updateInternalReactive(reactive, value),
-  });
-}
-
-export function getReactivePath(reactive: SomeReactive, path: string[]): SomeReactive {
-  let current: SomeReactive = reactive;
-
-  for (const part of path) {
-    current = getReactiveProperty(current, part);
-  }
-
-  return current;
-}
-
-const PROPERTY_DEFAULTS = devmode(() => ({
-  readonly: false,
-  fallible: true,
-  kind: 'property',
-  label: [`(property)`],
-}));
-
-export function getReactiveProperty(
-  parentReactive: SomeReactive,
-  property: PropertyKey
-): SomeReactive {
-  const type = parentReactive[REFERENCE];
-
-  const children = initializeChildren(parentReactive);
-
-  {
-    const child = children.get(property);
-
-    if (child !== undefined) {
-      return child as RETURN_TYPE;
-    }
-  }
-
-  const initialize = (child: SomeReactive): SomeReactive => {
-    children.set(property, child);
-    return child as RETURN_TYPE;
-  };
-
-  if (type === DEEPLY_CONSTANT) {
-    // We need an extra try/catch here because any reactive value can be turned into a deeply
-    // constant value.
-    try {
-      const parent = readInternalReactive(parentReactive as Reactive);
-
-      if (parent.type === 'err') {
-        return initialize(Poison(parent.value));
-      } else {
-        if (isDict(parent.value)) {
-          return initialize(DeeplyConstant(parent.value[property as keyof typeof parent.value]));
-        }
-      }
-    } catch (e) {
-      return initialize(
-        Poison(
-          UserException.from(
-            e,
-            `An error occured when getting a property from a deeply constant reactive (${getChildLabel(
-              parentReactive,
-              property
-            )})`
-          )
-        )
-      );
-    }
-  }
-
-  const child = Accessor({
-    get: () => {
-      const parent = unwrapReactive(parentReactive);
-      if (isDict(parent)) {
-        if (isObject(parent)) consumeTag(tagFor(parent, property as keyof typeof parent));
-
-        return getProperty(parent, property as keyof typeof parent);
-      }
-    },
-    set: (value: unknown): ReactiveResult<void> => {
-      const parentResult = readInternalReactive(parentReactive as Reactive);
-
-      if (parentResult.type === 'err') {
-        return parentResult;
-      } else {
-        if (isDict(parentResult.value)) {
-          try {
-            setProperty(parentResult.value, property as any, value);
-
-            if (isObject(parentResult.value))
-              dirtyTagFor(parentResult.value, property as keyof typeof parentResult.value);
-          } catch (e) {
-            return Err(
-              UserException.from(
-                e,
-                `An error occured when setting a property on a deeply constant reactive (${getChildLabel(
-                  parentReactive,
-                  property
-                )})`
-              )
-            );
-          }
-        }
-
-        return Ok(undefined);
-      }
-    },
-  });
-
-  setDescription(
-    child,
-    mapDevmode(
-      () => parentReactive.description,
-      (desc) => {
-        return toDescription([...desc.label, property as string | symbol], PROPERTY_DEFAULTS);
-      }
-    )
-  );
-
-  return initialize(child);
-}
-
-export const UNDEFINED_REFERENCE = createPrimitiveCell(undefined);
-export const NULL_REFERENCE = createPrimitiveCell(null);
-export const TRUE_REFERENCE = createPrimitiveCell(true);
-export const FALSE_REFERENCE = createPrimitiveCell(false);
-
-export function isConstant(reactive: SomeReactive) {
-  switch (reactive[REFERENCE]) {
-    case READONLY_CELL:
-    case DEEPLY_CONSTANT:
-      return true;
-    default:
-      return false;
   }
 }
 
@@ -743,26 +387,6 @@ export function isConstantError<T>(_ref: SomeReactive<T>): _ref is ConstantReact
   return _ref[REFERENCE] === CONSTANT_ERROR;
 }
 
-export function readCell<T>(reactive: ReactiveCell<T>): T {
-  return unwrapReactive(reactive);
-}
-
-export function writeCell<T>(reactive: MutableReactiveCell<T>, value: T): void {
-  updateReactive(reactive, value);
-}
-
-export function hasError(reactive: SomeReactive): boolean {
-  return !!(reactive as Reactive).error;
-}
-
-/**
- * This is generally not what you want, as it rethrows errors. It's useful in testing and console
- * situations, and as a transitional mechanism away from valueForRef.
- */
-export function unwrapReactive<T>(reactive: SomeReactive<T>): T {
-  return unwrapResult(readInternalReactive(reactive as Reactive<T>));
-}
-
 export function updateRefWithResult<T>(ref: SomeReactive<T>, value: ReactiveResult<T>) {
   switch (value.type) {
     case 'err':
@@ -772,25 +396,6 @@ export function updateRefWithResult<T>(ref: SomeReactive<T>, value: ReactiveResu
       updateReactive(ref, value.value);
       break;
   }
-}
-
-export function updateReactive(_ref: SomeReactive, value: unknown) {
-  const ref = _ref as Reactive;
-
-  const update = expect(ref.update, 'called update on a non-updatable reference');
-
-  update(value);
-}
-
-export function clearError(reactive: SomeReactive) {
-  const internal = reactive as Reactive;
-
-  internal.error = null;
-
-  // clearing the tag will cause the reference to be invalidated.
-  internal.tag = null;
-
-  internal.lastValue = null;
 }
 
 /** @category compat */

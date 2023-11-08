@@ -5,6 +5,7 @@ import type {
   Nullable,
   RenderNode,
 } from '@glimmer/interfaces';
+
 import { assign, expect, Stack } from '@glimmer/util';
 
 import { reifyArgs } from './vm/arguments';

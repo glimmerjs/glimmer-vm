@@ -1,15 +1,3 @@
-import {
-  check,
-  CheckFunction,
-  CheckHandle,
-  CheckInstanceof,
-  CheckInterface,
-  CheckOr,
-  CheckProgramSymbolTable,
-  CheckString,
-  CheckSyscallRegister,
-} from '@glimmer/debug';
-import { registerDestructor } from '@glimmer/destroyable';
 import type {
   BlockBounds,
   CapabilityMask,
@@ -37,9 +25,26 @@ import type {
   WithElementHook,
   WithUpdateHook,
 } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+import type {CurriedValue} from '../../curried-value';
+import type { UpdatingVM } from '../../vm';
+import type { InternalVM } from '../../vm/append';
+import type {BlockArgumentsImpl} from '../../vm/arguments';
+
+import {
+  check,
+  CheckFunction,
+  CheckHandle,
+  CheckInstanceof,
+  CheckInterface,
+  CheckOr,
+  CheckProgramSymbolTable,
+  CheckString,
+  CheckSyscallRegister,
+} from '@glimmer/debug';
+import { registerDestructor } from '@glimmer/destroyable';
 import { managerHasCapability } from '@glimmer/manager';
-import { type SomeReactive, unwrapReactive } from '@glimmer/reference';
-import { isConstant } from '@glimmer/reference';
+import {  isConstant,unwrapReactive  } from '@glimmer/reference';
 import {
   assert,
   assign,
@@ -58,16 +63,13 @@ import { $t0, $t1, CurriedTypes, InternalComponentCapabilities, Op } from '@glim
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { resolveComponent } from '../../component/resolve';
 import {
-  type CurriedValue,
   isCurried,
   isCurriedValue,
-  resolveCurriedValue,
+  resolveCurriedValue
 } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
-import type { UpdatingVM } from '../../vm';
-import type { InternalVM } from '../../vm/append';
-import { type BlockArgumentsImpl, EMPTY_ARGS, VMArgumentsImpl } from '../../vm/arguments';
+import {  EMPTY_ARGS, VMArgumentsImpl } from '../../vm/arguments';
 import {
   CheckArguments,
   CheckComponentDefinition,

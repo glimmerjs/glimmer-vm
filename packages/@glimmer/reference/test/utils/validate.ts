@@ -1,4 +1,5 @@
 import type { SomeReactive } from '@glimmer/interfaces';
+
 import { hasError, unwrapReactive, validateReactive } from '@glimmer/reference';
 
 export class Validate<T> {

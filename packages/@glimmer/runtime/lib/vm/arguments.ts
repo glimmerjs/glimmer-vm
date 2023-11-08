@@ -1,4 +1,3 @@
-import { check, CheckBlockSymbolTable, CheckHandle, CheckNullable, CheckOr } from '@glimmer/debug';
 import type {
   BlockArguments,
   BlockSymbolTable,
@@ -16,17 +15,20 @@ import type {
   ScopeBlock,
   VMArguments,
 } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+import type {Tag} from '@glimmer/validator';
+import type { ArgumentsStack } from './low-level';
+
+import { check, CheckBlockSymbolTable, CheckHandle, CheckNullable, CheckOr } from '@glimmer/debug';
 import {
   createDebugAliasRef,
-  type SomeReactive,
   UNDEFINED_REFERENCE,
-  unwrapReactive,
+  unwrapReactive
 } from '@glimmer/reference';
 import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
-import { CONSTANT_TAG, type Tag } from '@glimmer/validator';
+import { CONSTANT_TAG  } from '@glimmer/validator';
 
 import { CheckCompilableBlock, CheckReactive, CheckScope } from '../compiled/opcodes/-debug-strip';
-import type { ArgumentsStack } from './low-level';
 
 /*
   The calling convention is:

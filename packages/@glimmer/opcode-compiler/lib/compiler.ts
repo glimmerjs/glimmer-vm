@@ -1,5 +1,6 @@
-import { logOpcodeSlice } from '@glimmer/debug';
 import type { HandleResult, TemplateCompilationContext } from "@glimmer/interfaces";
+
+import { logOpcodeSlice } from '@glimmer/debug';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { extractHandle } from '@glimmer/util';
 

@@ -1,6 +1,9 @@
 export * from './lib/content';
 export {
   ARG_SHIFT,
+  CURRIED_COMPONENT,
+  CURRIED_HELPER,
+  CURRIED_MODIFIER,
   type CurriedInvokable,
   CurriedTypes,
   InternalComponentCapabilities,
@@ -11,20 +14,18 @@ export {
   OPERAND_LEN_MASK,
   TYPE_MASK,
   TYPE_SIZE,
-  CURRIED_COMPONENT,
-  CURRIED_HELPER,
-  CURRIED_MODIFIER,
 } from './lib/flags';
+export * from './lib/opcodes';
 export {
+  $fp,
   $pc,
   $ra,
-  $fp,
-  $sp,
-  $up,
   $s0,
   $s1,
+  $sp,
   $t0,
   $t1,
+  $up,
   $v0,
   isLowLevelRegister,
   type MachineRegister,
@@ -33,4 +34,3 @@ export {
   type SyscallRegister,
   TemporaryRegister,
 } from './lib/registers';
-export * from './lib/opcodes';

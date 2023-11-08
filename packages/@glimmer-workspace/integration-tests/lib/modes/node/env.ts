@@ -3,10 +3,11 @@ import type {
   GlimmerTreeConstruction,
   SimpleDocument,
 } from '@glimmer/interfaces';
+import type { RenderDelegateOptions } from '../../render-delegate';
+
 import createHTMLDocument from '@simple-dom/document';
 
 import { toInnerHTML } from '../../dom/simple-utils';
-import type { RenderDelegateOptions } from '../../render-delegate';
 import { RenderTestContext } from '../../render-test';
 import { ClientSideRenderDelegate } from '../jit/delegate';
 

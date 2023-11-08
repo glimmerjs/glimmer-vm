@@ -1,5 +1,7 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-import { FallibleFormula, type SomeReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { FallibleFormula  } from '@glimmer/reference';
 
 import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';

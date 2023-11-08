@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import type { Expand } from '@glimmer/interfaces';
+
 import { debug } from '@glimmer/validator';
 import { autoRegister } from 'js-reporters';
 

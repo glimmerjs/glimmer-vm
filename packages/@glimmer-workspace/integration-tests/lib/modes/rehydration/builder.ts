@@ -1,4 +1,5 @@
 import type { Cursor, ElementBuilder, Environment, SimpleNode } from '@glimmer/interfaces';
+
 import { RehydrateBuilder } from '@glimmer/runtime';
 import { COMMENT_NODE, ELEMENT_NODE } from '@glimmer/util';
 

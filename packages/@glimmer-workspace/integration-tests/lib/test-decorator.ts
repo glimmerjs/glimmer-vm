@@ -1,8 +1,9 @@
-import { LOCAL_LOGGER } from '@glimmer/util';
-
 import type { IRenderTest } from './render-test';
 import type { DeclaredComponentType, EveryComponentType } from './test-helpers/constants';
 import type { RenderTestConstructor, RenderTestState } from './test-helpers/module';
+
+import { LOCAL_LOGGER } from '@glimmer/util';
+
 import { isTest, TEST_META } from './test-helpers/test';
 
 type ComponentTestOptions =

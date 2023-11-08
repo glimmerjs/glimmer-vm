@@ -1,9 +1,11 @@
-import { getFlagValues } from '@glimmer/local-debug-flags';
 import type { LOCAL_LOGGER } from "@glimmer/util";
+import type { DisplayFragmentOptions, FlushedLines, Fragment, LogEntry } from './fragment';
+import type {IntoFormat, IntoFragment} from './presets';
+
+import { getFlagValues } from '@glimmer/local-debug-flags';
 
 import { prepend } from './combinators';
-import type { DisplayFragmentOptions, FlushedLines, Fragment, LogEntry } from './fragment';
-import { as, frag, type IntoFormat, type IntoFragment, intoFragment } from './presets';
+import { as, frag,   intoFragment } from './presets';
 
 type FlatOp =
   | Atom

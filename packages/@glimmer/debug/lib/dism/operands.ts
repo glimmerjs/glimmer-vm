@@ -1,18 +1,19 @@
 import type { BlockMetadata, DebugConstants } from '@glimmer/interfaces';
-import { decodeHandle } from '@glimmer/util';
-
-import {
-  decodeCurry,
-  decodePrimitive,
-  decodeRegister,
-  type RawDisassembledOperand,
-} from '../debug';
+import type {RawDisassembledOperand} from '../debug';
 import type {
   NonNullableOperandType,
   NullableOperandType,
   OperandLabel,
   OperandType,
 } from '../utils';
+
+import { decodeHandle } from '@glimmer/util';
+
+import {
+  decodeCurry,
+  decodePrimitive,
+  decodeRegister
+} from '../debug';
 
 interface DisassemblyState {
   label: OperandLabel;

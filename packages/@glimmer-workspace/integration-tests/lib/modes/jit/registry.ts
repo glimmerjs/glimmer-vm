@@ -8,6 +8,7 @@ import type {
   ResolvedComponentDefinition,
   Template,
 } from '@glimmer/interfaces';
+
 import { getComponentTemplate } from '@glimmer/manager';
 import { assert, dict } from '@glimmer/util';
 

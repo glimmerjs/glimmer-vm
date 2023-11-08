@@ -1,4 +1,6 @@
-import { FallibleFormula, type SomeReactive, unwrapReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { FallibleFormula,  unwrapReactive } from '@glimmer/reference';
 
 import { normalizeStringValue } from '../dom/normalize';
 

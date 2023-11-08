@@ -9,6 +9,8 @@ import type {
   Nullable,
   ProgramSymbolTable,
 } from '@glimmer/interfaces';
+import type {HighLevelStatementOp} from './syntax/compilers';
+
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
 
@@ -17,7 +19,7 @@ import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { meta } from './opcode-builder/helpers/shared';
-import { definePushOp, type HighLevelStatementOp } from './syntax/compilers';
+import { definePushOp  } from './syntax/compilers';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;

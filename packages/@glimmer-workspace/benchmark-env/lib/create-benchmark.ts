@@ -1,3 +1,5 @@
+import type { Benchmark } from './interfaces';
+
 import { setComponentTemplate, setInternalComponentManager } from '@glimmer/manager';
 import { templateFactory } from '@glimmer/opcode-compiler';
 import { templateOnlyComponent } from '@glimmer/runtime';
@@ -5,7 +7,6 @@ import { templateOnlyComponent } from '@glimmer/runtime';
 import basicComponentManager from './benchmark/basic-component-manager';
 import createRegistry from './benchmark/create-registry';
 import onModifier from './benchmark/on-modifier';
-import type { Benchmark } from './interfaces';
 
 export default function createBenchmark(): Benchmark {
   const registry = createRegistry();

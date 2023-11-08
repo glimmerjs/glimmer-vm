@@ -1,4 +1,3 @@
-import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type {
   AttrNamespace,
   BlockBounds,
@@ -27,10 +26,13 @@ import type {
   VmStackAspect,
 } from '@glimmer/interfaces';
 import type { Stack } from '@glimmer/util';
+import type {DynamicAttribute} from './attributes/dynamic';
+
+import { destroy, registerDestructor } from '@glimmer/destroyable';
 import { assert, BalancedStack, expect, parentDebugFrames, PresentStack } from '@glimmer/util';
 
 import { clear, clearRange, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
-import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
+import {  dynamicAttribute } from './attributes/dynamic';
 
 class First implements FirstNode {
   readonly first: SimpleNode;

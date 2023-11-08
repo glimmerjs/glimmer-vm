@@ -1,6 +1,6 @@
 import type { VmMachineOp, VmSyscallOp } from '@glimmer/interfaces';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
-export { OpSize, Op } from './generated/opcodes';
+export { Op,OpSize } from './generated/opcodes';
 
 export type VmOp = VmMachineOp | VmSyscallOp;
 

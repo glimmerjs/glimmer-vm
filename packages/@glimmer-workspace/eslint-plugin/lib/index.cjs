@@ -83,18 +83,8 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 'warn',
         '@typescript-eslint/ban-types': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
-        '@typescript-eslint/consistent-type-imports': [
-          'error',
-          {
-            fixStyle: 'separate-type-imports',
-          },
-        ],
-        '@typescript-eslint/consistent-type-exports': [
-          'error',
-          {
-            fixMixedExportsWithInlineTypeSpecifier: false,
-          },
-        ],
+        '@typescript-eslint/consistent-type-imports': 'error',
+        '@typescript-eslint/consistent-type-exports': 'error',
         '@typescript-eslint/no-import-type-side-effects': 'error',
         '@typescript-eslint/naming-convention': [
           'error',
@@ -137,11 +127,46 @@ module.exports = {
           { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
         ],
         'n/no-unpublished-require': 'off',
+        'import/consistent-type-specifier-style': 'error',
         'import/no-relative-packages': 'error',
         'import/default': 'off',
         'import/no-unresolved': 'error',
         'import/no-extraneous-dependencies': 'error',
-        'simple-import-sort/imports': 'error',
+        'sort-imports': 'off',
+        'simple-import-sort/imports': [
+          'error',
+          {
+            groups: [
+              // == Side effect imports. ==
+              ['^\\u0000'],
+
+              // == import type ==
+              [
+                // from node:*
+                '^node:.+\\u0000$',
+                // from scoped packages
+                '^@?\\w.+\\u0000$',
+                // from absolute imports
+                '^.+\\u0000$',
+                // from relative imports
+                '^\\..+\\u0000$',
+              ],
+
+              // == normal imports ==
+              // Node.js builtins prefixed with `node:`.
+              ['^node:'],
+              // Packages.
+              // Things that start with a letter (or digit or underscore), or `@` followed by a letter.
+              ['^@?\\w'],
+              // Absolute imports and other imports such as Vue-style `@/foo`.
+              // Anything not matched in another group.
+              ['^'],
+              // Relative imports.
+              // Anything that starts with a dot.
+              ['^\\.'],
+            ],
+          },
+        ],
         'simple-import-sort/exports': 'error',
         'no-unused-private-class-members': 'error',
         'import/first': 'error',

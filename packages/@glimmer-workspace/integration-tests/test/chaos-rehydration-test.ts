@@ -1,5 +1,7 @@
 /* eslint-disable qunit/no-identical-names */
 import type { Dict, Nullable, SimpleElement, SomeReactive } from '@glimmer/interfaces';
+import type {ComponentBlueprint, Content} from '@glimmer-workspace/integration-tests';
+
 import { ReadonlyCell, unwrapReactive } from '@glimmer/reference';
 import {
   castToBrowser,
@@ -13,8 +15,6 @@ import {
 import {
   blockStack,
   CLOSE,
-  type ComponentBlueprint,
-  type Content,
   content,
   equalTokens,
   matrix,
@@ -23,7 +23,7 @@ import {
   qunitFixture,
   RehydrationDelegate,
   RenderTestContext,
-  replaceHTML,
+  replaceHTML
 } from '@glimmer-workspace/integration-tests';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`) `"ActiveXObject" in

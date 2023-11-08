@@ -1,10 +1,11 @@
+import type {SomeReactive} from '@glimmer/reference';
+
 import {
   DeeplyConstant,
   getReactiveProperty,
   MutableCell,
   ReadonlyCell,
-  type SomeReactive,
-  updateReactive,
+  updateReactive
 } from '@glimmer/reference';
 import { dirtyTagFor } from '@glimmer/validator';
 

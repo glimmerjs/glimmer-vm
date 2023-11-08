@@ -7,10 +7,15 @@ import type {
   RuntimeHeap,
   SnapshotArray,
 } from '@glimmer/interfaces';
+import type {OpSnapshot, SomeDisassembledOperand} from '../debug';
+import type { OpcodeMetadata, StackSpec } from '../metadata';
+import type { Fragment } from './fragment';
+import type { DebugLogger } from './lines';
+import type {IntoFragment} from './presets';
+
 import { decodeHandle, enumerate } from '@glimmer/util';
 
-import { debug, type OpSnapshot, type SomeDisassembledOperand } from '../debug';
-import type { OpcodeMetadata, StackSpec } from '../metadata';
+import { debug   } from '../debug';
 import { opcodeMetadata } from '../opcode-metadata';
 import {
   array,
@@ -31,9 +36,7 @@ import {
   updatingOpcode,
   wrap,
 } from './combinators';
-import type { Fragment } from './fragment';
-import type { DebugLogger } from './lines';
-import { as, frag, group, type IntoFragment, intoFragment, join, subtle, value } from './presets';
+import { as, frag, group,  intoFragment, join, subtle, value } from './presets';
 import { SerializeBlockContext } from './serialize';
 
 export class DebugState {

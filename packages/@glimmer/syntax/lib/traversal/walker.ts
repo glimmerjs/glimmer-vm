@@ -1,5 +1,4 @@
 import type { Nullable } from '@glimmer/interfaces';
-
 import type * as ASTv1 from '../v1/api';
 
 export type NodeCallback<N extends ASTv1.Node> = (node: N, walker: Walker) => void;

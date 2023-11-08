@@ -1,9 +1,9 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { NS_SVG } from '@glimmer/util';
 import type { RenderTestConstructor } from '@glimmer-workspace/integration-tests';
-import { jitSuite, RenderTestContext } from '@glimmer-workspace/integration-tests';
-
 import type { RenderDelegate } from '../lib/render-delegate';
+
+import { NS_SVG } from '@glimmer/util';
+import { jitSuite, RenderTestContext } from '@glimmer-workspace/integration-tests';
 
 export interface SafeString {
   toHTML(): string;

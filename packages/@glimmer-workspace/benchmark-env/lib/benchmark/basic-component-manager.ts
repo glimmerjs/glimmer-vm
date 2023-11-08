@@ -1,9 +1,11 @@
 import type { Dict, Owner, Template, VMArguments, WithCreateInstance } from '@glimmer/interfaces';
+import type {SomeReactive} from '@glimmer/reference';
+import type { ComponentArgs } from '../interfaces';
+
 import { getComponentTemplate } from '@glimmer/manager';
-import { ReadonlyCell, type SomeReactive } from '@glimmer/reference';
+import { ReadonlyCell  } from '@glimmer/reference';
 import { EMPTY_ARGS } from '@glimmer/runtime';
 
-import type { ComponentArgs } from '../interfaces';
 import argsProxy from './args-proxy';
 
 const BASIC_COMPONENT_CAPABILITIES = {

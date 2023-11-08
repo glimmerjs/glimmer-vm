@@ -7,7 +7,9 @@ import type {
   Owner,
   RuntimeResolver,
 } from '@glimmer/interfaces';
-import { FallibleFormula, type SomeReactive, unwrapReactive } from '@glimmer/reference';
+import type {SomeReactive} from '@glimmer/reference';
+
+import { FallibleFormula,  unwrapReactive } from '@glimmer/reference';
 import { expect, isObject } from '@glimmer/util';
 import { CurriedTypes } from '@glimmer/vm';
 
