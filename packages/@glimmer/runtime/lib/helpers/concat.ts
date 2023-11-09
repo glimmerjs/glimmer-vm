@@ -1,5 +1,5 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-import { FallibleFormula } from '@glimmer/reference';
+import { Formula } from '@glimmer/reference';
 
 import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
@@ -36,7 +36,7 @@ const normalizeTextValue = (value: unknown): string => {
   @method concat
 */
 export const concat = internalHelper(({ positional }: CapturedArguments) => {
-  return FallibleFormula(
+  return Formula(
     () => reifyPositional(positional).map(normalizeTextValue).join(''),
     'concat'
   );

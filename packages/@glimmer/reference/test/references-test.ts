@@ -5,7 +5,7 @@ import {
   Accessor,
   createDebugAliasRef,
   DeeplyReadonlyCell,
-  FallibleFormula,
+  Formula,
   getReactiveProperty,
   isAccessor,
   isUpdatableRef,
@@ -216,7 +216,7 @@ module('@glimmer/reference', () => {
         let count = 0;
 
         let dict = new TrackedDict<string>();
-        let ref = FallibleFormula(() => {
+        let ref = Formula(() => {
           count++;
           return dict.get('foo');
         });
@@ -262,11 +262,11 @@ module('@glimmer/reference', () => {
         let first = new TrackedDict<string>();
         let second = new TrackedDict<string>();
 
-        let innerRef = FallibleFormula(() => {
+        let innerRef = Formula(() => {
           count++;
           return first.get('foo');
         });
-        let outerRef = FallibleFormula(() => unwrapReactive(innerRef));
+        let outerRef = Formula(() => unwrapReactive(innerRef));
 
         first.set('foo', 'bar');
 
@@ -306,7 +306,7 @@ module('@glimmer/reference', () => {
 
         let parent = new Parent();
 
-        let computeRef = FallibleFormula(() => parent.child);
+        let computeRef = Formula(() => parent.child);
         let valueRef = getReactiveProperty(computeRef, 'value');
 
         assert.strictEqual(unwrapReactive(valueRef), 123, 'value is correct');

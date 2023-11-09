@@ -24,7 +24,7 @@ import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalComponentManager } from '@glimmer/manager';
 import {
   createPrimitiveCell,
-  FallibleFormula,
+  Formula,
   getReactiveProperty,
   ReadonlyCell,
   unwrapReactive,
@@ -184,7 +184,7 @@ export class EmberishCurlyComponentManager
 
       let named = args.named.capture();
       let positional = args.positional.capture();
-      named[positionalParams] = FallibleFormula(() => reifyPositional(positional));
+      named[positionalParams] = Formula(() => reifyPositional(positional));
 
       return { positional: EMPTY_ARRAY, named } as PreparedArguments;
     } else if (Array.isArray(positionalParams)) {

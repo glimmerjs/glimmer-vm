@@ -1,7 +1,7 @@
 import type { CapturedArguments, Dict } from '@glimmer/interfaces';
 import type {Reactive} from '@glimmer/reference';
 import { deprecate } from '@glimmer/global-context';
-import { FallibleFormula  } from '@glimmer/reference';
+import { Formula  } from '@glimmer/reference';
 
 import { reifyNamed } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
@@ -65,7 +65,7 @@ if (import.meta.env.DEV) {
    @public
  */
 export const hash = internalHelper(({ named }: CapturedArguments): Reactive<Dict<unknown>> => {
-  let ref = FallibleFormula(
+  let ref = Formula(
     () => {
       let hash = reifyNamed(named);
 

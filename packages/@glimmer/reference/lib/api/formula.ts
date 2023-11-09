@@ -8,7 +8,7 @@ import type {
 } from '@glimmer/interfaces';
 import { devmode, setDescription, toValidatableDescription } from '@glimmer/util';
 
-import { setFromFallibleCompute, setResult } from './internal/errors';
+import { setFromFallibleCompute, setLastValue, setResult } from './internal/errors';
 import { COMPUTED_CELL, FALLIBLE_FORMULA, InternalReactive } from './internal/reactive';
 
 const FALLIBLE_FORMULA_DEFAULTS = devmode(
@@ -25,10 +25,7 @@ const FALLIBLE_FORMULA_DEFAULTS = devmode(
  * A fallible formula invokes user code. If the user code throws an exception, the formula returns
  * an error {@linkcode Result}. Otherwise, it returns an ok {@linkcode Result}.
  */
-export function FallibleFormula<T = unknown>(
-  compute: () => T,
-  debugLabel?: DescriptionSpec
-): ReactiveFormula<T> {
+export function Formula<T>(compute: () => T, debugLabel?: DescriptionSpec): ReactiveFormula<T> {
   const ref = new InternalReactive<T>(FALLIBLE_FORMULA);
 
   ref.compute = () => setFromFallibleCompute(ref, compute);
@@ -90,7 +87,7 @@ export function ComputedCell<T = unknown>(
 ): ReactiveComputedCell<T> {
   const ref = new InternalReactive<T>(COMPUTED_CELL);
 
-  ref.compute = compute;
+  ref.compute = () => setLastValue(ref, compute());
 
   setDescription(
     ref,

@@ -2,7 +2,7 @@ import type { CapturedArguments } from '@glimmer/interfaces';
 import type {Reactive} from '@glimmer/reference';
 import { check } from '@glimmer/debug';
 import {
-  FallibleFormula,
+  Formula,
   isAccessor,
   unwrapReactive,
   updateReactive
@@ -81,7 +81,7 @@ const context = buildUntouchableThis('`fn` helper');
 export const fn = internalHelper(({ positional }: CapturedArguments) => {
   let callbackRef = check(positional[0], assertCallbackIsFn);
 
-  return FallibleFormula(() => {
+  return Formula(() => {
     return (...invocationArgs: unknown[]) => {
       let [fn, ...args] = reifyPositional(positional);
 

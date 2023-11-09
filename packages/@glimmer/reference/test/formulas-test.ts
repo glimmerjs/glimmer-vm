@@ -1,7 +1,7 @@
 import type { MutableReactiveCell, Reactive } from '@glimmer/interfaces';
 import {
   Accessor,
-  FallibleFormula,
+  Formula,
   MutableCell,
   readCell,
   ResultFormula,
@@ -20,7 +20,7 @@ module('@glimmer/reference', () => {
     test(`errors in the formula turn into Err values when the reference is read`, () => {
       const isError = MutableCell(false, 'isError');
 
-      const formula = FallibleFormula(() => {
+      const formula = Formula(() => {
         if (readCell(isError)) {
           throw new Error('womp womp');
         } else {

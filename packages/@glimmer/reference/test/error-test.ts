@@ -1,6 +1,6 @@
 import {
   clearError,
-  FallibleFormula,
+  Formula,
   MutableCell,
   readReactive,
   unwrapReactive,
@@ -17,7 +17,7 @@ module('@glimmer/reference', () => {
       test(`when the underlying computation becomes stale, there's a chance to recover`, () => {
         const isError = MutableCell(false, 'isError');
 
-        const child = FallibleFormula(() => {
+        const child = Formula(() => {
           if (unwrapReactive(isError)) {
             throw new Error('womp womp');
           }
@@ -25,7 +25,7 @@ module('@glimmer/reference', () => {
           return true;
         }, 'child');
 
-        const parent = FallibleFormula(() => {
+        const parent = Formula(() => {
           return unwrapReactive(child);
         }, 'parent');
 
@@ -47,7 +47,7 @@ module('@glimmer/reference', () => {
       test(`a getter doesn't run again after it happened`, (assert) => {
         let events: string[] = [];
 
-        const formula = FallibleFormula(() => {
+        const formula = Formula(() => {
           events.push('formula ran');
 
           throw Error('womp womp');
@@ -69,7 +69,7 @@ module('@glimmer/reference', () => {
 
         // this formula will never invalidate on its own, since it doesn't read from any reactive
         // state.
-        const formula = FallibleFormula(() => {
+        const formula = Formula(() => {
           if (isError) {
             throw new Error('womp womp');
           }

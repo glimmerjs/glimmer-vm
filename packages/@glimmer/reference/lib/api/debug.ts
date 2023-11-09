@@ -3,7 +3,7 @@ import { devmode, enhancedDevmode, inDevmode, stringifyDebugLabel } from '@glimm
 
 import { Accessor } from './accessor';
 import { unwrapReactive, updateReactive } from './core';
-import { FallibleFormula } from './formula';
+import { Formula } from './formula';
 import { REFERENCE } from './internal/reactive';
 import { isUpdatableRef } from './predicates';
 
@@ -14,7 +14,7 @@ export const createDebugAliasRef = enhancedDevmode(
 
     const ref = update
       ? Accessor({ get: () => unwrapReactive(inner), set: update }, debugLabel())
-      : FallibleFormula(() => unwrapReactive(inner), debugLabel());
+      : Formula(() => unwrapReactive(inner), debugLabel());
 
     ref[REFERENCE] = inner[REFERENCE];
 

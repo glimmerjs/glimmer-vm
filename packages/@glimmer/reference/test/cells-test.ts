@@ -1,10 +1,13 @@
 import type { Reactive } from '@glimmer/reference';
 import {
+  ComputedCell,
   DeeplyReadonlyCell,
   getReactiveProperty,
   MutableCell,
+  readCell,
   ReadonlyCell,
   updateReactive,
+  writeCell,
 } from '@glimmer/reference';
 import { dirtyTagFor } from '@glimmer/validator';
 
@@ -86,6 +89,32 @@ module('@glimmer/reference', () => {
         () => updateReactive(property, 2),
         /^Error: cannot update property reference \(`counter.count`\)$/u
       );
+    });
+  });
+
+  module('ComputedCell', () => {
+    test(`it's a reactive value and behaves like a cell`, (assert) => {
+      const counter = MutableCell(0);
+
+      const incremented = ComputedCell(() => {
+        return readCell(counter) + 1;
+      });
+
+      const validate = new Validate(incremented);
+
+      validate.assertingStale(1, 'initial');
+
+      assert.strictEqual(readCell(incremented), 1, 'incremented');
+
+      writeCell(counter, 1);
+
+      assert.strictEqual(readCell(incremented), 2, 'incremented again');
+      validate.assertingFresh(2, 'updated');
+
+      writeCell(counter, 2);
+
+      validate.assertingStale(3, 'updated again');
+      assert.strictEqual(readCell(incremented), 3, 'incremented again');
     });
   });
 });

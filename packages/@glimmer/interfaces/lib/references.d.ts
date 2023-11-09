@@ -201,9 +201,9 @@ export type MutableReactiveCell<T = unknown> =
   | RawReactive<T, MutableCellType>;
 
 export type ReactiveCell<T = unknown> =
-  | DeeplyConstantReactiveCell<T>
   | ReadonlyReactiveCell<T>
-  | MutableReactiveCell<T>;
+  | MutableReactiveCell<T>
+  | ReactiveComputedCell<T>;
 
 export type ReactiveComputedCell<T = unknown> = RawReactive<T, ComputedCellType>;
 export type ReactiveFormula<T = unknown> = RawReactive<T, FormulaType>;

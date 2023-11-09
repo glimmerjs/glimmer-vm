@@ -21,7 +21,7 @@ import {
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { toBool } from '@glimmer/global-context';
 import {
-  FallibleFormula,
+  Formula,
   FALSE_REFERENCE,
   getReactiveProperty,
   TRUE_REFERENCE,
@@ -86,7 +86,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
   let helperRef: Reactive;
   let initialOwner: Owner = vm.getOwner();
 
-  let helperInstanceRef = FallibleFormula(() => {
+  let helperInstanceRef = Formula(() => {
     if (helperRef !== undefined) {
       destroy(helperRef);
     }
@@ -121,7 +121,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
     }
   });
 
-  let helperValueRef = FallibleFormula(() => {
+  let helperValueRef = Formula(() => {
     unwrapReactive(helperInstanceRef);
   });
 
@@ -268,7 +268,7 @@ APPEND_OPCODES.add(Op.IfInline, (vm) => {
   let falsy = check(vm.stack.pop(), CheckReactive);
 
   vm.stack.push(
-    FallibleFormula(() => {
+    Formula(() => {
       if (toBool(unwrapReactive(condition)) === true) {
         return unwrapReactive(truthy);
       } else {
@@ -282,7 +282,7 @@ APPEND_OPCODES.add(Op.Not, (vm) => {
   let ref = check(vm.stack.pop(), CheckReactive);
 
   vm.stack.push(
-    FallibleFormula(() => {
+    Formula(() => {
       return !toBool(unwrapReactive(ref));
     })
   );
@@ -294,7 +294,7 @@ APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
   let nameRef = check(stack.pop(), CheckReactive);
 
   stack.push(
-    FallibleFormula(() => {
+    Formula(() => {
       let name = String(unwrapReactive(nameRef));
       return unwrapReactive(scope.get(name));
     })
@@ -306,7 +306,7 @@ APPEND_OPCODES.add(Op.Log, (vm) => {
 
   vm.loadValue(
     $v0,
-    FallibleFormula(() => {
+    Formula(() => {
       // eslint-disable-next-line no-console
       console.log(...reifyPositional(positional));
     })

@@ -22,8 +22,8 @@ import {
 import { toBool } from '@glimmer/global-context';
 import {
   createPrimitiveCell,
-  FallibleFormula,
   FALSE_REFERENCE,
+  Formula,
   isConstant,
   NULL_REFERENCE,
   ReadonlyCell,
@@ -292,7 +292,7 @@ APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
   let { stack } = vm;
   let valueRef = check(stack.pop(), CheckReactive);
 
-  stack.push(FallibleFormula(() => toBool(unwrapReactive(valueRef))));
+  stack.push(Formula(() => toBool(unwrapReactive(valueRef))));
 });
 
 export class Assert implements UpdatingOpcode {

@@ -20,7 +20,7 @@ import {
   CheckString,
 } from '@glimmer/debug';
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
-import { FallibleFormula, isConstant, readReactive, unwrapReactive } from '@glimmer/reference';
+import { Formula, isConstant, readReactive, unwrapReactive } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject, stringifyDebugLabel } from '@glimmer/util';
 import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
@@ -155,7 +155,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
   let { constructing } = vm.elements();
   let initialOwner = vm.getOwner();
 
-  let instanceRef = FallibleFormula(() => {
+  let instanceRef = Formula(() => {
     let value = unwrapReactive(ref);
     let owner: Owner;
 
@@ -351,7 +351,7 @@ export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
   constructor(reference: Reactive<unknown>, attribute: DynamicAttribute, env: Environment) {
     let initialized = false;
 
-    this.updateRef = FallibleFormula(() => {
+    this.updateRef = Formula(() => {
       let value = unwrapReactive(reference);
 
       if (initialized === true) {

@@ -6,7 +6,7 @@ import type {
   RuntimeResolver,
 } from '@glimmer/interfaces';
 import type { Reactive } from '@glimmer/reference';
-import { FallibleFormula, unwrapReactive } from '@glimmer/reference';
+import { Formula, unwrapReactive } from '@glimmer/reference';
 import { expect, isObject } from '@glimmer/util';
 import { CurriedTypes } from '@glimmer/vm';
 
@@ -23,7 +23,7 @@ export default function createCurryRef(
   let lastValue: unknown;
   let curriedDefinition: object | string | null;
 
-  return FallibleFormula(() => {
+  return Formula(() => {
     let value = unwrapReactive(inner);
 
     if (value === lastValue) {

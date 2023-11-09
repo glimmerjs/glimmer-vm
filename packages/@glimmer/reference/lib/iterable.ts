@@ -5,7 +5,7 @@ import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
 import type { ReferenceEnvironment } from './api/internal/reactive';
 
-import { Accessor, FallibleFormula, unwrapReactive } from './api';
+import { Accessor, Formula, unwrapReactive } from './api';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -161,7 +161,7 @@ function uniqueKeyFor(keyFor: KeyFor) {
 }
 
 export function createIteratorRef(listRef: Reactive, key: string) {
-  return FallibleFormula(() => {
+  return Formula(() => {
     let iterable = unwrapReactive(listRef) as { [Symbol.iterator]: any } | null | false;
 
     let keyFor = makeKeyFor(key);

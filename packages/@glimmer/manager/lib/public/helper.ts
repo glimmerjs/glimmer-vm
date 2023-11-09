@@ -10,7 +10,7 @@ import type {
   Owner,
 } from '@glimmer/interfaces';
 import { associateDestroyableChild } from '@glimmer/destroyable';
-import { FallibleFormula, ReadonlyCell, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { Formula, ReadonlyCell, UNDEFINED_REFERENCE } from '@glimmer/reference';
 
 import type { ManagerFactory } from './index';
 
@@ -117,7 +117,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
       const bucket = manager.createHelper(definition, args);
 
       if (hasValue(manager)) {
-        let cache = FallibleFormula(
+        let cache = Formula(
           () => (manager as HelperManagerWithValue<unknown>).getValue(bucket),
           import.meta.env.DEV && manager.getDebugName && manager.getDebugName(definition)
         );

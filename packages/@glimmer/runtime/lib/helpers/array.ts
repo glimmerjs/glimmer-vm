@@ -1,6 +1,6 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
 import type {Reactive} from '@glimmer/reference';
-import { FallibleFormula  } from '@glimmer/reference';
+import { Formula  } from '@glimmer/reference';
 
 import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
@@ -41,6 +41,6 @@ import { internalHelper } from './internal-helper';
 
 export const array = internalHelper(
   ({ positional }: CapturedArguments): Reactive<unknown[]> => {
-    return FallibleFormula(() => reifyPositional(positional), 'array');
+    return Formula(() => reifyPositional(positional), 'array');
   }
 );

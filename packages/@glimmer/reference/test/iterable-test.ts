@@ -3,7 +3,7 @@ import type {OpaqueIterationItem, Reactive} from '@glimmer/reference';
 import {  testOverrideGlobalContext } from '@glimmer/global-context';
 import {
   createIteratorRef,
-  FallibleFormula,
+  Formula,
   unwrapReactive
 } from '@glimmer/reference';
 import { unwrap } from '@glimmer/util';
@@ -17,7 +17,7 @@ class IterableWrapper {
   private iterable: Reactive<{ next(): OpaqueIterationItem | null }>;
 
   constructor(obj: unknown, key = '@identity') {
-    let valueRef = FallibleFormula(() => {
+    let valueRef = Formula(() => {
       consumeTag(VOLATILE_TAG);
       return obj;
     });

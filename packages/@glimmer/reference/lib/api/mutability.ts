@@ -1,15 +1,15 @@
-import type { ReactiveFormula, Reactive } from '@glimmer/interfaces';
+import type { Reactive,ReactiveFormula } from '@glimmer/interfaces';
 
 import type { InternalReactive } from './internal/reactive';
 
 import { ResultAccessor } from './accessor';
 import { unwrapReactive } from './core';
-import { FallibleFormula } from './formula';
+import { Formula } from './formula';
 import { readInternalReactive, updateInternalReactive } from './internal/operations';
 import { DEEPLY_CONSTANT, READONLY_CELL, REFERENCE } from './internal/reactive';
 
 export function toReadonly<T>(reactive: Reactive<T>): ReactiveFormula<T> {
-  return FallibleFormula(() => unwrapReactive(reactive));
+  return Formula(() => unwrapReactive(reactive));
 }
 
 export function toMut<T>(maybeMut: Reactive<T>): Reactive<T> {

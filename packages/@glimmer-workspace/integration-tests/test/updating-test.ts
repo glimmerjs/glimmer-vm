@@ -2,7 +2,7 @@ import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
 import type {ClientSideRenderDelegate} from '@glimmer-workspace/integration-tests';
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
-import { createPrimitiveCell, FallibleFormula, ReadonlyCell } from '@glimmer/reference';
+import { createPrimitiveCell, Formula, ReadonlyCell } from '@glimmer/reference';
 import { devmode, expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 import {
@@ -499,7 +499,7 @@ class UpdatingTest extends RenderTestContext {
     this.register.internalHelper('stateful-foo', (_args) => {
       didCreate++;
 
-      let ref = FallibleFormula(() => {
+      let ref = Formula(() => {
         consumeTag(tag);
         return currentValue;
       });
