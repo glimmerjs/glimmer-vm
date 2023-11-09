@@ -6,7 +6,7 @@ import type {
   CurriedType,
   Owner,
 } from "@glimmer/interfaces";
-import type { SomeReactive } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 
 const TYPE: unique symbol = Symbol('TYPE');
 const INNER: unique symbol = Symbol('INNER');
@@ -55,8 +55,8 @@ interface ResolvedCurriedValue<T> {
   definition: T;
   owner: Owner;
   resolved: boolean;
-  positional: SomeReactive[] | undefined;
-  named: Record<string, SomeReactive>[] | undefined;
+  positional: Reactive[] | undefined;
+  named: Record<string, Reactive>[] | undefined;
 }
 
 export function resolveCurriedValue(
@@ -69,8 +69,8 @@ export function resolveCurriedValue(
   curriedValue: CurriedValue<CurriedType>
 ): ResolvedCurriedValue<object | string> {
   let currentWrapper = curriedValue;
-  let positional: SomeReactive[] | undefined;
-  let named: Record<string, SomeReactive>[] | undefined;
+  let positional: Reactive[] | undefined;
+  let named: Record<string, Reactive>[] | undefined;
   let definition, owner, resolved;
 
   // eslint-disable-next-line no-constant-condition

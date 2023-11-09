@@ -1,4 +1,5 @@
 import type { Dict, Maybe } from '@glimmer/interfaces';
+
 import type { BuildStyle } from './delegate';
 
 export class InvocationBuilder {

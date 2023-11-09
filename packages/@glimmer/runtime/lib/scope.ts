@@ -8,15 +8,14 @@ import type {
   ScopeBlock,
   ScopeSlot,
 } from "@glimmer/interfaces";
-import type {SomeReactive} from '@glimmer/reference';
-
+import type {Reactive} from '@glimmer/reference';
 import {  UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { assign, unwrap } from '@glimmer/util';
 
 export class DynamicScopeImpl implements DynamicScope {
-  private bucket: Dict<SomeReactive>;
+  private bucket: Dict<Reactive>;
 
-  constructor(bucket?: Dict<SomeReactive>) {
+  constructor(bucket?: Dict<Reactive>) {
     if (bucket) {
       this.bucket = assign({}, bucket);
     } else {
@@ -24,11 +23,11 @@ export class DynamicScopeImpl implements DynamicScope {
     }
   }
 
-  get(key: string): SomeReactive {
+  get(key: string): Reactive {
     return unwrap(this.bucket[key]);
   }
 
-  set(key: string, reference: SomeReactive): SomeReactive {
+  set(key: string, reference: Reactive): Reactive {
     return (this.bucket[key] = reference);
   }
 
@@ -37,14 +36,14 @@ export class DynamicScopeImpl implements DynamicScope {
   }
 }
 
-export function isScopeReference(s: ScopeSlot): s is SomeReactive {
+export function isScopeReference(s: ScopeSlot): s is Reactive {
   if (s === null || Array.isArray(s)) return false;
   return true;
 }
 
 export class PartialScopeImpl implements PartialScope {
-  static root(self: SomeReactive<unknown>, size = 0, owner: Owner): PartialScope {
-    let refs: SomeReactive<unknown>[] = new Array(size + 1);
+  static root(self: Reactive<unknown>, size = 0, owner: Owner): PartialScope {
+    let refs: Reactive<unknown>[] = new Array(size + 1);
 
     for (let i = 0; i <= size; i++) {
       refs[i] = UNDEFINED_REFERENCE;
@@ -54,7 +53,7 @@ export class PartialScopeImpl implements PartialScope {
   }
 
   static sized(size = 0, owner: Owner): Scope {
-    let refs: SomeReactive<unknown>[] = new Array(size + 1);
+    let refs: Reactive<unknown>[] = new Array(size + 1);
 
     for (let i = 0; i <= size; i++) {
       refs[i] = UNDEFINED_REFERENCE;
@@ -71,20 +70,20 @@ export class PartialScopeImpl implements PartialScope {
     // named arguments and blocks passed to a layout that uses eval
     private evalScope: Dict<ScopeSlot> | null,
     // locals in scope when the partial was invoked
-    private partialMap: Dict<SomeReactive<unknown>> | null
+    private partialMap: Dict<Reactive<unknown>> | null
   ) {}
 
-  init({ self }: { self: SomeReactive<unknown> }): this {
+  init({ self }: { self: Reactive<unknown> }): this {
     this.slots[0] = self;
     return this;
   }
 
-  getSelf(): SomeReactive<unknown> {
-    return this.get<SomeReactive<unknown>>(0);
+  getSelf(): Reactive<unknown> {
+    return this.get<Reactive<unknown>>(0);
   }
 
-  getSymbol(symbol: number): SomeReactive<unknown> {
-    return this.get<SomeReactive<unknown>>(symbol);
+  getSymbol(symbol: number): Reactive<unknown> {
+    return this.get<Reactive<unknown>>(symbol);
   }
 
   getBlock(symbol: number): Nullable<ScopeBlock> {
@@ -96,7 +95,7 @@ export class PartialScopeImpl implements PartialScope {
     return this.evalScope;
   }
 
-  getPartialMap(): Nullable<Dict<SomeReactive<unknown>>> {
+  getPartialMap(): Nullable<Dict<Reactive<unknown>>> {
     return this.partialMap;
   }
 
@@ -104,11 +103,11 @@ export class PartialScopeImpl implements PartialScope {
     this.set(symbol, value);
   }
 
-  bindSelf(self: SomeReactive<unknown>) {
-    this.set<SomeReactive<unknown>>(0, self);
+  bindSelf(self: Reactive<unknown>) {
+    this.set<Reactive<unknown>>(0, self);
   }
 
-  bindSymbol(symbol: number, value: SomeReactive<unknown>) {
+  bindSymbol(symbol: number, value: Reactive<unknown>) {
     this.set(symbol, value);
   }
 
@@ -120,7 +119,7 @@ export class PartialScopeImpl implements PartialScope {
     this.evalScope = map;
   }
 
-  bindPartialMap(map: Dict<SomeReactive<unknown>>) {
+  bindPartialMap(map: Dict<Reactive<unknown>>) {
     this.partialMap = map;
   }
 

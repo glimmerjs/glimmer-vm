@@ -1,5 +1,4 @@
 import type { Dict, WellKnownAttrName, WellKnownTagName } from '@glimmer/interfaces';
-
 import { WellKnownAttrNames, WellKnownTagNames } from '@glimmer/wire-format';
 
 // There is a small whitelist of namespaced attributes specially

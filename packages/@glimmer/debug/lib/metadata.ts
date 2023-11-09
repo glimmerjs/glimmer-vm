@@ -1,4 +1,5 @@
 import type { DebugVmSnapshot, Dict, PresentArray } from '@glimmer/interfaces';
+
 import type { UNCHANGED } from './stack/params';
 import type { Op, OperandList, ShorthandStackReturn } from './utils';
 

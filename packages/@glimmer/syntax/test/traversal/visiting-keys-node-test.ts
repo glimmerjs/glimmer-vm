@@ -1,5 +1,4 @@
 import type {AST} from '@glimmer/syntax';
-
 import {  preprocess as parse, traverse } from '@glimmer/syntax';
 
 function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Node | undefined]>) {

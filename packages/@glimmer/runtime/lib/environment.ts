@@ -13,7 +13,6 @@ import type {
   Transaction,
   TransactionSymbol,
 } from '@glimmer/interfaces';
-
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, devmode, expect } from '@glimmer/util';
 import { track, updateTag } from '@glimmer/validator';
@@ -71,7 +70,7 @@ class TransactionImpl implements Transaction {
           () => manager.install(state),
           devmode(() => {
             return {
-              kind: 'modifier',
+              reason: 'modifier',
               label: [
                 `- While rendering:\n  (instance of a \`${
                   definition.resolvedName || manager.getDebugName(definition.state)

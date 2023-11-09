@@ -8,7 +8,6 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
 } from '@glimmer/interfaces';
-
 import { NS_HTML, NS_SVG } from '@glimmer/util';
 
 import { DOMTreeConstruction } from './tree-construction';

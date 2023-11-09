@@ -1,7 +1,7 @@
 import type { Dict, RenderResult, SimpleElement } from '@glimmer/interfaces';
-import type { DebugRehydrationBuilder } from './builder';
-
 import { renderComponent, renderSync } from '@glimmer/runtime';
+
+import type { DebugRehydrationBuilder } from './builder';
 
 import { RehydrationDelegate } from './delegate';
 

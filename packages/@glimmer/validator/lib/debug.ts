@@ -1,5 +1,4 @@
 import type { Description, DevMode, Tag } from '@glimmer/interfaces';
-
 import { assert } from '@glimmer/global-context';
 import { asPresentArray, devmode, getLast, inDevmode, stringifyDebugLabel } from '@glimmer/util';
 
@@ -109,7 +108,7 @@ if (import.meta.env.DEV) {
    */
   debug.runInTrackingTransaction = <T>(
     fn: () => T,
-    description: Description = { kind: 'tracking', label: ['(tracking)'] }
+    description: Description = { reason: 'tracking', label: ['(tracking)'] }
   ) => {
     debug.beginTrackingTransaction!(description);
     let didError = true;

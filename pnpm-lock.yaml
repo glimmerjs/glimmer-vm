@@ -350,8 +350,8 @@ importers:
 
     devDependencies:
       '@types/qunit':
-        specifier: ^2.19.7
-        version: 2.19.8
+        specifier: workspace:^
+        version: link:@types/qunit
       vite:
         specifier: ^4.3.9
         version: 4.3.9(@types/node@20.8.10)
@@ -578,8 +578,8 @@ importers:
         specifier: workspace:^
         version: link:../../@types/js-reporters
       '@types/qunit':
-        specifier: ^2.19.7
-        version: 2.19.8
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer-workspace/integration-tests/test:
     dependencies:
@@ -882,8 +882,8 @@ importers:
         specifier: workspace:^
         version: link:../compiler
       '@types/qunit':
-        specifier: ^2.19.7
-        version: 2.19.8
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/opcode-compiler:
     dependencies:
@@ -1082,8 +1082,8 @@ importers:
         specifier: workspace:^
         version: link:../opcode-compiler
       '@types/qunit':
-        specifier: ^2.19.7
-        version: 2.19.8
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/syntax:
     dependencies:
@@ -1110,8 +1110,8 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
       '@types/qunit':
-        specifier: ^2.19.7
-        version: 2.19.8
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/syntax/test:
     dependencies:
@@ -1147,8 +1147,8 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
       '@types/qunit':
-        specifier: ^2.19.7
-        version: 2.19.8
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/util/test:
     dependencies:
@@ -4015,10 +4015,6 @@ packages:
 
   /@types/qs@6.9.7:
     resolution: {integrity: sha512-FGa1F62FT09qcrueBA6qYTrJPVDzah9a+493+o2PCXsesWHIn27G98TsSMs3WPNbZIEj4+VJf6saSFpvD+3Zsw==}
-    dev: true
-
-  /@types/qunit@2.19.8:
-    resolution: {integrity: sha512-L4JyeRG1CJGSzJKd1b78DX/ll91E8e50IXkkl8KzW6W0IWz6FTHWEYvTEi8QVNHkUqUu6hjTffwV7ffxcoka0g==}
     dev: true
 
   /@types/range-parser@1.2.4:

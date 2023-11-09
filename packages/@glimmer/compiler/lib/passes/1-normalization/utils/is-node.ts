@@ -1,6 +1,5 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import type {SourceSlice} from '@glimmer/syntax';
-
 import { ASTv2, generateSyntaxError  } from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
 

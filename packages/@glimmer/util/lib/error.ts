@@ -1,4 +1,4 @@
-import type { SomeReactive, UserException as UserExceptionInterface } from '@glimmer/interfaces';
+import type { Reactive, UserException as UserExceptionInterface } from '@glimmer/interfaces';
 
 import { isObject } from './collections';
 import { stringifyDebugLabel } from './devmode/description';
@@ -12,20 +12,20 @@ export function isError(value: unknown): value is Error {
 }
 
 export class EarlyError extends Error {
-  static reactive(message: string, reactive: SomeReactive) {
+  static reactive(message: string, reactive: Reactive) {
     return new EarlyError(message, reactive);
   }
 
-  readonly reactive: SomeReactive | null;
+  readonly reactive: Reactive | null;
 
-  constructor(message: string, reactive: SomeReactive | null = null) {
+  constructor(message: string, reactive: Reactive | null = null) {
     super(fullMessage(message, reactive));
 
     this.reactive = reactive;
   }
 }
 
-function fullMessage(message: string, reactive: SomeReactive | null) {
+function fullMessage(message: string, reactive: Reactive | null) {
   const label = reactive ? stringifyDebugLabel(reactive) : null;
   if (label && message.includes('%r')) {
     return message.replace('%r', `(${label})`);

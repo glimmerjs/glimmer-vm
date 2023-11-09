@@ -6,16 +6,15 @@ import type {
   SimpleElement,
   TagDescription,
 } from '@glimmer/interfaces';
-import type { SomeReactive } from '@glimmer/reference';
-
+import type { Reactive } from '@glimmer/reference';
 import { unwrapReactive } from '@glimmer/reference';
 import { castToBrowser, devmode, getDescription, setDescription } from '@glimmer/util';
 import { createUpdatableTag } from '@glimmer/validator';
 
 interface OnModifierState {
   element: SimpleElement;
-  nameRef: SomeReactive<string>;
-  listenerRef: SomeReactive<EventListener>;
+  nameRef: Reactive<string>;
+  listenerRef: Reactive<EventListener>;
   name: string | null;
   listener: EventListener | null;
   description: DevMode<TagDescription>;
@@ -25,8 +24,8 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
   create(_owner: Owner, element: SimpleElement, _: {}, args: CapturedArguments) {
     const state = {
       element,
-      nameRef: args.positional[0] as SomeReactive<string>,
-      listenerRef: args.positional[1] as SomeReactive<EventListener>,
+      nameRef: args.positional[0] as Reactive<string>,
+      listenerRef: args.positional[1] as Reactive<EventListener>,
       name: null,
       listener: null,
     };
@@ -35,7 +34,7 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
       devmode(
         () =>
           ({
-            kind: 'modifier',
+            reason: 'modifier',
             label: ['on'],
           }) satisfies TagDescription
       )

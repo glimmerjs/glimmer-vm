@@ -7,7 +7,6 @@
  */
 
 import type { GetContextualFreeOpcode } from '@glimmer/interfaces';
-
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 /**

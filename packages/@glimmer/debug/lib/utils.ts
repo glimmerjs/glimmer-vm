@@ -1,12 +1,12 @@
-import type { Nullable, Optional, SomeReactive, VmOpName } from '@glimmer/interfaces';
+import type { Nullable, Optional, Reactive, VmOpName } from '@glimmer/interfaces';
+import { REFERENCE } from '@glimmer/reference';
+import { assertNever, fillNulls } from '@glimmer/util';
+import { OpSize } from '@glimmer/vm';
+
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import type { DebugOpList } from './generated/op-list';
 import type { DynamicStackFn, OpcodeMetadata } from './metadata';
 import type { STACK_TYPES } from './stack/params';
-
-import { REFERENCE } from '@glimmer/reference';
-import { assertNever, fillNulls } from '@glimmer/util';
-import { OpSize } from '@glimmer/vm';
 
 import { UNCHANGED } from './stack/params';
 
@@ -417,6 +417,6 @@ type TupleToParams<T extends unknown[]> = (...args: T) => void;
 type Slice<T extends unknown[]> = TupleToParams<T> extends (first: any, ...rest: infer Rest) => void
   ? Rest
   : never;
-export function isReference(value: unknown): value is SomeReactive {
+export function isReference(value: unknown): value is Reactive {
   return !!(value && typeof value === 'object' && REFERENCE in value);
 }

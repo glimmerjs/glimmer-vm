@@ -1,8 +1,8 @@
 import type {ASTv2, SourceSlice} from '@glimmer/syntax';
+import {  generateSyntaxError  } from '@glimmer/syntax';
+
 import type {Result} from '../../../../shared/result';
 import type { Classified, ClassifiedElement, PreparedArgs } from './classified';
-
-import {  generateSyntaxError  } from '@glimmer/syntax';
 
 import { Err  } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';

@@ -1,9 +1,9 @@
 import type { PresentArray } from '@glimmer/interfaces';
-import type { AnyOptionalList, PresentList } from '../../../shared/list';
-import type { NormalizationState } from '../context';
-
 import { ASTv2, KEYWORDS_TYPES } from '@glimmer/syntax';
 import { getLast, isPresentArray } from '@glimmer/util';
+
+import type { AnyOptionalList, PresentList } from '../../../shared/list';
+import type { NormalizationState } from '../context';
 
 import { Ok, Result, ResultArray } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';

@@ -1,9 +1,9 @@
 import type { Nullable } from '@glimmer/interfaces';
 import type {ASTv2} from '@glimmer/syntax';
-import type { NormalizationState } from '../context';
-
 import {  generateSyntaxError } from '@glimmer/syntax';
 import { CurriedTypes } from '@glimmer/vm';
+
+import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';

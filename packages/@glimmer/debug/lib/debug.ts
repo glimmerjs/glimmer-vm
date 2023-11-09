@@ -7,9 +7,6 @@ import type {
   RuntimeOp,
   TemplateCompilationContext,
 } from '@glimmer/interfaces';
-import type { Primitive } from './stack-check';
-import type { OperandLabel } from './utils';
-
 import { LOCAL_DEBUG, LOCAL_SUBTLE_LOGGING, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
   decodeHandle,
@@ -32,6 +29,9 @@ import {
   CURRIED_HELPER,
   CURRIED_MODIFIER,
 } from '@glimmer/vm';
+
+import type { Primitive } from './stack-check';
+import type { OperandLabel } from './utils';
 
 import { DebugLogger, frag } from '..';
 import { OPERANDS } from './dism/operands';

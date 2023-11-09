@@ -1,5 +1,4 @@
 import type {DeclaredComponentType, RenderDelegate, RenderDelegateOptions} from '@glimmer-workspace/integration-tests';
-
 import {
   ClientSideRenderDelegate,
   ErrorRecoveryRenderDelegate,

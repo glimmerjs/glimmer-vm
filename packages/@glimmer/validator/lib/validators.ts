@@ -17,7 +17,6 @@ import type {
   UpdatableTag,
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
 } from '@glimmer/interfaces';
-
 import { scheduleRevalidate } from '@glimmer/global-context';
 import {
   createWithDescription,
@@ -270,7 +269,7 @@ export function createTag(label?: DevMode<TagDescription>): DirtyableTag {
       devmode(
         () =>
           ({
-            kind: 'cell',
+            reason: 'cell',
             label: ['(dirtyable)'],
           }) satisfies TagDescription
       )
@@ -284,7 +283,7 @@ export function createUpdatableTag(label?: DevMode<TagDescription>): UpdatableTa
       devmode(
         () =>
           ({
-            kind: 'cell',
+            reason: 'cell',
             label: ['(updatable)'],
           }) satisfies TagDescription
       )
@@ -383,7 +382,7 @@ setDescription(
   devmode(
     () =>
       ({
-        kind: 'cell',
+        reason: 'cell',
         label: ['(volatile)'],
       }) satisfies TagDescription
   )
@@ -408,7 +407,7 @@ setDescription(
   devmode(
     () =>
       ({
-        kind: 'cell',
+        reason: 'cell',
         label: ['(current)'],
       }) satisfies TagDescription
   )

@@ -1,8 +1,8 @@
 import type { RenderTestState } from '@glimmer-workspace/integration-tests';
+import { RenderTestContext } from '@glimmer-workspace/integration-tests';
+
 import type { DeclaredComponentType } from '../lib/test-helpers/constants';
 import type { ExpandType } from '../lib/test-helpers/module';
-
-import { RenderTestContext } from '@glimmer-workspace/integration-tests';
 
 import { render, suite } from '../lib/test-decorator';
 import { jitSuite } from '../lib/test-helpers/module';

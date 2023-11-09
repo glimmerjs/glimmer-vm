@@ -8,11 +8,11 @@ import type {
   WireFormat,
 } from '@glimmer/interfaces';
 import type {SavedRegister} from '@glimmer/vm';
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
-
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
 import { $s0, $s1, $sp, InternalComponentCapabilities, Op  } from '@glimmer/vm';
+
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 
 import { namedBlocks } from '../../utils';
 import { HighLevelBuilderOpcodes } from '../opcodes';

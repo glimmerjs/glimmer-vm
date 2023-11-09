@@ -1,7 +1,5 @@
 import type { OpSnapshot } from '@glimmer/debug';
 import type { BlockMetadata, DebugVmSnapshot, RuntimeOp } from '@glimmer/interfaces';
-import type { VM } from '../../vm';
-
 import {
   as,
   DebugLogger,
@@ -22,6 +20,8 @@ import {
   LOCAL_TRACE_LOGGING,
 } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from "@glimmer/util";
+
+import type { VM } from '../../vm';
 
 let lastState: DebugVmSnapshot;
 

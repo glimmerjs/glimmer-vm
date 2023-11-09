@@ -2,7 +2,7 @@ import type { ComponentInstanceState, PreparedArguments } from '../../components
 import type { Destroyable, Nullable } from '../../core';
 import type { BlockBounds } from '../../dom/bounds';
 import type { SimpleElement } from '../../dom/simple';
-import type { SomeReactive } from '../../references';
+import type { Reactive } from '../../references';
 import type { Owner } from '../../runtime';
 import type { CapturedArguments, VMArguments } from '../../runtime/arguments';
 import type { RenderNode } from '../../runtime/debug-render-tree';
@@ -150,7 +150,7 @@ export interface InternalComponentManager<
   TComponentDefinition = object,
 > {
   getCapabilities(state: TComponentDefinition): InternalComponentCapabilities;
-  getSelf(state: TComponentStateBucket): SomeReactive;
+  getSelf(state: TComponentStateBucket): Reactive;
   getDestroyable(state: TComponentStateBucket): Nullable<Destroyable>;
   getDebugName(state: TComponentDefinition): string;
 }
@@ -203,7 +203,7 @@ export interface WithCreateInstance<
     args: Nullable<VMArguments>,
     env: Environment,
     dynamicScope: Nullable<DynamicScope>,
-    caller: Nullable<SomeReactive>,
+    caller: Nullable<Reactive>,
     hasDefaultBlock: boolean
   ): ComponentInstanceState;
 

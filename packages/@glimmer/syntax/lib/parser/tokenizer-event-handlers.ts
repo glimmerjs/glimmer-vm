@@ -1,12 +1,12 @@
 import type { Nullable } from '@glimmer/interfaces';
+import { assertPresentArray, assign, getFirst, getLast, isPresentArray } from '@glimmer/util';
+import { parse, parseWithoutProcessing } from '@handlebars/parser';
+import { EntityParser } from 'simple-html-tokenizer';
+
 import type { Tag } from '../parser';
 import type { NodeVisitor } from '../traversal/visitor';
 import type * as ASTv1 from '../v1/api';
 import type * as HBS from '../v1/handlebars-ast';
-
-import { assertPresentArray, assign, getFirst, getLast, isPresentArray } from '@glimmer/util';
-import { parse, parseWithoutProcessing } from '@handlebars/parser';
-import { EntityParser } from 'simple-html-tokenizer';
 
 import print from '../generation/print';
 import { voidMap } from '../generation/printer';

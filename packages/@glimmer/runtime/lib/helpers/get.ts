@@ -1,5 +1,4 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-
 import { getPath, setPath } from '@glimmer/global-context';
 import { Accessor, UNDEFINED_REFERENCE, unwrapReactive } from '@glimmer/reference';
 import { isDict } from '@glimmer/util';

@@ -11,12 +11,12 @@ import type {
   RuntimeProgram,
   TargetState,
 } from '@glimmer/interfaces';
-import type { VM } from './append';
-
 import { check, CheckNumber } from '@glimmer/debug';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert, expect, UserException } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, $up, Op } from '@glimmer/vm';
+
+import type { VM } from './append';
 
 import { APPEND_OPCODES } from '../opcodes';
 import { debugAround } from './debug/debug';

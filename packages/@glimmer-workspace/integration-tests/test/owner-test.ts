@@ -5,9 +5,8 @@ import type {
   WithCreateInstance,
   WithSubOwner,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
+import type {Reactive} from '@glimmer/reference';
 import type {RenderDelegateOptions} from '@glimmer-workspace/integration-tests';
-
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE  } from '@glimmer/reference';
 import {
@@ -72,7 +71,7 @@ class MountManager implements WithCreateInstance<object>, WithSubOwner<object> {
     return state.owner;
   }
 
-  getSelf(): SomeReactive {
+  getSelf(): Reactive {
     return NULL_REFERENCE;
   }
 

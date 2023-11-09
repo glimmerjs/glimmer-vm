@@ -1,8 +1,8 @@
 import type { Nullable } from '@glimmer/interfaces';
+import { assert } from '@glimmer/util';
+
 import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation, SourcePosition } from './location';
-
-import { assert } from '@glimmer/util';
 
 import { SourceOffset, SourceSpan } from './span';
 

@@ -1,6 +1,5 @@
 import type { Arguments, InternalHelperManager } from "@glimmer/interfaces";
 import type {Cache} from '@glimmer/validator';
-
 import { associateDestroyableChild, isDestroyed, isDestroying } from '@glimmer/destroyable';
 import { getInternalHelperManager, hasDestroyable, hasValue } from '@glimmer/manager';
 import { getOwner } from '@glimmer/owner';

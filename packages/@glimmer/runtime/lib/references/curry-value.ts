@@ -1,15 +1,12 @@
 import type {
   CapturedArguments,
   CurriedType,
-  Dict,
-  Maybe,
   Nullable,
   Owner,
   RuntimeResolver,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-
-import { FallibleFormula,  unwrapReactive } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
+import { FallibleFormula, unwrapReactive } from '@glimmer/reference';
 import { expect, isObject } from '@glimmer/util';
 import { CurriedTypes } from '@glimmer/vm';
 
@@ -17,16 +14,17 @@ import { curry, isCurried } from '../curried-value';
 
 export default function createCurryRef(
   type: CurriedType,
-  inner: SomeReactive,
+  inner: Reactive,
   owner: Owner,
   args: Nullable<CapturedArguments>,
   resolver: RuntimeResolver,
   isStrict: boolean
 ) {
-  let lastValue: Maybe<Dict> | string, curriedDefinition: object | string | null;
+  let lastValue: unknown;
+  let curriedDefinition: object | string | null;
 
   return FallibleFormula(() => {
-    let value = unwrapReactive(inner) as Maybe<Dict> | string;
+    let value = unwrapReactive(inner);
 
     if (value === lastValue) {
       return curriedDefinition;

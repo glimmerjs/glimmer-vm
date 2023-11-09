@@ -5,9 +5,9 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
 } from '@glimmer/interfaces';
-import type { NodeTokensImpl } from './node-tokens';
-
 import { NS_HTML } from '@glimmer/util';
+
+import type { NodeTokensImpl } from './node-tokens';
 
 import { OperationsBuilder, run } from './dom-operations';
 

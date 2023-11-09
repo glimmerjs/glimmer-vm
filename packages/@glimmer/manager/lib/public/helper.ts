@@ -9,10 +9,10 @@ import type {
   InternalHelperManager,
   Owner,
 } from '@glimmer/interfaces';
-import type { ManagerFactory } from './index';
-
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { FallibleFormula, ReadonlyCell, UNDEFINED_REFERENCE } from '@glimmer/reference';
+
+import type { ManagerFactory } from './index';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';

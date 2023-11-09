@@ -1,4 +1,5 @@
 import type { Optional, SimpleNode } from '@glimmer/interfaces';
+
 import type {LeafFragment} from './fragment';
 
 import { Fragment  } from './fragment';

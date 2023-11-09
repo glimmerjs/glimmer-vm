@@ -1,7 +1,7 @@
-import type { PushStatementOp } from '../../syntax/compilers';
-
 import { unwrap } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
+
+import type { PushStatementOp } from '../../syntax/compilers';
 
 import { HighLevelBuilderOpcodes } from '../opcodes';
 import { labelOperand } from '../operands';

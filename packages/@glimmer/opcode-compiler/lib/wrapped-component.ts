@@ -9,10 +9,10 @@ import type {
   Nullable,
   ProgramSymbolTable,
 } from '@glimmer/interfaces';
-import type {HighLevelStatementOp} from './syntax/compilers';
-
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
+
+import type {HighLevelStatementOp} from './syntax/compilers';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';

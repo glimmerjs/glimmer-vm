@@ -1,4 +1,5 @@
 import type { ASTv2 } from '@glimmer/syntax';
+
 import type { Result } from '../../../../shared/result';
 import type { NormalizationState } from '../../context';
 import type { Classified, ClassifiedElement, PreparedArgs } from './classified';

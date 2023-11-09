@@ -5,10 +5,10 @@ import type {
   SimpleElement,
   SimpleText,
 } from '@glimmer/interfaces';
+import { castToSimple } from '@glimmer/util';
+
 import type { DomDelegate } from '../../render-delegate';
 import type RenderDelegate from '../../render-delegate';
-
-import { castToSimple } from '@glimmer/util';
 
 export class BuildDomDelegate implements DomDelegate {
   readonly #document: SimpleDocument | Document;

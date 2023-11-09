@@ -25,12 +25,7 @@ import type {
   WithElementHook,
   WithUpdateHook,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-import type {CurriedValue} from '../../curried-value';
-import type { UpdatingVM } from '../../vm';
-import type { InternalVM } from '../../vm/append';
-import type {BlockArgumentsImpl} from '../../vm/arguments';
-
+import type {Reactive} from '@glimmer/reference';
 import {
   check,
   CheckFunction,
@@ -59,6 +54,11 @@ import {
   unwrapTemplate,
 } from '@glimmer/util';
 import { $t0, $t1, CurriedTypes, InternalComponentCapabilities, Op } from '@glimmer/vm';
+
+import type {CurriedValue} from '../../curried-value';
+import type { UpdatingVM } from '../../vm';
+import type { InternalVM } from '../../vm/append';
+import type {BlockArgumentsImpl} from '../../vm/arguments';
 
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { resolveComponent } from '../../component/resolve';
@@ -384,7 +384,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
     args = check(vm.stack.top(), CheckArguments);
   }
 
-  let self: Nullable<SomeReactive> = null;
+  let self: Nullable<Reactive> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createCaller)) {
     self = vm.getSelf();
   }
@@ -438,7 +438,7 @@ APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: _state }) => {
     );
 
     return {
-      kind: 'component',
+      reason: 'component',
       label: [definition.resolvedName ?? manager.getDebugName(definition.state)],
     } satisfies Description;
   });
@@ -478,19 +478,19 @@ APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: 
 });
 
 type DeferredAttribute = {
-  value: string | SomeReactive<unknown>;
+  value: string | Reactive<unknown>;
   namespace: Nullable<string>;
   trusting?: boolean;
 };
 
 export class ComponentElementOperations implements ElementOperations {
   private attributes = dict<DeferredAttribute>();
-  private classes: (string | SomeReactive<unknown>)[] = [];
+  private classes: (string | Reactive<unknown>)[] = [];
   private modifiers: ModifierInstance[] = [];
 
   setAttribute(
     name: string,
-    value: SomeReactive<unknown>,
+    value: Reactive<unknown>,
     trusting: boolean,
     namespace: Nullable<string>
   ) {
@@ -543,7 +543,7 @@ export class ComponentElementOperations implements ElementOperations {
   }
 }
 
-function mergeClasses(classes: (string | SomeReactive)[]): string | SomeReactive<unknown> {
+function mergeClasses(classes: (string | Reactive)[]): string | Reactive<unknown> {
   if (classes.length === 0) {
     return '';
   }
@@ -554,10 +554,10 @@ function mergeClasses(classes: (string | SomeReactive)[]): string | SomeReactive
     return classes.join(' ');
   }
 
-  return createClassListRef(classes as SomeReactive[]);
+  return createClassListRef(classes as Reactive[]);
 }
 
-function allStringClasses(classes: (string | SomeReactive<unknown>)[]): classes is string[] {
+function allStringClasses(classes: (string | Reactive<unknown>)[]): classes is string[] {
   for (let i = 0; i < classes.length; i++) {
     if (typeof classes[i] !== 'string') {
       return false;
@@ -569,7 +569,7 @@ function allStringClasses(classes: (string | SomeReactive<unknown>)[]): classes 
 function setDeferredAttr(
   vm: InternalVM,
   name: string,
-  value: string | SomeReactive<unknown>,
+  value: string | Reactive<unknown>,
   namespace: Nullable<string>,
   trusting = false
 ) {

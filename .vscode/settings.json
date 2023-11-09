@@ -10,7 +10,8 @@
     "editor.formatOnSave": false,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
-      "source.fixAll": "always",
+      "source.unusedImports": "explicit",
+      "source.fixAll": "explicit",
       "source.formatDocument": "always"
     }
   },

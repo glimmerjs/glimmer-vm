@@ -1,8 +1,8 @@
-import type { Benchmark } from './interfaces';
-
 import { setComponentTemplate, setInternalComponentManager } from '@glimmer/manager';
 import { templateFactory } from '@glimmer/opcode-compiler';
 import { templateOnlyComponent } from '@glimmer/runtime';
+
+import type { Benchmark } from './interfaces';
 
 import basicComponentManager from './benchmark/basic-component-manager';
 import createRegistry from './benchmark/create-registry';

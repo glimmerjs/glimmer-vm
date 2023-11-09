@@ -20,7 +20,6 @@ import type {
   SymbolTableOperand,
   SymbolTableOperandType,
 } from "@glimmer/interfaces";
-
 import { assert, isSmallInt } from '@glimmer/util';
 
 export const HighLevelOperands = {

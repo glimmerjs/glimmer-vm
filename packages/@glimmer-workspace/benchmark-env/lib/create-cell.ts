@@ -1,7 +1,7 @@
 import type { TagMeta, UpdatableTag } from '@glimmer/validator';
-import type { Cell } from './interfaces';
-
 import { consumeTag, dirtyTagFor, tagFor, tagMetaFor } from '@glimmer/validator';
+
+import type { Cell } from './interfaces';
 
 class CellImpl<T> implements Cell<T> {
   private _meta: TagMeta;

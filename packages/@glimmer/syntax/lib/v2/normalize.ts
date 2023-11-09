@@ -1,4 +1,6 @@
 import type { PresentArray } from '@glimmer/interfaces';
+import { asPresentArray, assert, assign, isPresentArray } from '@glimmer/util';
+
 import type {PrecompileOptions, PrecompileOptionsWithLexicalScope} from '../parser/tokenizer-event-handlers';
 import type { SourceLocation } from '../source/location';
 import type { Source } from '../source/source';
@@ -7,8 +9,6 @@ import type {BlockSymbolTable, ProgramSymbolTable} from '../symbol-table';
 import type * as ASTv1 from '../v1/api';
 import type {BuildElement, CallParts} from './builders';
 import type {Resolution} from './loose-resolution';
-
-import { asPresentArray, assert, assign, isPresentArray } from '@glimmer/util';
 
 import Printer from '../generation/printer';
 import {

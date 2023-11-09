@@ -15,11 +15,11 @@ import type {
   Owner,
   VMArguments,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-import type { ManagerFactory } from './api';
-
+import type {Reactive} from '@glimmer/reference';
 import { registerDestructor } from '@glimmer/destroyable';
 import { ReadonlyCell  } from '@glimmer/reference';
+
+import type { ManagerFactory } from './api';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
@@ -179,7 +179,7 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
 
   didUpdateLayout(): void {}
 
-  getSelf({ component, delegate }: CustomComponentState<ComponentInstance>): SomeReactive {
+  getSelf({ component, delegate }: CustomComponentState<ComponentInstance>): Reactive {
     return ReadonlyCell(delegate.getContext(component), 'this');
   }
 

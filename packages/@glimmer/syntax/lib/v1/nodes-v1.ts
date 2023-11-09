@@ -1,4 +1,5 @@
 import type { Dict, Nullable, PresentArray, WireFormat } from '@glimmer/interfaces';
+
 import type * as src from '../source/api';
 
 export interface Symbols {

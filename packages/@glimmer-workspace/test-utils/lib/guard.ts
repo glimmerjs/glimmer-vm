@@ -1,5 +1,4 @@
 import type { Expand, Maybe, Present } from '@glimmer/interfaces';
-
 import { isPresent } from '@glimmer/util';
 
 export type NTuple<N extends number, Type, T extends any[] = []> = T['length'] extends N

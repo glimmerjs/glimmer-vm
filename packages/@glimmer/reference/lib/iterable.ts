@@ -1,13 +1,11 @@
-import type { Dict, Nullable, SomeReactive, TagDescription } from '@glimmer/interfaces';
-import type { ReferenceEnvironment } from './reference';
-
+import type { Dict, Nullable, Reactive, TagDescription } from '@glimmer/interfaces';
 import { getPath, toIterator } from '@glimmer/global-context';
 import { devmode, EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
-import { unwrapReactive } from './api';
-import { Accessor } from './api/accessor';
-import { FallibleFormula } from './api/formula';
+import type { ReferenceEnvironment } from './api/internal/reactive';
+
+import { Accessor, FallibleFormula, unwrapReactive } from './api';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -162,7 +160,7 @@ function uniqueKeyFor(keyFor: KeyFor) {
   };
 }
 
-export function createIteratorRef(listRef: SomeReactive, key: string) {
+export function createIteratorRef(listRef: Reactive, key: string) {
   return FallibleFormula(() => {
     let iterable = unwrapReactive(listRef) as { [Symbol.iterator]: any } | null | false;
 
@@ -188,7 +186,7 @@ export function createIteratorItemRef(_value: unknown) {
     devmode(
       () =>
         ({
-          kind: 'formula',
+          reason: 'formula',
           label: ['(iterator)'],
         }) satisfies TagDescription
     )

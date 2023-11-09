@@ -1,11 +1,10 @@
-import type { SomeReactive } from '@glimmer/interfaces';
-
+import type { Reactive } from '@glimmer/interfaces';
 import { hasError, unwrapReactive, validateReactive } from '@glimmer/reference';
 
 export class Validate<T> {
-  readonly #reference: SomeReactive<T>;
+  readonly #reference: Reactive<T>;
 
-  constructor(reactive: SomeReactive<T>) {
+  constructor(reactive: Reactive<T>) {
     this.#reference = reactive;
   }
 

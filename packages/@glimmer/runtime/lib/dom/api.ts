@@ -6,7 +6,6 @@ import type {
   SimpleDocument,
   SimpleElement,
 } from '@glimmer/interfaces';
-
 import { castToSimple,NS_SVG } from '@glimmer/util';
 
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';

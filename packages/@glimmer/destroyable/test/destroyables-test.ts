@@ -1,5 +1,4 @@
 import type {GlobalContext} from '@glimmer/global-context';
-
 import {
   assertDestroyablesDestroyed,
   associateDestroyableChild,

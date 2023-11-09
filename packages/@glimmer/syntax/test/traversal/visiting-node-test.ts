@@ -1,6 +1,5 @@
 import type { Optional, OptionalArray } from '@glimmer/interfaces';
 import type {AST, WalkerPath} from '@glimmer/syntax';
-
 import {  preprocess as parse, traverse  } from '@glimmer/syntax';
 
 const { test } = QUnit;

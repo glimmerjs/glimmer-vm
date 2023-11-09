@@ -1,4 +1,5 @@
 import type { EnvironmentDelegate } from '@glimmer/runtime';
+
 import type { RenderDelegate, RenderDelegateOptions } from '../render-delegate';
 import type { IRenderTest, RenderTestContext } from '../render-test';
 import type {ComponentTestFunction, ComponentTestMeta, RenderSuiteMeta} from '../test-decorator';

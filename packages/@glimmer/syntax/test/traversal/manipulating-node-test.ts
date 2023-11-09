@@ -1,5 +1,4 @@
 import type {AST} from '@glimmer/syntax';
-
 import {
   builders as b,
   cannotRemoveNode,

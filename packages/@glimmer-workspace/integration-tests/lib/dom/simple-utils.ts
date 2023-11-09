@@ -11,7 +11,6 @@ import type {
   SimpleText,
 } from '@glimmer/interfaces';
 import type {COMMENT_NODE, DOCUMENT_FRAGMENT_NODE, DOCUMENT_NODE, TEXT_NODE} from '@glimmer/util';
-
 import {
   clearElement,
   ELEMENT_NODE,

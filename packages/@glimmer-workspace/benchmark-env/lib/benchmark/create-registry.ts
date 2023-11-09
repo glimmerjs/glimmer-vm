@@ -7,8 +7,6 @@ import type {
   ResolvedComponentDefinition,
   SimpleElement,
 } from "@glimmer/interfaces";
-import type { UpdateBenchmark } from '../interfaces';
-
 import {
   getComponentTemplate,
   getInternalComponentManager,
@@ -17,6 +15,8 @@ import {
 } from '@glimmer/manager';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
+
+import type { UpdateBenchmark } from '../interfaces';
 
 import renderBenchmark from './render-benchmark';
 

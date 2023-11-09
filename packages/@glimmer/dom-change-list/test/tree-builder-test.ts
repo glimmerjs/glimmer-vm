@@ -1,6 +1,5 @@
 import type {NodeTokensImpl} from '@glimmer/dom-change-list';
 import type { SimpleDocument, SimpleDocumentFragment, SimpleElement } from '@glimmer/interfaces';
-
 import { DOMTreeConstruction,  TreeBuilder } from '@glimmer/dom-change-list';
 import createHTMLDocument from '@simple-dom/document';
 

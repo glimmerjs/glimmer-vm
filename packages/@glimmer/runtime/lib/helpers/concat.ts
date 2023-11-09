@@ -1,5 +1,4 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-
 import { FallibleFormula } from '@glimmer/reference';
 
 import { reifyPositional } from '../vm/arguments';

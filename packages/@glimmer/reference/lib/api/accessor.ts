@@ -1,23 +1,30 @@
-import type { DescriptionSpec, ReactiveResult, SomeReactive } from '@glimmer/interfaces';
-import type { RETURN_TYPE } from '../reference';
-
+import type {
+  DefaultDescriptionFields,
+  DescriptionSpec,
+  Reactive,
+  ReactiveResult,
+} from '@glimmer/interfaces';
 import {
   devmode,
   devmodeOr,
   setDescription,
   stringifyDebugLabel,
-  toDescription,
+  toValidatableDescription,
   UserException,
 } from '@glimmer/util';
 
-import { ACCESSOR, Reactive, setError, setFromFallibleCompute, setResult } from '../reference';
+import { setError, setFromFallibleCompute, setResult } from './internal/errors';
+import { ACCESSOR, InternalReactive } from './internal/reactive';
 
-const RESULT_ACCESSOR_DEFAULTS = devmode(() => ({
-  readonly: false,
-  fallible: true,
-  kind: 'formula',
-  label: [`(ResultAccessor)`],
-}));
+const RESULT_ACCESSOR_DEFAULTS = devmode(
+  () =>
+    ({
+      type: 'ResultAccessor',
+      read: 'fallible',
+      write: 'fallible',
+      label: [`(ResultAccessor)`],
+    }) satisfies DefaultDescriptionFields
+);
 
 export function ResultAccessor<T = unknown>(
   options: {
@@ -25,65 +32,73 @@ export function ResultAccessor<T = unknown>(
     set: (val: T) => ReactiveResult<void>;
   },
   description?: DescriptionSpec
-): SomeReactive<T> {
+): Reactive<T> {
   const { get, set } = options;
 
-  const ref = new Reactive<T>(ACCESSOR);
+  const internal = new InternalReactive<T>(ACCESSOR);
 
-  ref.compute = () => setResult(ref, get());
+  internal.compute = () => setResult(internal, get());
 
-  ref.update = (value: T) => {
+  internal.update = (value: T) => {
     const setResult = set(value);
 
     if (setResult.type === 'ok') {
-      ref.lastValue = value;
+      internal.lastValue = value;
     } else {
-      setError(ref, setResult.value);
+      setError(internal, setResult.value);
     }
   };
 
   setDescription(
-    ref,
-    devmode(() => toDescription(description, RESULT_ACCESSOR_DEFAULTS))
+    internal,
+    devmode(() => toValidatableDescription(description, RESULT_ACCESSOR_DEFAULTS))
   );
-  return ref as RETURN_TYPE;
+
+  return internal as Reactive<T>;
 }
-const ACCESSOR_DEFAULTS = devmode(() => ({
-  readonly: false,
-  fallible: true,
-  kind: 'formula',
-  label: [`(Accessor)`],
-}));
+
+const ACCESSOR_DEFAULTS = devmode(
+  () =>
+    ({
+      type: 'Accessor',
+      read: 'fallible',
+      write: 'fallible',
+      label: [`(Accessor)`],
+    }) satisfies DefaultDescriptionFields
+);
 
 export function Accessor<T = unknown>(
   options: { get: () => T; set: (val: T) => void },
   description?: DescriptionSpec
-): SomeReactive<T> {
+): Reactive<T> {
   const { get, set } = options;
 
-  const ref = new Reactive<T>(ACCESSOR);
+  const internal = new InternalReactive<T>(ACCESSOR);
 
-  ref.compute = () => setFromFallibleCompute(ref, get);
+  internal.compute = () => setFromFallibleCompute(internal, get);
 
-  ref.update = (value: T) => {
+  internal.update = (value: T) => {
     try {
       set(value);
       return value;
     } catch (e) {
       setError(
-        ref,
+        internal,
         UserException.from(
           e,
-          `An error occured setting ${devmodeOr(() => stringifyDebugLabel(ref), `an accessor`)}`
+          `An error occured setting ${devmodeOr(
+            () => stringifyDebugLabel(internal),
+            `an accessor`
+          )}`
         )
       );
     }
   };
 
   setDescription(
-    ref,
-    devmode(() => toDescription(description, ACCESSOR_DEFAULTS))
+    internal,
+    devmode(() => toValidatableDescription(description, ACCESSOR_DEFAULTS))
   );
 
-  return ref as RETURN_TYPE;
+  return internal as Reactive<T>;
 }

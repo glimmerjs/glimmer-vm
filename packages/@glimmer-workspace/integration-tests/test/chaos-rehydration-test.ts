@@ -1,7 +1,6 @@
 /* eslint-disable qunit/no-identical-names */
-import type { Dict, Nullable, SimpleElement, SomeReactive } from '@glimmer/interfaces';
+import type { Dict, Nullable, Reactive,SimpleElement } from '@glimmer/interfaces';
 import type {ComponentBlueprint, Content} from '@glimmer-workspace/integration-tests';
-
 import { ReadonlyCell, unwrapReactive } from '@glimmer/reference';
 import {
   castToBrowser,
@@ -31,7 +30,7 @@ import {
 const isIE11 = !(window as any).ActiveXObject && 'ActiveXObject' in window;
 
 abstract class ChaosMonkeyContext extends RenderTestContext {
-  abstract renderClientSide(template: string | ComponentBlueprint, self: SomeReactive): void;
+  abstract renderClientSide(template: string | ComponentBlueprint, self: Reactive): void;
 
   getRandomForIteration(iteration: number) {
     const { seed } = QUnit.config;
@@ -124,7 +123,7 @@ abstract class ChaosMonkeyContext extends RenderTestContext {
     );
   }
 
-  runIterations(template: string, self: SomeReactive<Dict>, expectedHTML: string, count: number) {
+  runIterations(template: string, self: Reactive<Dict>, expectedHTML: string, count: number) {
     const element = castToBrowser(this.element, 'HTML');
     const elementResetValue = element.innerHTML;
 
@@ -194,7 +193,7 @@ class ChaosMonkeyRehydration extends ChaosMonkeyContext {
 
   renderServerSide(
     template: string | ComponentBlueprint,
-    self: SomeReactive,
+    self: Reactive,
     element: SimpleElement | undefined = undefined
   ): void {
     this.serverOutput = this.delegate.renderServerSide(
@@ -207,7 +206,7 @@ class ChaosMonkeyRehydration extends ChaosMonkeyContext {
     replaceHTML(this.element, this.serverOutput);
   }
 
-  renderClientSide(template: string | ComponentBlueprint, self: SomeReactive): void {
+  renderClientSide(template: string | ComponentBlueprint, self: Reactive): void {
     this.renderResult = this.delegate.renderClientSide(
       template as string,
       self,
@@ -272,7 +271,7 @@ class ChaosMonkeyPartialRehydrationContext extends ChaosMonkeyContext {
   static suiteName = 'chaos-partial-rehydration';
   declare delegate: PartialRehydrationDelegate;
 
-  renderClientSide(componentName: string, args: SomeReactive<Dict>): void {
+  renderClientSide(componentName: string, args: Reactive<Dict>): void {
     this.renderResult = this.delegate.renderComponentClientSide(
       componentName,
       unwrapReactive(args),

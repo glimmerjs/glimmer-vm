@@ -1,4 +1,5 @@
 import type { SimpleElement, SimpleNode } from '@simple-dom/interface';
+
 import type { BlockBounds } from '../dom/bounds';
 import type { Arguments, CapturedArguments } from './arguments';
 

@@ -11,8 +11,6 @@ import type {
   TagDescription,
   UpdatableTag,
 } from '@glimmer/interfaces';
-import type { ManagerFactory } from '.';
-
 import { registerDestructor } from '@glimmer/destroyable';
 import { unwrapReactive } from '@glimmer/reference';
 import {
@@ -24,6 +22,8 @@ import {
   stringifyDebugLabel,
 } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
+
+import type { ManagerFactory } from '.';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
@@ -114,7 +114,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     const description = devmode(
       () =>
         ({
-          kind: 'modifier',
+          reason: 'modifier',
           // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
           label: typeof definition === 'function' ? [definition.name] : [`${definition}`],
         }) satisfies TagDescription

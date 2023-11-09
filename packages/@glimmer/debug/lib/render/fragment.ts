@@ -1,7 +1,7 @@
 import type { SimpleNode } from '@glimmer/interfaces';
-import type {IntoFormat} from './presets';
-
 import { assertNever,isObject, isUserException  } from '@glimmer/util';
+
+import type {IntoFormat} from './presets';
 
 import {  intoFormat, STYLES } from './presets';
 

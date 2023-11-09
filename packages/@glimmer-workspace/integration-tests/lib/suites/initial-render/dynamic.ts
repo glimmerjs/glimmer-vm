@@ -1,5 +1,4 @@
 import type { SimpleElement } from '@glimmer/interfaces';
-
 import { castToBrowser, checkNode, NS_SVG, strip, unwrap } from '@glimmer/util';
 import {
   assertNodeTagName,

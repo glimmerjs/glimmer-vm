@@ -11,7 +11,6 @@ import type {
   SimpleText,
 } from '@glimmer/interfaces';
 import type { RemoteLiveBlock } from '@glimmer/runtime';
-
 import { AbstractElementBuilder, ConcreteBounds, CursorImpl } from '@glimmer/runtime';
 
 const TEXT_NODE = 3;

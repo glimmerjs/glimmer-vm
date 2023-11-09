@@ -1,8 +1,8 @@
 import type { Nullable } from '@glimmer/interfaces';
+import { expect, unwrap } from '@glimmer/util';
+
 import type * as ASTv1 from './v1/api';
 import type * as HBS from './v1/handlebars-ast';
-
-import { expect, unwrap } from '@glimmer/util';
 
 import { generateSyntaxError } from './syntax-error';
 

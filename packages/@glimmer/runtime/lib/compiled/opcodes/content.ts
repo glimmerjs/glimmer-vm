@@ -1,5 +1,4 @@
 import type {DynamicContentType} from '@glimmer/vm/lib/content';
-
 import {
   check,
   CheckDocumentFragment,

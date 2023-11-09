@@ -1,7 +1,7 @@
-import type { Dict, Expand, VM } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-
-import { REFERENCE  } from '@glimmer/reference';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Dict, Expand, RETURN_TYPE, VM } from '@glimmer/interfaces';
+import type { Reactive } from '@glimmer/reference';
+import { INTERNAL_REFERENCE as REFERENCE } from '@glimmer/reference';
 import { enumerate, isObject } from '@glimmer/util';
 
 export const UNCHANGED = Symbol('UNCHANGED');
@@ -13,27 +13,24 @@ type ErrorInfo =
 
 type CoerceResult<T> = ['ok', T] | [status: 'fail', aggregate: ErrorInfo];
 
-type LazyStackType<T, Default extends string> =
+type LazyStackType<T, Default extends string = any> =
   | (<N extends string>(name: N) => StackType<N | Default, T>)
   | (() => StackType<Default, T>);
 
 const Ok = <T>(value: T): CoerceResult<T> => ['ok', value];
 const Fail = <T>(expected: string): CoerceResult<T> => ['fail', { type: 'leaf', expected }];
 
-interface StackType<N extends string, T> {
+interface StackType<N extends string, T = unknown> {
   readonly name: N;
   coerce: Coerce<T>;
 }
 
 type Coerce<T> = (item: unknown, vm: VM) => CoerceResult<T>;
 
-function define<const T extends Record<string, <N extends string>(name: N) => StackType<N, any>>>(
+function define<const T extends Record<string, <N extends string>(name: N) => StackType<N>>>(
   types: T
 ): Expand<{
-  [N in Extract<keyof T, string>]: StackType<
-    N,
-    T[N] extends LazyStackType<infer U, any> ? U : T[N]
-  >;
+  [N in Extract<keyof T, string>]: StackType<N, T[N] extends LazyStackType<infer U> ? U : T[N]>;
 }> {
   return Object.entries(types).reduce(
     (acc, [name, build]) => ({
@@ -41,15 +38,15 @@ function define<const T extends Record<string, <N extends string>(name: N) => St
       [name]: build(name),
     }),
     {}
-  ) as any;
+  ) as RETURN_TYPE;
 }
 
 const IsReference = {
   name: 'reference',
   coerce: (value) => {
-    return isObject(value) && REFERENCE in value ? Ok(value as SomeReactive) : Fail('reference');
+    return isObject(value) && REFERENCE in value ? Ok(value as Reactive) : Fail('reference');
   },
-} satisfies StackType<'reference', SomeReactive>;
+} satisfies StackType<'reference', Reactive>;
 
 export const types = define({
   'imm/bool': pipe(isBool, (value) => !!value),
@@ -130,7 +127,7 @@ function pipe<T, U = T>(
   });
 }
 
-function coerce<T>(check: (value: unknown) => value is T): LazyStackType<T, never> {
+function coerce<T>(check: (value: unknown) => value is T): LazyStackType<T> {
   return (name) => ({
     name,
     coerce: (value) => {

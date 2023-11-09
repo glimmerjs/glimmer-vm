@@ -1,6 +1,5 @@
 import type { Scope } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-
+import type {Reactive} from '@glimmer/reference';
 import { getReactiveProperty,  unwrapReactive } from '@glimmer/reference';
 import { decodeHandle, dict, unwrap } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
@@ -34,7 +33,7 @@ export function resetDebuggerCallback() {
 }
 
 class ScopeInspector {
-  private locals = dict<SomeReactive>();
+  private locals = dict<Reactive>();
 
   constructor(
     private scope: Scope,
@@ -48,20 +47,20 @@ class ScopeInspector {
     }
   }
 
-  get(path: string): SomeReactive {
+  get(path: string): Reactive {
     let { scope, locals } = this;
     let parts = path.split('.');
     let [head, ...tail] = path.split('.') as [string, ...string[]];
 
     let evalScope = scope.getEvalScope()!;
-    let ref: SomeReactive;
+    let ref: Reactive;
 
     if (head === 'this') {
       ref = scope.getSelf();
     } else if (locals[head]) {
       ref = unwrap(locals[head]);
     } else if (head.indexOf('@') === 0 && evalScope[head]) {
-      ref = evalScope[head] as SomeReactive;
+      ref = evalScope[head] as Reactive;
     } else {
       ref = this.scope.getSelf();
       tail = parts;

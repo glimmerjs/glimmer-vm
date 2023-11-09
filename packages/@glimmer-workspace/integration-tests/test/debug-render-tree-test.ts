@@ -10,7 +10,6 @@ import type {
 } from '@glimmer/interfaces';
 import type {TemplateOnlyComponent} from '@glimmer/runtime';
 import type {EmberishCurlyComponent} from '@glimmer-workspace/integration-tests';
-
 import { setComponentTemplate } from '@glimmer/manager';
 import {
   EMPTY_ARGS,

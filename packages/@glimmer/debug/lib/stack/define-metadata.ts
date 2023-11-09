@@ -1,4 +1,5 @@
 import type { Expand, VmOpName } from '@glimmer/interfaces';
+
 import type { SpecName } from './declared/shared';
 import type { OpcodeSpec, OpSpec, StackParamSpec, StackSpec, StateSpec } from './types';
 

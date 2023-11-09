@@ -1,7 +1,4 @@
 import type { ComponentDefinition, Nullable } from '@glimmer/interfaces';
-import type { Primitive } from '../../stack-check';
-import type { AnyFunction } from './shared';
-
 import { decodeHandle, decodeImmediate, isHandle } from '@glimmer/util';
 import {
   $fp,
@@ -15,6 +12,9 @@ import {
   CURRIED_HELPER,
   CURRIED_MODIFIER,
 } from '@glimmer/vm';
+
+import type { Primitive } from '../../stack-check';
+import type { AnyFunction } from './shared';
 
 import { define, nullable } from './define-operand';
 import { MISMATCH, ok } from './shared';

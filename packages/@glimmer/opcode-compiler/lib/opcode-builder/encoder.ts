@@ -16,7 +16,6 @@ import type {
   SingleBuilderOperand,
   STDLib,
 } from '@glimmer/interfaces';
-
 import { InstructionEncoderImpl } from '@glimmer/encoder';
 import {
   assert,

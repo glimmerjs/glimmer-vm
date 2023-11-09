@@ -11,7 +11,6 @@ import type {
   RuntimeConstants,
   Template,
 } from '@glimmer/interfaces';
-
 import {
   capabilityFlagsFrom,
   getComponentTemplate,

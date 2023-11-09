@@ -4,6 +4,13 @@ export type Optional<T> = T | undefined;
 export type Maybe<T> = Nullable<T> | Optional<T>;
 export type FIXME<T, _S extends string> = T;
 
+/*
+  eslint-disable-next-line @typescript-eslint/no-explicit-any -- inferred from the return type
+ */
+export type RETURN_TYPE = any;
+
+export type Index = string | symbol;
+export type Indexable<T = unknown> = object & Record<Index, T>;
 export type Dict<T = unknown> = object & Record<string, T>;
 
 export type DictValue<D extends Dict> = D extends Dict<infer V> ? V : never;

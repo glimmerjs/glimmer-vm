@@ -1,11 +1,10 @@
-import type {SomeReactive} from '@glimmer/reference';
-
+import type { Reactive } from '@glimmer/reference';
 import {
-  DeeplyConstant,
+  DeeplyReadonlyCell,
   getReactiveProperty,
   MutableCell,
   ReadonlyCell,
-  updateReactive
+  updateReactive,
 } from '@glimmer/reference';
 import { dirtyTagFor } from '@glimmer/validator';
 
@@ -38,15 +37,15 @@ module('@glimmer/reference', () => {
 
   module('ReadonlyCell', () => {
     test(`it's a reactive value`, (assert) => {
-      const cell = ReadonlyCell(0, 'cell');
+      const counter = ReadonlyCell(0, 'counter');
 
-      const validate = new Validate(cell);
+      const validate = new Validate(counter);
 
       validate.assertingFresh(0, 'initial');
 
       assert.throws(
-        () => updateReactive(cell, 1),
-        /^Error: called update on a non-updatable reference$/u
+        () => updateReactive(counter, 1),
+        /^Error: cannot update readonly cell \(`counter`\)$/u
       );
     });
 
@@ -61,22 +60,22 @@ module('@glimmer/reference', () => {
 
   module('DeeplyConstant', () => {
     test(`it's a reactive value`, (assert) => {
-      const cell = DeeplyConstant(0, 'cell');
+      const cell = DeeplyReadonlyCell(0, 'cell');
       const validate = new Validate(cell);
 
       validate.assertingFresh(0, 'initial');
 
       assert.throws(
         () => updateReactive(cell, 1),
-        /^Error: called update on a non-updatable reference$/u
+        /^Error: cannot update deeply readonly cell \(`cell`\)$/u
       );
     });
 
     test(`its property references are also deeply constant`, (assert) => {
-      const record = { hello: 1 };
-      const cell = DeeplyConstant(record, 'cell');
+      const counterRecord = { count: 1 };
+      const counter = DeeplyReadonlyCell(counterRecord, 'counter');
 
-      const property = getReactiveProperty(cell, 'hello');
+      const property = getReactiveProperty(counter, 'count');
 
       const validate = new Validate(property);
 
@@ -85,7 +84,7 @@ module('@glimmer/reference', () => {
 
       assert.throws(
         () => updateReactive(property, 2),
-        /^Error: called update on a non-updatable reference$/u
+        /^Error: cannot update property reference \(`counter.count`\)$/u
       );
     });
   });
@@ -93,7 +92,7 @@ module('@glimmer/reference', () => {
 
 function testPropertyReferences(
   record: { hello: number },
-  reactive: SomeReactive<{ hello: number }>,
+  reactive: Reactive<{ hello: number }>,
   update?: (value: number) => void
 ) {
   const property = getReactiveProperty(reactive, 'hello');
@@ -116,7 +115,7 @@ function testPropertyReferences(
   }
 }
 
-function testMutablePropertyReferences(reactive: SomeReactive<{ hello: number }>, initial: number) {
+function testMutablePropertyReferences(reactive: Reactive<{ hello: number }>, initial: number) {
   const property = getReactiveProperty(reactive, 'hello');
   const validate = new Validate(property);
 

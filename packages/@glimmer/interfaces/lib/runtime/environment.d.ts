@@ -1,4 +1,5 @@
 import type { SimpleDocument } from '@simple-dom/interface';
+
 import type {
   ComponentDefinitionState,
   ComponentInstance,

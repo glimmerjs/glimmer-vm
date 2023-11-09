@@ -1,16 +1,18 @@
 import type {
   DebugLabel,
+  DebugLabelSpec,
   DefaultDescriptionFields,
   Described,
   Description,
   DescriptionSpec,
   DevMode,
   Optional,
-  ReferenceDescription,
+  ValidatableDescription,
 } from '@glimmer/interfaces';
 
 import { isArray } from '../array-utils';
-import { mapDevmode } from './assert';
+import { isObject } from '../collections';
+import { assert, devmode, inDevmode, mapDevmode } from './assert';
 
 export function stringifyDebugLabel(described: Described<Description>): DevMode<string> {
   return mapDevmode(
@@ -22,6 +24,11 @@ export function stringifyDebugLabel(described: Described<Description>): DevMode<
 }
 
 export function stringifyChildLabel(...parts: DebugLabel): string {
+  assert(
+    parts.every((part) => typeof part === 'string' || typeof part === 'symbol'),
+    `Expected all parts to be strings or symbols`
+  );
+
   const [first, ...rest] = parts;
 
   let out: string = first;
@@ -81,35 +88,39 @@ export function setDescription(
   }
 }
 
-export function toDescription(
+export function toLabel(
+  spec: Optional<DebugLabelSpec> | false,
+  defaultLabel: DebugLabel
+): DevMode<DebugLabel> {
+  return devmode(() => {
+    if (!spec) return defaultLabel;
+
+    if (typeof spec === 'string') {
+      return [spec];
+    } else {
+      return spec;
+    }
+  });
+}
+
+export function toValidatableDescription<D extends ValidatableDescription>(
   spec: Optional<DescriptionSpec>,
-  defaults: DevMode<DefaultDescriptionFields>
-): DevMode<ReferenceDescription> {
+  defaults: DevMode<DefaultDescriptionFields<D>>
+): DevMode<D> {
   return mapDevmode(
     () => defaults,
-    (defaults): ReferenceDescription => {
-      if (!spec) return defaults;
-
-      if (typeof spec === 'string') {
+    (defaults): D => {
+      if (!isObject(spec) || isArray(spec)) {
         return {
           ...defaults,
-          label: [spec],
-        };
-      } else if (isArray(spec)) {
-        return {
-          ...defaults,
-          label: spec,
-        };
+          label: inDevmode(toLabel(spec, defaults.label)),
+        } as D;
       } else {
-        const normalizedSpec: Pick<ReferenceDescription, 'label' | 'serialization' | 'internal'> = {
+        return {
+          ...defaults,
           ...spec,
           label: typeof spec.label === 'string' ? ([spec.label] as const) : spec.label,
-        };
-
-        return {
-          ...defaults,
-          ...normalizedSpec,
-        };
+        } as unknown as D;
       }
     }
   );

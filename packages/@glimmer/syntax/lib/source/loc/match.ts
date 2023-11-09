@@ -1,6 +1,6 @@
-import type { CharPosition, HbsPosition, InvisiblePosition, PositionData } from './offset';
-
 import { assert, isPresentArray } from '@glimmer/util';
+
+import type { CharPosition, HbsPosition, InvisiblePosition, PositionData } from './offset';
 
 import { OffsetKind } from './kinds';
 

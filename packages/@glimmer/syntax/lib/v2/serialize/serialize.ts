@@ -1,4 +1,5 @@
 import type { PresentArray } from '@glimmer/interfaces';
+
 import type * as ASTv2 from '../api';
 import type {
   SerializedAppendContent,

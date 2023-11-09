@@ -7,17 +7,17 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import type { SomeReactive } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
+import { serializeBuilder } from '@glimmer/node';
+import { assign, castToSimple } from '@glimmer/util';
+import createHTMLDocument from '@simple-dom/document';
+
 import type RenderDelegate from '../../render-delegate';
 import type { RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
 import type { Self } from '../../render-test';
 import type {TestJitContext} from '../jit/delegate';
 import type {DebugRehydrationBuilder} from './builder';
-
-import { serializeBuilder } from '@glimmer/node';
-import { assign, castToSimple } from '@glimmer/util';
-import createHTMLDocument from '@simple-dom/document';
 
 import { BaseEnv } from '../../base-env';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
@@ -90,7 +90,7 @@ export class RehydrationDelegate implements RenderDelegate {
 
   renderServerSide(
     template: string,
-    self: SomeReactive,
+    self: Reactive,
     takeSnapshot: () => void,
     element: SimpleElement | undefined = undefined,
     plugins: ASTPluginBuilder[]
@@ -116,7 +116,7 @@ export class RehydrationDelegate implements RenderDelegate {
 
   renderClientSide(
     template: string,
-    self: SomeReactive,
+    self: Reactive,
     element: SimpleElement,
     plugins: ASTPluginBuilder[]
   ): RenderResult {

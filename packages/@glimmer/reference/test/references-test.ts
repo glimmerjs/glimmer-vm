@@ -1,11 +1,10 @@
-import type {GlobalContext} from '@glimmer/global-context';
-import type {SomeReactive} from '@glimmer/reference';
-
-import {  testOverrideGlobalContext } from '@glimmer/global-context';
+import type { GlobalContext } from '@glimmer/global-context';
+import type { Reactive } from '@glimmer/reference';
+import { testOverrideGlobalContext } from '@glimmer/global-context';
 import {
   Accessor,
   createDebugAliasRef,
-  DeeplyConstant,
+  DeeplyReadonlyCell,
   FallibleFormula,
   getReactiveProperty,
   isAccessor,
@@ -15,7 +14,7 @@ import {
   toMut,
   toReadonly,
   unwrapReactive,
-  updateReactive
+  updateReactive,
 } from '@glimmer/reference';
 import { dict, unwrap } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
@@ -71,9 +70,9 @@ module('@glimmer/reference', () => {
     });
 
     class Validatable<T> {
-      readonly #reactive: SomeReactive<T>;
+      readonly #reactive: Reactive<T>;
 
-      constructor(reactive: SomeReactive<T>) {
+      constructor(reactive: Reactive<T>) {
         this.#reactive = reactive;
       }
 
@@ -342,7 +341,7 @@ module('@glimmer/reference', () => {
     module('deeply constant', () => {
       test('it works', (assert) => {
         let value = {};
-        let constRef = DeeplyConstant(value, 'test');
+        let constRef = DeeplyReadonlyCell(value, 'test');
 
         assert.strictEqual(unwrapReactive(constRef), value, 'value is correct');
         assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
@@ -355,7 +354,7 @@ module('@glimmer/reference', () => {
 
         let parent = new Parent();
 
-        let constRef = DeeplyConstant(parent, 'test');
+        let constRef = DeeplyReadonlyCell(parent, 'test');
         let childRef = getReactiveProperty(constRef, 'child');
 
         assert.strictEqual(unwrapReactive(childRef), 123, 'value is correct');
@@ -524,7 +523,7 @@ module('@glimmer/reference', () => {
             set: (newValue) => (foo.value = newValue),
           });
 
-          let alias = unwrap(createDebugAliasRef)('@test', original);
+          let alias = createDebugAliasRef(original, () => '@test');
 
           assert.strictEqual(unwrapReactive(original), 123, 'alias returns correct value');
           assert.strictEqual(unwrapReactive(alias), 123, 'alias returns correct value');
@@ -536,13 +535,13 @@ module('@glimmer/reference', () => {
           assert.strictEqual(unwrapReactive(alias), 456, 'alias returns correct value');
 
           let readOnly = toReadonly(original);
-          let readOnlyAlias = unwrap(createDebugAliasRef)('@test', readOnly);
+          let readOnlyAlias = createDebugAliasRef(readOnly, () => '@test');
 
           assert.strictEqual(unwrapReactive(readOnly), 456, 'alias returns correct value');
           assert.strictEqual(unwrapReactive(readOnlyAlias), 456, 'alias returns correct value');
           assert.notOk(isUpdatableRef(readOnly), 'alias is not updatable');
 
-          let invokableAlias = unwrap(createDebugAliasRef)('@test', original);
+          let invokableAlias = createDebugAliasRef(original, () => '@test');
 
           assert.ok(isAccessor(invokableAlias), 'alias is invokable');
         });

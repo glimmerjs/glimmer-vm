@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
 import type { Expand } from '@glimmer/interfaces';
-
 import { debug } from '@glimmer/validator';
 import { autoRegister } from 'js-reporters';
+import { default as QUnit } from 'qunit';
 
 export async function setupQunit() {
-  const qunitLib = await import('qunit');
+  const qunitLib: QUnit = await import('qunit');
   await import('qunit/qunit/qunit.css');
 
   const testing = Testing.withConfig(

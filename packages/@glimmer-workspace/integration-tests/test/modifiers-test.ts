@@ -1,6 +1,5 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import type {Count} from '@glimmer-workspace/integration-tests';
-
 import {
   jitSuite,
   RenderTestContext,

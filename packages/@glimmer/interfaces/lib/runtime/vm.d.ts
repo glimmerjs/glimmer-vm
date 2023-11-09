@@ -1,6 +1,6 @@
 import type { Destroyable, Nullable } from '../core';
 import type { GlimmerTreeChanges } from '../dom/changes';
-import type { SomeReactive } from '../references';
+import type { Reactive } from '../references';
 import type { Result } from '../result';
 import type { Environment } from './environment';
 import type { Owner } from './owner';
@@ -16,7 +16,7 @@ export interface VM<O extends Owner = Owner> {
   readonly dynamicScope: DynamicScope;
 
   getOwner(): O;
-  getSelf(): SomeReactive;
+  getSelf(): Reactive;
   associateDestroyable(child: Destroyable): void;
 }
 

@@ -1,7 +1,6 @@
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
 import type {ClientSideRenderDelegate} from '@glimmer-workspace/integration-tests';
-
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import { createPrimitiveCell, FallibleFormula, ReadonlyCell } from '@glimmer/reference';
 import { devmode, expect } from '@glimmer/util';

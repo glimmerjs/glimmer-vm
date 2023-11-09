@@ -1,4 +1,5 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
+
 import type { TestJitRegistry } from '../modes/jit/registry';
 import type { DeclaredComponentType } from '../test-helpers/constants';
 import type {BuildInvocation, BuildTemplate} from './styles';

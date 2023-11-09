@@ -5,28 +5,19 @@ import type {
   Nullable,
   Optional,
   PartialBoundsDebug,
+  Reactive,
   ScopeSlot,
   SnapshotArray,
-  SomeReactive,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
-import type { Fragment } from './fragment';
-import type {IntoFragment} from './presets';
-
 import { readReactive, unwrapReactive } from '@glimmer/reference';
 import { inDevmode, isCompilable, stringifyDebugLabel, zip } from '@glimmer/util';
 
+import type { Fragment } from './fragment';
+import type { IntoFragment } from './presets';
+
 import { isReference } from '../utils';
-import {
-  as,
-  dom,
-  empty,
-  frag,
-  group,
-  intoFragment,
-  join,
-  value
-} from './presets';
+import { as, dom, empty, frag, group, intoFragment, join, value } from './presets';
 
 export function pick<const T extends object, const K extends keyof T>(
   obj: T,
@@ -165,12 +156,12 @@ export function array(
   }
 }
 
-function describeRef(ref: SomeReactive): Fragment {
+function describeRef(ref: Reactive): Fragment {
   const debug = inDevmode(ref.description);
 
-  if (debug.fallible === false) {
+  if (debug.read === 'infallible') {
     if (debug.serialization === 'String') {
-      return frag`<${as.kw(debug.readonly ? 'readonly' : 'ref')} ${String(unwrapReactive(ref))}>`;
+      return frag`<${as.kw('readonly')} ${String(unwrapReactive(ref))}>`;
     }
   }
 

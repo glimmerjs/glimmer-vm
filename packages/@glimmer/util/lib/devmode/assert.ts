@@ -2,6 +2,8 @@
 
 import type { DevMode as DevModeInterface, DevModeClass, Present } from '@glimmer/interfaces';
 
+import type { AnyFunction } from '../types';
+
 import { LOCAL_LOGGER } from './logging';
 
 export function unwrap<T>(value: T): Present<T> {
@@ -67,6 +69,24 @@ export function devmode<const T>(value: () => IntoDevMode<T>): DevModeInterface<
   }
 
   return undefined as unknown as DevModeInterface<T>;
+}
+
+/**
+ * This function is useful if the value in question is a function and the prod-mode version of the
+ * function can be successfully inlined.
+ *
+ * The constraint `Prod extends Dev` allows `Prod` to have fewer arguments than `Dev`, but only at
+ * the end.
+ */
+export function enhancedDevmode<const Dev extends AnyFunction, const Prod extends Dev>(
+  prod: Prod,
+  dev: Dev
+): Dev {
+  if (import.meta.env.DEV) {
+    return dev;
+  } else {
+    return prod;
+  }
 }
 
 function intoDevMode<T>(devmodeValue: IntoDevMode<T>): DevModeInterface<T> {

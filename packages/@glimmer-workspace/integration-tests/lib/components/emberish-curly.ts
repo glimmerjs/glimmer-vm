@@ -11,7 +11,7 @@ import type {
   Nullable,
   Owner,
   PreparedArguments,
-  SomeReactive,
+  Reactive,
   TagDescription,
   Template,
   VMArguments,
@@ -20,9 +20,6 @@ import type {
   WithDynamicTagName,
 } from '@glimmer/interfaces';
 import type { DirtyableTag } from '@glimmer/validator';
-import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
-import type { TestComponentConstructor } from './types';
-
 import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalComponentManager } from '@glimmer/manager';
 import {
@@ -35,6 +32,9 @@ import {
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
 import { assign, devmode, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag, dirtyTagFor } from '@glimmer/validator';
+
+import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
+import type { TestComponentConstructor } from './types';
 
 export type Attrs = Dict;
 export type AttrsDiff = { oldAttrs: Nullable<Attrs>; newAttrs: Attrs };
@@ -56,7 +56,7 @@ export class EmberishCurlyComponent {
     devmode(
       () =>
         ({
-          kind: 'component',
+          reason: 'component',
           label: ['(emberish)'],
         }) satisfies TagDescription
     )
@@ -123,7 +123,7 @@ export class EmberishCurlyComponent {
 
 export interface EmberishCurlyComponentState {
   component: EmberishCurlyComponent;
-  selfRef: SomeReactive;
+  selfRef: Reactive;
 }
 
 const EMBERISH_CURLY_CAPABILITIES: InternalComponentCapabilities = {
@@ -215,7 +215,7 @@ export class EmberishCurlyComponentManager
     _args: VMArguments,
     _env: Environment,
     dynamicScope: DynamicScope,
-    callerSelf: SomeReactive,
+    callerSelf: Reactive,
     hasDefaultBlock: boolean
   ): EmberishCurlyComponentState {
     let klass = definition || EmberishCurlyComponent;
@@ -257,7 +257,7 @@ export class EmberishCurlyComponentManager
     return { component, selfRef };
   }
 
-  getSelf({ selfRef }: EmberishCurlyComponentState): SomeReactive<unknown> {
+  getSelf({ selfRef }: EmberishCurlyComponentState): Reactive<unknown> {
     return selfRef;
   }
 

@@ -20,10 +20,7 @@ import type {
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
 } from '@glimmer/interfaces';
-import type {OpaqueIterationItem, OpaqueIterator, SomeReactive} from '@glimmer/reference';
-import type {LiveBlockList} from './element-builder';
-import type { UnwindTarget } from './unwind';
-
+import type {OpaqueIterationItem, OpaqueIterator, Reactive} from '@glimmer/reference';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
@@ -32,6 +29,9 @@ import {
 } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
+
+import type {LiveBlockList} from './element-builder';
+import type { UnwindTarget } from './unwind';
 
 import { clear, move as moveBounds } from '../bounds';
 import { VM } from './append';
@@ -55,7 +55,7 @@ export class UpdatingVM implements IUpdatingVM {
       let hasErrored = true;
       try {
         debug.runInTrackingTransaction!(() => this._execute(opcodes, handler), {
-          kind: 'updating',
+          reason: 'updating',
           label: ['- While rendering:'],
         });
 
@@ -102,7 +102,7 @@ export class UpdatingVM implements IUpdatingVM {
     return expect(this.#frameStack.current, 'bug: expected a frame');
   }
 
-  deref<T>(reference: SomeReactive<T>): Result<T> {
+  deref<T>(reference: Reactive<T>): Result<T> {
     return readReactive(reference);
   }
 
@@ -266,15 +266,15 @@ export class TryOpcode extends AbstractBlockOpcode implements ExceptionHandler {
 export class ListItemOpcode extends TryOpcode {
   public retained = false;
   public index = -1;
-  #memo: SomeReactive;
+  #memo: Reactive;
 
   constructor(
     state: VmStateSnapshot,
     runtime: RuntimeContext,
     bounds: UpdatableBlock,
     public key: unknown,
-    memo: SomeReactive,
-    public value: SomeReactive
+    memo: Reactive,
+    public value: Reactive
   ) {
     super(state, runtime, bounds, [], { unwind: null });
     this.#memo = memo;
@@ -309,7 +309,7 @@ export class ListBlockOpcode extends AbstractBlockOpcode<ListItemOpcode> {
     runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],
-    private iterableRef: SomeReactive<OpaqueIterator>
+    private iterableRef: Reactive<OpaqueIterator>
   ) {
     super(state, runtime, bounds, children);
     this.#lastIterator = readReactive(iterableRef);

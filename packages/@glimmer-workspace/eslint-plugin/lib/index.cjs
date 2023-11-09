@@ -55,6 +55,10 @@ module.exports = {
           {
             patterns: [
               { group: ['**/generated/**'], message: "Don't import directly from generated files" },
+              {
+                group: ['console', 'node:console'],
+                message: "Don't import directly from 'console'",
+              },
             ],
           },
         ],
@@ -140,30 +144,36 @@ module.exports = {
               // == Side effect imports. ==
               ['^\\u0000'],
 
-              // == import type ==
+              // == from node:* ==
               [
-                // from node:*
+                //
                 '^node:.+\\u0000$',
-                // from scoped packages
-                '^@?\\w.+\\u0000$',
-                // from absolute imports
-                '^.+\\u0000$',
-                // from relative imports
-                '^\\..+\\u0000$',
+                '^node:',
               ],
 
-              // == normal imports ==
-              // Node.js builtins prefixed with `node:`.
-              ['^node:'],
-              // Packages.
-              // Things that start with a letter (or digit or underscore), or `@` followed by a letter.
-              ['^@?\\w'],
-              // Absolute imports and other imports such as Vue-style `@/foo`.
-              // Anything not matched in another group.
-              ['^'],
-              // Relative imports.
-              // Anything that starts with a dot.
-              ['^\\.'],
+              // == From (optionally scoped) packages
+              [
+                // import type
+                '^@?\\w.+\\u0000$',
+                '^@?\\w',
+              ],
+
+              // == from absolute imports ==
+              //
+              // (Absolute imports and other imports such as Vue-style `@/foo`. Anything not matched
+              // in another group.)
+              [
+                // import type
+                '^.+\\u0000$',
+                '^',
+              ],
+
+              // == Relative imports ==.
+              [
+                // import type
+                '^\\..+\\u0000$',
+                '^\\.',
+              ],
             ],
           },
         ],

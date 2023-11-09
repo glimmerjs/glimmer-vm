@@ -1,7 +1,7 @@
-import type { CapturedArguments, CapturedNamedArguments, SomeReactive } from '@glimmer/interfaces';
-import type { ComponentArgs } from '../interfaces';
-
+import type { CapturedArguments, CapturedNamedArguments, Reactive } from '@glimmer/interfaces';
 import { unwrapReactive } from '@glimmer/reference';
+
+import type { ComponentArgs } from '../interfaces';
 
 class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
   isExtensible() {
@@ -18,7 +18,7 @@ class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
   ): PropertyDescriptor | undefined {
     let desc: PropertyDescriptor | undefined;
     if (typeof p === 'string' && p in target) {
-      const value = unwrapReactive(target[p] as SomeReactive);
+      const value = unwrapReactive(target[p] as Reactive);
       desc = {
         enumerable: true,
         configurable: false,
@@ -35,7 +35,7 @@ class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
 
   get(target: CapturedNamedArguments, p: PropertyKey): unknown {
     if (typeof p === 'string' && p in target) {
-      return unwrapReactive(target[p] as SomeReactive);
+      return unwrapReactive(target[p] as Reactive);
     }
   }
 

@@ -15,9 +15,8 @@ import type {
   Scope,
   ScopeBlock,
 } from '@glimmer/interfaces';
-import type {OpaqueIterator, SomeReactive} from '@glimmer/reference';
+import type {OpaqueIterator, Reactive} from '@glimmer/reference';
 import type {Tag} from '@glimmer/validator';
-
 import {
   CheckArray,
   CheckBlockSymbolTable,
@@ -54,7 +53,7 @@ export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = Wr
 );
 
 class ReferenceChecker {
-  validate(value: unknown): value is SomeReactive {
+  validate(value: unknown): value is Reactive {
     return typeof value === 'object' || value !== null || REFERENCE in value;
   }
 
@@ -63,7 +62,7 @@ class ReferenceChecker {
   }
 }
 
-export const CheckReactive = new ReferenceChecker() as Checker<SomeReactive>;
+export const CheckReactive = new ReferenceChecker() as Checker<Reactive>;
 
 export const CheckIterator: Checker<OpaqueIterator> = CheckInterface({
   next: CheckFunction,
@@ -76,10 +75,10 @@ export const CheckArguments: Checker<VMArgumentsImpl> = WrapCheck(() =>
 
 export const CheckHelper: Checker<Helper> = CheckFunction as Checker<Helper>;
 
-export class UndefinedReferenceChecker implements Checker<SomeReactive> {
-  declare type: SomeReactive;
+export class UndefinedReferenceChecker implements Checker<Reactive> {
+  declare type: Reactive;
 
-  validate(value: unknown): value is SomeReactive {
+  validate(value: unknown): value is Reactive {
     return value === UNDEFINED_REFERENCE;
   }
 

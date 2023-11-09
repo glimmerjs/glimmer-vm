@@ -1,7 +1,6 @@
 import type { Destroyable, Destructor, Dict, Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
 import type { TestBase } from 'qunit';
-
 import setGlobalContext from '@glimmer/global-context';
 import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
 

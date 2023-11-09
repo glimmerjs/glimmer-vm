@@ -1,6 +1,5 @@
  
 import type { Dict } from '@glimmer/interfaces';
-
 import { src } from '@glimmer/syntax';
 import { unwrap } from '@glimmer/util';
 

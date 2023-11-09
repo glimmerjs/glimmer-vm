@@ -1,8 +1,8 @@
 import type {ASTv2} from '@glimmer/syntax';
+import {  generateSyntaxError } from '@glimmer/syntax';
+
 import type { NormalizationState } from '../../context';
 import type { KeywordDelegate } from '../impl';
-
-import {  generateSyntaxError } from '@glimmer/syntax';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';

@@ -7,9 +7,9 @@ import type {
   SimpleNode,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
-import type {BlockOpcode} from './update';
-
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
+
+import type {BlockOpcode} from './update';
 
 import { clear } from '../bounds';
 import {  UpdatingVM } from './update';

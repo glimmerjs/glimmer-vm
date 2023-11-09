@@ -1,9 +1,9 @@
 import type { ExpressionSexpOpcode } from '@glimmer/interfaces';
-import type {PushExpressionOp} from './compilers';
-
 import { assert, deprecate } from '@glimmer/global-context';
 import { $v0, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
+
+import type {PushExpressionOp} from './compilers';
 
 import { expr } from '../opcode-builder/helpers/expr';
 import { isGetFreeHelper } from '../opcode-builder/helpers/resolution';

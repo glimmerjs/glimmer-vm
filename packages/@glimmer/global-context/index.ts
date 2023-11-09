@@ -12,6 +12,8 @@
  *
  */
 
+type Index = string | symbol;
+type Indexable<T = unknown> = object & Record<string | symbol, T>;
 type Dict<T = unknown> = object & Record<string, T>;
 
 //////////
@@ -120,7 +122,7 @@ const defaultSetProperty: GlobalContext['setProperty'] = (parent, key, value) =>
   } else if (setProp) {
     setProp(parent, prop, value);
   } else {
-    parent[prop] = value;
+    (parent as Dict)[prop] = value;
   }
 };
 
@@ -187,12 +189,12 @@ export interface GlobalContext {
   /**
    * Optionally set up `getProperty` if you want to be able to support symbol keys
    */
-  getProperty: <T extends Dict, K extends keyof T>(parent: T, key: K) => T[K];
+  getProperty: (parent: Indexable, key: Index) => unknown;
   setProp: (obj: object, prop: string, value: unknown) => void;
   /**
    * Optionally set up `setProperty` if you want to be able to support symbol keys
    */
-  setProperty: <T extends Dict, K extends keyof T>(parent: T, key: K, value: T[K]) => void;
+  setProperty: (parent: Indexable, key: Index, value: unknown) => void;
   getPath: (obj: object, path: string) => unknown;
   setPath: (obj: object, prop: string, value: unknown) => void;
   warnIfStyleNotTrusted: (value: unknown) => void;

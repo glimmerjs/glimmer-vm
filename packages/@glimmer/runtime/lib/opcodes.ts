@@ -1,10 +1,10 @@
 import type { DisassembledOperand } from '@glimmer/debug';
 import type { Dict, Nullable, Optional, RuntimeOp, VmMachineOp, VmOp } from '@glimmer/interfaces';
-import type { LowLevelVM,VM } from './vm';
-import type { InternalVM } from './vm/append';
-
 import { assert, expect, fillNulls } from '@glimmer/util';
 import { OpSize } from '@glimmer/vm';
+
+import type { LowLevelVM,VM } from './vm';
+import type { InternalVM } from './vm/append';
 
 export interface OpcodeJSON {
   type: number | string;

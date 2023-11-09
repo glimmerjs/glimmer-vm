@@ -13,9 +13,6 @@ import type {
 } from '@glimmer/interfaces';
 import type {CurriedValue, EnvironmentDelegate} from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
-import type { RenderDelegate, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
-import type { Self } from '../../render-test';
-
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
 import {
@@ -29,6 +26,9 @@ import {
   runtimeContext
 } from '@glimmer/runtime';
 import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
+
+import type { RenderDelegate, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
+import type { Self } from '../../render-test';
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';

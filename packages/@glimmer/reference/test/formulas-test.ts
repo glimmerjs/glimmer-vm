@@ -1,5 +1,4 @@
-import type { MutableReactiveCell, SomeReactive } from '@glimmer/interfaces';
-
+import type { MutableReactiveCell, Reactive } from '@glimmer/interfaces';
 import {
   Accessor,
   FallibleFormula,
@@ -89,7 +88,7 @@ module('@glimmer/reference', () => {
   });
 });
 
-function testResult(reactive: SomeReactive<boolean>, isError: MutableReactiveCell<boolean>) {
+function testResult(reactive: Reactive<boolean>, isError: MutableReactiveCell<boolean>) {
   const validate = new Validate(reactive);
 
   validate.assertingStale(true, 'initial');

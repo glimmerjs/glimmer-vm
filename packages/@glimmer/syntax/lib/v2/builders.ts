@@ -1,8 +1,8 @@
 import type { PresentArray } from '@glimmer/interfaces';
+import { assert, assertPresentArray, assign } from '@glimmer/util';
+
 import type { SourceSpan } from '../source/span';
 import type { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
-
-import { assert, assertPresentArray, assign } from '@glimmer/util';
 
 import { SourceSlice } from '../source/slice';
 import { SpanList } from '../source/span-list';

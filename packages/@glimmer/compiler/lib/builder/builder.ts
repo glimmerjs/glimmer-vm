@@ -7,6 +7,20 @@ import type {
   PresentArray,
   WireFormat,
 } from '@glimmer/interfaces';
+import {
+  assert,
+  assertNever,
+  dict,
+  exhausted,
+  expect,
+  isPresentArray,
+  NS_XLINK,
+  NS_XML,
+  NS_XMLNS,
+  values,
+} from '@glimmer/util';
+import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
+
 import type {
   BuilderComment,
   BuilderStatement,
@@ -24,20 +38,6 @@ import type {
   NormalizedStatement,
   Variable,
 } from './builder-interface';
-
-import {
-  assert,
-  assertNever,
-  dict,
-  exhausted,
-  expect,
-  isPresentArray,
-  NS_XLINK,
-  NS_XML,
-  NS_XMLNS,
-  values,
-} from '@glimmer/util';
-import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
 
 import {
   Builder,

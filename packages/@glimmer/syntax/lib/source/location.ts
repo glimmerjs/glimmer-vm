@@ -1,7 +1,7 @@
 import type { PresentArray } from '@glimmer/interfaces';
-import type { SourceSpan } from './span';
-
 import { isPresentArray } from '@glimmer/util';
+
+import type { SourceSpan } from './span';
 
 export interface SourceLocation {
   start: SourcePosition;

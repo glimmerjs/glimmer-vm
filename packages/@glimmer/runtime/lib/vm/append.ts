@@ -30,12 +30,8 @@ import type {
   VM as PublicVM,
   VmStackAspect,
 } from '@glimmer/interfaces';
-import type {OpaqueIterationItem, OpaqueIterator, SomeReactive} from '@glimmer/reference';
+import type {OpaqueIterationItem, OpaqueIterator, Reactive} from '@glimmer/reference';
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
-import type { LiveBlockList } from './element-builder';
-import type {ArgumentsStack} from './low-level';
-import type {BlockOpcode, InitialVmState, VmStateSnapshot} from './update';
-
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
@@ -43,7 +39,7 @@ import {
   createIteratorItemRef,
   UNDEFINED_REFERENCE
 } from '@glimmer/reference';
-import { readReactive } from '@glimmer/reference/lib/api';
+import { readReactive } from '@glimmer/reference/lib/api/core';
 import {
   assert,
   BalancedStack,
@@ -61,6 +57,10 @@ import {
 } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import { $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
+
+import type { LiveBlockList } from './element-builder';
+import type {ArgumentsStack} from './low-level';
+import type {BlockOpcode, InitialVmState, VmStateSnapshot} from './update';
 
 import {
   BeginTrackFrameOpcode,
@@ -347,7 +347,7 @@ export class VM implements PublicVM, SnapshottableVM {
   public t1: unknown = null;
   public v0: unknown = null;
 
-  earlyError(message: string, from?: SomeReactive): never {
+  earlyError(message: string, from?: Reactive): never {
     throw new EarlyError(message, from);
   }
 
@@ -656,7 +656,7 @@ export class VM implements PublicVM, SnapshottableVM {
     this.listBlock().initializeChild(opcode);
   }
 
-  enterList(iterableRef: SomeReactive<OpaqueIterator>, relativeStart: number) {
+  enterList(iterableRef: Reactive<OpaqueIterator>, relativeStart: number) {
     let updating: ListItemOpcode[] = [];
 
     let addr = this.#inner.target(relativeStart);
@@ -759,15 +759,15 @@ export class VM implements PublicVM, SnapshottableVM {
     return this.scope.owner;
   }
 
-  getSelf(): SomeReactive<unknown> {
+  getSelf(): Reactive<unknown> {
     return this.scope.getSelf();
   }
 
-  referenceForSymbol(symbol: number): SomeReactive {
+  referenceForSymbol(symbol: number): Reactive {
     return this.scope.getSymbol(symbol);
   }
 
-  deref<T>(reactive: SomeReactive<T>, then: (value: T) => void | Result<void>): void {
+  deref<T>(reactive: Reactive<T>, then: (value: T) => void | Result<void>): void {
     const result = this.derefReactive(reactive);
 
     if (this.unwrap(result)) {
@@ -776,25 +776,25 @@ export class VM implements PublicVM, SnapshottableVM {
     }
   }
 
-  derefReactive<T>(reference: SomeReactive<T>): Result<T>;
-  derefReactive<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
+  derefReactive<T>(reference: Reactive<T>): Result<T>;
+  derefReactive<T, U>(reference: Reactive<T>, map: (value: T) => U): Result<U>;
   derefReactive(
-    reference: SomeReactive<unknown>,
+    reference: Reactive<unknown>,
     map?: (value: unknown) => unknown
   ): Result<unknown> {
     return this.#deref(reference, map);
   }
 
-  #deref(reactive: SomeReactive, map?: undefined | ((value: unknown) => unknown)): Result<unknown> {
+  #deref(reactive: Reactive, map?: undefined | ((value: unknown) => unknown)): Result<unknown> {
     const result = readReactive(reactive);
     return map ? mapResult(result, map) : result;
   }
 
-  derefN<T extends SomeReactive[]>(
+  derefN<T extends Reactive[]>(
     reference: T
-  ): Result<{ [P in keyof T]: T[P] extends SomeReactive<infer U> ? U : T[P] }>;
-  derefN<T, U>(reference: SomeReactive<T>[], map: (value: T[]) => U): Result<U[]>;
-  derefN(references: SomeReactive[], map?: (value: unknown[]) => unknown): Result<unknown> {
+  ): Result<{ [P in keyof T]: T[P] extends Reactive<infer U> ? U : T[P] }>;
+  derefN<T, U>(reference: Reactive<T>[], map: (value: T[]) => U): Result<U[]>;
+  derefN(references: Reactive[], map?: (value: unknown[]) => unknown): Result<unknown> {
     const results: unknown[] = [];
 
     for (const reference of references) {
@@ -915,7 +915,7 @@ export class VM implements PublicVM, SnapshottableVM {
     let scope = this.dynamicScope;
 
     for (const name of reverse(names)) {
-      scope.set(name, this.stack.pop<SomeReactive<unknown>>());
+      scope.set(name, this.stack.pop<Reactive<unknown>>());
     }
   }
 }
@@ -940,7 +940,7 @@ export interface MinimalInitOptions {
 }
 
 export interface ScopedInitOptions extends MinimalInitOptions {
-  self: SomeReactive;
+  self: Reactive;
   numSymbols: number;
 }
 

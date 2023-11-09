@@ -5,7 +5,6 @@ import type {
   CapturedPositionalArguments,
 } from '@glimmer/interfaces';
 import type {Tag} from '@glimmer/validator';
-
 import { unwrapReactive } from '@glimmer/reference';
 import { devmode } from '@glimmer/util';
 import {  track } from '@glimmer/validator';

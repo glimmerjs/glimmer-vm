@@ -1,9 +1,9 @@
 import type { CurriedType } from '@glimmer/interfaces';
-import type { NormalizationState } from '../../context';
-import type { KeywordDelegate } from '../impl';
-
 import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
 import { CurriedTypes } from '@glimmer/vm';
+
+import type { NormalizationState } from '../../context';
+import type { KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';

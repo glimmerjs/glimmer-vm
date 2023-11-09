@@ -5,6 +5,7 @@ import type {
   ResolvedComponentDefinition,
   RuntimeResolver,
 } from '@glimmer/interfaces';
+
 import type { TestJitRegistry } from './registry';
 
 export class TestJitRuntimeResolver implements RuntimeResolver {

@@ -6,7 +6,6 @@ import type {
   ModifierManager,
 } from '@glimmer/interfaces';
 import type {CustomHelperManager} from '@glimmer/manager';
-
 import {
   componentCapabilities,
   CustomComponentManager,

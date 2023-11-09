@@ -6,20 +6,21 @@ import type {
   DevMode,
   Tag,
   TagDescription,
+  ValidatableDescription,
 } from '@glimmer/interfaces';
-import type {Revision} from './validators';
+import {
+  devmode,
+  getDescription,
+  inDevmode,
+  setDescription,
+  toValidatableDescription,
+} from '@glimmer/util';
 
-import { devmode, getDescription, inDevmode, setDescription, toDescription } from '@glimmer/util';
+import type { Revision } from './validators';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
-import {
-  combine,
-  CONSTANT_TAG,
-  isConstTag,
-  validateTag,
-  valueForTag
-} from './validators';
+import { combine, CONSTANT_TAG, isConstTag, validateTag, valueForTag } from './validators';
 
 /**
  * An object that that tracks @tracked properties that were consumed.
@@ -78,7 +79,7 @@ export function beginTrackFrame(
   context: DevMode<Description> = devmode(
     () =>
       ({
-        kind: 'formula',
+        reason: 'formula',
         label: ['(tracking frame)'],
       }) satisfies Description
   )
@@ -171,11 +172,9 @@ interface InternalCache<T = unknown> extends Described<TagDescription> {
 const CACHE_DEFAULTS = devmode(
   () =>
     ({
-      kind: 'formula',
-      fallible: true,
-      readonly: true,
+      reason: 'cache',
       label: ['(cache)'],
-    }) satisfies DefaultDescriptionFields
+    }) satisfies DefaultDescriptionFields<ValidatableDescription>
 );
 
 export function createCache<T>(fn: () => T, debuggingLabel?: DescriptionSpec): Cache<T> {
@@ -194,7 +193,7 @@ export function createCache<T>(fn: () => T, debuggingLabel?: DescriptionSpec): C
 
   setDescription(
     cache,
-    devmode(() => toDescription(debuggingLabel, CACHE_DEFAULTS))
+    devmode(() => toValidatableDescription(debuggingLabel, CACHE_DEFAULTS))
   );
 
   return cache as unknown as Cache<T>;
@@ -270,7 +269,7 @@ function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is T
 export function track(
   block: () => void,
   description: DevMode<Description> = devmode(
-    () => ({ kind: 'tracking', label: ['(track)'] }) satisfies Description
+    () => ({ reason: 'tracking', label: ['(track)'] }) satisfies Description
   )
 ): Tag {
   beginTrackFrame(description);

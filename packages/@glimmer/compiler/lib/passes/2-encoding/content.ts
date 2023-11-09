@@ -9,13 +9,13 @@ import type {
   WellKnownAttrName,
   WireFormat,
 } from '@glimmer/interfaces';
-import type { OptionalList } from '../../shared/list';
-import type * as mir from './mir';
-
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { ASTv2, SourceSpan } from '@glimmer/syntax';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
+
+import type { OptionalList } from '../../shared/list';
+import type * as mir from './mir';
 
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';

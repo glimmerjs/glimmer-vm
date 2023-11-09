@@ -1,4 +1,6 @@
 import type { BlockMetadata, DebugConstants } from '@glimmer/interfaces';
+import { decodeHandle } from '@glimmer/util';
+
 import type {RawDisassembledOperand} from '../debug';
 import type {
   NonNullableOperandType,
@@ -6,8 +8,6 @@ import type {
   OperandLabel,
   OperandType,
 } from '../utils';
-
-import { decodeHandle } from '@glimmer/util';
 
 import {
   decodeCurry,

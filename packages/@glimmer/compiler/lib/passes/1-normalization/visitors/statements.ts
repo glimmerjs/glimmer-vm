@@ -1,6 +1,6 @@
-import type { NormalizationState } from '../context';
-
 import { ASTv2 } from '@glimmer/syntax';
+
+import type { NormalizationState } from '../context';
 
 import { OptionalList } from '../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../shared/result';

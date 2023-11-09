@@ -5,7 +5,6 @@ import type {
   TemplateFactory,
 } from '@glimmer/interfaces';
 import type { PrecompileOptions } from '@glimmer/syntax';
-
 import { precompileJSON } from '@glimmer/compiler';
 import { templateFactory } from '@glimmer/opcode-compiler';
 

@@ -1,5 +1,4 @@
 import type {AST, PreprocessOptions} from '@glimmer/syntax';
-
 import {  preprocess as parse  } from '@glimmer/syntax';
 import { entries } from '@glimmer/util';
 

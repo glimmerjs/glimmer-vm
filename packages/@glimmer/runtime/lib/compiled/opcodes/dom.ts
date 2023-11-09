@@ -9,11 +9,8 @@ import type {
   UpdatingOpcode,
   UpdatingVM,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-import type {Revision, Tag} from '@glimmer/validator';
-import type {CurriedValue} from '../../curried-value';
-import type { DynamicAttribute } from '../../vm/attributes/dynamic';
-
+import type { Reactive } from '@glimmer/reference';
+import type { Revision, Tag } from '@glimmer/validator';
 import {
   check,
   CheckElement,
@@ -23,22 +20,15 @@ import {
   CheckString,
 } from '@glimmer/debug';
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
-import {
-  FallibleFormula,
-  isConstant,
-  readReactive,
-  unwrapReactive
-} from '@glimmer/reference';
+import { FallibleFormula, isConstant, readReactive, unwrapReactive } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject, stringifyDebugLabel } from '@glimmer/util';
-import {
-  consumeTag,
-  CURRENT_TAG,
-  validateTag,
-  valueForTag
-} from '@glimmer/validator';
+import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
 
-import {  isCurried, resolveCurriedValue } from '../../curried-value';
+import type { CurriedValue } from '../../curried-value';
+import type { DynamicAttribute } from '../../vm/attributes/dynamic';
+
+import { isCurried, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import { CheckArguments, CheckOperations, CheckReactive } from './-debug-strip';
 import { Assert } from './vm';
@@ -67,7 +57,7 @@ APPEND_OPCODES.add(Op.PushRemoteElement, (vm) => {
 
   let element = check(unwrapReactive(elementRef), CheckElement);
   let insertBefore = check(unwrapReactive(insertBeforeRef), CheckMaybe(CheckNullable(CheckNode)));
-  let guid = unwrapReactive(guidRef) as string;
+  let guid = check(unwrapReactive(guidRef), CheckString);
 
   if (!isConstant(elementRef)) {
     vm.updateWith(new Assert(elementRef));
@@ -282,7 +272,7 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
   constructor(
     private tag: Tag | null,
     private instance: ModifierInstance | undefined,
-    private instanceRef: SomeReactive<ModifierInstance | undefined>
+    private instanceRef: Reactive<ModifierInstance | undefined>
   ) {
     this.lastUpdated = valueForTag(tag ?? CURRENT_TAG);
   }
@@ -356,9 +346,9 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: _trusting, op3: _name
 });
 
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
-  private updateRef: SomeReactive;
+  private updateRef: Reactive;
 
-  constructor(reference: SomeReactive<unknown>, attribute: DynamicAttribute, env: Environment) {
+  constructor(reference: Reactive<unknown>, attribute: DynamicAttribute, env: Environment) {
     let initialized = false;
 
     this.updateRef = FallibleFormula(() => {

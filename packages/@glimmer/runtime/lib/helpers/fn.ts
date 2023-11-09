@@ -1,6 +1,5 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-
+import type {Reactive} from '@glimmer/reference';
 import { check } from '@glimmer/debug';
 import {
   FallibleFormula,
@@ -99,8 +98,8 @@ export const fn = internalHelper(({ positional }: CapturedArguments) => {
 });
 
 function assertCallbackIsFn(
-  callbackRef: SomeReactive | undefined
-): asserts callbackRef is SomeReactive {
+  callbackRef: Reactive | undefined
+): asserts callbackRef is Reactive {
   if (
     !(callbackRef && (isAccessor(callbackRef) || typeof unwrapReactive(callbackRef) === 'function'))
   ) {

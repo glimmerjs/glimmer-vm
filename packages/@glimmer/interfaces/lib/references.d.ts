@@ -1,4 +1,5 @@
 import type { DevMode, Result } from '@glimmer/interfaces';
+
 import type { Nullable, Optional } from './core';
 
 /**
@@ -18,14 +19,14 @@ export type ReadonlyCellType = 1;
  */
 export type DeeplyConstantType = 2;
 /**
- * A fallible formula represents a user-space computation that could fail.
+ * A formula represents a user-space computation that could fail.
  */
-export type FallibleFormulaType = 3;
+export type FormulaType = 3;
 /**
- * An infallible formula represents a computation created by the VM. It is not allowed to fail. If
- * an infallible formula throws an exception, there is no error recovery.
+ * An computed cell represents a computation created by the VM. It is not allowed to fail. If
+ * a computed cell throws an exception, there is no error recovery.
  */
-export type InfallibleFormulaType = 4;
+export type ComputedCellType = 4;
 /**
  * An accessor has both a user-space computation and a userspace update. Both are fallible.
  */
@@ -36,8 +37,8 @@ export interface ReactiveTypes {
   readonly MutableCell: MutableCellType;
   readonly ReadonlyCell: ReadonlyCellType;
   readonly DeeplyConstant: DeeplyConstantType;
-  readonly InfallibleFormula: InfallibleReactiveFormula;
-  readonly FallibleFormula: FallibleFormulaType;
+  readonly ComputedCell: ReactiveComputedCell;
+  readonly Formula: FormulaType;
   readonly Accessor: AccessorType;
   readonly ConstantError: ConstantErrorType;
 }
@@ -46,8 +47,8 @@ export type ReactiveType =
   | MutableCellType
   | ReadonlyCellType
   | DeeplyConstantType
-  | InfallibleFormulaType
-  | FallibleFormulaType
+  | ComputedCellType
+  | FormulaType
   | AccessorType
   | ConstantErrorType;
 
@@ -64,19 +65,7 @@ export interface UserException extends Error {
  * writing to an accessor) may produce an error. A poisoned value is permanently an error and any
  * attempt to read or write it will produce an error.
  */
-type ReferenceKind =
-  | 'cell'
-  | 'formula'
-  | 'property'
-  | 'poisoned'
-  | 'alias'
-  | 'modifier'
-  | 'component'
-  | 'unknown';
-
-type TagKind = ReferenceKind | 'tag';
-
-type RenderingKind = 'template' | 'updating';
+type ReferenceReason = string;
 
 export type DebugLabel = readonly [string, ...(string | symbol)[]];
 
@@ -105,20 +94,15 @@ export type DescriptionSpec =
  * These fields are provided by the reference constructors, and provide defaults for specific
  * reference types.
  */
-export interface DefaultDescriptionFields {
-  readonly label: DebugLabel;
-  readonly readonly: boolean | 'deep';
-  readonly kind: ReferenceKind | undefined;
-  readonly fallible: boolean;
-  readonly serialization?: 'String' | 'JSON' | undefined;
-}
-
+export type DefaultDescriptionFields<D extends Description = ReferenceDescription> = {
+  [P in keyof D as Extract<P, 'reason' | 'type' | 'read' | 'write' | 'property' | 'label'>]: D[P];
+};
 interface Described<D extends Description = Description> {
   description: DevMode<D>;
 }
 
 interface Description {
-  readonly kind?: ReferenceKind | TagKind | RenderingKind | 'tracking' | undefined;
+  readonly reason?: string | undefined;
 
   /**
    * Each part in a label represents a property path.
@@ -127,7 +111,7 @@ interface Description {
 }
 
 interface ValidatableDescription extends Description {
-  readonly kind?: ReferenceKind | TagKind | undefined;
+  readonly reason?: string | undefined;
 
   /**
    * If serialization is `String`, the value can be converted to a string using `String()`. If the
@@ -142,16 +126,44 @@ interface ValidatableDescription extends Description {
   };
 }
 
+/**
+ * Fallible storage might produce an error when accessed.
+ */
+type FALLIBLE_STORAGE = 'fallible';
+
+/**
+ * Infallible storage does not produce an error when accessed. It is usually a cell, but can also be
+ * special `InfallibleFormula` references that are asserted to be infallible. If accessing an
+ * infallible storage throws, there is no error recovery.
+ */
+type INFALLIBLE_STORAGE = 'infallible';
+
+/**
+ * When storage is not accessible for an operation, that operation is not available.
+ */
+type NOT_ACCESSIBLE = 'none';
+
 interface ReferenceDescription extends ValidatableDescription {
   /**
-   * Deeply readonly references also have deeply readonly property references.
+   * The name of the primitive reactive constructor that was used to create this
+   * reactive value (e.g. "ReadonlyCell").
    */
-  readonly readonly: boolean | 'deep';
+  readonly type: string;
+
+  read: FALLIBLE_STORAGE | INFALLIBLE_STORAGE;
+  write: FALLIBLE_STORAGE | INFALLIBLE_STORAGE | NOT_ACCESSIBLE;
 
   /**
-   * A fallible reactive value can produce an error.
+   * The default value of `property` is:
+   *
+   * { read: 'fallible', write: 'fallible' }
    */
-  readonly fallible: boolean;
+  property?:
+    | {
+        read: FALLIBLE_STORAGE | INFALLIBLE_STORAGE;
+        write: FALLIBLE_STORAGE | INFALLIBLE_STORAGE | NOT_ACCESSIBLE;
+      }
+    | undefined;
 }
 
 interface TagDescription extends ValidatableDescription {
@@ -169,32 +181,32 @@ export interface RawReactive<T = unknown, K = ReactiveType>
   properties: null | Map<PropertyKey | RawReactive, RawReactive>;
 }
 
-export type SomeReactive<T = unknown> =
+export type Reactive<T = unknown> =
   | ReactiveCell<T>
-  | InfallibleReactiveFormula<T>
-  | FallibleReactiveFormula<T>
+  | ReactiveComputedCell<T>
+  | ReactiveFormula<T>
   | ReactiveAccessor<T>
   | ConstantReactiveError;
 
-export type DeeplyConstantReactive<T = unknown> = RawReactive<T, DeeplyConstantType>;
+export type DeeplyConstantReactiveCell<T = unknown> = RawReactive<T, DeeplyConstantType>;
 export type ConstantReactiveError = RawReactive<void, ConstantErrorType> & {
   error: UserException;
 };
 
 export type ReadonlyReactiveCell<T = unknown> =
-  | DeeplyConstantReactive<T>
+  | DeeplyConstantReactiveCell<T>
   | RawReactive<T, ReadonlyCellType>;
 export type MutableReactiveCell<T = unknown> =
-  | DeeplyConstantReactive<T>
+  | DeeplyConstantReactiveCell<T>
   | RawReactive<T, MutableCellType>;
 
 export type ReactiveCell<T = unknown> =
-  | DeeplyConstantReactive<T>
+  | DeeplyConstantReactiveCell<T>
   | ReadonlyReactiveCell<T>
   | MutableReactiveCell<T>;
 
-export type InfallibleReactiveFormula<T = unknown> = RawReactive<T, InfallibleFormulaType>;
-export type FallibleReactiveFormula<T = unknown> = RawReactive<T, FallibleFormulaType>;
+export type ReactiveComputedCell<T = unknown> = RawReactive<T, ComputedCellType>;
+export type ReactiveFormula<T = unknown> = RawReactive<T, FormulaType>;
 export type ReactiveAccessor<T = unknown> = RawReactive<T, AccessorType>;
 
 export type ReactiveResult<T> = Result<T, UserException>;

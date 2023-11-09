@@ -1,7 +1,7 @@
 import type { ConstantTag, Optional, TagDescription, UpdatableTag } from '@glimmer/interfaces';
-import type {Indexable} from './utils';
-
 import { devmode } from '@glimmer/util';
+
+import type {Indexable} from './utils';
 
 import { debug } from './debug';
 import {  unwrap } from './utils';
@@ -68,7 +68,7 @@ export function tagFor<T extends object>(
       devmode(
         () =>
           ({
-            kind: 'property',
+            reason: 'property',
             label: ['(object)', key as string | symbol],
           }) satisfies TagDescription
       )

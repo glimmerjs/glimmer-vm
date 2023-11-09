@@ -1,9 +1,9 @@
 
 import type { PresentArray } from '@glimmer/interfaces';
+import { getFirst, getLast, isPresentArray } from '@glimmer/util';
+
 import type { LocatedWithOptionalSpan, LocatedWithSpan } from './location';
 import type {SourceOffset} from './span';
-
-import { getFirst, getLast, isPresentArray } from '@glimmer/util';
 
 import {  SourceSpan } from './span';
 

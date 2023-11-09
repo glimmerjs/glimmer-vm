@@ -1,9 +1,9 @@
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+import { deprecate, unwrap } from '@glimmer/util';
+
 import type * as ASTv1 from '../v1/api';
 import type {VisitorKey, VisitorKeys} from '../v1/visitor-keys';
 import type { KeyHandler, KeyTraversal, NodeHandler, NodeTraversal, NodeVisitor } from './visitor';
-
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { deprecate, unwrap } from '@glimmer/util';
 
 import visitorKeys from '../v1/visitor-keys';
 import {

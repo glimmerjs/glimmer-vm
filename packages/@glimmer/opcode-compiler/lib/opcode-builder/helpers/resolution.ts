@@ -13,7 +13,6 @@ import type {
   ResolveOptionalHelperOp,
   SexpOpcode,
 } from "@glimmer/interfaces";
-
 import { assert, debugToString, expect, unwrap } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 

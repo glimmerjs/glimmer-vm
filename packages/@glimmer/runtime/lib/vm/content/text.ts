@@ -1,6 +1,5 @@
 import type { SimpleText, UpdatingOpcode } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-
+import type {Reactive} from '@glimmer/reference';
 import {  unwrapReactive } from '@glimmer/reference';
 
 import { isEmpty, isString } from '../../dom/normalize';
@@ -8,7 +7,7 @@ import { isEmpty, isString } from '../../dom/normalize';
 export default class DynamicTextContent implements UpdatingOpcode {
   constructor(
     public node: SimpleText,
-    private reference: SomeReactive<unknown>,
+    private reference: Reactive<unknown>,
     private lastValue: string
   ) {}
 

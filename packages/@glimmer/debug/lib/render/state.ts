@@ -7,13 +7,13 @@ import type {
   RuntimeHeap,
   SnapshotArray,
 } from '@glimmer/interfaces';
+import { decodeHandle, enumerate } from '@glimmer/util';
+
 import type {OpSnapshot, SomeDisassembledOperand} from '../debug';
 import type { OpcodeMetadata, StackSpec } from '../metadata';
 import type { Fragment } from './fragment';
 import type { DebugLogger } from './lines';
 import type {IntoFragment} from './presets';
-
-import { decodeHandle, enumerate } from '@glimmer/util';
 
 import { debug   } from '../debug';
 import { opcodeMetadata } from '../opcode-metadata';

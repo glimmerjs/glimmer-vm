@@ -1,6 +1,5 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import type {Attrs, AttrsDiff, ClientSideRenderDelegate, EmberishCurlyComponentFactory} from '@glimmer-workspace/integration-tests';
-
 import { assign, castToSimple, unwrap } from '@glimmer/util';
 import {
   classes,

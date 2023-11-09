@@ -1,6 +1,5 @@
 import type {GlobalContext} from '@glimmer/global-context';
-import type {OpaqueIterationItem, SomeReactive} from '@glimmer/reference';
-
+import type {OpaqueIterationItem, Reactive} from '@glimmer/reference';
 import {  testOverrideGlobalContext } from '@glimmer/global-context';
 import {
   createIteratorRef,
@@ -15,7 +14,7 @@ import { module, test } from './utils/qunit';
 import { TestContext } from './utils/template';
 
 class IterableWrapper {
-  private iterable: SomeReactive<{ next(): OpaqueIterationItem | null }>;
+  private iterable: Reactive<{ next(): OpaqueIterationItem | null }>;
 
   constructor(obj: unknown, key = '@identity') {
     let valueRef = FallibleFormula(() => {

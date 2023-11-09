@@ -1,7 +1,7 @@
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+
 import type {ArgumentsStack} from './low-level';
 import type { UnwindTarget } from './unwind';
-
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 import {  PackedRegisters, Registers } from './low-level';
 

@@ -1,7 +1,7 @@
-import type { NormalizationState } from '../context';
-
 import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
 import { CurriedTypes } from '@glimmer/vm';
+
+import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';

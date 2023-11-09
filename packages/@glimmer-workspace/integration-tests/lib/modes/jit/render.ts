@@ -1,17 +1,17 @@
 import type { ElementBuilder, RenderResult } from '@glimmer/interfaces';
-import type { SomeReactive } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 import type { PrecompileOptions } from '@glimmer/syntax';
-import type { TestJitContext } from './delegate';
-
 import { renderMain, renderSync } from '@glimmer/runtime';
 import { unwrapTemplate } from '@glimmer/util';
+
+import type { TestJitContext } from './delegate';
 
 import { preprocess } from '../../compile';
 
 export function renderTemplate(
   src: string,
   { runtime, program }: TestJitContext,
-  self: SomeReactive,
+  self: Reactive,
   builder: ElementBuilder,
   options?: PrecompileOptions
 ): RenderResult {

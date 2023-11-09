@@ -1,5 +1,4 @@
 import type {KeywordType} from '@glimmer/syntax';
-
 import { KEYWORDS_TYPES  } from '@glimmer/syntax';
 import {
   jitSuite,

@@ -5,7 +5,6 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
 } from '@glimmer/interfaces';
-
 import { DOMTreeConstruction  } from '@glimmer/dom-change-list';
 import { NS_SVG, NS_XLINK } from '@glimmer/util';
 import createDocument from '@simple-dom/document';

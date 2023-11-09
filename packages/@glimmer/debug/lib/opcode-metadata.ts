@@ -1,4 +1,5 @@
 import type { VmOp } from '@glimmer/interfaces';
+
 import type { OpcodeMetadata } from './metadata';
 
 import { define } from './stack/define-metadata';

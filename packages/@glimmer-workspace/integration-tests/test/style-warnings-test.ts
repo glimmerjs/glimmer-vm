@@ -1,5 +1,4 @@
 import type {GlobalContext} from '@glimmer/global-context';
-
 import {  testOverrideGlobalContext } from '@glimmer/global-context';
 import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 

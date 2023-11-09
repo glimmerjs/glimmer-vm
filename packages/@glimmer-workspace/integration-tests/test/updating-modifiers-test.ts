@@ -1,5 +1,4 @@
 import type { SimpleElement } from '@glimmer/interfaces';
-
 import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';

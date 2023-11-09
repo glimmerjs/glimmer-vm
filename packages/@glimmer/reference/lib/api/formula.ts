@@ -1,27 +1,25 @@
 import type {
+  DefaultDescriptionFields,
   DescriptionSpec,
-  FallibleReactiveFormula,
-  InfallibleReactiveFormula,
+  ReactiveComputedCell,
+  ReactiveFormula,
   ReactiveResult,
+  RETURN_TYPE,
 } from '@glimmer/interfaces';
-import type { RETURN_TYPE } from '../reference';
+import { devmode, setDescription, toValidatableDescription } from '@glimmer/util';
 
-import { devmode, setDescription, toDescription } from '@glimmer/util';
+import { setFromFallibleCompute, setResult } from './internal/errors';
+import { COMPUTED_CELL, FALLIBLE_FORMULA, InternalReactive } from './internal/reactive';
 
-import {
-  FALLIBLE_FORMULA,
-  INFALLIBLE_FORMULA,
-  Reactive,
-  setFromFallibleCompute,
-  setResult,
-} from '../reference';
-
-const FALLIBLE_FORMULA_DEFAULTS = devmode(() => ({
-  readonly: false,
-  fallible: false,
-  kind: 'cell',
-  label: ['(FallibleFormula)'],
-}));
+const FALLIBLE_FORMULA_DEFAULTS = devmode(
+  () =>
+    ({
+      type: 'FallibleFormula',
+      read: 'fallible',
+      write: 'none',
+      label: ['(FallibleFormula)'],
+    }) satisfies DefaultDescriptionFields
+);
 
 /**
  * A fallible formula invokes user code. If the user code throws an exception, the formula returns
@@ -30,24 +28,29 @@ const FALLIBLE_FORMULA_DEFAULTS = devmode(() => ({
 export function FallibleFormula<T = unknown>(
   compute: () => T,
   debugLabel?: DescriptionSpec
-): FallibleReactiveFormula<T> {
-  const ref = new Reactive<T>(FALLIBLE_FORMULA);
+): ReactiveFormula<T> {
+  const ref = new InternalReactive<T>(FALLIBLE_FORMULA);
 
   ref.compute = () => setFromFallibleCompute(ref, compute);
 
   setDescription(
     ref,
-    devmode(() => toDescription(debugLabel, FALLIBLE_FORMULA_DEFAULTS))
+    devmode(() => toValidatableDescription(debugLabel, FALLIBLE_FORMULA_DEFAULTS))
   );
 
   return ref as RETURN_TYPE;
 }
-const RESULT_FORMULA_DEFAULTS = devmode(() => ({
-  readonly: true,
-  fallible: true,
-  kind: 'formula',
-  label: [`(ResultFormula)`],
-}));
+
+const RESULT_FORMULA_DEFAULTS = devmode(
+  () =>
+    ({
+      type: 'ResultFormula',
+      read: 'fallible',
+      write: 'none',
+      label: [`{result formula}`],
+    }) satisfies DefaultDescriptionFields
+);
+
 /**
  * The `compute` function must be infallible and convert any errors to results.
  */
@@ -55,38 +58,43 @@ export function ResultFormula<T = unknown>(
   compute: () => ReactiveResult<T>,
   description?: DescriptionSpec
 ) {
-  const ref = new Reactive<T>(FALLIBLE_FORMULA);
+  const ref = new InternalReactive<T>(FALLIBLE_FORMULA);
 
   ref.compute = () => setResult(ref, compute());
 
   setDescription(
     ref,
-    devmode(() => toDescription(description, RESULT_FORMULA_DEFAULTS))
+    devmode(() => toValidatableDescription(description, RESULT_FORMULA_DEFAULTS))
   );
 
   return ref as RETURN_TYPE;
 }
-const INFALLIBLE_FORMULA_DEFAULTS = devmode(() => ({
-  readonly: true,
-  fallible: false,
-  kind: 'formula',
-  label: [`(InfallibleFormula)`],
-}));
+
+const COMPUTED_CELL_DEFAULTS = devmode(
+  () =>
+    ({
+      type: 'InfallibleFormula',
+      read: 'infallible',
+      write: 'none',
+      label: [`{computed cell}`],
+    }) satisfies DefaultDescriptionFields
+);
+
 /**
- * An infallible formula does not invoke user code. If an infallible formula's compute function
- * throws an error, it's a bug and there is no error recovery.
+ * A computed cell does not invoke user code. If a computed cell's compute function throws an error,
+ * it's a bug and there is no error recovery.
  */
-export function InfallibleFormula<T = unknown>(
+export function ComputedCell<T = unknown>(
   compute: () => T,
   description?: DescriptionSpec
-): InfallibleReactiveFormula<T> {
-  const ref = new Reactive<T>(INFALLIBLE_FORMULA);
+): ReactiveComputedCell<T> {
+  const ref = new InternalReactive<T>(COMPUTED_CELL);
 
   ref.compute = compute;
 
   setDescription(
     ref,
-    devmode(() => toDescription(description, INFALLIBLE_FORMULA_DEFAULTS))
+    devmode(() => toValidatableDescription(description, COMPUTED_CELL_DEFAULTS))
   );
 
   return ref as RETURN_TYPE;

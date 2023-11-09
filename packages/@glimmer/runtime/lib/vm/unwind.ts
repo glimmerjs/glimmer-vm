@@ -3,7 +3,6 @@ import type {
   TargetState,
   UnwindTarget as UnwindTargetInterface,
 } from '@glimmer/interfaces';
-
 import { Ok } from '@glimmer/util';
 
 export class UnwindTarget implements UnwindTargetInterface {

@@ -6,9 +6,9 @@ import type {
   SimpleElement,
   SimpleNode,
 } from "@glimmer/interfaces";
-import type { DOMOperations } from '../dom/operations';
-
 import { INSERT_BEFORE_END } from '@glimmer/util';
+
+import type { DOMOperations } from '../dom/operations';
 
 // Patch:    Adjacent text node merging fix
 // Browsers: IE, Edge, Firefox w/o inspector open

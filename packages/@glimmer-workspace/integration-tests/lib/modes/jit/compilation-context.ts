@@ -5,6 +5,7 @@ import type {
   Nullable,
   ResolvedComponentDefinition,
 } from '@glimmer/interfaces';
+
 import type { TestJitRuntimeResolver } from './resolver';
 
 export default class JitCompileTimeLookup implements CompileTimeResolver {

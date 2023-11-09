@@ -1,10 +1,9 @@
 import type { Dict, Maybe } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-
+import type {Reactive} from '@glimmer/reference';
 import { readReactive, ResultFormula  } from '@glimmer/reference';
 import { enumerate, Ok, stringifyDebugLabel } from '@glimmer/util';
 
-export function createConcatRef(partsRefs: SomeReactive[]) {
+export function createConcatRef(partsRefs: Reactive[]) {
   return ResultFormula(
     () => {
       let parts = new Array<string>();
@@ -28,7 +27,7 @@ export function createConcatRef(partsRefs: SomeReactive[]) {
   );
 }
 
-function concatLabel(parts: SomeReactive[]) {
+function concatLabel(parts: Reactive[]) {
   const body = parts.map((reactive) => `{${stringifyDebugLabel(reactive)}}`).join(' + ');
   return `(concat ${body})`;
 }

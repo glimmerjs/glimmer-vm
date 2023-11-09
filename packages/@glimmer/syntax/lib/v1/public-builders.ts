@@ -1,9 +1,9 @@
 import type { Dict, Nullable } from '@glimmer/interfaces';
-import type {SourceLocation, SourcePosition} from '../source/location';
-import type * as ASTv1 from './api';
-
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { asPresentArray, assert, assign, deprecate, isPresentArray } from '@glimmer/util';
+
+import type {SourceLocation, SourcePosition} from '../source/location';
+import type * as ASTv1 from './api';
 
 import {   SYNTHETIC_LOCATION } from '../source/location';
 import { Source } from '../source/source';

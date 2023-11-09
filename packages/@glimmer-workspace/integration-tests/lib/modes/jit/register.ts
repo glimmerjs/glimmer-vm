@@ -6,12 +6,6 @@ import type {
   TemplateFactory,
 } from '@glimmer/interfaces';
 import type {CurriedValue} from '@glimmer/runtime';
-import type { ComponentTypes } from '../../components';
-import type {UserHelper} from '../../helpers';
-import type {TestModifierConstructor} from '../../modifiers';
-import type { DeclaredComponentType } from '../../test-helpers/constants';
-import type { TestJitRegistry } from './registry';
-
 import {
   getInternalComponentManager,
   setComponentTemplate,
@@ -20,6 +14,12 @@ import {
 } from '@glimmer/manager';
 import {  curry, templateOnlyComponent } from '@glimmer/runtime';
 import { CurriedTypes } from '@glimmer/vm';
+
+import type { ComponentTypes } from '../../components';
+import type {UserHelper} from '../../helpers';
+import type {TestModifierConstructor} from '../../modifiers';
+import type { DeclaredComponentType } from '../../test-helpers/constants';
+import type { TestJitRegistry } from './registry';
 
 import { createTemplate } from '../../compile';
 import { EmberishCurlyComponent } from '../../components/emberish-curly';

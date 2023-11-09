@@ -8,7 +8,6 @@ import type {
   Nullable,
   SimpleElement,
 } from "@glimmer/interfaces";
-
 import { warnIfStyleNotTrusted } from '@glimmer/global-context';
 import { castToBrowser, NS_SVG } from '@glimmer/util';
 

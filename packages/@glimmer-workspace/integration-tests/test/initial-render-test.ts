@@ -1,7 +1,6 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
 import type {ComponentBlueprint, Content} from '@glimmer-workspace/integration-tests';
-
 import { castToBrowser, expect } from '@glimmer/util';
 import {
   assertElementShape,

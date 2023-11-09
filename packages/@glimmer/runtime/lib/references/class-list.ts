@@ -1,10 +1,9 @@
-import type {SomeReactive} from '@glimmer/reference';
-
+import type {Reactive} from '@glimmer/reference';
 import { FallibleFormula,  unwrapReactive } from '@glimmer/reference';
 
 import { normalizeStringValue } from '../dom/normalize';
 
-export default function createClassListRef(list: SomeReactive[]) {
+export default function createClassListRef(list: Reactive[]) {
   return FallibleFormula(() => {
     let ret: string[] = [];
 

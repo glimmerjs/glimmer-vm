@@ -19,6 +19,19 @@ module.exports = {
         'n/no-unpublished-import': 'off',
       },
     },
+    {
+      files: ['./reference/lib/**/*.ts'],
+      rules: {
+        'import/no-relative-parent-imports': 'error',
+
+        'import/no-internal-modules': [
+          'error',
+          {
+            allow: ['**/internal/*', '**/index.*'],
+          },
+        ],
+      },
+    },
     // QUnit is a weird package, and there are some issues open about fixing it
     // - https://github.com/qunitjs/qunit/issues/1729
     // - https://github.com/qunitjs/qunit/issues/1727

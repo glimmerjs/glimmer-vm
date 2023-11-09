@@ -8,11 +8,8 @@ import type {
   Result,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
+import type {Reactive} from '@glimmer/reference';
 import type {Revision, Tag} from '@glimmer/validator';
-import type { UpdatingVM } from '../../vm';
-import type { InternalVM } from '../../vm/append';
-
 import {
   check,
   CheckBlockSymbolTable,
@@ -55,6 +52,9 @@ import {
   valueForTag
 } from '@glimmer/validator';
 import { $sp, Op } from '@glimmer/vm';
+
+import type { UpdatingVM } from '../../vm';
+import type { InternalVM } from '../../vm/append';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CheckArguments, CheckReactive, CheckScope } from './-debug-strip';
@@ -296,10 +296,10 @@ APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
 });
 
 export class Assert implements UpdatingOpcode {
-  readonly #reactive: SomeReactive;
+  readonly #reactive: Reactive;
   #last: ReactiveResult<unknown>;
 
-  constructor(reactive: SomeReactive) {
+  constructor(reactive: Reactive) {
     this.#last = readReactive(reactive);
     this.#reactive = reactive;
   }
@@ -330,13 +330,13 @@ export class Assert implements UpdatingOpcode {
 
 export class AssertFilter<T, U> implements UpdatingOpcode {
   #last: Result<U>;
-  readonly #ref: SomeReactive<T>;
+  readonly #ref: Reactive<T>;
   /**
    * @fixme fallible filters
    */
   readonly #filter: (from: T) => U;
 
-  constructor(current: Result<U>, ref: SomeReactive<T>, filter: (from: T) => U) {
+  constructor(current: Result<U>, ref: Reactive<T>, filter: (from: T) => U) {
     this.#last = current;
     this.#ref = ref;
     this.#filter = filter;

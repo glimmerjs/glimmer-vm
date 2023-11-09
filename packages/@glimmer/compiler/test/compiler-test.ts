@@ -6,7 +6,6 @@ import type {
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
-
 import {
   Builder,
   buildStatements,

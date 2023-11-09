@@ -1,10 +1,10 @@
 import type { Nullable, Recast } from '@glimmer/interfaces';
 import type { TokenizerState } from 'simple-html-tokenizer';
+import { getLast, isPresentArray, unwrap } from '@glimmer/util';
+
 import type {ParserNodeBuilder, Tag} from '../parser';
 import type * as ASTv1 from '../v1/api';
 import type * as HBS from '../v1/handlebars-ast';
-
-import { getLast, isPresentArray, unwrap } from '@glimmer/util';
 
 import { Parser   } from '../parser';
 import { NON_EXISTENT_LOCATION } from '../source/location';

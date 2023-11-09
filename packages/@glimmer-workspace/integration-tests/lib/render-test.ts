@@ -4,13 +4,20 @@ import type {
   Helper,
   Maybe,
   Nullable,
+  Reactive,
   RenderResult,
   SimpleElement,
   SimpleNode,
-  SomeReactive,
 } from '@glimmer/interfaces';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 import type { NTuple } from '@glimmer-workspace/test-utils';
+import { destroy } from '@glimmer/destroyable';
+import { hasFlagWith } from '@glimmer/local-debug-flags';
+import { ReadonlyCell } from '@glimmer/reference';
+import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
+import { clearElement, dict, expect, isPresent, LOCAL_LOGGER, unwrap } from '@glimmer/util';
+import { dirtyTagFor } from '@glimmer/validator';
+
 import type {ComponentBlueprint, ComponentKind, ComponentTypes} from './components';
 import type {ComponentDelegate} from './components/delegate';
 import type { UserHelper } from './helpers';
@@ -20,13 +27,6 @@ import type { DomDelegate, LogRender } from './render-delegate';
 import type {NodesSnapshot} from './snapshot';
 import type {DeclaredComponentType, TypeFor} from './test-helpers/constants';
 import type { RenderTestState } from './test-helpers/module';
-
-import { destroy } from '@glimmer/destroyable';
-import { hasFlagWith } from '@glimmer/local-debug-flags';
-import { ReadonlyCell } from '@glimmer/reference';
-import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
-import { clearElement, dict, expect, isPresent, LOCAL_LOGGER, unwrap } from '@glimmer/util';
-import { dirtyTagFor } from '@glimmer/validator';
 
 import {
   GLIMMER_TEST_COMPONENT
@@ -92,7 +92,7 @@ export class Count {
 
 export class Self {
   #properties: Dict;
-  readonly ref: SomeReactive<Dict>;
+  readonly ref: Reactive<Dict>;
 
   constructor(properties: Dict) {
     this.#properties = properties;

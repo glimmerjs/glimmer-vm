@@ -1,8 +1,8 @@
 import type { ASTv2, src } from '@glimmer/syntax';
-import type { Result } from '../../shared/result';
-
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
+
+import type { Result } from '../../shared/result';
 
 import * as mir from '../2-encoding/mir';
 import { NormalizationState } from './context';

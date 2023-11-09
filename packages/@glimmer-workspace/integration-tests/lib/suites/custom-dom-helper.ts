@@ -1,5 +1,4 @@
 import type { Cursor, ElementBuilder, Environment } from '@glimmer/interfaces';
-
 import { precompile } from '@glimmer/compiler';
 import { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
 import { RenderTestContext } from '@glimmer-workspace/integration-tests';

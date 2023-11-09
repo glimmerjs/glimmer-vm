@@ -1,8 +1,8 @@
 import type { BlockMetadata, DebugVmSnapshot } from '@glimmer/interfaces';
+import { exhausted } from '@glimmer/util';
+
 import type { DisassembledOperand, RegisterName, SomeDisassembledOperand } from '../debug';
 import type {IntoFragment} from './presets';
-
-import { exhausted } from '@glimmer/util';
 
 import { stackValue } from './combinators';
 import { as,frag  } from './presets';

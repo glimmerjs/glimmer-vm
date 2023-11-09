@@ -5,7 +5,6 @@ import type {
   SimpleElement,
 } from '@glimmer/interfaces';
 import type {UpdatableTag} from '@glimmer/validator';
-
 import { check, CheckFunction, CheckString } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalModifierManager } from '@glimmer/manager';

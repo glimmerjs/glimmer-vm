@@ -1,5 +1,4 @@
 import type { BlockBounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {

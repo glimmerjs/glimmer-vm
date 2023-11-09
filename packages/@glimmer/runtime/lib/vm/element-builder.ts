@@ -26,10 +26,10 @@ import type {
   VmStackAspect,
 } from '@glimmer/interfaces';
 import type { Stack } from '@glimmer/util';
-import type {DynamicAttribute} from './attributes/dynamic';
-
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import { assert, BalancedStack, expect, parentDebugFrames, PresentStack } from '@glimmer/util';
+
+import type {DynamicAttribute} from './attributes/dynamic';
 
 import { clear, clearRange, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import {  dynamicAttribute } from './attributes/dynamic';

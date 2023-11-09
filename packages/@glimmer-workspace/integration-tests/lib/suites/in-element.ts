@@ -1,5 +1,4 @@
 import type { AST } from '@glimmer/syntax';
-
 import { destroy } from '@glimmer/destroyable';
 import { assign, unwrap } from '@glimmer/util';
 

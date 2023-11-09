@@ -13,12 +13,12 @@ import type {
   RuntimeContext,
   TemplateIterator,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-import type {InternalVM} from './vm/append';
-
+import type {Reactive} from '@glimmer/reference';
 import { getReactiveProperty, ReadonlyCell  } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
 import { debug } from '@glimmer/validator';
+
+import type {InternalVM} from './vm/append';
 
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';
@@ -33,7 +33,7 @@ class TemplateIteratorImpl implements TemplateIterator {
   sync(): RenderResult {
     if (import.meta.env.DEV) {
       return debug.runInTrackingTransaction!(() => this.vm.execute(), {
-        kind: 'template',
+        reason: 'template',
         label: ['- While rendering:'],
       } satisfies Description);
     } else {
@@ -54,7 +54,7 @@ export function renderMain(
   runtime: RuntimeContext,
   context: JitContext,
   owner: Owner,
-  self: SomeReactive,
+  self: Reactive,
   treeBuilder: ElementBuilder,
   layout: CompilableProgram,
   dynamicScope: DynamicScope = new DynamicScopeImpl()
@@ -77,7 +77,7 @@ function renderInvocation(
   _context: JitContext,
   owner: Owner,
   definition: ComponentDefinitionState,
-  args: Record<string, SomeReactive>
+  args: Record<string, Reactive>
 ): TemplateIterator {
   // Get a list of tuples of argument names and references, like [['title', reference], ['name',
   // reference]]
@@ -147,7 +147,7 @@ export function renderComponent(
   return renderInvocation(vm, context, owner, definition, recordToReference(args));
 }
 
-function recordToReference(record: Record<string, unknown>): Record<string, SomeReactive> {
+function recordToReference(record: Record<string, unknown>): Record<string, Reactive> {
   const root = ReadonlyCell(record, 'args');
 
   return Object.keys(record).reduce(
@@ -155,6 +155,6 @@ function recordToReference(record: Record<string, unknown>): Record<string, Some
       acc[key] = getReactiveProperty(root, key);
       return acc;
     },
-    {} as Record<string, SomeReactive>
+    {} as Record<string, Reactive>
   );
 }

@@ -1,5 +1,4 @@
 import type {AST, ASTPluginBuilder, ASTPluginEnvironment, Syntax} from '@glimmer/syntax';
-
 import {
   preprocess,
   Walker

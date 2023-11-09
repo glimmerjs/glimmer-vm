@@ -1,7 +1,7 @@
 import type { SimpleElement } from '@glimmer/interfaces';
-import type { RenderTestState } from '../test-helpers/module';
-
 import { unwrap } from '@glimmer/util';
+
+import type { RenderTestState } from '../test-helpers/module';
 
 import { EmberishCurlyComponent } from '../components';
 import { assertEmberishElement, classes } from '../dom/assertions';

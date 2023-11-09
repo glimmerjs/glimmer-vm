@@ -9,8 +9,7 @@ import type {
   ScopeBlock,
   VM as PublicVM,
 } from '@glimmer/interfaces';
-import type {SomeReactive} from '@glimmer/reference';
-
+import type {Reactive} from '@glimmer/reference';
 import {
   check,
   CheckBlockSymbolTable,
@@ -55,7 +54,7 @@ import {
   CheckUndefinedReference,
 } from './-debug-strip';
 
-export type FunctionExpression<T> = (vm: PublicVM) => SomeReactive<T>;
+export type FunctionExpression<T> = (vm: PublicVM) => Reactive<T>;
 
 APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
   let stack = vm.stack;
@@ -84,7 +83,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
   let ref = check(stack.pop(), CheckReactive);
   let args = check(stack.pop(), CheckArguments).capture();
 
-  let helperRef: SomeReactive;
+  let helperRef: Reactive;
   let initialOwner: Owner = vm.getOwner();
 
   let helperInstanceRef = FallibleFormula(() => {
@@ -133,7 +132,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 function resolveHelper(
   constants: RuntimeConstants & ResolutionTimeConstants,
   definition: HelperDefinitionState,
-  ref: SomeReactive
+  ref: Reactive
 ): Helper {
   let handle = constants.helper(definition, null, true)!;
 
@@ -220,7 +219,7 @@ APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   }
 });
 
-function isUndefinedReference(input: ScopeBlock | SomeReactive): input is SomeReactive {
+function isUndefinedReference(input: ScopeBlock | Reactive): input is Reactive {
   assert(
     Array.isArray(input) || input === UNDEFINED_REFERENCE,
     'a reference other than UNDEFINED_REFERENCE is illegal here'
@@ -253,7 +252,7 @@ APPEND_OPCODES.add(Op.HasBlockParams, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Concat, (vm, { op1: count }) => {
-  let out: Array<SomeReactive<unknown>> = new Array(count);
+  let out: Array<Reactive<unknown>> = new Array(count);
 
   for (let i = count; i > 0; i--) {
     let offset = i - 1;
