@@ -3,14 +3,14 @@ import { assert, deprecate } from '@glimmer/global-context';
 import { $v0, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
-import type {PushExpressionOp} from './compilers';
+import type { PushExpressionOp } from './compilers';
 
 import { expr } from '../opcode-builder/helpers/expr';
 import { isGetFreeHelper } from '../opcode-builder/helpers/resolution';
 import { SimpleArgs } from '../opcode-builder/helpers/shared';
 import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
-import { Compilers  } from './compilers';
+import { Compilers } from './compilers';
 
 export const EXPRESSIONS = new Compilers<PushExpressionOp, ExpressionSexpOpcode>();
 

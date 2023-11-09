@@ -29,10 +29,10 @@ import type { Stack } from '@glimmer/util';
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import { assert, BalancedStack, expect, parentDebugFrames, PresentStack } from '@glimmer/util';
 
-import type {DynamicAttribute} from './attributes/dynamic';
+import type { DynamicAttribute } from './attributes/dynamic';
 
 import { clear, clearRange, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
-import {  dynamicAttribute } from './attributes/dynamic';
+import { dynamicAttribute } from './attributes/dynamic';
 
 class First implements FirstNode {
   readonly first: SimpleNode;
@@ -240,8 +240,7 @@ export abstract class AbstractElementBuilder implements ElementBuilder {
 
   catch(): LiveBlock {
     this.#state.catch();
-    const block = this.catchBlock();
-    return block;
+    return this.catchBlock();
   }
 
   pushCursor(cursor: ReturnType<this['createCursor']>): void {

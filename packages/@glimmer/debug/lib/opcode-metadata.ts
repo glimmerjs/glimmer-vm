@@ -31,7 +31,7 @@ export const ReturnTo = define('ReturnTo', (d) =>
   d.ops(['to', 'instruction/relative']).unchanged().reads('$pc').changes('$ra')
 );
 
-export const PopTryFrame = define('PopTryFrame', (d) =>
+export const PopTryFrame = define('Finally', (d) =>
   d
     .ops(['catchPc', 'instruction/relative'])
     .pops('handler', 'ref/function?')
@@ -39,10 +39,11 @@ export const PopTryFrame = define('PopTryFrame', (d) =>
     .changes('$up')
 );
 
-export const PushTryFrame = define.throws('PushTryFrame', (d) =>
+export const PushTryFrame = define.throws('Begin', (d) =>
   d
     .ops(['catchPc', 'instruction/relative'])
     .pops('handler', 'ref/function?')
+    .pushes('ref/any')
     .reads('$pc', '$sp', '$fp')
     .changes('$up')
 );
@@ -138,12 +139,14 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(RESERVED)
     .add(RESERVED)
 
+    .add(`PushBegin as push<-begin`, [], stack.params([]).returns(['reference/any']))
     .add(
-      `PushTryFrame as try`,
+      `Begin as begin`,
       ['catch:imm/pc'],
-      stack.params(['handler:reference/any']).returns([])
+      stack.params(['handler:reference/any', 'error:reference/bool']).returns([])
     )
-    .add(`PopTryFrame as finally`)
+    .add(`Catch as catch`)
+    .add(`Finally as finally`)
     .add(`InvokeVirtual as vcall`, stack.delta(-1))
     .add(`InvokeStatic as scall`, ['offset:imm/u32'])
     .add(`Start as start`)

@@ -7,8 +7,10 @@
   },
   "machine": ["PushFrame", "PopFrame", "Jump", "ReturnTo", "UnwindTypeFrame"],
   "syscall": [
-    "PushTryFrame",
-    "PopTryFrame",
+    "PushBegin",
+    "Begin",
+    "Catch",
+    "Finally",
     "InvokeVirtual",
     "InvokeStatic",
     "Start",

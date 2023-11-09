@@ -20,22 +20,19 @@ import type {
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
 } from '@glimmer/interfaces';
-import type {OpaqueIterationItem, OpaqueIterator, Reactive} from '@glimmer/reference';
+import type { OpaqueIterationItem, OpaqueIterator, Reactive } from '@glimmer/reference';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import {
-  readReactive,
-  updateReactive
-} from '@glimmer/reference';
+import { MutableCell, readReactive, updateReactive } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
 
-import type {LiveBlockList} from './element-builder';
+import type { LiveBlockList } from './element-builder';
 import type { UnwindTarget } from './unwind';
 
 import { clear, move as moveBounds } from '../bounds';
 import { VM } from './append';
-import {  NewElementBuilder } from './element-builder';
+import { NewElementBuilder } from './element-builder';
 
 export class UpdatingVM implements IUpdatingVM {
   public env: Environment;
@@ -80,6 +77,7 @@ export class UpdatingVM implements IUpdatingVM {
       handler,
       unwind: {
         tryFrame: false,
+        error: MutableCell(1),
         handler: () => {
           throw Error(`unwind target not found`);
         },
@@ -254,7 +252,7 @@ export class TryOpcode extends AbstractBlockOpcode implements ExceptionHandler {
 
     let result = vm.execute((vm) => {
       if (this.#unwind?.tryFrame) {
-        vm.begin(-1, this.#unwind.handler);
+        vm.begin(-1, this.#unwind.error, this.#unwind.handler);
       }
     });
 

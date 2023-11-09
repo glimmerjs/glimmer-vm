@@ -3,13 +3,14 @@ import type {
   Description,
   DevMode,
   ErrorHandler,
+  MutableReactiveCell,
   Nullable,
   ReactiveResult,
   Result,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
-import type {Reactive} from '@glimmer/reference';
-import type {Revision, Tag} from '@glimmer/validator';
+import type { Reactive } from '@glimmer/reference';
+import type { Revision, Tag } from '@glimmer/validator';
 import {
   check,
   CheckBlockSymbolTable,
@@ -25,12 +26,13 @@ import {
   FALSE_REFERENCE,
   Formula,
   isConstant,
+  MutableCell,
   NULL_REFERENCE,
   ReadonlyCell,
   readReactive,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  unwrapReactive
+  unwrapReactive,
 } from '@glimmer/reference';
 import {
   assert,
@@ -49,7 +51,7 @@ import {
   endTrackFrame,
   INITIAL,
   validateTag,
-  valueForTag
+  valueForTag,
 } from '@glimmer/validator';
 import { $sp, Op } from '@glimmer/vm';
 
@@ -60,11 +62,16 @@ import { APPEND_OPCODES } from '../../opcodes';
 import { CheckArguments, CheckReactive, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 
-APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: relativePc }) => {
+APPEND_OPCODES.add(Op.PushBegin, (vm) => {
+  vm.stack.push(MutableCell(true, 'error boundary'));
+});
+
+APPEND_OPCODES.add(Op.Begin, (vm, { op1: relativePc }) => {
+  const error = check(vm.stack.pop(), CheckReactive) as MutableReactiveCell<number>;
   const handler = check(vm.stack.pop(), CheckNullable(CheckReactive));
 
   if (handler === null) {
-    vm.begin(vm.target(relativePc), null);
+    vm.begin(vm.target(relativePc), error, null);
   } else {
     const result = vm.derefReactive(handler);
 
@@ -75,12 +82,12 @@ APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: relativePc }) => {
         throw vm.earlyError('Expected try handler %r to be a function', handler);
       }
 
-      vm.begin(vm.target(relativePc), result.value as ErrorHandler);
+      vm.begin(vm.target(relativePc), error, result.value as ErrorHandler);
     }
   }
 });
 
-APPEND_OPCODES.add(Op.PopTryFrame, (vm) => {
+APPEND_OPCODES.add(Op.Finally, (vm) => {
   vm.finally();
 });
 

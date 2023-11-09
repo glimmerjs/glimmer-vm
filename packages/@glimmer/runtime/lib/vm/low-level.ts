@@ -4,6 +4,7 @@ import type {
   ErrorHandler,
   Expand,
   InternalStack,
+  MutableReactiveCell,
   Nullable,
   Result,
   RuntimeHeap,
@@ -165,11 +166,12 @@ export class Registers {
     return this.#packed[$up];
   }
 
-  try(catchPc: number, handler: ErrorHandler | null) {
+  try(catchPc: number, error: MutableReactiveCell<number>, handler: ErrorHandler | null) {
     this.#packed[$up] = this.#packed[$up].child({
       ip: catchPc,
       ra: this.#packed[$ra],
       fp: this.#packed[$fp],
+      error,
       handler,
     });
   }
@@ -318,8 +320,8 @@ export class LowLevelVM {
   /**
    * `begin` takes an absolute instruction.
    */
-  begin(instruction: number, handler: Nullable<ErrorHandler>) {
-    this.#registers.try(instruction, handler);
+  begin(instruction: number, error: MutableReactiveCell<number>, handler: Nullable<ErrorHandler>) {
+    this.#registers.try(instruction, error, handler);
   }
 
   catch(error: unknown): TargetState {

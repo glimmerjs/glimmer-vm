@@ -18,26 +18,24 @@ import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
 import { clearElement, dict, expect, isPresent, LOCAL_LOGGER, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 
-import type {ComponentBlueprint, ComponentKind, ComponentTypes} from './components';
-import type {ComponentDelegate} from './components/delegate';
+import type { ComponentBlueprint, ComponentKind, ComponentTypes } from './components';
+import type { ComponentDelegate } from './components/delegate';
 import type { UserHelper } from './helpers';
 import type { TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
 import type { DomDelegate, LogRender } from './render-delegate';
-import type {NodesSnapshot} from './snapshot';
-import type {DeclaredComponentType, TypeFor} from './test-helpers/constants';
+import type { NodesSnapshot } from './snapshot';
+import type { DeclaredComponentType, TypeFor } from './test-helpers/constants';
 import type { RenderTestState } from './test-helpers/module';
 
-import {
-  GLIMMER_TEST_COMPONENT
-} from './components';
+import { GLIMMER_TEST_COMPONENT } from './components';
 import {
   buildInvoke,
   buildTemplate,
   CurlyDelegate,
   DynamicDelegate,
   getDelegate,
-  GlimmerDelegate
+  GlimmerDelegate,
 } from './components/delegate';
 import { assertingElement, toInnerHTML } from './dom/simple-utils';
 import { BuildDomDelegate } from './modes/jit/dom';
@@ -47,11 +45,8 @@ import {
   registerInternalHelper,
   registerModifier,
 } from './modes/jit/register';
-import { equalTokens, isServerMarker,  normalizeSnapshot } from './snapshot';
-import {
-  KIND_FOR,
-  TYPE_FOR
-} from './test-helpers/constants';
+import { equalTokens, isServerMarker, normalizeSnapshot } from './snapshot';
+import { KIND_FOR, TYPE_FOR } from './test-helpers/constants';
 import { Woops } from './test-helpers/error';
 import { RecordedEvents } from './test-helpers/recorded';
 
@@ -457,9 +452,10 @@ export class RenderTestContext implements IRenderTest {
     // @fixme the next step is making these tests pass -- it may be a problem in the reactive error
     // system, so writing some tests around this scenario is probably the next thing to do.
     // ---
-    // woops.isError = false;
-    // this.rerender(undefined, `an ok value`);
-    // this.assertHTML(ok, `after rerendering an ok value`);
+    woops.isError = false;
+    woops.recover();
+    this.rerender(undefined, `an ok value`);
+    this.assertHTML(ok, `after rerendering an ok value`);
   }
 
   assertOk(template: string, value: string, { ok, err }: { ok: string; err: string }) {

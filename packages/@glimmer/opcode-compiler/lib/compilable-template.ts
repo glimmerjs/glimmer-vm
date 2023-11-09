@@ -19,13 +19,13 @@ import type {
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY, IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
 
-import type {HighLevelStatementOp} from './syntax/compilers';
+import type { HighLevelStatementOp } from './syntax/compilers';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { meta } from './opcode-builder/helpers/shared';
-import { definePushOp  } from './syntax/compilers';
+import { definePushOp } from './syntax/compilers';
 import { STATEMENTS } from './syntax/statements';
 
 export const PLACEHOLDER_HANDLE = -1;

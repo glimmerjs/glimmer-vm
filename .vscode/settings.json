@@ -28,7 +28,7 @@
       "mode": "auto"
     }
   ],
-  "explorer.excludeGitIgnore": false,
+  "explorer.excludeGitIgnore": true,
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.git": true,
@@ -50,7 +50,6 @@
   "typescript.preferences.importModuleSpecifierEnding": "index",
   "typescript.preferences.useAliasesForRenames": false,
 
-  "typescript.tsc.autoDetect": "on",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
   "typescript.workspaceSymbols.scope": "currentProject",

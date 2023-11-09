@@ -13,6 +13,7 @@ import type {
   ErrorHandler,
   InternalStack,
   JitContext,
+  MutableReactiveCell,
   Nullable,
   OkResult,
   Optional,
@@ -30,14 +31,17 @@ import type {
   VM as PublicVM,
   VmStackAspect,
 } from '@glimmer/interfaces';
-import type {OpaqueIterationItem, OpaqueIterator, Reactive} from '@glimmer/reference';
+import type { OpaqueIterationItem, OpaqueIterator, Reactive } from '@glimmer/reference';
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
   createIteratorItemRef,
-  UNDEFINED_REFERENCE
+  MutableCell,
+  readCell,
+  UNDEFINED_REFERENCE,
+  writeCell,
 } from '@glimmer/reference';
 import { readReactive } from '@glimmer/reference/lib/api/core';
 import {
@@ -59,8 +63,8 @@ import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validato
 import { $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 
 import type { LiveBlockList } from './element-builder';
-import type {ArgumentsStack} from './low-level';
-import type {BlockOpcode, InitialVmState, VmStateSnapshot} from './update';
+import type { ArgumentsStack } from './low-level';
+import type { BlockOpcode, InitialVmState, VmStateSnapshot } from './update';
 
 import {
   BeginTrackFrameOpcode,
@@ -70,15 +74,11 @@ import {
 import { PartialScopeImpl } from '../scope';
 import { VMArgumentsImpl } from './arguments';
 import { debugInit } from './debug/debug';
-import {  LowLevelVM } from './low-level';
+import { LowLevelVM } from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
 import { UnwindTarget } from './unwind';
-import {
-  ListBlockOpcode,
-  ListItemOpcode,
-  TryOpcode
-} from './update';
+import { ListBlockOpcode, ListItemOpcode, TryOpcode } from './update';
 
 type Handle = number;
 
@@ -185,6 +185,7 @@ class VMState implements VmStackAspect {
     this.#dynamicScope = this.#dynamicScope.begin();
     this.#list = this.#list.begin();
     this.#destructors = this.#destructors.begin();
+    this.#updating = this.#updating.begin();
     return this;
   }
 
@@ -194,6 +195,7 @@ class VMState implements VmStackAspect {
     this.#dynamicScope = this.#dynamicScope.catch();
     this.#list = this.#list.catch();
     this.#destructors = this.#destructors.catch();
+    this.#updating = this.#updating.catch();
     return this;
   }
 
@@ -203,6 +205,7 @@ class VMState implements VmStackAspect {
     this.#dynamicScope = this.#dynamicScope.finally();
     this.#list = this.#list.finally();
     this.#destructors = this.#destructors.finally();
+    this.#updating = this.#updating.finally();
     return this;
   }
 }
@@ -465,7 +468,7 @@ export class VM implements PublicVM, SnapshottableVM {
       scope,
       dynamicScope,
       stack: [],
-      unwind: UnwindTarget.root(),
+      unwind: UnwindTarget.root(MutableCell(1)),
       context,
     };
 
@@ -577,51 +580,53 @@ export class VM implements PublicVM, SnapshottableVM {
   /**
    * Open an error recovery boundary.
    */
-  begin(instruction: number, handler: Nullable<ErrorHandler>) {
-    this.#state.begin();
+  begin(instruction: number, error: MutableReactiveCell<number>, handler: Nullable<ErrorHandler>) {
+    const state = this.capture(2);
+    const block = this.elements().begin();
 
-    let tryOpcode = new TryOpcode(this.capture(0), this.runtime, this.elements().begin(), [], {
-      unwind: { tryFrame: true, handler },
+    let tryOpcode = new TryOpcode(state, this.runtime, block, [], {
+      unwind: { tryFrame: true, handler, error },
     });
 
     this.didEnter(tryOpcode);
-    this.didBegin({ instruction: instruction, handler });
-  }
 
-  /**
-   * `didBegin` takes an already-resolved catchPc.
-   */
-  didBegin({ instruction, handler }: { instruction: number; handler: Nullable<ErrorHandler> }) {
-    this.#inner.begin(instruction, handler);
+    this.#state.begin();
+    this.#inner.begin(instruction, error, handler);
   }
 
   finally(): void {
     this.#inner.finally();
-    this.elements().finally();
-
-    this.#state.destructors.pop();
-    this.popUpdating();
     this.#state.finally();
+    this.didExit();
+
+    this.elements().finally();
   }
 
   catch(error: unknown): TargetState {
+    const state = this.#inner.catch(error);
     this.#state.catch();
-    this.elements().catch();
+    this.didExit();
 
-    return this.#inner.catch(error);
+    this.elements().catch();
+    return state;
   }
 
   enter(args: number): TryOpcode {
     let state = this.capture(args);
     let block = this.elements().pushUpdatableBlock();
-    const handler = this.#inner.up.handler;
+    const { handler, error } = this.#inner.up;
 
     let tryOpcode = new TryOpcode(state, this.runtime, block, [], {
-      unwind: { tryFrame: false, handler },
+      unwind: { tryFrame: false, handler, error },
     });
 
     this.didEnter(tryOpcode);
     return tryOpcode;
+  }
+
+  exit(): UpdatingOpcode[] {
+    this.elements().popBlock(false);
+    return this.didExit();
   }
 
   /**
@@ -632,6 +637,11 @@ export class VM implements PublicVM, SnapshottableVM {
     this.#state.destructors.push(opcode);
     this.updateWith(opcode);
     this.pushUpdating(opcode.children);
+  }
+
+  didExit(): UpdatingOpcode[] {
+    this.#state.destructors.pop();
+    return this.popUpdating();
   }
 
   enterItem({ key, value, memo }: OpaqueIterationItem): ListItemOpcode {
@@ -668,12 +678,6 @@ export class VM implements PublicVM, SnapshottableVM {
     this.#state.list.push(opcode);
 
     this.didEnter(opcode);
-  }
-
-  exit(): UpdatingOpcode[] {
-    this.#state.destructors.pop();
-    this.elements().popBlock(false);
-    return this.popUpdating();
   }
 
   exitList() {
@@ -778,10 +782,7 @@ export class VM implements PublicVM, SnapshottableVM {
 
   derefReactive<T>(reference: Reactive<T>): Result<T>;
   derefReactive<T, U>(reference: Reactive<T>, map: (value: T) => U): Result<U>;
-  derefReactive(
-    reference: Reactive<unknown>,
-    map?: (value: unknown) => unknown
-  ): Result<unknown> {
+  derefReactive(reference: Reactive<unknown>, map?: (value: unknown) => unknown): Result<unknown> {
     return this.#deref(reference, map);
   }
 
@@ -815,11 +816,13 @@ export class VM implements PublicVM, SnapshottableVM {
       return true;
     }
 
-    const { handler } = this.catch(result.value);
+    const { handler, error } = this.catch(result.value);
 
     if (handler) {
       this.env.scheduleAfterRender(() => {
-        handler(result.value, () => {});
+        handler(result.value, () => {
+          writeCell(error, readCell(error) + 1);
+        });
       });
     }
 

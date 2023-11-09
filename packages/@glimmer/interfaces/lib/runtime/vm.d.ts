@@ -1,6 +1,6 @@
 import type { Destroyable, Nullable } from '../core';
 import type { GlimmerTreeChanges } from '../dom/changes';
-import type { Reactive } from '../references';
+import type { MutableReactiveCell, Reactive } from '../references';
 import type { Result } from '../result';
 import type { Environment } from './environment';
 import type { Owner } from './owner';
@@ -26,6 +26,7 @@ export interface CatchState {
    */
   tryFrame: boolean;
   handler: Nullable<ErrorHandler>;
+  error: MutableReactiveCell<number>;
 }
 
 export interface HandleException {
@@ -58,6 +59,7 @@ export interface TargetState {
   ra: number;
   fp: number;
   handler: ErrorHandler | null;
+  error: MutableReactiveCell<number>;
 }
 
 export type ErrorHandler = (error: unknown, retry: () => void) => Result<void>;

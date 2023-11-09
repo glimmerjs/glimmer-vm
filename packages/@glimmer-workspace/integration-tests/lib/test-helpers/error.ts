@@ -6,20 +6,23 @@ type Handler = (error: UserException, retry: () => void) => void;
 
 export class Woops {
   static noop(value = `no woops`): Woops {
-    return new Woops(() => {}, false, value);
+    return new Woops(false, value);
   }
 
   static error(value = `no woops`): Woops {
-    return new Woops(() => {}, true, value);
+    return new Woops(true, value);
   }
 
   @tracked _value: string;
   @tracked isError = false;
   readonly handleError: Handler;
+  #retry: undefined | (() => void);
 
-  private constructor(handler: Handler, isError = false, value: string) {
+  private constructor(isError = false, value: string) {
     this.isError = isError;
-    this.handleError = handler;
+    this.handleError = (error, retry) => {
+      this.#retry = retry;
+    };
     this._value = value;
   }
 
@@ -28,6 +31,12 @@ export class Woops {
       throw Error(`woops`);
     } else {
       return this._value;
+    }
+  }
+
+  recover() {
+    if (this.#retry) {
+      this.#retry();
     }
   }
 }

@@ -1,4 +1,5 @@
 import type {
+  MutableReactiveCell,
   Result,
   TargetState,
   UnwindTarget as UnwindTargetInterface,
@@ -6,7 +7,7 @@ import type {
 import { Ok } from '@glimmer/util';
 
 export class UnwindTarget implements UnwindTargetInterface {
-  static root(): UnwindTarget {
+  static root(error: MutableReactiveCell<number>): UnwindTarget {
     return new UnwindTarget(null, {
       // initial ra
       ip: -1,
@@ -15,6 +16,7 @@ export class UnwindTarget implements UnwindTargetInterface {
       // initial fp
       fp: -1,
       handler: null,
+      error,
     });
   }
 
@@ -25,6 +27,10 @@ export class UnwindTarget implements UnwindTargetInterface {
   constructor(parent: UnwindTarget | null, target: TargetState) {
     this.#parent = parent;
     this.#target = target;
+  }
+
+  get error() {
+    return this.#target.error;
   }
 
   get handler() {
