@@ -21,10 +21,7 @@ export interface VM<O extends Owner = Owner> {
 }
 
 export interface CatchState {
-  /**
-   * An absolute instruction.
-   */
-  tryFrame: boolean;
+  isTryFrame: boolean;
   handler: Nullable<ErrorHandler>;
   error: MutableReactiveCell<number>;
 }

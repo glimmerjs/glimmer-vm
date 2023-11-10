@@ -1,4 +1,5 @@
 import type {
+  CatchState,
   MutableReactiveCell,
   Result,
   TargetState,
@@ -35,6 +36,14 @@ export class UnwindTarget implements UnwindTargetInterface {
 
   get handler() {
     return this.#target.handler;
+  }
+
+  catchState(isTryFrame: boolean): CatchState {
+    return {
+      isTryFrame,
+      handler: this.handler,
+      error: this.error,
+    };
   }
 
   child(state: TargetState): UnwindTarget {

@@ -13,31 +13,36 @@ import type {
   RuntimeContext,
   TemplateIterator,
 } from '@glimmer/interfaces';
-import type {Reactive} from '@glimmer/reference';
-import { getReactiveProperty, ReadonlyCell  } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
+import { getReactiveProperty, ReadonlyCell } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
 import { debug } from '@glimmer/validator';
 
-import type {InternalVM} from './vm/append';
+import type { InternalVM } from './vm/append';
 
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';
-import {  VM } from './vm/append';
+import { VM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
-  constructor(private vm: InternalVM) {}
+  readonly #vm: InternalVM;
+
+  constructor(vm: InternalVM) {
+    this.#vm = vm;
+  }
+
   next(): RichIteratorResult<null, RenderResult> {
-    return this.vm.next();
+    return this.#vm.next();
   }
 
   sync(): RenderResult {
     if (import.meta.env.DEV) {
-      return debug.runInTrackingTransaction!(() => this.vm.execute(), {
+      return debug.runInTrackingTransaction!(() => this.#vm.execute(), {
         reason: 'template',
         label: ['- While rendering:'],
       } satisfies Description);
     } else {
-      return this.vm.execute();
+      return this.#vm.execute();
     }
   }
 }

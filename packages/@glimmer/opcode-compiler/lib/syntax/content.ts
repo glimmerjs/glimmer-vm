@@ -167,8 +167,6 @@ export function defineContent(statements: DefineStatement) {
 
   statements.add(SexpOpcodes.HandleError, (op, [, handler, block, _inverse]) => {
     op.labels(() => {
-      // @fixme set up the up before the call to Enter
-
       Replayable(op, {
         begin: true,
         args: () => {

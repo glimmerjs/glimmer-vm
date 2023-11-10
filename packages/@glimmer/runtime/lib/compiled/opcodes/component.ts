@@ -877,7 +877,7 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: register }) => {
     CheckComponentInstance
   );
   let { manager, state, capabilities } = instance;
-  let bounds = vm.elements().popBlock(false);
+  let bounds = vm.elements().popBlock();
 
   if (vm.env.debugRenderTree !== undefined) {
     if (hasCustomDebugRenderTreeLifecycle(manager)) {

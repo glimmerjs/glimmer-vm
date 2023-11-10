@@ -1,7 +1,6 @@
 import type { SnapshottableVM, VmDebugState } from '@glimmer/debug';
 import type {
   BlockMetadata,
-  CatchState,
   CleanStack,
   CompilableTemplate,
   Description,
@@ -237,7 +236,7 @@ export class VM implements PublicVM, SnapshottableVM {
 
   readonly #inner: LowLevelVM;
   readonly #templates?: TemplateDebug;
-  #block: Optional<BlockOpcode>;
+  #block: Optional<TryOpcode>;
 
   declare debugWillCall?: (handle: number) => void;
   declare debugDidReturn?: () => void;
@@ -475,41 +474,43 @@ export class VM implements PublicVM, SnapshottableVM {
     let vm = new VM(runtime, vmState, elements);
 
     vm.start();
-
-    let state = vm.capture(0);
     let block = elements.block;
-    let tryOpcode = new TryOpcode(state, runtime, block, [], { unwind: null });
-
-    vm.#block = tryOpcode;
-    vm.associateDestroyable(tryOpcode);
-    vm.#state.destructors.push(tryOpcode);
-    vm.pushUpdating([tryOpcode]);
-    vm.pushUpdating(tryOpcode.children);
+    let tryOpcode = new TryOpcode(vm.#capture(0, false), runtime, block, []);
+    vm.#init(tryOpcode);
 
     return vm;
   }
 
-  static resume(
-    runtime: RuntimeContext,
-    state: VmStateSnapshot,
-    elements: ElementBuilder,
-    unwind: Nullable<CatchState>
-  ) {
+  static resume(runtime: RuntimeContext, state: VmStateSnapshot, elements: ElementBuilder) {
     const vm = new VM(runtime, state, elements);
 
     vm.start();
-    vm.start();
-
     let block = elements.block;
-    let tryOpcode = new TryOpcode(state, runtime, block, [], { unwind });
-
-    vm.#block = tryOpcode;
-    vm.associateDestroyable(tryOpcode);
-    vm.#state.destructors.push(tryOpcode);
-    vm.pushUpdating([tryOpcode]);
-    vm.pushUpdating(tryOpcode.children);
+    let tryOpcode = new TryOpcode(
+      vm.#capture(state.stack.length, state.isTryFrame),
+      runtime,
+      block,
+      []
+    );
+    vm.#init(tryOpcode);
 
     return vm;
+  }
+
+  #init(opcode: TryOpcode) {
+    this.#block = opcode;
+    this.#pushUpdating(opcode.children);
+    this.#pushDestructor(opcode);
+  }
+
+  #finish() {
+    this.#state.destructors.pop();
+
+    // assert(this.#state.destructors.size === 0, 'VM BUG: Expected all destructors to be popped');
+    const block = expect(this.#block, `expected a block to be assigned to a VM instance`);
+    this.elements().popBlock();
+
+    return { block };
   }
 
   compile(block: CompilableTemplate): number {
@@ -534,7 +535,7 @@ export class VM implements PublicVM, SnapshottableVM {
     return this.runtime.env;
   }
 
-  captureState(args: number, pc = this.#inner.pc): VmStateSnapshot {
+  #capture(args: number, isTryFrame: boolean, pc = this.#inner.pc): VmStateSnapshot {
     return {
       pc,
       scope: this.scope,
@@ -543,15 +544,12 @@ export class VM implements PublicVM, SnapshottableVM {
       ...this.#inner.capture(),
       destructor: this.#destructor,
       context: this.#context,
+      isTryFrame,
     };
   }
 
-  capture(args: number, pc = this.#inner.pc): VmStateSnapshot {
-    return this.captureState(args, pc);
-  }
-
   beginCacheGroup(description: DevMode<Description>) {
-    let opcodes = this.updating();
+    let opcodes = this.#updating();
     let guard = new JumpIfNotModifiedOpcode();
 
     opcodes.push(guard);
@@ -564,7 +562,7 @@ export class VM implements PublicVM, SnapshottableVM {
   }
 
   commitCacheGroup() {
-    let opcodes = this.updating();
+    let opcodes = this.#updating();
     let guard = expect(this.#state.cache.pop(), 'VM BUG: Expected a cache group');
 
     let tag = endTrackFrame();
@@ -577,7 +575,21 @@ export class VM implements PublicVM, SnapshottableVM {
     return this.#inner.target(pc);
   }
 
-  pushBegin(
+  /**
+   * Set up the $up variable for an error recovery boundary. Once the $up is set up, a block is
+   * {@linkcode enter}ed and {@linkcode begin} is called inside the block.
+   *
+   * The entered block (i.e. the {@linkcode TryOpcode}) will be added to the opcode list whether or
+   * not an error occurs.
+   *
+   * If an error occurs, the {@linkcode TryOpcode} will be in an error state, and it will remain
+   * empty until the error is recovered.
+   *
+   * If no error occurs, the {@linkcode TryOpcode} will have updating opcodes as children and will
+   * update as usual. If any of the descendants opcode throw an error, the {@linkcode TryOpcode}
+   * will become empty and enter an error state. It will remain empty until the error is recovered.
+   */
+  setupBegin(
     instruction: number,
     error: MutableReactiveCell<number>,
     handler: Nullable<ErrorHandler>
@@ -587,55 +599,103 @@ export class VM implements PublicVM, SnapshottableVM {
 
   /**
    * Open an error recovery boundary.
+   *
+   * This creates a checkpoint for the element builder and the internal VM state.
+   *
+   * If {@linkcode finally} is reached, the work done between here and {@linkcode finally} is
+   * committed.
+   *
+   * If {@linkcode catch} is called, any work done between here and {@linkcode catch} is rolled
+   * back.
    */
   begin() {
     this.elements().begin();
     this.#state.begin();
   }
 
+  /**
+   * The work done inside the error recovery boundary reached its conclusion and no error occurred.
+   */
   finally(): void {
     this.#state.finally();
     this.elements().finally();
     this.#inner.finally();
   }
 
+  /**
+   * An error occurred inside of an error boundary. Roll back the work done inside the error recovery
+   * boundary and place the {@linkcode TryOpcode} in an error state.
+   */
   catch(error: unknown): TargetState {
     this.#state.catch();
     this.elements().catch();
     return this.#inner.catch(error);
   }
 
-  enter(args: number, begin: boolean): TryOpcode {
-    let state = this.capture(args);
+  /**
+   * Begin a `Try` block, capturing {@linkcode args} arguments from the stack.
+   *
+   * A `Try` block must contain at least one assertion (such as `Assert` or `AssertSame`). When an
+   * assertion fails, the {@linkcode TryOpcode} will clear its current contents and begin evaluation
+   * from the next instruction.
+   *
+   * A call to {@linkcode enter} always occurs inside of a frame boundary (i.e. its paired
+   * {@linkcode exit} occurs before a call to {@linkcode return}).
+   *
+   * During initial render, the `$ra` register controls what happens once the {@linkcode return} is
+   * reached.
+   *
+   * When a {@linkcode TryOpcode} is *re-evaluated*, its `$ra` will be set to `-1`, which will
+   * result in the VM exiting once the block is done.
+   *
+   * ## Error Recovery
+   *
+   * If `begin` is true, the {@linkcode TryOpcode} will be an error recovery boundary. This means
+   * that errors that occur in descendants of the {@linkcode TryOpcode} will result in clearing the
+   * `TryOpcode` and invoking the boundary's handler.
+   *
+   * Otherwise, the {@linkcode TryOpcode} behaves the same as any other block.
+   *
+   * ## State Changes
+   *
+   * 1. An updatable block is added to the block stack
+   * 2. A {@linkcode TryOpcode} corresponding to the block is added to the current updating opcode list
+   * 3. A new list of updating opcodes is pushed to the updating opcode stack
+   */
+  enter(args: number, isTryFrame: boolean): TryOpcode {
     let block = this.elements().pushUpdatableBlock();
-    const { handler, error } = this.#inner.up;
 
-    let tryOpcode = new TryOpcode(state, this.runtime, block, [], {
-      unwind: { tryFrame: begin, handler, error },
-    });
-
-    this.didEnter(tryOpcode);
-    return tryOpcode;
-  }
-
-  exit(): UpdatingOpcode[] {
-    this.elements().popBlock(false);
-    return this.didExit();
+    return this.#didEnter(new TryOpcode(this.#capture(args, isTryFrame), this.runtime, block, []));
   }
 
   /**
-   * This is also called when a `Try` is resumed.
+   *
+   * @returns
    */
-  didEnter(opcode: BlockOpcode) {
-    this.associateDestroyable(opcode);
-    this.#state.destructors.push(opcode);
-    this.updateWith(opcode);
-    this.pushUpdating(opcode.children);
+  exit(): UpdatingOpcode[] {
+    this.elements().popBlock();
+    return this.#closeBlock();
   }
 
-  didExit(): UpdatingOpcode[] {
+  #didEnter<B extends BlockOpcode>(opcode: B): B {
+    this.#pushDestructor(opcode);
+    this.#openBlock(opcode);
+    return opcode;
+  }
+
+  #pushDestructor(destructor: object) {
+    this.associateDestroyable(destructor);
+    this.#state.destructors.push(destructor);
+  }
+
+  #openBlock(opcode: BlockOpcode) {
+    this.updateWith(opcode);
+    this.#pushUpdating(opcode.children);
+  }
+
+  #closeBlock(): UpdatingOpcode[] {
     this.#state.destructors.pop();
-    return this.popUpdating();
+    return this.#popUpdating();
   }
 
   enterItem({ key, value, memo }: OpaqueIterationItem): ListItemOpcode {
@@ -647,31 +707,38 @@ export class VM implements PublicVM, SnapshottableVM {
     stack.push(valueRef);
     stack.push(memoRef);
 
-    let state = this.capture(2);
     let block = this.elements().pushUpdatableBlock();
 
-    let opcode = new ListItemOpcode(state, this.runtime, block, key, memoRef, valueRef);
-    this.didEnter(opcode);
+    let opcode = new ListItemOpcode(
+      this.#capture(2, false),
+      this.runtime,
+      block,
+      key,
+      memoRef,
+      valueRef
+    );
+
+    this.#didEnter(opcode);
 
     return opcode;
   }
 
   registerItem(opcode: ListItemOpcode) {
-    this.listBlock().initializeChild(opcode);
+    this.#listBlock().initializeChild(opcode);
   }
 
   enterList(iterableRef: Reactive<OpaqueIterator>, relativeStart: number) {
     let updating: ListItemOpcode[] = [];
 
     let addr = this.#inner.target(relativeStart);
-    let state = this.capture(0, addr);
+    let state = this.#capture(0, false, addr);
     let list = this.elements().pushBlockList(updating) as LiveBlockList;
 
     let opcode = new ListBlockOpcode(state, this.runtime, list, updating, iterableRef);
 
     this.#state.list.push(opcode);
 
-    this.didEnter(opcode);
+    this.#didEnter(opcode);
   }
 
   exitList() {
@@ -679,19 +746,19 @@ export class VM implements PublicVM, SnapshottableVM {
     this.#state.list.pop();
   }
 
-  pushUpdating(list: UpdatingOpcode[] = []): void {
+  #pushUpdating(list: UpdatingOpcode[] = []): void {
     this.#state.updating.push(list);
   }
 
-  popUpdating(): UpdatingOpcode[] {
+  #popUpdating(): UpdatingOpcode[] {
     return expect(this.#state.updating.pop(), "can't pop an empty stack");
   }
 
   updateWith(opcode: UpdatingOpcode) {
-    this.updating().push(opcode);
+    this.#updating().push(opcode);
   }
 
-  listBlock(): ListBlockOpcode {
+  #listBlock(): ListBlockOpcode {
     return expect(this.#state.list.current, 'expected a list block');
   }
 
@@ -699,11 +766,7 @@ export class VM implements PublicVM, SnapshottableVM {
     associateDestroyableChild(this.#destructor, child);
   }
 
-  tryUpdating(): Nullable<UpdatingOpcode[]> {
-    return this.#state.updating.current;
-  }
-
-  updating(): UpdatingOpcode[] {
+  #updating(): UpdatingOpcode[] {
     return this.#state.updating.present;
   }
 
@@ -751,6 +814,14 @@ export class VM implements PublicVM, SnapshottableVM {
     this.#state.dynamicScope.pop();
   }
 
+  bindDynamicScope(names: string[]) {
+    let scope = this.dynamicScope;
+
+    for (const name of reverse(names)) {
+      scope.set(name, this.stack.pop<Reactive<unknown>>());
+    }
+  }
+
   /// SCOPE HELPERS
 
   getOwner(): Owner {
@@ -785,26 +856,6 @@ export class VM implements PublicVM, SnapshottableVM {
     return map ? mapResult(result, map) : result;
   }
 
-  derefN<T extends Reactive[]>(
-    reference: T
-  ): Result<{ [P in keyof T]: T[P] extends Reactive<infer U> ? U : T[P] }>;
-  derefN<T, U>(reference: Reactive<T>[], map: (value: T[]) => U): Result<U[]>;
-  derefN(references: Reactive[], map?: (value: unknown[]) => unknown): Result<unknown> {
-    const results: unknown[] = [];
-
-    for (const reference of references) {
-      const result = this.#deref(reference);
-
-      if (result.type === 'err') {
-        return result;
-      } else {
-        results.push(result.value);
-      }
-    }
-
-    return { type: 'ok', value: map ? map(results) : results };
-  }
-
   unwrap<T>(result: Result<T>): result is OkResult<T> {
     if (result.type === 'ok') {
       return true;
@@ -833,7 +884,7 @@ export class VM implements PublicVM, SnapshottableVM {
 
       let hasErrored = true;
       try {
-        let value = this._execute(initialize);
+        let value = this.#execute(initialize);
 
         // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions" which
         // would happen with a `catch` + `throw`
@@ -847,7 +898,7 @@ export class VM implements PublicVM, SnapshottableVM {
           let elements = this.elements();
 
           while (elements.hasBlocks) {
-            elements.popBlock(false);
+            elements.popBlock();
           }
 
           // eslint-disable-next-line no-console
@@ -859,11 +910,11 @@ export class VM implements PublicVM, SnapshottableVM {
         }
       }
     } else {
-      return this._execute(initialize);
+      return this.#execute(initialize);
     }
   }
 
-  private _execute(initialize?: (vm: this) => void): RenderResult {
+  #execute(initialize?: (vm: this) => void): RenderResult {
     if (initialize) initialize(this);
 
     let result: RichIteratorResult<null, RenderResult>;
@@ -890,44 +941,18 @@ export class VM implements PublicVM, SnapshottableVM {
       // Unload the stack
       this.internalStack.reset();
 
-      const updating = this.exit();
-      const drop = this.#state.destructors.pop();
-
-      // assert(
-      //   this.#state.destructors.size === 0,
-      //   `Expected no destructors left, got ${this.#state.destructors.size}`
-      // );
-
-      const block = expect(this.#block, `expected a block to be assigned to a VM instance`);
+      const { block } = this.#finish();
 
       result = {
         done: true,
-        value: new RenderResultImpl(this.env, updating, block, drop),
+        value: new RenderResultImpl(this.env, block),
       };
     }
     return result;
   }
-
-  bindDynamicScope(names: string[]) {
-    let scope = this.dynamicScope;
-
-    for (const name of reverse(names)) {
-      scope.set(name, this.stack.pop<Reactive<unknown>>());
-    }
-  }
 }
 
 export type InternalVM = VM;
-
-// function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope, unwind: UnwindTarget): VmStateSnapshot {
-//   return {
-//     pc,
-//     scope,
-//     dynamicScope,
-//     stack: [],
-//     unwind,
-//   };
-// }
 
 export interface MinimalInitOptions {
   handle: number;

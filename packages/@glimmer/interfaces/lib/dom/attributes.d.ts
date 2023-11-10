@@ -37,6 +37,8 @@ export type BlockBoundsDebug =
 export type SomeBoundsDebug = BlockBoundsDebug | PartialBoundsDebug;
 
 export interface LiveBlock extends BlockBounds {
+  readonly isRemote: boolean;
+
   debug?: () => BlockBoundsDebug;
 
   openElement(element: SimpleElement): void;
@@ -58,8 +60,6 @@ export interface SimpleLiveBlock extends LiveBlock {
   lastNode(): SimpleNode;
 }
 
-export type RemoteLiveBlock = SimpleLiveBlock;
-
 export interface UpdatableBlock extends SimpleLiveBlock {
   reset(env: Environment): Nullable<SimpleNode>;
 }
@@ -69,7 +69,7 @@ export interface DOMStack {
     element: SimpleElement,
     guid: string,
     insertBefore: Maybe<SimpleNode>
-  ): Nullable<RemoteLiveBlock>;
+  ): Nullable<SimpleLiveBlock>;
   popRemoteElement(): void;
   popElement(): void;
   openElement(tag: string, _operations?: ElementOperations): SimpleElement;
@@ -128,7 +128,7 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   pushSimpleBlock(): LiveBlock;
   pushUpdatableBlock(): UpdatableBlock;
   pushBlockList(list: BlockBounds[]): LiveBlock;
-  popBlock(isRemote: boolean): LiveBlock;
+  popBlock(): LiveBlock;
 
   didAppendBounds(bounds: BlockBounds): void;
 }

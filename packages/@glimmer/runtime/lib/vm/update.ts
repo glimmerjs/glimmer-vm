@@ -1,6 +1,5 @@
 import type {
   BlockBounds,
-  CatchState,
   Destroyable,
   DynamicScope,
   Environment,
@@ -48,10 +47,12 @@ export class UpdatingVM implements IUpdatingVM {
   }
 
   execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.PROD) {
+      this.#execute(opcodes, handler);
+    } else {
       let hasErrored = true;
       try {
-        debug.runInTrackingTransaction!(() => this._execute(opcodes, handler), {
+        debug.runInTrackingTransaction!(() => this.#execute(opcodes, handler), {
           reason: 'updating',
           label: ['- While rendering:'],
         });
@@ -65,18 +66,16 @@ export class UpdatingVM implements IUpdatingVM {
           console.error(`\n\nError occurred:\n\n${resetTracking()}\n\n`);
         }
       }
-    } else {
-      this._execute(opcodes, handler);
     }
   }
 
-  private _execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
+  #execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
     let frameStack = this.#frameStack;
 
     this.try(opcodes, {
       handler,
       unwind: {
-        tryFrame: false,
+        isTryFrame: false,
         error: MutableCell(1),
         handler: () => {
           throw Error(`unwind target not found`);
@@ -148,6 +147,7 @@ export interface InitialVmState {
 
 export interface VmStateSnapshot extends InitialVmState {
   readonly destructor: Destroyable;
+  readonly isTryFrame: boolean;
 }
 
 export interface BlockOpcode extends Omit<UpdatingOpcode & BlockBounds, 'debug'> {
@@ -166,7 +166,7 @@ export abstract class AbstractBlockOpcode<Child extends UpdatingOpcode = Updatin
     protected state: VmStateSnapshot,
     protected runtime: RuntimeContext,
     bounds: LiveBlock,
-    children: Child[]
+    children: Child[] = []
   ) {
     this.#children = children;
     this.bounds = bounds;
@@ -214,27 +214,17 @@ export class TryOpcode extends AbstractBlockOpcode implements ExceptionHandler {
   public type = 'try';
 
   protected declare bounds: UpdatableBlock; // Hides property on base class
-  readonly #unwind: Nullable<CatchState>;
-
-  constructor(
-    ...args: [
-      ...ConstructorParameters<typeof AbstractBlockOpcode>,
-      options: { unwind: Nullable<CatchState> },
-    ]
-  ) {
-    const { unwind } = args.pop() as { unwind: Nullable<CatchState> };
-
-    super(...(args as unknown as ConstructorParameters<typeof AbstractBlockOpcode>));
-
-    this.#unwind = unwind;
-  }
 
   override evaluate(vm: UpdatingVM) {
-    vm.try(this.children, { handler: this, unwind: this.#unwind });
+    vm.try(this.children, { handler: this, unwind: this.#catchState });
+  }
+
+  get #catchState() {
+    return this.state.unwind.catchState(this.state.isTryFrame);
   }
 
   unwind() {
-    if (this.#unwind?.tryFrame) {
+    if (this.state.isTryFrame) {
       this.handleException();
       return true;
     } else {
@@ -248,11 +238,11 @@ export class TryOpcode extends AbstractBlockOpcode implements ExceptionHandler {
     destroyChildren(this);
 
     let elementStack = NewElementBuilder.resume(runtime.env, bounds);
-    let vm = VM.resume(runtime, state, elementStack, this.#unwind);
+    let vm = VM.resume(runtime, state, elementStack);
 
     let result = vm.execute((vm) => {
-      if (this.#unwind?.tryFrame) {
-        vm.pushBegin(-1, this.#unwind.error, this.#unwind.handler);
+      if (this.state.isTryFrame) {
+        vm.setupBegin(-1, this.#catchState.error, this.#catchState.handler);
       }
     });
 
@@ -274,7 +264,7 @@ export class ListItemOpcode extends TryOpcode {
     memo: Reactive,
     public value: Reactive
   ) {
-    super(state, runtime, bounds, [], { unwind: null });
+    super(state, runtime, bounds, []);
     this.#memo = memo;
   }
 
@@ -450,7 +440,7 @@ export class ListBlockOpcode extends AbstractBlockOpcode<ListItemOpcode> {
       nextSibling,
     });
 
-    let vm = VM.resume(runtime, state, elementStack, null);
+    let vm = VM.resume(runtime, state, elementStack);
 
     vm.execute((vm) => {
       let opcode = vm.enterItem(item);

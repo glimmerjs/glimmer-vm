@@ -235,7 +235,7 @@ export abstract class AbstractElementBuilder implements ElementBuilder {
 
   finally(): LiveBlock {
     this.#state.finally();
-    return this.popBlock(false);
+    return this.popBlock();
   }
 
   catch(): LiveBlock {
@@ -311,12 +311,12 @@ export abstract class AbstractElementBuilder implements ElementBuilder {
     return block;
   }
 
-  popBlock(isRemote: boolean): LiveBlock {
+  popBlock(): LiveBlock {
     this.block.finalize(this);
     const block = this.#closeBlock();
 
     const current = this.#state.blocks.current;
-    if (current !== null && !isRemote) {
+    if (current !== null && !block.isRemote) {
       current.didAppendBounds(block);
     }
 
@@ -397,7 +397,7 @@ export abstract class AbstractElementBuilder implements ElementBuilder {
   }
 
   popRemoteElement() {
-    this.popBlock(true);
+    this.popBlock();
     this.popElement();
   }
 
@@ -553,7 +553,10 @@ export class SimpleLiveBlock implements LiveBlock {
   protected nesting = 0;
   declare debug?: () => BlockBoundsDebug;
 
-  constructor(private parent: SimpleElement) {
+  constructor(
+    private parent: SimpleElement,
+    readonly isRemote = false
+  ) {
     ifDev(() => {
       this.debug = (): BlockBoundsDebug => {
         return liveBlockDebug('SimpleLiveBlock', this.first, this.last, parent);
@@ -652,8 +655,10 @@ export class SimpleLiveBlock implements LiveBlock {
 }
 
 export class RemoteLiveBlock extends SimpleLiveBlock {
+  override readonly isRemote = true;
+
   constructor(parent: SimpleElement) {
-    super(parent);
+    super(parent, true);
 
     registerDestructor(this, () => {
       // In general, you only need to clear the root of a hierarchy, and should never need to clear
@@ -716,6 +721,7 @@ export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBloc
 
 // FIXME: All the noops in here indicate a modelling problem
 export class LiveBlockList implements LiveBlock {
+  readonly isRemote = false;
   readonly debug?: () => BlockBoundsDebug;
 
   constructor(

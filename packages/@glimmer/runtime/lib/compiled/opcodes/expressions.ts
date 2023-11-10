@@ -9,7 +9,7 @@ import type {
   ScopeBlock,
   VM as PublicVM,
 } from '@glimmer/interfaces';
-import type {Reactive} from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 import {
   check,
   CheckBlockSymbolTable,
@@ -21,12 +21,12 @@ import {
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { toBool } from '@glimmer/global-context';
 import {
-  Formula,
   FALSE_REFERENCE,
+  Formula,
   getReactiveProperty,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  unwrapReactive
+  unwrapReactive,
 } from '@glimmer/reference';
 import {
   assert,

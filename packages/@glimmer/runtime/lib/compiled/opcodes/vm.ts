@@ -74,10 +74,10 @@ APPEND_OPCODES.add(Op.PushBegin, (vm, { op1: relativePc }) => {
         throw vm.earlyError('Expected try handler %r to be a function', reactiveHandler);
       }
 
-      vm.pushBegin(vm.target(relativePc), error, handler as ErrorHandler);
+      vm.setupBegin(vm.target(relativePc), error, handler as ErrorHandler);
     });
   } else {
-    vm.pushBegin(vm.target(relativePc), error, null);
+    vm.setupBegin(vm.target(relativePc), error, null);
   }
 });
 

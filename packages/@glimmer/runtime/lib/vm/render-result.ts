@@ -1,5 +1,4 @@
 import type {
-  BlockBounds,
   Environment,
   Nullable,
   RenderResult,
@@ -9,20 +8,23 @@ import type {
 } from '@glimmer/interfaces';
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 
-import type {BlockOpcode} from './update';
+import type { BlockOpcode, TryOpcode } from './update';
 
 import { clear } from '../bounds';
-import {  UpdatingVM } from './update';
+import { UpdatingVM } from './update';
 
 export default class RenderResultImpl implements BlockOpcode, RenderResult {
+  private updating: UpdatingOpcode[];
+  readonly drop: object;
+
   constructor(
     public env: Environment,
-    private updating: UpdatingOpcode[],
-    private bounds: BlockBounds,
-    readonly drop: object
+    private block: TryOpcode
   ) {
-    associateDestroyableChild(this, drop);
-    registerDestructor(this, () => clear(this.bounds));
+    associateDestroyableChild(this, block);
+    registerDestructor(this, () => clear(block));
+    this.updating = [block];
+    this.drop = block;
   }
 
   get children() {
@@ -40,23 +42,23 @@ export default class RenderResultImpl implements BlockOpcode, RenderResult {
   }
 
   parentElement(): SimpleElement {
-    return this.bounds.parentElement();
+    return this.block.parentElement();
   }
 
   get first(): Nullable<SimpleNode> {
-    return this.bounds.first;
+    return this.block.first;
   }
 
   firstNode(): SimpleNode {
-    return this.bounds.firstNode();
+    return this.block.firstNode();
   }
 
   get last(): Nullable<SimpleNode> {
-    return this.bounds.last;
+    return this.block.last;
   }
 
   lastNode(): SimpleNode {
-    return this.bounds.lastNode();
+    return this.block.lastNode();
   }
 
   handleException(): void {
