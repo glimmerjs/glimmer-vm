@@ -1,9 +1,14 @@
-import type {DeclaredComponentType, RenderDelegate, RenderDelegateOptions} from '@glimmer-workspace/integration-tests';
+import type {
+  DeclaredComponentType,
+  RenderDelegate,
+  RenderDelegateOptions,
+} from '@glimmer-workspace/integration-tests';
 import {
   ClientSideRenderDelegate,
   ErrorRecoveryRenderDelegate,
-RenderTestContext,  RenderTestState
- } from '@glimmer-workspace/integration-tests';
+  RenderTestContext,
+  RenderTestState,
+} from '@glimmer-workspace/integration-tests';
 
 const { module, test } = QUnit;
 
@@ -68,6 +73,25 @@ interface TestsFn<T> {
   ): void;
 }
 
+type ErrorsFn = (
+  description: string,
+  spec: {
+    /**
+     * A template. The error handler is wrapped in `{{#-try}}...{{-/try}}`.
+     * The value is included as `{{value}}`.
+     */
+    template: string;
+    /**
+     * The error that should be rendered in `{{value}}` when present.
+     */
+    value: string;
+    /**
+     * The error that should be rendered in `{{value}}` when empty. Defaults to `""`.
+     */
+    empty?: string;
+  }
+) => void;
+
 interface CustomOptions<T extends RenderTestContext> {
   context: new (delegate: RenderDelegate, context: RenderTestState) => T;
   extends?: Matrix | Matrix[];
@@ -105,17 +129,21 @@ export class Matrix {
 
 export function matrix(
   description: string,
-  define: (define: TestsFn<RenderTestContext>) => void
+  define: (define: TestsFn<RenderTestContext>, errors: ErrorsFn) => void
 ): Matrix;
 export function matrix<const T extends RenderTestContext>(
   custom: CustomOptions<T>,
   description: string,
-  define: (define: TestsFn<T>) => void
+  define: (define: TestsFn<T>, errors: ErrorsFn) => void
 ): Matrix;
 export function matrix<const T extends RenderTestContext>(
   ...args:
-    | [description: string, define: (define: TestsFn<T>) => void]
-    | [custom: CustomOptions<T>, description: string, define: (define: TestsFn<T>) => void]
+    | [description: string, define: (define: TestsFn<T>, errors: ErrorsFn) => void]
+    | [
+        custom: CustomOptions<T>,
+        description: string,
+        define: (define: TestsFn<T>, errors: ErrorsFn) => void,
+      ]
 ): Matrix {
   const [{ context: Context, extends: extendsMatrix }, description, define] =
     args.length === 2
@@ -170,7 +198,7 @@ export function matrix<const T extends RenderTestContext>(
           }
         };
 
-        define(tests);
+        define(tests, errors(tests));
 
         module(`[${delegate.style} style]`, () => {
           for (const [type, tests] of Object.entries(TESTS)) {
@@ -185,3 +213,16 @@ export function matrix<const T extends RenderTestContext>(
     });
   });
 }
+
+const errors = <T extends RenderTestContext>(spec: TestsFn<T>) =>
+  function errors(
+    description: string,
+    actual: { template: string; value: string; empty?: string; attribute?: boolean }
+  ) {
+    spec(`${description} (errors: initial)`, (ctx) => {
+      ctx.assertError(actual);
+    });
+    spec(`${description} (errors: update)`, (ctx) => {
+      ctx.assertOk(actual);
+    });
+  };

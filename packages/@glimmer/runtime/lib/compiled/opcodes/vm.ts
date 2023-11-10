@@ -3,7 +3,6 @@ import type {
   Description,
   DevMode,
   ErrorHandler,
-  MutableReactiveCell,
   Nullable,
   ReactiveResult,
   Result,
@@ -36,6 +35,7 @@ import {
 } from '@glimmer/reference';
 import {
   assert,
+  decodeBoolean,
   decodeHandle,
   decodeImmediate,
   expect,
@@ -62,29 +62,27 @@ import { APPEND_OPCODES } from '../../opcodes';
 import { CheckArguments, CheckReactive, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 
-APPEND_OPCODES.add(Op.PushBegin, (vm) => {
-  vm.stack.push(MutableCell(true, 'error boundary'));
-});
+APPEND_OPCODES.add(Op.PushBegin, (vm, { op1: relativePc }) => {
+  const reactiveHandler = check(vm.stack.pop(), CheckNullable(CheckReactive));
 
-APPEND_OPCODES.add(Op.Begin, (vm, { op1: relativePc }) => {
-  const error = check(vm.stack.pop(), CheckReactive) as MutableReactiveCell<number>;
-  const handler = check(vm.stack.pop(), CheckNullable(CheckReactive));
+  const error = MutableCell(1, 'error boundary');
+  vm.stack.push(error);
 
-  if (handler === null) {
-    vm.begin(vm.target(relativePc), error, null);
-  } else {
-    const result = vm.derefReactive(handler);
-
-    // if the handler itself throws an error, propagate the error up to the next frame (and possibly
-    // the top level)
-    if (vm.unwrap(result)) {
-      if (result.value !== null && typeof result.value !== 'function') {
-        throw vm.earlyError('Expected try handler %r to be a function', handler);
+  if (reactiveHandler) {
+    vm.deref(reactiveHandler, (handler) => {
+      if (handler !== null && typeof handler !== 'function') {
+        throw vm.earlyError('Expected try handler %r to be a function', reactiveHandler);
       }
 
-      vm.begin(vm.target(relativePc), error, result.value as ErrorHandler);
-    }
+      vm.pushBegin(vm.target(relativePc), error, handler as ErrorHandler);
+    });
+  } else {
+    vm.pushBegin(vm.target(relativePc), error, null);
   }
+});
+
+APPEND_OPCODES.add(Op.Begin, (vm) => {
+  vm.begin();
 });
 
 APPEND_OPCODES.add(Op.Finally, (vm) => {
@@ -167,8 +165,8 @@ APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
   vm.bindDynamicScope(names);
 });
 
-APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => {
-  vm.enter(args);
+APPEND_OPCODES.add(Op.Enter, (vm, { op1: args, op2: begin }) => {
+  vm.enter(args, decodeBoolean(begin));
 });
 
 APPEND_OPCODES.add(Op.Exit, (vm) => {

@@ -34,7 +34,16 @@ export class Woops {
     }
   }
 
+  set value(value: string) {
+    if (this.isError) {
+      throw Error(`woops`);
+    } else {
+      this._value = value;
+    }
+  }
+
   recover() {
+    this.isError = false;
     if (this.#retry) {
       this.#retry();
     }

@@ -2,7 +2,7 @@ import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 
 import type { TestJitRegistry } from '../modes/jit/registry';
 import type { DeclaredComponentType } from '../test-helpers/constants';
-import type {BuildInvocation, BuildTemplate} from './styles';
+import type { BuildInvocation, BuildTemplate } from './styles';
 import type { ComponentBlueprint, ComponentTypes } from './types';
 
 import { assertElementShape, assertEmberishElement } from '../dom/assertions';
@@ -17,7 +17,7 @@ import {
   BuildDynamicInvoke,
   BuildDynamicTemplate,
   BuildGlimmerInvoke,
-  BuildGlimmerTemplate
+  BuildGlimmerTemplate,
 } from './styles';
 
 export function buildTemplate<K extends DeclaredComponentType>(

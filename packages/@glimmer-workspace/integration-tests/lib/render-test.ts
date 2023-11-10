@@ -22,8 +22,7 @@ import type { ComponentBlueprint, ComponentKind, ComponentTypes } from './compon
 import type { ComponentDelegate } from './components/delegate';
 import type { UserHelper } from './helpers';
 import type { TestModifierConstructor } from './modifiers';
-import type RenderDelegate from './render-delegate';
-import type { DomDelegate, LogRender } from './render-delegate';
+import type { DomDelegate, LogRender, RenderDelegate } from './render-delegate';
 import type { NodesSnapshot } from './snapshot';
 import type { DeclaredComponentType, TypeFor } from './test-helpers/constants';
 import type { RenderTestState } from './test-helpers/module';
@@ -192,6 +191,14 @@ export class RenderTestContext implements IRenderTest {
 
   get assertingElement() {
     return assertingElement(this.element.firstChild);
+  }
+
+  escape(text: string): string {
+    const textNode = this.dom.createTextNode(text);
+    const div = this.dom.createElement('div');
+    div.appendChild(textNode);
+
+    return toInnerHTML(div);
   }
 
   capture<T>() {
@@ -367,9 +374,17 @@ export class RenderTestContext implements IRenderTest {
     );
   }
 
-  rerender(properties: Dict<unknown> = {}, message?: string): void {
+  rerender(updates?: Dict<unknown> | string): void {
+    const properties = typeof updates === 'string' ? {} : updates ?? {};
+    const message =
+      typeof updates === 'string'
+        ? updates
+        : updates === undefined
+        ? ''
+        : ` ${JSON.stringify(updates)}`;
+
     try {
-      QUnit.assert.ok(true, `rerender ${message ?? JSON.stringify(properties)}`);
+      QUnit.assert.ok(true, `rerender ${message}`);
     } catch {
       // couldn't stringify, possibly has a circular dependency
     }
@@ -442,32 +457,67 @@ export class RenderTestContext implements IRenderTest {
     return snapshot;
   }
 
-  assertError(template: string, value: string, { ok, err }: { ok: string; err: string }) {
-    const woops = Woops.error(value);
+  assertError<This extends RenderTestContext>(
+    this: This,
+    spec: {
+      template: string;
+      value: string;
+      empty?: string;
+      attribute?: boolean;
+    }
+  ) {
+    const { template, expected, error } = distill(spec);
+
+    QUnit.assert.ok(true, `> template: ${template} <`);
+    QUnit.assert.ok(true, `> expected: ${expected(`contents`, this)} <`);
+    QUnit.assert.ok(true, `> error   : ${error} <`);
+
+    const woops = Woops.error(spec.value);
+
     this.render.template(template, { result: woops, handleError: woops.handleError });
 
-    this.assertHTML(err);
-    this.assertStableRerender();
+    this.assertStableHTML(error);
 
-    // @fixme the next step is making these tests pass -- it may be a problem in the reactive error
-    // system, so writing some tests around this scenario is probably the next thing to do.
-    // ---
-    woops.isError = false;
-    woops.recover();
-    this.rerender(undefined, `an ok value`);
-    this.assertHTML(ok, `after rerendering an ok value`);
+    this.assertUpdate('after recovering', () => woops.recover(), expected(spec.value, this));
+    this.assertUpdate(
+      'after emptying',
+      () => (woops.value = spec.empty ?? ''),
+      expected(spec.empty ?? '', this)
+    );
+    this.assertUpdate('after erroring', () => (woops.isError = true), error);
+    this.assertUpdate(
+      'after recovering directly to empty',
+      () => {
+        woops.recover();
+        woops.value = spec.empty ?? '';
+      },
+      expected(spec.empty ?? '', this)
+    );
   }
 
-  assertOk(template: string, value: string, { ok, err }: { ok: string; err: string }) {
-    const woops = Woops.noop(value);
+  assertOk<This extends RenderTestContext>(
+    this: This,
+    spec: {
+      template: string;
+      value: string;
+      empty?: string;
+      attribute?: boolean;
+    }
+  ) {
+    const { template, expected, error } = distill(spec);
+
+    const woops = Woops.noop(spec.value);
     this.render.template(template, { result: woops, handleError: woops.handleError });
 
-    this.assertHTML(ok);
-    this.assertStableRerender();
+    this.assertStableHTML(expected(spec.value, this));
 
-    woops.isError = true;
-    this.rerender(undefined, `an error`);
-    this.assertHTML(err, `after rerendering an error`);
+    this.assertUpdate('after erroring', () => (woops.isError = true), error);
+    this.assertUpdate('after recovering', () => woops.recover(), expected(spec.value, this));
+    this.assertUpdate(
+      'after emptying',
+      () => (woops.value = spec.empty ?? ''),
+      expected(spec.empty ?? '', this)
+    );
   }
 
   assertStableRerender() {
@@ -589,6 +639,17 @@ export class RenderTestContext implements IRenderTest {
     this.takeSnapshot();
   }
 
+  assertStableHTML(html: string, message?: string) {
+    equalTokens(this.element, { expected: html, ignore: 'comments' }, message);
+    this.assertStableRerender();
+  }
+
+  assertUpdate(explanation: string, update: () => void, html: string, message?: string) {
+    update();
+    this.rerender(explanation);
+    this.assertStableHTML(html, message);
+  }
+
   assertComponent(content: string, attrs: Dict = {}) {
     this.#delegate.assert(this.assertingElement, 'div', attrs, content);
 
@@ -627,4 +688,43 @@ function uniq(arr: any[]) {
     if (accum.indexOf(val) === -1) accum.push(val);
     return accum;
   }, []);
+}
+
+export function distill({ template }: { template: string; attribute?: boolean }) {
+  return {
+    template: createTemplate(template),
+    expected: createExpected(template),
+    error: createError(template),
+  };
+}
+
+/**
+ * "<p>{{#-try}}before<img src='{{value}}'>after{{/-try}}</p>"
+ *
+ * ->
+ *
+ * "<p>{{#-try this.handleError}}before<img src='{{this.result.value}}'>after{{/-try}}</p>"
+ */
+function createTemplate(template: string): string {
+  return template
+    .replaceAll('{{#-try}}', '{{#-try this.handleError}}')
+    .replaceAll('{{/-try}}', '{{/-try}}')
+    .replaceAll('{{{value}}}', '{{{this.result.value}}}')
+    .replaceAll('{{value}}', '{{this.result.value}}');
+}
+
+function createExpected(template: string): (value: string, ctx: RenderTestContext) => string {
+  return (value: string, ctx: RenderTestContext) => {
+    const result = template
+      .replaceAll('{{#-try}}', '')
+      .replaceAll('{{/-try}}', '')
+      .replaceAll('{{{value}}}', value)
+      .replaceAll('{{value}}', ctx.escape(value));
+
+    return result;
+  };
+}
+
+function createError(template: string): string {
+  return template.replaceAll(/\{\{#-try\}\}.*?\{\{\/-try\}\}/gu, '');
 }

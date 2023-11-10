@@ -252,7 +252,7 @@ export class TryOpcode extends AbstractBlockOpcode implements ExceptionHandler {
 
     let result = vm.execute((vm) => {
       if (this.#unwind?.tryFrame) {
-        vm.begin(-1, this.#unwind.error, this.#unwind.handler);
+        vm.pushBegin(-1, this.#unwind.error, this.#unwind.handler);
       }
     });
 

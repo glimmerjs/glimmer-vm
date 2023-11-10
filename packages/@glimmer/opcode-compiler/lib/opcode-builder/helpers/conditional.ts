@@ -26,7 +26,7 @@ export function SwitchCases(
   matcher(when);
 
   // Emit the opcodes for the switch
-  op(Op.Enter, 1);
+  op(Op.Enter, 1, false);
   bootstrap();
   op(HighLevelBuilderOpcodes.StartLabels);
 
@@ -118,7 +118,10 @@ export function SwitchCases(
  * encountered, the program jumps to -1 rather than the END label,
  * and the PopFrame opcode is not needed.
  */
-export function Replayable(op: PushStatementOp, args: () => number, body: () => void): void {
+export function Replayable(
+  op: PushStatementOp,
+  { begin = false, args, body }: { begin?: boolean; args: () => number; body: () => void }
+): void {
   // Start a new label frame, to give END and RETURN
   // a unique meaning.
 
@@ -144,7 +147,7 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // in an #if), the DOM is cleared and the program is re-executed,
   // restoring `count` elements to the stack and executing the
   // instructions between the enter and exit.
-  op(Op.Enter, count);
+  op(Op.Enter, count, begin);
 
   // Evaluate the body of the block. The body of the block may
   // return, which will jump execution to END during initial
@@ -192,23 +195,26 @@ export function ReplayableIf(
   ifTrue: () => void,
   ifFalse?: () => void
 ): void {
-  return Replayable(op, args, () => {
-    // If the conditional is false, jump to the ELSE label.
-    op(Op.JumpUnless, labelOperand('ELSE'));
-    // Otherwise, execute the code associated with the true branch.
-    ifTrue();
-    // We're done, so return. In the initial execution, this runs
-    // the cleanup code. In the updating VM, it exits the updating
-    // routine.
-    op(Op.Jump, labelOperand('FINALLY'));
-    op(HighLevelBuilderOpcodes.Label, 'ELSE');
+  return Replayable(op, {
+    args,
+    body: () => {
+      // If the conditional is false, jump to the ELSE label.
+      op(Op.JumpUnless, labelOperand('ELSE'));
+      // Otherwise, execute the code associated with the true branch.
+      ifTrue();
+      // We're done, so return. In the initial execution, this runs
+      // the cleanup code. In the updating VM, it exits the updating
+      // routine.
+      op(Op.Jump, labelOperand('FINALLY'));
+      op(HighLevelBuilderOpcodes.Label, 'ELSE');
 
-    // If the conditional is false, and code associatied ith the
-    // false branch was provided, execute it. If there was no code
-    // associated with the false branch, jumping to the else statement
-    // has no other behavior.
-    if (ifFalse !== undefined) {
-      ifFalse();
-    }
+      // If the conditional is false, and code associatied ith the
+      // false branch was provided, execute it. If there was no code
+      // associated with the false branch, jumping to the else statement
+      // has no other behavior.
+      if (ifFalse !== undefined) {
+        ifFalse();
+      }
+    },
   });
 }

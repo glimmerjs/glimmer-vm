@@ -1,5 +1,7 @@
 import {
+  decodeBoolean,
   decodeImmediate,
+  encodeBoolean,
   encodeImmediate,
   MAX_INT,
   MAX_SMI,
@@ -10,7 +12,7 @@ import {
 const { module, test } = QUnit;
 
 module('immediate encoding tests', () => {
-  test('it works', (assert) => {
+  test('encode correctly', (assert) => {
     let cases = [MIN_INT, -1, 0, MAX_INT];
 
     for (const val of cases) {
@@ -23,5 +25,15 @@ module('immediate encoding tests', () => {
     }
 
     assert.verifySteps(cases.map((val) => `testing ${val}`));
+  });
+
+  test('encode booleans correctly', (assert) => {
+    let cases = [true, false];
+
+    for (const val of cases) {
+      let encoded = encodeBoolean(val);
+
+      assert.strictEqual(val, decodeBoolean(encoded), 'correctly encoded and decoded');
+    }
   });
 });

@@ -139,12 +139,12 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(RESERVED)
     .add(RESERVED)
 
-    .add(`PushBegin as push<-begin`, [], stack.params([]).returns(['reference/any']))
     .add(
-      `Begin as begin`,
+      `PushBegin as push<-begin`,
       ['catch:imm/pc'],
-      stack.params(['handler:reference/any', 'error:reference/bool']).returns([])
+      stack.params(['handler:reference/any']).returns(['reference/any'])
     )
+    .add(`Begin as begin`)
     .add(`Catch as catch`)
     .add(`Finally as finally`)
     .add(`InvokeVirtual as vcall`, stack.delta(-1))
@@ -267,7 +267,7 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
       stack.peeks(['other:i32'])
     )
     .add(`AssertSame as assert_eq`, stack.params(['reference:reference/any']).returns(UNCHANGED))
-    .add(`Enter as enter1`)
+    .add(`Enter as enter`, ['count:imm/u32', 'begin:imm/bool'])
     .add(`Exit as exit1`)
     .add(
       `ToBoolean as tobool(top)`,

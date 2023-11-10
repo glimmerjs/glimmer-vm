@@ -7,10 +7,10 @@ import type {
   Nullable,
   WireFormat,
 } from '@glimmer/interfaces';
-import type {SavedRegister} from '@glimmer/vm';
+import type { SavedRegister } from '@glimmer/vm';
 import { hasCapability } from '@glimmer/manager';
-import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
-import { $s0, $s1, $sp, InternalComponentCapabilities, Op  } from '@glimmer/vm';
+import { EMPTY_STRING_ARRAY, encodeBoolean, reverse, unwrap } from '@glimmer/util';
+import { $s0, $s1, $sp, InternalComponentCapabilities, Op } from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 
@@ -113,31 +113,33 @@ export function InvokeDynamicComponent(
   Replayable(
     op,
 
-    () => {
-      expr(op, definition);
-      op(Op.Dup, $sp, 0);
-      return 2;
-    },
+    {
+      args: () => {
+        expr(op, definition);
+        op(Op.Dup, $sp, 0);
+        return 2;
+      },
 
-    () => {
-      op(Op.JumpUnless, labelOperand('ELSE'));
+      body: () => {
+        op(Op.JumpUnless, labelOperand('ELSE'));
 
-      if (curried) {
-        op(Op.ResolveCurriedComponent);
-      } else {
-        op(Op.ResolveDynamicComponent, isStrictMode());
-      }
+        if (curried) {
+          op(Op.ResolveCurriedComponent);
+        } else {
+          op(Op.ResolveDynamicComponent, isStrictMode());
+        }
 
-      op(Op.PushDynamicComponentInstance);
-      InvokeNonStaticComponent(op, {
-        capabilities: true,
-        elementBlock,
-        positional,
-        named,
-        atNames,
-        blocks,
-      });
-      op(HighLevelBuilderOpcodes.Label, 'ELSE');
+        op(Op.PushDynamicComponentInstance);
+        InvokeNonStaticComponent(op, {
+          capabilities: true,
+          elementBlock,
+          positional,
+          named,
+          atNames,
+          blocks,
+        });
+        op(HighLevelBuilderOpcodes.Label, 'ELSE');
+      },
     }
   );
 }
@@ -267,7 +269,7 @@ function InvokeStaticComponent(
   }
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createInstance)) {
-    op(Op.CreateComponent, (blocks.has('default') as any) | 0, $s0);
+    op(Op.CreateComponent, encodeBoolean(blocks.has('default')) | 0, $s0);
   }
 
   op(Op.RegisterComponentDestructor, $s0);
@@ -399,7 +401,7 @@ export function invokePreparedComponent(
   op(Op.BeginComponentTransaction, $s0);
   op(Op.PushDynamicScope);
 
-  op(Op.CreateComponent, (hasBlock as any) | 0, $s0);
+  op(Op.CreateComponent, encodeBoolean(hasBlock), $s0);
 
   // this has to run after createComponent to allow
   // for late-bound layouts, but a caller is free

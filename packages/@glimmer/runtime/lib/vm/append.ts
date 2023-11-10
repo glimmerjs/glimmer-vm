@@ -577,47 +577,41 @@ export class VM implements PublicVM, SnapshottableVM {
     return this.#inner.target(pc);
   }
 
-  /**
-   * Open an error recovery boundary.
-   */
-  begin(instruction: number, error: MutableReactiveCell<number>, handler: Nullable<ErrorHandler>) {
-    const state = this.capture(2);
-    const block = this.elements().begin();
-
-    let tryOpcode = new TryOpcode(state, this.runtime, block, [], {
-      unwind: { tryFrame: true, handler, error },
-    });
-
-    this.didEnter(tryOpcode);
-
-    this.#state.begin();
+  pushBegin(
+    instruction: number,
+    error: MutableReactiveCell<number>,
+    handler: Nullable<ErrorHandler>
+  ) {
     this.#inner.begin(instruction, error, handler);
   }
 
-  finally(): void {
-    this.#inner.finally();
-    this.#state.finally();
-    this.didExit();
+  /**
+   * Open an error recovery boundary.
+   */
+  begin() {
+    this.elements().begin();
+    this.#state.begin();
+  }
 
+  finally(): void {
+    this.#state.finally();
     this.elements().finally();
+    this.#inner.finally();
   }
 
   catch(error: unknown): TargetState {
-    const state = this.#inner.catch(error);
     this.#state.catch();
-    this.didExit();
-
     this.elements().catch();
-    return state;
+    return this.#inner.catch(error);
   }
 
-  enter(args: number): TryOpcode {
+  enter(args: number, begin: boolean): TryOpcode {
     let state = this.capture(args);
     let block = this.elements().pushUpdatableBlock();
     const { handler, error } = this.#inner.up;
 
     let tryOpcode = new TryOpcode(state, this.runtime, block, [], {
-      unwind: { tryFrame: false, handler, error },
+      unwind: { tryFrame: begin, handler, error },
     });
 
     this.didEnter(tryOpcode);

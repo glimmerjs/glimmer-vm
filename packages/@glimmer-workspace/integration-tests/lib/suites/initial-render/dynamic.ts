@@ -9,7 +9,7 @@ import {
 
 import { Woops } from '../../test-helpers/error';
 
-export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spec) => {
+export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spec, errors) => {
   // @render
   // 'HTML text content'() {
   //   this.render.template('content');
@@ -78,34 +78,10 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableNodes();
   });
 
-  function errors(
-    description: string,
-    actual: { template: string; value: string },
-    expected: { result: (body: string) => string; ok: string }
-  ) {
-    const ok = expected.result(expected.ok);
-    const err = expected.result('<!---->');
-
-    spec(`${description} (errors: initial)`, (ctx) => {
-      ctx.assertError(actual.template, actual.value, { ok, err });
-    });
-    spec(`${description} (errors: update)`, (ctx) => {
-      ctx.assertOk(actual.template, actual.value, { ok, err });
-    });
-  }
-
-  errors(
-    'Quoted attribute string values',
-    {
-      template:
-        "<p>{{#-try this.handleError}}before<img src='{{this.result.value}}'>after{{/-try}}</p>",
-      value: 'image.png',
-    },
-    {
-      result: (body) => `<p>${body}</p>`,
-      ok: `before<img src="image.png">after`,
-    }
-  );
+  errors('Quoted attribute string values', {
+    template: "<p>{{#-try}}before<img src='{{value}}'>after{{/-try}}</p>",
+    value: 'image.png',
+  });
 
   spec('Unquoted attribute string values', (ctx) => {
     ctx.render.template('<img src={{this.src}}>', { src: 'image.png' });
@@ -125,18 +101,10 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableNodes();
   });
 
-  errors(
-    'Unquoted attribute string values',
-    {
-      template:
-        '<p>{{#-try this.handleError}}before<img src={{this.result.value}}>after{{/-try}}</p>',
-      value: 'image.png',
-    },
-    {
-      result: (body) => `<p>${body}</p>`,
-      ok: `before<img src="image.png">after`,
-    }
-  );
+  errors('Unquoted attribute string values', {
+    template: '<p>{{#-try}}before<img src={{value}}>after{{/-try}}</p>',
+    value: 'image.png',
+  });
 
   spec('Unquoted img src attribute is not rendered when set to `null`', (ctx) => {
     ctx.render.template("<img src='{{this.src}}'>", { src: null });
@@ -210,18 +178,10 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableNodes();
   });
 
-  errors(
-    'Attribute expression can be followed by another attribute',
-    {
-      template:
-        "<div>{{#-try this.handleError}}before<p foo='{{this.result.value}}' name='Alice' />after{{/-try}}</div>",
-      value: 'oh my',
-    },
-    {
-      result: (body) => `<div>${body}</div>`,
-      ok: 'before<p foo="oh my" name="Alice"></p>after',
-    }
-  );
+  errors('Attribute expression can be followed by another attribute', {
+    template: "<div>{{#-try}}before<p foo='{{value}}' name='Alice'></p>after{{/-try}}</div>",
+    value: 'oh my',
+  });
 
   spec('Attribute expression can be followed by another attribute', (ctx) => {
     ctx.render.template("<div foo='{{this.funstuff}}' name='Alice'></div>", { funstuff: 'oh my' });
@@ -426,17 +386,10 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableRerender();
   });
 
-  errors(
-    'Namespaced attribute',
-    {
-      template: `<svg xmlns:xlink="http://www.w3.org/1999/xlink">{{#-try this.handleError}}<use xlink:href="{{this.result.value}}"></use>{{/-try}}</svg>`,
-      value: 'home',
-    },
-    {
-      result: (body) => `<svg xmlns:xlink="http://www.w3.org/1999/xlink">${body}</svg>`,
-      ok: `<use xlink:href="home"></use>`,
-    }
-  );
+  errors('Namespaced attribute', {
+    template: `<svg xmlns:xlink="http://www.w3.org/1999/xlink">{{#-try}}<use xlink:href="{{value}}"></use>{{/-try}}</svg>`,
+    value: 'home',
+  });
 
   spec('Namespaced attribute', (ctx) => {
     ctx.render.template("<svg xlink:title='svg-title'>content</svg>");
@@ -604,6 +557,11 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableRerender();
   });
 
+  errors('Text curlies', {
+    template: '<div>{{#-try}}{{value}}<span>{{value}}</span>{{/-try}}</div>',
+    value: 'hello',
+  });
+
   spec('Text curlies', (ctx) => {
     ctx.render.template('<div>{{this.title}}<span>{{this.title}}</span></div>', {
       title: 'hello',
@@ -687,19 +645,12 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableNodes();
   });
 
-  errors(
-    `Text curlies produce text nodes`,
-    {
-      template: `<div>{{#-try this.handleError}}{{this.result.value}}<span>{{this.result.value}}</span>{{/-try}}</div>`,
-      value: `<strong>hello</strong>`,
-    },
-    {
-      result: (body) => `<div>${body}</div>`,
-      ok: '&lt;strong&gt;hello&lt;/strong&gt;<span>&lt;strong>hello&lt;/strong&gt;</span>',
-    }
-  );
+  errors(`Text curlies produce text nodes (not HTML)`, {
+    template: `<div>{{#-try}}{{value}}<span>{{value}}</span>{{/-try}}</div>`,
+    value: `<strong>hello</strong>`,
+  });
 
-  spec('Text curlies perform escaping', (ctx) => {
+  spec('Text curlies produce text nodes (not HTML)', (ctx) => {
     ctx.render.template('<div>{{this.title}}<span>{{this.title}}</span></div>', {
       title: '<strong>hello</strong>',
     });
@@ -721,6 +672,11 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
       '<div>&lt;strong&gt;hello&lt;/strong&gt;<span>&lt;strong>hello&lt;/strong&gt;</span></div>'
     );
     ctx.assertStableNodes();
+  });
+
+  errors(`whitespace`, {
+    template: `<div>{{#-try}}Hello {{value}}{{/-try}}</div>`,
+    value: `world`,
   });
 
   spec('Rerender respects whitespace', (ctx) => {
@@ -776,6 +732,11 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableRerender();
   });
 
+  errors(`Top level triple curlies`, {
+    template: `{{#-try}}{{{value}}}{{/-try}}`,
+    value: `<span>hello</span> <em>world</em>`,
+  });
+
   spec('Top level unescaped tr', (ctx) => {
     const title = '<tr><td>Yo</td></tr>';
     ctx.render.template('<table>{{{this.title}}}</table>', { title });
@@ -783,10 +744,20 @@ export const DynamicInitialRenderSuite = matrix('initial render (dynamic)', (spe
     ctx.assertStableRerender();
   });
 
+  errors(`Top level unescaped tr`, {
+    template: `<table>{{#-try}}{{{value}}}{{/-try}}</table>`,
+    value: `<tr><td>Yo</td></tr>`,
+  });
+
   spec('The compiler can handle top-level unescaped td inside tr contextualElement', (ctx) => {
     ctx.render.template('{{{this.html}}}', { html: '<td>Yo</td>' });
     ctx.assertHTML('<tr><td>Yo</td></tr>');
     ctx.assertStableRerender();
+  });
+
+  errors(`unescaped td inside tr`, {
+    template: `{{#-try}}{{{value}}}{{/-try}}`,
+    value: `<td>Yo</td>`,
   });
 
   spec('Extreme nesting', (ctx) => {

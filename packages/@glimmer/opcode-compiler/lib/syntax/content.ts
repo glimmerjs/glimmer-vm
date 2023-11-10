@@ -167,23 +167,27 @@ export function defineContent(statements: DefineStatement) {
 
   statements.add(SexpOpcodes.HandleError, (op, [, handler, block, _inverse]) => {
     op.labels(() => {
-      Replayable(
-        op,
-        () => {
+      // @fixme set up the up before the call to Enter
+
+      Replayable(op, {
+        begin: true,
+        args: () => {
           expr(op, handler);
-          op(Op.PushBegin);
+          op(Op.PushBegin, op.target('CATCH'));
+
           return 2;
         },
-        () => {
+        body: () => {
           op(Op.AssertSame);
-          op(Op.Begin, op.target('CATCH'));
+
+          op(Op.Begin);
           InvokeStaticBlock(op, block);
           op(Op.Finally);
           op(Op.Jump, op.target('FINALLY'));
           op.label('CATCH');
           op.label('FINALLY');
-        }
-      );
+        },
+      });
       // ReplayableIf(
       //   op,
       //   () => {
@@ -227,38 +231,40 @@ export function defineContent(statements: DefineStatement) {
     Replayable(
       op,
 
-      () => {
-        if (key) {
-          expr(op, key);
-        } else {
-          PushPrimitiveReference(op, null);
-        }
+      {
+        args: () => {
+          if (key) {
+            expr(op, key);
+          } else {
+            PushPrimitiveReference(op, null);
+          }
 
-        expr(op, value);
+          expr(op, value);
 
-        return 2;
-      },
+          return 2;
+        },
 
-      () => {
-        op(Op.EnterList, labelOperand('BODY'), labelOperand('ELSE'));
-        op(Op.PushFrame);
-        op(Op.Dup, $fp, 1);
-        op(Op.ReturnTo, labelOperand('ITER'));
-        op(HighLevelBuilderOpcodes.Label, 'ITER');
-        op(Op.Iterate, labelOperand('BREAK'));
-        op(HighLevelBuilderOpcodes.Label, 'BODY');
-        InvokeStaticBlockWithStack(op, block, 2);
-        op(Op.Pop, 2);
-        op(Op.Jump, labelOperand('FINALLY'));
-        op(HighLevelBuilderOpcodes.Label, 'BREAK');
-        op(Op.PopFrame);
-        op(Op.ExitList);
-        op(Op.Jump, labelOperand('FINALLY'));
-        op(HighLevelBuilderOpcodes.Label, 'ELSE');
+        body: () => {
+          op(Op.EnterList, labelOperand('BODY'), labelOperand('ELSE'));
+          op(Op.PushFrame);
+          op(Op.Dup, $fp, 1);
+          op(Op.ReturnTo, labelOperand('ITER'));
+          op(HighLevelBuilderOpcodes.Label, 'ITER');
+          op(Op.Iterate, labelOperand('BREAK'));
+          op(HighLevelBuilderOpcodes.Label, 'BODY');
+          InvokeStaticBlockWithStack(op, block, 2);
+          op(Op.Pop, 2);
+          op(Op.Jump, labelOperand('FINALLY'));
+          op(HighLevelBuilderOpcodes.Label, 'BREAK');
+          op(Op.PopFrame);
+          op(Op.ExitList);
+          op(Op.Jump, labelOperand('FINALLY'));
+          op(HighLevelBuilderOpcodes.Label, 'ELSE');
 
-        if (inverse) {
-          InvokeStaticBlock(op, inverse);
-        }
+          if (inverse) {
+            InvokeStaticBlock(op, inverse);
+          }
+        },
       }
     )
   );

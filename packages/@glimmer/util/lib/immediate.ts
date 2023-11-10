@@ -107,6 +107,14 @@ export function decodePositive(num: number) {
   return ~num;
 }
 
+export function encodeBoolean(bool: boolean): number {
+  return (bool as never) | 0;
+}
+
+export function decodeBoolean(num: number): boolean {
+  return !!num;
+}
+
 export function encodeHandle(num: number) {
   if (LOCAL_DEBUG) {
     assert(num % 1 === 0 && num >= 0 && num <= MAX_SMI, `Could not encode handle: ${num}`);
