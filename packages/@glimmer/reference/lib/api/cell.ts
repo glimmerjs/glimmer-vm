@@ -24,6 +24,7 @@ import {
  * (infallibly) produces the value of the cell.
  */
 export function readCell<T>(cell: ReactiveCell<T>): T {
+  // this is safe because cells are infallible
   return unwrapReactive(cell);
 }
 

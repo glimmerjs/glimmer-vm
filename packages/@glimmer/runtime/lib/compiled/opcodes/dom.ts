@@ -11,17 +11,17 @@ import type {
 } from '@glimmer/interfaces';
 import type { Reactive } from '@glimmer/reference';
 import type { Revision, Tag } from '@glimmer/validator';
-import {
-  check,
-  CheckElement,
-  CheckMaybe,
-  CheckNode,
-  CheckNullable,
-  CheckString,
-} from '@glimmer/debug';
+import { check, CheckElement, CheckMaybe, CheckNode, CheckString } from '@glimmer/debug';
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { Formula, isConstant, readReactive, unwrapReactive } from '@glimmer/reference';
-import { assign, debugToString, expect, isObject, stringifyDebugLabel } from '@glimmer/util';
+import {
+  assign,
+  debugToString,
+  expect,
+  isObject,
+  Results,
+  stringifyDebugLabel,
+} from '@glimmer/util';
 import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
 
@@ -46,29 +46,26 @@ APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, (vm) => {
-  let tagName = check(unwrapReactive(check(vm.stack.pop(), CheckReactive)), CheckString);
-  vm.elements().openElement(tagName);
+  vm.popReactive((tagName) => vm.elements().openElement(tagName), CheckString);
 });
 
 APPEND_OPCODES.add(Op.PushRemoteElement, (vm) => {
-  let elementRef = check(vm.stack.pop(), CheckReactive);
-  let insertBeforeRef = check(vm.stack.pop(), CheckReactive);
-  let guidRef = check(vm.stack.pop(), CheckReactive);
+  let [reactiveElement, element] = vm.popResult(CheckElement);
+  let [reactiveInsertBefore, insertBefore] = vm.popResult(CheckMaybe(CheckNode));
+  let [, guid] = vm.popResult(CheckString);
 
-  let element = check(unwrapReactive(elementRef), CheckElement);
-  let insertBefore = check(unwrapReactive(insertBeforeRef), CheckMaybe(CheckNullable(CheckNode)));
-  let guid = check(unwrapReactive(guidRef), CheckString);
+  vm.unwrap(Results([element, insertBefore, guid]), ([element, insertBefore, guid]) => {
+    if (!isConstant(reactiveElement)) {
+      vm.updateWith(Assert.of(reactiveElement, element));
+    }
 
-  if (!isConstant(elementRef)) {
-    vm.updateWith(new Assert(elementRef));
-  }
+    if (insertBefore !== undefined && !isConstant(reactiveInsertBefore)) {
+      vm.updateWith(Assert.of(reactiveInsertBefore, insertBefore));
+    }
 
-  if (insertBefore !== undefined && !isConstant(insertBeforeRef)) {
-    vm.updateWith(new Assert(insertBeforeRef));
-  }
-
-  let block = vm.elements().pushRemoteElement(element, guid, insertBefore);
-  if (block) vm.associateDestroyable(block);
+    let block = vm.elements().pushRemoteElement(element, guid, insertBefore);
+    if (block) vm.associateDestroyable(block);
+  });
 });
 
 APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
@@ -109,6 +106,7 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
   }
 
   let owner = vm.getOwner();
+
   let args = check(vm.stack.pop(), CheckArguments);
   let definition = vm.constants.getValue<ModifierDefinition>(handle);
 
@@ -221,26 +219,30 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
     };
   });
 
-  let instance = unwrapReactive(instanceRef);
-  let tag = null;
+  let result = readReactive(instanceRef);
 
-  if (instance !== undefined) {
-    let operations = expect(
-      check(vm.fetchValue($t0), CheckOperations),
-      'BUG: ElementModifier could not find operations to append to'
-    );
+  if (vm.unwrapResult(result)) {
+    const instance = result.value;
+    let tag = null;
 
-    operations.addModifier(instance);
+    if (instance !== undefined) {
+      let operations = expect(
+        check(vm.fetchValue($t0), CheckOperations),
+        'BUG: ElementModifier could not find operations to append to'
+      );
 
-    tag = instance.manager.getTag(instance.state);
+      operations.addModifier(instance);
 
-    if (tag !== null) {
-      consumeTag(tag);
+      tag = instance.manager.getTag(instance.state);
+
+      if (tag !== null) {
+        consumeTag(tag);
+      }
     }
-  }
 
-  if (!isConstant(ref) || tag) {
-    return vm.updateWith(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
+    if (!isConstant(ref) || tag) {
+      return vm.updateWith(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
+    }
   }
 });
 

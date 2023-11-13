@@ -57,6 +57,7 @@ export interface DebugVmSnapshot {
 }
 
 export interface ReadonlyStack {
+  readonly size: number;
   get<T = number>(position: number, base?: number): T;
   top<T>(offset?: number): T;
 }

@@ -45,5 +45,7 @@ export interface Environment {
   getAppendOperations(): GlimmerTreeConstruction;
 
   isInteractive: boolean;
-  debugRenderTree?: DebugRenderTree | undefined;
+  debugRenderTree: DebugRenderTree | undefined;
+
+  withDebug(debug: (tree: DebugRenderTree) => void): void;
 }

@@ -84,7 +84,7 @@ export class UpdatingVM implements IUpdatingVM {
     });
 
     while (frameStack.size !== 0) {
-      let opcode = this.frame.nextStatement();
+      let opcode = this.#frame.nextStatement();
 
       if (opcode === undefined) {
         frameStack.pop();
@@ -95,16 +95,24 @@ export class UpdatingVM implements IUpdatingVM {
     }
   }
 
-  private get frame() {
+  get #frame() {
     return expect(this.#frameStack.current, 'bug: expected a frame');
   }
 
-  deref<T>(reference: Reactive<T>): Result<T> {
-    return readReactive(reference);
+  deref<T>(reactive: Reactive<T>, then: (value: T) => void) {
+    const result = readReactive(reactive);
+
+    switch (result.type) {
+      case 'ok':
+        then(result.value);
+        break;
+      case 'err':
+        this.unwind();
+    }
   }
 
   goto(index: number) {
-    this.frame.goto(index);
+    this.#frame.goto(index);
   }
 
   try(ops: UpdatingOpcode[], handle: Nullable<HandleException>) {
@@ -120,7 +128,7 @@ export class UpdatingVM implements IUpdatingVM {
    */
   unwind() {
     while (this.#frameStack.current) {
-      const unwound = this.frame.unwind();
+      const unwound = this.#frame.unwind();
       this.#frameStack.pop();
 
       if (unwound) return;
@@ -130,12 +138,16 @@ export class UpdatingVM implements IUpdatingVM {
     throw Error(`unwind target not found`);
   }
 
-  throw() {
-    this.frame.handleException();
+  reset() {
+    this.#frame.handleException();
     this.#frameStack.pop();
   }
 }
 
+/**
+ * This state is used to initialize the VM, both on initial render and when resuming due to an
+ * assertion.
+ */
 export interface InitialVmState {
   readonly pc: number;
   readonly scope: Scope;
@@ -143,9 +155,6 @@ export interface InitialVmState {
   readonly stack: unknown[];
   readonly unwind: UnwindTarget;
   readonly context: JitContext;
-}
-
-export interface VmStateSnapshot extends InitialVmState {
   readonly destructor: Destroyable;
   readonly isTryFrame: boolean;
 }
@@ -163,7 +172,7 @@ export abstract class AbstractBlockOpcode<Child extends UpdatingOpcode = Updatin
   readonly debug?: () => SomeBoundsDebug;
 
   constructor(
-    protected state: VmStateSnapshot,
+    protected state: InitialVmState,
     protected runtime: RuntimeContext,
     bounds: LiveBlock,
     children: Child[] = []
@@ -257,7 +266,7 @@ export class ListItemOpcode extends TryOpcode {
   #memo: Reactive;
 
   constructor(
-    state: VmStateSnapshot,
+    state: InitialVmState,
     runtime: RuntimeContext,
     bounds: UpdatableBlock,
     public key: unknown,
@@ -293,7 +302,7 @@ export class ListBlockOpcode extends AbstractBlockOpcode<ListItemOpcode> {
   protected declare readonly bounds: LiveBlockList;
 
   constructor(
-    state: VmStateSnapshot,
+    state: InitialVmState,
     runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],

@@ -25,7 +25,7 @@ import type {
   WithElementHook,
   WithUpdateHook,
 } from '@glimmer/interfaces';
-import type {Reactive} from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 import {
   check,
   CheckFunction,
@@ -39,7 +39,6 @@ import {
 } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
 import { managerHasCapability } from '@glimmer/manager';
-import {  isConstant,unwrapReactive  } from '@glimmer/reference';
 import {
   assert,
   assign,
@@ -55,21 +54,17 @@ import {
 } from '@glimmer/util';
 import { $t0, $t1, CurriedTypes, InternalComponentCapabilities, Op } from '@glimmer/vm';
 
-import type {CurriedValue} from '../../curried-value';
+import type { CurriedValue } from '../../curried-value';
 import type { UpdatingVM } from '../../vm';
 import type { InternalVM } from '../../vm/append';
-import type {BlockArgumentsImpl} from '../../vm/arguments';
+import type { BlockArgumentsImpl } from '../../vm/arguments';
 
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { resolveComponent } from '../../component/resolve';
-import {
-  isCurried,
-  isCurriedValue,
-  resolveCurriedValue
-} from '../../curried-value';
+import { isCurried, isCurriedValue, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
-import {  EMPTY_ARGS, VMArgumentsImpl } from '../../vm/arguments';
+import { EMPTY_ARGS, VMArgumentsImpl } from '../../vm/arguments';
 import {
   CheckArguments,
   CheckComponentDefinition,
@@ -140,10 +135,8 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
 
   const reactive = check(stack.pop(), CheckReactive);
 
-  const result = vm.derefReactive(reactive);
-
-  if (vm.unwrap(result)) {
-    const component = check(result.value, CheckOr(CheckString, CheckCurriedComponentDefinition));
+  vm.deref(reactive, (value) => {
+    const component = check(value, CheckOr(CheckString, CheckCurriedComponentDefinition));
     let constants = vm.constants;
     let owner = vm.getOwner();
     let isStrict = constants.getValue<boolean>(_isStrict);
@@ -169,51 +162,48 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
     }
 
     stack.push(definition);
-  }
-
-  // let component = check(
-  //   unwrapReactive(check(stack.pop(), CheckReactive)),
-  //   CheckOr(CheckString, CheckCurriedComponentDefinition)
-  // );
+  });
 });
 
 APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
   let stack = vm.stack;
   let ref = check(stack.pop(), CheckReactive);
-  let value = unwrapReactive(ref);
-  let constants = vm.constants;
 
-  let definition: CurriedValue | ComponentDefinition | null;
+  vm.deref(ref, (value) => {
+    let constants = vm.constants;
 
-  if (
-    import.meta.env.DEV &&
-    !(typeof value === 'function' || (typeof value === 'object' && value !== null))
-  ) {
-    const label = stringifyDebugLabel(ref);
+    let definition: CurriedValue | ComponentDefinition | null;
 
-    throw new Error(
-      `Expected a component definition, but received ${value}. You may have accidentally done <${String(
-        label
-      )}>, where "${label}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
-    );
-  }
-
-  if (isCurriedValue(value)) {
-    definition = value;
-  } else {
-    definition = constants.component(value as object, vm.getOwner(), true);
-
-    if (import.meta.env.DEV && definition === null) {
+    if (
+      import.meta.env.DEV &&
+      !(typeof value === 'function' || (typeof value === 'object' && value !== null))
+    ) {
       const label = stringifyDebugLabel(ref);
+
       throw new Error(
-        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${label}>\` or \`{{${label}}}\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
-          value
-        )}`
+        `Expected a component definition, but received ${value}. You may have accidentally done <${String(
+          label
+        )}>, where "${label}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
       );
     }
-  }
 
-  stack.push(definition);
+    if (isCurriedValue(value)) {
+      definition = value;
+    } else {
+      definition = constants.component(value as object, vm.getOwner(), true);
+
+      if (import.meta.env.DEV && definition === null) {
+        const label = stringifyDebugLabel(ref);
+        throw new Error(
+          `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${label}>\` or \`{{${label}}}\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
+            value
+          )}`
+        );
+      }
+    }
+
+    stack.push(definition);
+  });
 });
 
 APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
@@ -569,19 +559,18 @@ function allStringClasses(classes: (string | Reactive<unknown>)[]): classes is s
 function setDeferredAttr(
   vm: InternalVM,
   name: string,
-  value: string | Reactive<unknown>,
+  reactiveValue: string | Reactive<unknown>,
   namespace: Nullable<string>,
   trusting = false
 ) {
-  if (typeof value === 'string') {
-    vm.elements().setStaticAttribute(name, value, namespace);
+  if (typeof reactiveValue === 'string') {
+    vm.elements().setStaticAttribute(name, reactiveValue, namespace);
   } else {
-    let attribute = vm
-      .elements()
-      .setDynamicAttribute(name, unwrapReactive(value), trusting, namespace);
-    if (!isConstant(value)) {
-      vm.updateWith(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
-    }
+    vm.deref(reactiveValue, (value) => {
+      let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
+
+      return (reactive) => new UpdateDynamicAttributeOpcode(reactive, attribute, vm.env);
+    });
   }
 }
 
@@ -607,7 +596,7 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
   let { manager } = definition;
   let selfRef = manager.getSelf(state);
 
-  if (vm.env.debugRenderTree !== undefined) {
+  vm.env.withDebug((renderTree) => {
     let instance = check(
       vm.fetchValue(check(_state, CheckSyscallRegister)),
       CheckComponentInstance
@@ -661,10 +650,10 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
 
       nodes.forEach((node) => {
         let { bucket } = node;
-        vm.env.debugRenderTree!.create(bucket, node);
+        renderTree.create(bucket, node);
 
         registerDestructor(instance, () => {
-          vm.env.debugRenderTree?.willDestroy(bucket);
+          renderTree.willDestroy(bucket);
         });
 
         vm.updateWith(new DebugRenderTreeUpdateOpcode(bucket));
@@ -672,23 +661,25 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
     } else {
       let name = definition.resolvedName ?? manager.getDebugName(definition.state);
 
-      vm.env.debugRenderTree.create(instance, {
-        type: 'component',
-        name,
-        args,
-        template: moduleName,
-        instance: unwrapReactive(selfRef),
+      vm.deref(selfRef, (self) => {
+        renderTree.create(instance, {
+          type: 'component',
+          name,
+          args,
+          template: moduleName,
+          instance: self,
+        });
+
+        vm.associateDestroyable(instance);
+
+        registerDestructor(instance, () => {
+          renderTree.willDestroy(instance);
+        });
+
+        vm.updateWith(new DebugRenderTreeUpdateOpcode(instance));
       });
-
-      vm.associateDestroyable(instance);
-
-      registerDestructor(instance, () => {
-        vm.env.debugRenderTree?.willDestroy(instance);
-      });
-
-      vm.updateWith(new DebugRenderTreeUpdateOpcode(instance));
     }
-  }
+  });
 
   vm.stack.push(selfRef);
 });
@@ -879,23 +870,23 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: register }) => {
   let { manager, state, capabilities } = instance;
   let bounds = vm.elements().popBlock();
 
-  if (vm.env.debugRenderTree !== undefined) {
+  vm.env.withDebug((renderTree) => {
     if (hasCustomDebugRenderTreeLifecycle(manager)) {
       let nodes = manager.getDebugCustomRenderTree(instance.definition.state, state, EMPTY_ARGS);
 
       nodes.reverse().forEach((node) => {
         let { bucket } = node;
 
-        vm.env.debugRenderTree!.didRender(bucket, bounds);
+        renderTree.didRender(bucket, bounds);
 
         vm.updateWith(new DebugRenderTreeDidRenderOpcode(bucket, bounds));
       });
     } else {
-      vm.env.debugRenderTree.didRender(instance, bounds);
+      renderTree.didRender(instance, bounds);
 
       vm.updateWith(new DebugRenderTreeDidRenderOpcode(instance, bounds));
     }
-  }
+  });
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createInstance)) {
     let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
@@ -944,7 +935,7 @@ class DebugRenderTreeUpdateOpcode implements UpdatingOpcode {
   constructor(private bucket: object) {}
 
   evaluate(vm: UpdatingVM) {
-    vm.env.debugRenderTree?.update(this.bucket);
+    vm.env.withDebug((renderTree) => renderTree.update(this.bucket));
   }
 }
 
@@ -955,6 +946,6 @@ class DebugRenderTreeDidRenderOpcode implements UpdatingOpcode {
   ) {}
 
   evaluate(vm: UpdatingVM) {
-    vm.env.debugRenderTree?.didRender(this.bucket, this.bounds);
+    vm.env.withDebug((renderTree) => renderTree.didRender(this.bucket, this.bounds));
   }
 }

@@ -1,4 +1,4 @@
-import type { SnapshottableVM, VmDebugState } from '@glimmer/debug';
+import type { Checker, SnapshottableVM, VmDebugState } from '@glimmer/debug';
 import type {
   BlockMetadata,
   CleanStack,
@@ -15,10 +15,10 @@ import type {
   MutableReactiveCell,
   Nullable,
   OkResult,
-  Optional,
   Owner,
   PartialScope,
   ProgramConstants,
+  ReactiveResult,
   RenderResult,
   Result,
   RichIteratorResult,
@@ -32,11 +32,13 @@ import type {
 } from '@glimmer/interfaces';
 import type { OpaqueIterationItem, OpaqueIterator, Reactive } from '@glimmer/reference';
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
+import { check } from '@glimmer/debug';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
   createIteratorItemRef,
+  isConstant,
   MutableCell,
   readCell,
   UNDEFINED_REFERENCE,
@@ -63,8 +65,9 @@ import { $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 
 import type { LiveBlockList } from './element-builder';
 import type { ArgumentsStack } from './low-level';
-import type { BlockOpcode, InitialVmState, VmStateSnapshot } from './update';
+import type { BlockOpcode, InitialVmState } from './update';
 
+import { CheckReactive } from '../compiled/opcodes/-debug-strip';
 import {
   BeginTrackFrameOpcode,
   EndTrackFrameOpcode,
@@ -236,14 +239,14 @@ export class VM implements PublicVM, SnapshottableVM {
 
   readonly #inner: LowLevelVM;
   readonly #templates?: TemplateDebug;
-  #block: Optional<TryOpcode>;
+  #block: TryOpcode;
 
   declare debugWillCall?: (handle: number) => void;
   declare debugDidReturn?: () => void;
 
   private constructor(
     readonly runtime: RuntimeContext,
-    { pc, scope, dynamicScope, stack, unwind, context }: InitialVmState,
+    { pc, scope, dynamicScope, stack, unwind, context, destructor, isTryFrame }: InitialVmState,
     elementStack: ElementBuilder
   ) {
     if (import.meta.env.DEV) {
@@ -264,6 +267,19 @@ export class VM implements PublicVM, SnapshottableVM {
       { debug: this },
       evalStack.registers
     );
+
+    this.start(destructor);
+    let block = this.#elements.block;
+    let opcode = new TryOpcode(
+      this.#capture(this.#inner.stack.size, isTryFrame),
+      this.runtime,
+      block,
+      []
+    );
+
+    this.#block = opcode;
+    this.#pushUpdating(opcode.children);
+    this.#pushDestructor(opcode);
 
     if (import.meta.env.DEV) {
       this.#templates = new TemplateDebug();
@@ -462,6 +478,8 @@ export class VM implements PublicVM, SnapshottableVM {
         ? PartialScopeImpl.root(options.self, options.numSymbols, owner)
         : PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner);
 
+    const destructor = {};
+
     let vmState: InitialVmState = {
       pc: runtime.program.heap.getaddr(handle),
       scope,
@@ -469,48 +487,21 @@ export class VM implements PublicVM, SnapshottableVM {
       stack: [],
       unwind: UnwindTarget.root(MutableCell(1)),
       context,
+      isTryFrame: false,
+      destructor,
     };
 
-    let vm = new VM(runtime, vmState, elements);
-
-    vm.start();
-    let block = elements.block;
-    let tryOpcode = new TryOpcode(vm.#capture(0, false), runtime, block, []);
-    vm.#init(tryOpcode);
-
-    return vm;
+    return new VM(runtime, vmState, elements);
   }
 
-  static resume(runtime: RuntimeContext, state: VmStateSnapshot, elements: ElementBuilder) {
-    const vm = new VM(runtime, state, elements);
+  static resume(runtime: RuntimeContext, resumeState: InitialVmState, elements: ElementBuilder) {
+    const destructor = {};
+    const state = {
+      ...resumeState,
+      destructor,
+    };
 
-    vm.start();
-    let block = elements.block;
-    let tryOpcode = new TryOpcode(
-      vm.#capture(state.stack.length, state.isTryFrame),
-      runtime,
-      block,
-      []
-    );
-    vm.#init(tryOpcode);
-
-    return vm;
-  }
-
-  #init(opcode: TryOpcode) {
-    this.#block = opcode;
-    this.#pushUpdating(opcode.children);
-    this.#pushDestructor(opcode);
-  }
-
-  #finish() {
-    this.#state.destructors.pop();
-
-    // assert(this.#state.destructors.size === 0, 'VM BUG: Expected all destructors to be popped');
-    const block = expect(this.#block, `expected a block to be assigned to a VM instance`);
-    this.elements().popBlock();
-
-    return { block };
+    return new VM(runtime, state, elements);
   }
 
   compile(block: CompilableTemplate): number {
@@ -535,7 +526,7 @@ export class VM implements PublicVM, SnapshottableVM {
     return this.runtime.env;
   }
 
-  #capture(args: number, isTryFrame: boolean, pc = this.#inner.pc): VmStateSnapshot {
+  #capture(args: number, isTryFrame: boolean, pc = this.#inner.pc): InitialVmState {
     return {
       pc,
       scope: this.scope,
@@ -836,12 +827,41 @@ export class VM implements PublicVM, SnapshottableVM {
     return this.scope.getSymbol(symbol);
   }
 
-  deref<T>(reactive: Reactive<T>, then: (value: T) => void | Result<void>): void {
+  popResult<T>(checker: Checker<T>): [Reactive<T>, ReactiveResult<T>] {
+    const reactive = check(this.stack.pop(), CheckReactive);
+    const result = readReactive(reactive);
+
+    if (import.meta.env.DEV) {
+      if (result.type === 'ok') {
+        check(result.value, checker);
+      }
+
+      return [reactive as Reactive<T>, result as ReactiveResult<T>];
+    } else {
+      return [reactive as Reactive<T>, result as ReactiveResult<T>];
+    }
+  }
+
+  popReactive<T>(then: (value: T) => void, checker: Checker<T>) {
+    const reactive = check(this.stack.pop(), CheckReactive);
+
+    this.deref(reactive, (value) => {
+      then(check(value, checker));
+    });
+  }
+
+  deref<T>(
+    reactive: Reactive<T>,
+    then: (value: T) => void | ((reactive: Reactive<T>, value: T) => UpdatingOpcode)
+  ): void {
     const result = this.derefReactive(reactive);
 
-    if (this.unwrap(result)) {
-      const thenResult = then(result.value);
-      if (thenResult) this.unwrap(thenResult);
+    if (this.unwrapResult(result)) {
+      const update = then(result.value);
+
+      if (update && !isConstant(reactive)) {
+        this.updateWith(update(reactive, result.value));
+      }
     }
   }
 
@@ -856,7 +876,13 @@ export class VM implements PublicVM, SnapshottableVM {
     return map ? mapResult(result, map) : result;
   }
 
-  unwrap<T>(result: Result<T>): result is OkResult<T> {
+  unwrap<T>(result: Result<T>, then: (value: T) => void): void {
+    if (this.unwrapResult(result)) {
+      return then(result.value);
+    }
+  }
+
+  unwrapResult<T>(result: Result<T>): result is OkResult<T> {
     if (result.type === 'ok') {
       return true;
     }
@@ -941,11 +967,12 @@ export class VM implements PublicVM, SnapshottableVM {
       // Unload the stack
       this.internalStack.reset();
 
-      const { block } = this.#finish();
+      // Close the initial block -- this ensures that closing block serialization occurs
+      this.elements().popBlock();
 
       result = {
         done: true,
-        value: new RenderResultImpl(this.env, block),
+        value: new RenderResultImpl(this.env, this.#block),
       };
     }
     return result;

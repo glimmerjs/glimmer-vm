@@ -24,7 +24,10 @@ export function Results<const T extends readonly Result<unknown>[]>(
   return { type: 'ok', value: values as Results<T> };
 }
 
-export function chainResult<T, U>(value: Result<T>, mapper: (value: T) => Result<U>): Result<U> {
+export function chainResult<const T, const U, const E>(
+  value: Result<T, E>,
+  mapper: (value: T) => Result<U, E>
+): Result<U, E> {
   return value.type === 'ok' ? mapper(value.value) : value;
 }
 

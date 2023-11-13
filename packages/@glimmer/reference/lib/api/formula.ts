@@ -54,7 +54,7 @@ const RESULT_FORMULA_DEFAULTS = devmode(
 export function ResultFormula<T = unknown>(
   compute: () => ReactiveResult<T>,
   description?: DescriptionSpec
-) {
+): ReactiveFormula<T> {
   const ref = new InternalReactive<T>(FALLIBLE_FORMULA);
 
   ref.compute = () => setResult(ref, compute());

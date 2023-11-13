@@ -4,8 +4,7 @@ import type {
   DevMode,
   ErrorHandler,
   Nullable,
-  ReactiveResult,
-  Result,
+  Optional,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
 import type { Reactive } from '@glimmer/reference';
@@ -23,15 +22,13 @@ import { toBool } from '@glimmer/global-context';
 import {
   createPrimitiveCell,
   FALSE_REFERENCE,
-  Formula,
-  isConstant,
   MutableCell,
   NULL_REFERENCE,
   ReadonlyCell,
   readReactive,
+  ResultFormula,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  unwrapReactive,
 } from '@glimmer/reference';
 import {
   assert,
@@ -245,36 +242,22 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
 
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReactive);
-  let value = Boolean(unwrapReactive(reference));
 
-  if (isConstant(reference)) {
-    if (value === true) {
-      vm.goto(target);
-    }
-  } else {
-    if (value === true) {
-      vm.goto(target);
-    }
+  vm.deref(reference, (value) => {
+    if (value === true) vm.goto(target);
 
-    vm.updateWith(new Assert(reference));
-  }
+    return () => Assert.of(reference, value);
+  });
 });
 
 APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReactive);
-  let value = Boolean(unwrapReactive(reference));
 
-  if (isConstant(reference)) {
-    if (value === false) {
-      vm.goto(target);
-    }
-  } else {
-    if (value === false) {
-      vm.goto(target);
-    }
+  vm.deref(reference, (value) => {
+    if (!value) vm.goto(target);
 
-    vm.updateWith(new Assert(reference));
-  }
+    return () => Assert.of(reference, value);
+  });
 });
 
 APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
@@ -288,83 +271,48 @@ APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
 APPEND_OPCODES.add(Op.AssertSame, (vm) => {
   let reference = check(vm.stack.top(), CheckReactive);
 
-  if (isConstant(reference) === false) {
-    vm.updateWith(new Assert(reference));
-  }
+  vm.deref(reference, (value) => {
+    return () => Assert.of(reference, value);
+  });
 });
 
 APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
   let { stack } = vm;
   let valueRef = check(stack.pop(), CheckReactive);
 
-  stack.push(Formula(() => toBool(unwrapReactive(valueRef))));
+  stack.push(ResultFormula(() => mapResult(readReactive(valueRef), toBool)));
 });
 
-export class Assert implements UpdatingOpcode {
-  readonly #reactive: Reactive;
-  #last: ReactiveResult<unknown>;
+export class Assert<T, U> implements UpdatingOpcode {
+  static of<T>(reactive: Reactive<T>, value: T) {
+    return new Assert(reactive, value);
+  }
 
-  constructor(reactive: Reactive) {
-    this.#last = readReactive(reactive);
+  static filtered<T, U>(reactive: Reactive<T>, value: U, filter: (from: T) => U) {
+    return new Assert(reactive, value, filter);
+  }
+
+  readonly #reactive: Reactive<T>;
+  readonly #filter?: Optional<(from: T) => U>;
+
+  #last: U;
+
+  private constructor(reactive: Reactive<T>, value: U, filter?: (from: T) => U) {
     this.#reactive = reactive;
-  }
-
-  evaluate(vm: UpdatingVM) {
-    const current = readReactive(this.#reactive);
-    const last = this.#last;
-
-    switch (current.type) {
-      case 'err': {
-        if (last.type !== 'err' || last.value !== current.value) {
-          vm.unwind();
-        }
-        break;
-      }
-
-      case 'ok': {
-        if (last.type !== 'ok' || last.value !== current.value) {
-          vm.throw();
-        }
-        break;
-      }
-    }
-
-    this.#last = current;
-  }
-}
-
-export class AssertFilter<T, U> implements UpdatingOpcode {
-  #last: Result<U>;
-  readonly #ref: Reactive<T>;
-  /**
-   * @fixme fallible filters
-   */
-  readonly #filter: (from: T) => U;
-
-  constructor(current: Result<U>, ref: Reactive<T>, filter: (from: T) => U) {
-    this.#last = current;
-    this.#ref = ref;
     this.#filter = filter;
+    this.#last = value;
   }
 
   evaluate(vm: UpdatingVM) {
-    const result = readReactive(this.#ref);
+    vm.deref(this.#reactive, (value) => {
+      const currentValue = this.#filter ? this.#filter(value) : (value as unknown as U);
 
-    if (result.type === 'err') {
-      this.#last = { type: 'err', value: result.value };
-      vm.unwind();
-    } else {
-      const update = mapResult(result, (value) => this.#filter(value));
-      if (this.#last.type !== update.type) {
-        vm.throw();
+      if (this.#last !== currentValue) {
+        vm.reset();
       }
 
-      if (this.#last.type === 'ok' && this.#last.value !== update.value) {
-        vm.throw();
-      }
-
-      this.#last = update;
-    }
+      this.#last = currentValue;
+    });
   }
 }
 

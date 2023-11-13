@@ -43,7 +43,8 @@ export interface UpdatingVM {
   goto(index: number): void;
   try(ops: UpdatingOpcode[], error: Nullable<HandleException>): void;
   unwind(): void;
-  throw(): void;
+  reset(): void;
+  deref<T>(reactive: Reactive<T>, then: (value: T) => void): void;
 }
 
 export interface UpdatingOpcode {

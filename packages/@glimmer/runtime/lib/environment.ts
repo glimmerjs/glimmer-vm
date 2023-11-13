@@ -121,7 +121,7 @@ export class EnvironmentImpl implements Environment {
   // Delegate methods and values
   public isInteractive: boolean;
 
-  debugRenderTree: DebugRenderTree<object> | undefined;
+  readonly debugRenderTree: DebugRenderTree<object> | undefined;
 
   constructor(
     options: EnvironmentOptions,
@@ -137,6 +137,12 @@ export class EnvironmentImpl implements Environment {
       this.updateOperations = new DOMChangesImpl(options.document);
     } else if (import.meta.env.DEV) {
       throw new Error('you must pass document or appendOperations to a new runtime');
+    }
+  }
+
+  withDebug(debug: (tree: DebugRenderTree<object>) => void): void {
+    if (this.debugRenderTree) {
+      debug(this.debugRenderTree);
     }
   }
 

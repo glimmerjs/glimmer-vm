@@ -11,20 +11,11 @@ import type {
   SimpleDocument,
   SimpleElement,
 } from '@glimmer/interfaces';
-import type {CurriedValue, EnvironmentDelegate} from '@glimmer/runtime';
+import type { CurriedValue, EnvironmentDelegate } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
-import {
-  array,
-  clientBuilder,
-  concat,
-  fn,
-  get,
-  hash,
-  on,
-  runtimeContext
-} from '@glimmer/runtime';
+import { array, clientBuilder, concat, fn, get, hash, on, runtimeContext } from '@glimmer/runtime';
 import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
 import type { RenderDelegate, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';

@@ -1,9 +1,9 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
-import type {ArgumentsStack} from './low-level';
+import type { ArgumentsStack } from './low-level';
 import type { UnwindTarget } from './unwind';
 
-import {  PackedRegisters, Registers } from './low-level';
+import { PackedRegisters, Registers } from './low-level';
 
 export default class EvaluationStackImpl implements ArgumentsStack {
   static restore(snapshot: unknown[], pc: number, unwind: UnwindTarget): EvaluationStackImpl {
@@ -22,6 +22,10 @@ export default class EvaluationStackImpl implements ArgumentsStack {
     if (LOCAL_DEBUG) {
       Object.seal(this);
     }
+  }
+
+  get size(): number {
+    return this.stack.length;
   }
 
   push(...values: unknown[]): void {
@@ -79,6 +83,7 @@ export default class EvaluationStackImpl implements ArgumentsStack {
       this.registers.sp + 1
     );
   }
+
   /**
    * @snapshots
    */

@@ -468,14 +468,17 @@ class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   }
 }
 
-export function createCapturedArgs(named: Dict<Reactive>, positional: Reactive[]) {
+export function createCapturedArgs(
+  named: Dict<Reactive>,
+  positional: Reactive[]
+): CapturedArguments {
   return {
     named,
     positional,
   } as CapturedArguments;
 }
 
-export function reifyNamed(named: CapturedNamedArguments) {
+export function reifyNamed(named: CapturedNamedArguments): Dict<unknown> {
   let reified = dict();
 
   for (const [key, value] of Object.entries(named)) {
@@ -485,11 +488,14 @@ export function reifyNamed(named: CapturedNamedArguments) {
   return reified;
 }
 
-export function reifyPositional(positional: CapturedPositionalArguments) {
+export function reifyPositional(positional: CapturedPositionalArguments): unknown[] {
   return positional.map(unwrapReactive);
 }
 
-export function reifyArgs(args: CapturedArguments) {
+export function reifyArgs(args: CapturedArguments): {
+  named: Dict<unknown>;
+  positional: unknown[];
+} {
   return {
     named: reifyNamed(args.named),
     positional: reifyPositional(args.positional),

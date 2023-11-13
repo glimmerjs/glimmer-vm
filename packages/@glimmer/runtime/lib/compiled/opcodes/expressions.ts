@@ -17,6 +17,7 @@ import {
   CheckMaybe,
   CheckNullable,
   CheckOr,
+  CheckString,
 } from '@glimmer/debug';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { toBool } from '@glimmer/global-context';
@@ -24,6 +25,8 @@ import {
   FALSE_REFERENCE,
   Formula,
   getReactiveProperty,
+  readReactive,
+  ResultFormula,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
   unwrapReactive,
@@ -31,9 +34,11 @@ import {
 import {
   assert,
   assign,
+  chainResult,
   debugToString,
   decodeHandle,
   isObject,
+  mapResult,
   stringifyDebugLabel,
 } from '@glimmer/util';
 import { $v0, CurriedTypes, Op } from '@glimmer/vm';
@@ -267,23 +272,19 @@ APPEND_OPCODES.add(Op.IfInline, (vm) => {
   let truthy = check(vm.stack.pop(), CheckReactive);
   let falsy = check(vm.stack.pop(), CheckReactive);
 
-  vm.stack.push(
-    Formula(() => {
-      if (toBool(unwrapReactive(condition)) === true) {
-        return unwrapReactive(truthy);
-      } else {
-        return unwrapReactive(falsy);
-      }
-    })
-  );
+  return ResultFormula(() => {
+    return chainResult(readReactive(condition), (condition) => {
+      return toBool(condition) ? readReactive(truthy) : readReactive(falsy);
+    });
+  });
 });
 
 APPEND_OPCODES.add(Op.Not, (vm) => {
   let ref = check(vm.stack.pop(), CheckReactive);
 
   vm.stack.push(
-    Formula(() => {
-      return !toBool(unwrapReactive(ref));
+    ResultFormula(() => {
+      return mapResult(readReactive(ref), (value) => !toBool(value));
     })
   );
 });
@@ -294,9 +295,10 @@ APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
   let nameRef = check(stack.pop(), CheckReactive);
 
   stack.push(
-    Formula(() => {
-      let name = String(unwrapReactive(nameRef));
-      return unwrapReactive(scope.get(name));
+    ResultFormula(() => {
+      return chainResult(readReactive(nameRef), (name) => {
+        return readReactive(scope.get(check(name, CheckString)));
+      });
     })
   );
 });
