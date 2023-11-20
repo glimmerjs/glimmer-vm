@@ -1,7 +1,7 @@
 {
   "name": "@glimmer/runtime",
   "type": "module",
-  "version": "0.85.9",
+  "version": "0.85.13",
   "description": "Minimal runtime needed to render Glimmer templates",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/runtime",
   "license": "MIT",
@@ -22,14 +22,13 @@
       }
     },
     "main": null,
-    "module": null
+    "module": "dist/dev/index.js"
   },
   "dependencies": {
     "@glimmer/destroyable": "workspace:^",
     "@glimmer/env": "0.1.7",
     "@glimmer/global-context": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
-    "@glimmer/low-level": "0.78.2",
     "@glimmer/manager": "workspace:^",
     "@glimmer/owner": "workspace:^",
     "@glimmer/program": "workspace:^",
@@ -40,14 +39,15 @@
     "@glimmer/wire-format": "workspace:^"
   },
   "devDependencies": {
-    "eslint": "^8.52.0",
-    "rollup": "^3.21.6",
+    "@glimmer-workspace/build-support": "workspace:^",
+    "@glimmer/debug": "workspace:^",
     "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
-    "@glimmer/debug": "workspace:^",
     "@types/qunit": "^2.19.7",
-    "@glimmer-workspace/build-support": "workspace:^",
-    "publint": "^0.2.5"
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^3.21.6",
+    "typescript": "*"
   },
   "scripts": {
     "test:lint": "eslint .",

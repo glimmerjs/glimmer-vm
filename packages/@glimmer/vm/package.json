@@ -1,6 +1,6 @@
 {
   "name": "@glimmer/vm",
-  "version": "0.85.9",
+  "version": "0.85.13",
   "type": "module",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/vm",
   "dependencies": {
@@ -33,12 +33,13 @@
       }
     },
     "main": null,
-    "module": null
+    "module": "dist/dev/index.js"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:^",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",
-    "rollup": "^3.21.6"
+    "rollup": "^3.21.6",
+    "typescript": "*"
   }
 }

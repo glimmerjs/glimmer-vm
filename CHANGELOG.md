@@ -8,6 +8,57 @@
 
 
 
+
+
+
+
+## v0.85.13 (2023-11-14)
+
+#### :house: Internal
+* `@glimmer-workspace/build`, `@glimmer/local-debug-flags`
+  * [#1494](https://github.com/glimmerjs/glimmer-vm/pull/1494) Compile away local debug for publish ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/integration-tests`, `@glimmer/interfaces`, `@glimmer/runtime`, `@glimmer/vm-babel-plugins`
+  * [#1493](https://github.com/glimmerjs/glimmer-vm/pull/1493) Revert "fix capture render tree fails when errors in args" ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.12 (2023-11-02)
+
+#### :bug: Bug Fix
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1488](https://github.com/glimmerjs/glimmer-vm/pull/1488) Add back package.json#module so the ember build can have fewer changes ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/integration-tests`, `@glimmer/interfaces`, `@glimmer/runtime`, `@glimmer/vm-babel-plugins`
+  * [#1460](https://github.com/glimmerjs/glimmer-vm/pull/1460) fix capture render tree fails when errors in args ([@patricklx](https://github.com/patricklx))
+
+#### :house: Internal
+* `@glimmer`, `@glimmer/dom-change-list`
+  * [#1486](https://github.com/glimmerjs/glimmer-vm/pull/1486) Remove @glimmer/dom-change-list as nothing depends on it ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1482](https://github.com/glimmerjs/glimmer-vm/pull/1482) Setup the cache server ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 2
+- Patrick Pircher ([@patricklx](https://github.com/patricklx))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.11 (2023-11-01)
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1485](https://github.com/glimmerjs/glimmer-vm/pull/1485) Remove dependency on @glimmer/low-level because it doesn't exist anymore (and is unused) ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.10 (2023-11-01)
+
+#### :bug: Bug Fix
+* `@glimmer/reference`
+  * [#1484](https://github.com/glimmerjs/glimmer-vm/pull/1484) Unify reference factory function signatures ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## v0.85.9 (2023-11-01)
 
 #### :bug: Bug Fix

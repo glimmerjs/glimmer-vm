@@ -1,7 +1,7 @@
 {
   "name": "@glimmer/compiler",
   "type": "module",
-  "version": "0.85.9",
+  "version": "0.85.13",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/compiler",
   "exports": {
     "types": "./index.ts",
@@ -29,7 +29,7 @@
       }
     },
     "main": null,
-    "module": null
+    "module": "dist/dev/index.js"
   },
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
@@ -39,12 +39,13 @@
     "@glimmer/wire-format": "workspace:^"
   },
   "devDependencies": {
-    "eslint": "^8.52.0",
-    "rollup": "^3.21.6",
-    "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer-workspace/build-support": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
     "@types/node": "^18.16.6",
-    "publint": "^0.2.5"
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^3.21.6",
+    "typescript": "*"
   },
   "scripts": {
     "build": "rollup -c rollup.config.mjs",

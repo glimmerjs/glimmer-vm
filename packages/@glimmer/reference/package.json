@@ -1,7 +1,7 @@
 {
   "name": "@glimmer/reference",
   "type": "module",
-  "version": "0.85.9",
+  "version": "0.85.13",
   "description": "Objects used to track values and their dirtiness in Glimmer",
   "license": "MIT",
   "repository": {
@@ -20,11 +20,12 @@
     "@glimmer/validator": "workspace:^"
   },
   "devDependencies": {
-    "eslint": "^8.52.0",
-    "rollup": "^3.21.6",
-    "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer-workspace/build-support": "workspace:^",
-    "publint": "^0.2.5"
+    "@glimmer/local-debug-flags": "workspace:^",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^3.21.6",
+    "typescript": "*"
   },
   "scripts": {
     "test:lint": "eslint .",
@@ -49,6 +50,6 @@
       }
     },
     "main": null,
-    "module": null
+    "module": "dist/dev/index.js"
   }
 }

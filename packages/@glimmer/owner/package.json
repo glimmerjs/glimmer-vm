@@ -1,7 +1,7 @@
 {
   "name": "@glimmer/owner",
   "type": "module",
-  "version": "0.85.9",
+  "version": "0.85.13",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/owner",
   "description": "Implementation for the owner in Glimmer apps",
   "license": "MIT",
@@ -12,11 +12,12 @@
     "dist"
   ],
   "devDependencies": {
-    "eslint": "^8.52.0",
-    "rollup": "^3.21.6",
-    "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer-workspace/build-support": "workspace:^",
-    "publint": "^0.2.5"
+    "@glimmer/local-debug-flags": "workspace:^",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^3.21.6",
+    "typescript": "*"
   },
   "scripts": {
     "test:lint": "eslint .",
@@ -41,6 +42,6 @@
       }
     },
     "main": null,
-    "module": null
+    "module": "dist/dev/index.js"
   }
 }
