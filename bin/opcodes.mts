@@ -7,7 +7,11 @@ const emitter = Emitter.argv('opcodes.json', import.meta);
 
 const { machine, system } = emitter.opcodes;
 
-const ALL = [...machine, ...new Array(16 - machine.length).fill(null), ...system];
+const ALL: (string | null)[] = [
+  ...machine,
+  ...new Array(16 - machine.length).fill(null),
+  ...system,
+];
 
 const TYPES = ['interface', 'code', 'debug', 'all'] as const;
 
@@ -24,6 +28,13 @@ compute(emitter.type);
 function compute(type: string) {
   switch (type) {
     case 'interface': {
+      const members = Object.fromEntries(
+        ALL.flatMap((name, i) => {
+          if (name === null) return [];
+          return [[name, i]];
+        })
+      );
+
       const INTERFACE_MEMBERS = ALL.flatMap((name, i) => {
         if (name === null) return [];
         return [`  ${name}: ${i};`];
@@ -32,9 +43,11 @@ function compute(type: string) {
       emitter.writeTarget('interface')([
         `export interface VmOpMap {\n${INTERFACE_MEMBERS}\n}`,
         '',
-        `export type VmMachineOp = ${machine.map((m) => `VmOpMap['${m}']`).join(' | ')};`,
+        `export type VmMachineOp =`,
+        ...machine.flatMap((m) => [`// ${m}`, `| ${members[m]}`]),
         '',
-        `export type VmSyscallOp = ${system.map((m) => `VmOpMap['${m}']`).join(' | ')};`,
+        `export type VmSyscallOp =`,
+        ...system.flatMap((m) => [`// ${m}`, `| ${members[m]}`]),
         '',
         `export type OpSize = ${ALL.length};`,
       ]);
@@ -46,13 +59,13 @@ function compute(type: string) {
 
       const CODE_MEMBERS = ALL.flatMap((name, i) => {
         if (name === null) return [];
-        return [`  ${name}: ${i} satisfies ${OP_TYPE}['${name}'],`];
+        return [`  ${name}: ${i},`];
       }).join('\n');
 
       emitter.writeTarget('code')([
-        `import type { VmOpMap as ${OP_TYPE} } from "${emitter.imports.interface}";`,
+        `export interface Op {\n${CODE_MEMBERS}\n}`,
         '',
-        `export const Op = {\n${CODE_MEMBERS}\n} as const;`,
+        `export const Op: Op = {\n${CODE_MEMBERS}\n};`,
         '',
         `export const OpSize = ${ALL.length} as const;`,
       ]);
