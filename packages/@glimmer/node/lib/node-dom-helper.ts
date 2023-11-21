@@ -15,13 +15,15 @@ export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
   }
 
   // override to prevent usage of `this.document` until after the constructor
-  protected override setupUselessElement() {}
+  protected override setupUselessElement() { }
 
   override insertHTMLBefore(
     parent: SimpleElement,
     reference: Nullable<SimpleNode>,
     html: string
   ): BlockBounds {
+    // TODO: resolve this
+    // eslint-disable-next-line deprecation/deprecation
     let raw = this.document.createRawHTMLSection!(html);
     parent.insertBefore(raw, reference);
     return new ConcreteBounds(parent, raw, raw);
