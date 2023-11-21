@@ -52,6 +52,7 @@ export function isNode(value: unknown): value is SimpleNode {
 }
 
 export function isFragment(value: unknown): value is SimpleDocumentFragment {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   return isNode(value) && value.nodeType === 11;
 }
 

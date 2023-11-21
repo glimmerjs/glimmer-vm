@@ -1,4 +1,4 @@
-import type {Checker} from '@glimmer/debug';
+import type { Checker } from '@glimmer/debug';
 import type {
   BlockMetadata,
   CapabilityMask,
@@ -15,8 +15,8 @@ import type {
   Scope,
   ScopeBlock,
 } from '@glimmer/interfaces';
-import type {OpaqueIterator, Reactive} from '@glimmer/reference';
-import type {Tag} from '@glimmer/validator';
+import type { OpaqueIterator, Reactive } from '@glimmer/reference';
+import type { Tag } from '@glimmer/validator';
 import {
   CheckArray,
   CheckBlockSymbolTable,
@@ -35,10 +35,10 @@ import {
   WrapCheck
 } from '@glimmer/debug';
 import {
-  REFERENCE,
+  INTERNAL_REFERENCE,
   UNDEFINED_REFERENCE
 } from '@glimmer/reference';
-import { COMPUTE  } from '@glimmer/validator';
+import { COMPUTE } from '@glimmer/validator';
 
 import { PartialScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';
@@ -54,7 +54,7 @@ export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = Wr
 
 class ReferenceChecker {
   validate(value: unknown): value is Reactive {
-    return typeof value === 'object' || value !== null || REFERENCE in value;
+    return typeof value === 'object' || value !== null || INTERNAL_REFERENCE in value;
   }
 
   expected(): string {

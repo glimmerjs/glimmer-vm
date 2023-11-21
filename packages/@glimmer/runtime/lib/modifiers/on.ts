@@ -4,13 +4,13 @@ import type {
   Owner,
   SimpleElement,
 } from '@glimmer/interfaces';
-import type {UpdatableTag} from '@glimmer/validator';
+import type { UpdatableTag } from '@glimmer/validator';
 import { check, CheckFunction, CheckString } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalModifierManager } from '@glimmer/manager';
 import { unwrapReactive } from '@glimmer/reference';
 import { buildUntouchableThis, devmode, expect, stringifyDebugLabel } from '@glimmer/util';
-import { createUpdatableTag  } from '@glimmer/validator';
+import { createUpdatableTag } from '@glimmer/validator';
 
 import { reifyNamed } from '../vm/arguments';
 
@@ -39,6 +39,8 @@ const SUPPORTS_EVENT_OPTIONS = (() => {
       event = new Event('click');
     } else {
       event = document.createEvent('Event');
+      // TODO: address this
+      // eslint-disable-next-line deprecation/deprecation
       event.initEvent('click', true, true);
     }
 
@@ -124,11 +126,9 @@ export class OnModifierState {
       unwrapReactive(userProvidedCallbackReference),
       CheckFunction,
       (actual) => {
-        return `You must pass a function as the second argument to the \`on\` modifier; you passed ${
-          actual === null ? 'null' : typeof actual
-        }. While rendering:\n\n${
-          stringifyDebugLabel(userProvidedCallbackReference) ?? `{unlabeled value}`
-        }`;
+        return `You must pass a function as the second argument to the \`on\` modifier; you passed ${actual === null ? 'null' : typeof actual
+          }. While rendering:\n\n${stringifyDebugLabel(userProvidedCallbackReference) ?? `{unlabeled value}`
+          }`;
       }
     ) as EventListener;
 
@@ -149,12 +149,11 @@ export class OnModifierState {
 
     if (this.shouldUpdate) {
       if (needsCustomCallback) {
-        let callback = (this.callback = function (this: Element, event) {
+        let callback = (this.callback = function(this: Element, event) {
           if (import.meta.env.DEV && passive) {
             event.preventDefault = () => {
               throw new Error(
-                `You marked this listener as 'passive', meaning that you must not call 'event.preventDefault()': \n\n${
-                  userProvidedCallback.name ?? `{anonymous function}`
+                `You marked this listener as 'passive', meaning that you must not call 'event.preventDefault()': \n\n${userProvidedCallback.name ?? `{anonymous function}`
                 }`
               );
             };

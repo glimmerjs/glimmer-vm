@@ -1,5 +1,5 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-import type {Reactive} from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 import { check } from '@glimmer/debug';
 import {
   Formula,
@@ -104,9 +104,8 @@ function assertCallbackIsFn(
     !(callbackRef && (isAccessor(callbackRef) || typeof unwrapReactive(callbackRef) === 'function'))
   ) {
     throw new Error(
-      `You must pass a function as the \`fn\` helper's first argument, you passed ${
-        callbackRef ? unwrapReactive(callbackRef) : callbackRef
-      }. While rendering${callbackRef ? ':\n\n' + stringifyDebugLabel(callbackRef) : ''}`
+      `You must pass a function as the \`fn\` helper's first argument, you passed ${callbackRef ? unwrapReactive(callbackRef) : callbackRef
+      }. While rendering${callbackRef ? `:\n\n${stringifyDebugLabel(callbackRef)}` : ''}`
     );
   }
 }
