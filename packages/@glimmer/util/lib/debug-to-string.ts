@@ -26,6 +26,8 @@ if (import.meta.env.DEV) {
       obj.toString !== Object.prototype.toString &&
       obj.toString !== Function.prototype.toString
     ) {
+      // We specifically check that this is safe in the if condition.
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       name = obj.toString();
     }
 
