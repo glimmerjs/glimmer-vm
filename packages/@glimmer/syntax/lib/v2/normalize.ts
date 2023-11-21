@@ -1,14 +1,14 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { asPresentArray, assert, assign, isPresentArray } from '@glimmer/util';
 
-import type {PrecompileOptions, PrecompileOptionsWithLexicalScope} from '../parser/tokenizer-event-handlers';
+import type { PrecompileOptions, PrecompileOptionsWithLexicalScope } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation } from '../source/location';
 import type { Source } from '../source/source';
 import type { SourceSpan } from '../source/span';
-import type {BlockSymbolTable, ProgramSymbolTable} from '../symbol-table';
+import type { BlockSymbolTable, ProgramSymbolTable } from '../symbol-table';
 import type * as ASTv1 from '../v1/api';
-import type {BuildElement, CallParts} from './builders';
-import type {Resolution} from './loose-resolution';
+import type { BuildElement, CallParts } from './builders';
+import type { Resolution } from './loose-resolution';
 
 import Printer from '../generation/printer';
 import {
@@ -16,12 +16,12 @@ import {
 } from '../parser/tokenizer-event-handlers';
 import { SourceSlice } from '../source/slice';
 import { SpanList } from '../source/span-list';
-import {   SymbolTable } from '../symbol-table';
+import { SymbolTable } from '../symbol-table';
 import { generateSyntaxError } from '../syntax-error';
 import { isLowerCase, isUpperCase } from '../utils';
 import b from '../v1/parser-builders';
 import * as ASTv2 from './api';
-import {  Builder  } from './builders';
+import { Builder } from './builders';
 import {
   AppendSyntaxContext,
   AttrValueSyntaxContext,
@@ -161,7 +161,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
  * `ExpressionNormalizer` is stateless.
  */
 class ExpressionNormalizer {
-  constructor(private block: BlockContext) {}
+  constructor(private block: BlockContext) { }
 
   /**
    * The `normalize` method takes an arbitrary expression and its original syntax context and
@@ -318,7 +318,7 @@ class ExpressionNormalizer {
  * `TemplateNormalizer` normalizes top-level ASTv1 statements to ASTv2.
  */
 class StatementNormalizer {
-  constructor(private readonly block: BlockContext) {}
+  constructor(private readonly block: BlockContext) { }
 
   normalize(node: ASTv1.Statement): ASTv2.ContentNode | ASTv2.NamedBlock {
     switch (node.type) {
@@ -371,6 +371,7 @@ class StatementNormalizer {
    * Normalizes an ASTv1.MustacheStatement to an ASTv2.AppendStatement
    */
   MustacheStatement(mustache: ASTv1.MustacheStatement): ASTv2.AppendContent {
+    // eslint-disable-next-line deprecation/deprecation
     let { escaped } = mustache;
     let loc = this.block.loc(mustache.loc);
 
@@ -445,7 +446,7 @@ class StatementNormalizer {
 }
 
 class ElementNormalizer {
-  constructor(private readonly ctx: BlockContext) {}
+  constructor(private readonly ctx: BlockContext) { }
 
   /**
    * Normalizes an ASTv1.ElementNode to:
@@ -561,6 +562,7 @@ class ElementNormalizer {
   } {
     switch (part.type) {
       case 'MustacheStatement':
+        // eslint-disable-next-line deprecation/deprecation
         return { expr: this.mustacheAttr(part), trusting: !part.escaped };
       case 'TextNode':
         return {
@@ -866,6 +868,7 @@ class ElementChildren extends Children {
   assertElement(name: SourceSlice, hasBlockParams: boolean): ASTv2.SimpleElement {
     if (hasBlockParams) {
       throw generateSyntaxError(
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         `Unexpected block params in <${name}>: simple elements cannot have block params`,
         this.loc
       );

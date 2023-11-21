@@ -1,4 +1,5 @@
-import type {AST} from '@glimmer/syntax';
+/* eslint-disable deprecation/deprecation */
+import type { AST } from '@glimmer/syntax';
 import {
   builders as b,
   cannotRemoveNode,
@@ -271,7 +272,7 @@ QUnit.test('Should recurrsively walk the keys in the transformed node', () => {
       return;
     },
 
-    MustacheStatement: function (node) {
+    MustacheStatement: function(node) {
       if (expectPath(node.path).original === 'baz') {
         return b.mustache('x-baz');
       } else if (expectPath(node.path).original === 'bat') {

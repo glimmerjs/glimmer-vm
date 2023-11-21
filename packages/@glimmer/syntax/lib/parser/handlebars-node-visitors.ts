@@ -2,11 +2,11 @@ import type { Nullable, Recast } from '@glimmer/interfaces';
 import type { TokenizerState } from 'simple-html-tokenizer';
 import { getLast, isPresentArray, unwrap } from '@glimmer/util';
 
-import type {ParserNodeBuilder, Tag} from '../parser';
+import type { ParserNodeBuilder, Tag } from '../parser';
 import type * as ASTv1 from '../v1/api';
 import type * as HBS from '../v1/handlebars-ast';
 
-import { Parser   } from '../parser';
+import { Parser } from '../parser';
 import { NON_EXISTENT_LOCATION } from '../source/location';
 import { generateSyntaxError } from '../syntax-error';
 import { appendChild, isHBSLiteral, printLiteral } from '../utils';
@@ -72,11 +72,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   BlockStatement(block: HBS.BlockStatement): ASTv1.BlockStatement | void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (this.tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(block));
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (this.tokenizer.state !== 'data' && this.tokenizer.state !== 'beforeData') {
       throw generateSyntaxError(
         'A block may only be used inside an HTML element or another block.',
@@ -118,6 +120,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   MustacheStatement(rawMustache: HBS.MustacheStatement): ASTv1.MustacheStatement | void {
     const { tokenizer } = this;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawMustache));
       return;
@@ -224,6 +227,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   CommentStatement(rawComment: HBS.CommentStatement): Nullable<ASTv1.MustacheCommentStatement> {
     const { tokenizer } = this;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawComment));
       return null;
@@ -464,13 +468,13 @@ function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
   node: {
     path:
-      | HBS.PathExpression
-      | HBS.SubExpression
-      | HBS.StringLiteral
-      | HBS.UndefinedLiteral
-      | HBS.NullLiteral
-      | HBS.NumberLiteral
-      | HBS.BooleanLiteral;
+    | HBS.PathExpression
+    | HBS.SubExpression
+    | HBS.StringLiteral
+    | HBS.UndefinedLiteral
+    | HBS.NullLiteral
+    | HBS.NumberLiteral
+    | HBS.BooleanLiteral;
     params: HBS.Expression[];
     hash: HBS.Hash;
   }
@@ -500,8 +504,7 @@ function acceptCallNodes(
       value = 'undefined';
     }
     throw generateSyntaxError(
-      `${path.type} "${
-        path.type === 'StringLiteral' ? path.original : value
+      `${path.type} "${path.type === 'StringLiteral' ? path.original : value
       }" cannot be called as a sub-expression, replace (${value}) with ${value}`,
       compiler.source.spanFor(path.loc)
     );
@@ -522,10 +525,10 @@ function acceptCallNodes(
   const hash = node.hash
     ? compiler.Hash(node.hash)
     : ({
-        type: 'Hash',
-        pairs: [] as ASTv1.HashPair[],
-        loc: compiler.source.spanFor(end).collapse('end'),
-      } as const);
+      type: 'Hash',
+      pairs: [] as ASTv1.HashPair[],
+      loc: compiler.source.spanFor(end).collapse('end'),
+    } as const);
 
   return { path, params, hash };
 }

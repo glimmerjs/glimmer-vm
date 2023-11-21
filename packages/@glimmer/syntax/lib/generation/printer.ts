@@ -320,6 +320,7 @@ export default class Printer {
       return;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     this.buffer += mustache.escaped ? '{{' : '{{{';
 
     if (mustache.strip.open) {
@@ -334,6 +335,7 @@ export default class Printer {
       this.buffer += '~';
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     this.buffer += mustache.escaped ? '}}' : '}}}';
   }
 

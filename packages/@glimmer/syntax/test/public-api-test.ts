@@ -2,7 +2,7 @@ import * as syntax from '@glimmer/syntax';
 
 QUnit.module('[glimmer-syntax] Public API is unchanged');
 
-QUnit.test('exports are not accidentally removed', function(assert) {
+QUnit.test('exports are not accidentally removed', (assert) => {
   assert.ok(syntax.print);
   assert.ok(syntax.sortByLoc);
   assert.ok(syntax.getTemplateLocals);
