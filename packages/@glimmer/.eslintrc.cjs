@@ -52,6 +52,7 @@ module.exports = {
         'runtime/lib/dom/normalize.ts',
         'runtime/lib/vm/rehydrate-builder.ts',
         'syntax/lib/parser/handlebars-node-visitors.ts',
+        'util/test/immediate-test.ts',
       ],
       rules: {
         '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
