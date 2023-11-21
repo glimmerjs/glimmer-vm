@@ -1,5 +1,6 @@
 {
   "private": true,
+  "type": "module",
   "name": "@glimmer-workspace/krausest",
   "dependencies": {
     "@glimmer-workspace/benchmark-env": "workspace:^",
