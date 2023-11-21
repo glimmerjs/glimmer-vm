@@ -24,9 +24,9 @@ export function equalTokens(
     | SimpleElement
     | string
     | {
-        expected: string | SimpleElement;
-        ignore: 'comments';
-      },
+      expected: string | SimpleElement;
+      ignore: 'comments';
+    },
   message: Nullable<string> = null
 ) {
   if (actual === null) {
@@ -73,10 +73,12 @@ function cleanEmberIds(tokens: Token[]) {
 }
 
 function isMarker(node: SimpleNode) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   if (node.nodeType === COMMENT_NODE && node.nodeValue === '') {
     return true;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   if (node.nodeType === TEXT_NODE && node.nodeValue === '') {
     return true;
   }
@@ -172,6 +174,7 @@ export function equalSnapshots(a: SimpleNode[], b: SimpleNode[]) {
 }
 
 export function isServerMarker(node: SimpleNode) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   return node.nodeType === COMMENT_NODE && node.nodeValue.charAt(0) === '%';
 }
 
@@ -212,7 +215,7 @@ class SnapshotIterator {
   private depth = 0;
   private pos = 0;
 
-  constructor(private snapshot: NodesSnapshot) {}
+  constructor(private snapshot: NodesSnapshot) { }
 
   peek(): Nullable<IndividualSnapshot> {
     if (this.pos >= this.snapshot.length) return null;

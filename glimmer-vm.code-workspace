@@ -175,10 +175,6 @@
     {
       "name": "📦 @types/puppeteer-chromium-resolver",
       "path": "packages/@types/puppeteer-chromium-resolver"
-    },
-    {
-      "name": "📦 @types/qunit",
-      "path": "packages/@types/qunit"
     }
   ],
   "settings": {

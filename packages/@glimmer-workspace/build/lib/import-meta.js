@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 import { createReplacePlugin } from './replace.js';
 
 const MODE = process.env['MODE'] ?? 'development';

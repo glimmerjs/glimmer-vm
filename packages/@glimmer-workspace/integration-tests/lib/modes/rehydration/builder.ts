@@ -8,7 +8,9 @@ export class DebugRehydrationBuilder extends RehydrateBuilder {
   override remove(node: SimpleNode) {
     const next = super.remove(node);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (node.nodeType !== COMMENT_NODE) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       if (node.nodeType === ELEMENT_NODE) {
         // don't stat serialized cursor positions
         if (node.tagName !== 'SCRIPT' || !node.getAttribute('glmr')) {

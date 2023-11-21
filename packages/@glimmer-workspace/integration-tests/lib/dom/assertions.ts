@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { dict, ELEMENT_NODE, isSimpleElement } from '@glimmer/util';
 
@@ -37,9 +38,8 @@ export function equalsElement(
       result: false,
       actual: element,
       expected: true,
-      message: `failed - expected ${description} to be present (it was ${
-        element === null ? 'null' : 'missing'
-      })`,
+      message: `failed - expected ${description} to be present (it was ${element === null ? 'null' : 'missing'
+        })`,
     });
     return;
   }
