@@ -17,8 +17,8 @@ import {
   stripTight,
   suite
 } from '@glimmer-workspace/integration-tests';
+import { ErrorRecoverySuite } from "@glimmer-workspace/integration-tests/lib/suites/error-recovery";
 
-import { ErrorRecoverySuite } from '../lib/suites/error-recovery';
 import { assert } from './support';
 
 interface ComponentHooks {

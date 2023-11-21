@@ -3,8 +3,8 @@ import type { TemplateWithIdAndReferrer } from '@glimmer/opcode-compiler';
 import { precompile } from '@glimmer/compiler';
 import { assert as glimmerAssert, unwrapTemplate } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
+import { preprocess } from "@glimmer-workspace/integration-tests";
 
-import { preprocess } from '../../lib';
 import { module } from '../support';
 
 module('[glimmer-compiler] Compile options', ({ test }) => {
@@ -112,7 +112,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
       `component name is a free variable lookup`
     );
 
@@ -136,7 +136,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
       `component name is a free variable lookup`
     );
 
@@ -159,7 +159,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
       `component name is a free variable lookup`
     );
 
@@ -182,7 +182,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
       `component name is a free variable lookup`
     );
 

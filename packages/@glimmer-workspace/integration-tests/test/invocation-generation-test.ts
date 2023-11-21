@@ -1,11 +1,9 @@
 import type { RenderTestState } from '@glimmer-workspace/integration-tests';
+import type { DeclaredComponentType } from "@glimmer-workspace/integration-tests/lib/test-helpers/constants";
+import type { ExpandType } from "@glimmer-workspace/integration-tests/lib/test-helpers/module";
 import { RenderTestContext } from '@glimmer-workspace/integration-tests';
-
-import type { DeclaredComponentType } from '../lib/test-helpers/constants';
-import type { ExpandType } from '../lib/test-helpers/module';
-
-import { render, suite } from '../lib/test-decorator';
-import { jitSuite } from '../lib/test-helpers/module';
+import { render, suite } from "@glimmer-workspace/integration-tests/lib/test-decorator";
+import { jitSuite } from "@glimmer-workspace/integration-tests/lib/test-helpers/module";
 
 @suite('buildComponent')
 class BuildComponentTest extends RenderTestContext {

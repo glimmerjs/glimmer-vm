@@ -1,6 +1,6 @@
-import type {EmberishCurlyComponentFactory} from '../lib';
+import type { EmberishCurlyComponentFactory } from "@glimmer-workspace/integration-tests";
+import { EmberishCurlyComponent, jitSuite, test } from "@glimmer-workspace/integration-tests";
 
-import { EmberishCurlyComponent,  jitSuite, test } from '../lib';
 import { AttributesTests } from './attributes-test';
 
 abstract class RangeTests extends AttributesTests {
@@ -9,7 +9,7 @@ abstract class RangeTests extends AttributesTests {
 
   abstract renderRange(value: number): void;
   abstract assertRangeValue(value: number): void;
-  setup() {}
+  setup() { }
 
   @test
   'value over default max but below set max is kept'() {

@@ -6,7 +6,6 @@ export * from './suites/custom-dom-helper';
 export * from './suites/debugger';
 export * from './suites/each';
 export * from './suites/emberish-components';
-export * from './suites/entry-point';
 export * from './suites/in-element';
 export * from './suites/initial-render/index';
 export * from './suites/scope';
