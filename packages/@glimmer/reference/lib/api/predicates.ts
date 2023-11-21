@@ -1,8 +1,8 @@
 import type {
   ConstantReactiveError,
-  ReactiveFormula,
   Reactive,
   ReactiveAccessor,
+  ReactiveFormula,
 } from '@glimmer/interfaces';
 
 import type { InternalReactive } from './internal/reactive';
