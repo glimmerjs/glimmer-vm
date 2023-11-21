@@ -22,7 +22,7 @@
     "build:flags": "RETAIN_FLAGS=true ember build --env production --suppress-sizes",
     "lint": "npm-run-all lint:*",
     "lint:format": "prettier -c .",
-    "lint:files": "dotenv -- turbo lint",
+    "lint:files": "turbo lint",
     "lint:types": "tsc -b",
     "lint:fix": "pnpm turbo test:lint -- --fix && prettier -w .",
     "start": "ember serve --port=7357",
