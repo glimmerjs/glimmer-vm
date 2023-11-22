@@ -13,10 +13,10 @@ import type {
   SimpleNode,
   SimpleText,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
-import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { serializeBuilder } from '@glimmer/node';
+import type { Reference } from '@glimmer/reference';
 import { createConstRef } from '@glimmer/reference';
+import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { assign, castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
 

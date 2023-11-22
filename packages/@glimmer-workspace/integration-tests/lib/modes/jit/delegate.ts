@@ -17,12 +17,11 @@ import type {
   SimpleElement,
   SimpleText,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
-import type { CurriedValue, EnvironmentDelegate } from '@glimmer/runtime';
-import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
-import { artifacts, RuntimeOpImpl } from '@glimmer/program';
+import { RuntimeOpImpl, artifacts } from '@glimmer/program';
+import type { Reference } from '@glimmer/reference';
 import { createConstRef } from '@glimmer/reference';
+import type { CurriedValue, EnvironmentDelegate } from '@glimmer/runtime';
 import {
   array,
   clientBuilder,
@@ -35,6 +34,7 @@ import {
   renderSync,
   runtimeContext,
 } from '@glimmer/runtime';
+import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
 import type { ComponentKind, ComponentTypes } from '../../components';

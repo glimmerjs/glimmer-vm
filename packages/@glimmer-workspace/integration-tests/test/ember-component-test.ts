@@ -1,26 +1,26 @@
-import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import type {
   Attrs,
   AttrsDiff,
   EmberishCurlyComponentFactory,
   JitRenderDelegate,
 } from '@glimmer-workspace/integration-tests';
-import { assign, castToSimple, unwrap } from '@glimmer/util';
 import {
+  EmberishCurlyComponent,
+  GlimmerishComponent,
+  RenderTest,
   classes,
   createTemplate,
   elementId,
-  EmberishCurlyComponent,
   equalsElement,
   firstElementChild,
-  GlimmerishComponent,
   isSimpleElement,
   jitSuite,
   regex,
-  RenderTest,
   stripTight,
   test,
 } from '@glimmer-workspace/integration-tests';
+import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import { assign, castToSimple, unwrap } from '@glimmer/util';
 
 import { assert } from './support';
 

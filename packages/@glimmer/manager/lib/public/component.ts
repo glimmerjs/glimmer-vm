@@ -1,3 +1,4 @@
+import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Arguments,
   ComponentCapabilities,
@@ -16,7 +17,6 @@ import type {
   VMArguments,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import { registerDestructor } from '@glimmer/destroyable';
 import { createConstRef } from '@glimmer/reference';
 
 import type { ManagerFactory } from './api';

@@ -13,7 +13,7 @@ export {
   TYPE_MASK,
   TYPE_SIZE,
 } from './lib/flags';
-export { isMachineOp, isOp, MachineOp, Op } from './lib/opcodes';
+export { MachineOp, Op, isMachineOp, isOp } from './lib/opcodes';
 export {
   $fp,
   $pc,
@@ -24,10 +24,10 @@ export {
   $t0,
   $t1,
   $v0,
-  isLowLevelRegister,
   MachineRegister,
-  type Register,
   SavedRegister,
-  type SyscallRegister,
   TemporaryRegister,
+  isLowLevelRegister,
+  type Register,
+  type SyscallRegister,
 } from './lib/registers';

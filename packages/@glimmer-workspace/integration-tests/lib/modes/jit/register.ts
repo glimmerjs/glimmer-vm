@@ -5,13 +5,13 @@ import type {
   ResolutionTimeConstants,
   TemplateFactory,
 } from '@glimmer/interfaces';
-import type { CurriedValue } from '@glimmer/runtime';
 import {
   getInternalComponentManager,
   setComponentTemplate,
   setInternalHelperManager,
   setInternalModifierManager,
 } from '@glimmer/manager';
+import type { CurriedValue } from '@glimmer/runtime';
 import { curry, templateOnlyComponent } from '@glimmer/runtime';
 import { CurriedTypes } from '@glimmer/vm';
 

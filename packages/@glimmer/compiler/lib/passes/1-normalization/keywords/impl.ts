@@ -1,5 +1,5 @@
 import type { ASTv2, KeywordType } from '@glimmer/syntax';
-import { generateSyntaxError, isKeyword, KEYWORDS_TYPES } from '@glimmer/syntax';
+import { KEYWORDS_TYPES, generateSyntaxError, isKeyword } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/util';
 
 import type { Result } from '../../../shared/result';

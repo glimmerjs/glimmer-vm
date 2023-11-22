@@ -8,8 +8,8 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import type { TemplateOnlyComponent } from '@glimmer/runtime';
 import { setComponentTemplate } from '@glimmer/manager';
+import type { TemplateOnlyComponent } from '@glimmer/runtime';
 import { EMPTY_ARGS, templateOnlyComponent, TemplateOnlyComponentManager } from '@glimmer/runtime';
 import { assign, expect } from '@glimmer/util';
 

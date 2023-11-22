@@ -102,6 +102,7 @@
     "mkdirp": "^3.0.1",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.1.0",
+    "prettier-plugin-organize-imports": "^3.2.4",
     "preval.macro": "^5.0.0",
     "puppeteer": "^20.1.2",
     "puppeteer-chromium-resolver": "^20.0.0",

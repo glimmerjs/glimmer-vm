@@ -1,3 +1,4 @@
+import { guardArray } from '@glimmer-workspace/test-utils';
 import type { AST } from '@glimmer/syntax';
 import {
   builders as b,
@@ -6,7 +7,6 @@ import {
   preprocess as parse,
   traverse,
 } from '@glimmer/syntax';
-import { guardArray } from '@glimmer-workspace/test-utils';
 
 import { astEqual } from '../support';
 

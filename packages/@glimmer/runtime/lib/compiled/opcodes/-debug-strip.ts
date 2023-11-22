@@ -1,21 +1,4 @@
 import type { Checker } from '@glimmer/debug';
-import type {
-  CapabilityMask,
-  CapturedArguments,
-  CompilableBlock,
-  CompilableProgram,
-  ComponentDefinition,
-  ComponentInstance,
-  ElementOperations,
-  Helper,
-  InternalComponentManager,
-  Invocation,
-  Nullable,
-  Scope,
-  ScopeBlock,
-} from '@glimmer/interfaces';
-import type { OpaqueIterator, Reference } from '@glimmer/reference';
-import type { Tag } from '@glimmer/validator';
 import {
   CheckArray,
   CheckBlockSymbolTable,
@@ -33,7 +16,24 @@ import {
   CheckUnknown,
   wrap,
 } from '@glimmer/debug';
+import type {
+  CapabilityMask,
+  CapturedArguments,
+  CompilableBlock,
+  CompilableProgram,
+  ComponentDefinition,
+  ComponentInstance,
+  ElementOperations,
+  Helper,
+  InternalComponentManager,
+  Invocation,
+  Nullable,
+  Scope,
+  ScopeBlock,
+} from '@glimmer/interfaces';
+import type { OpaqueIterator, Reference } from '@glimmer/reference';
 import { REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import type { Tag } from '@glimmer/validator';
 import { COMPUTE } from '@glimmer/validator';
 
 import { PartialScopeImpl } from '../../scope';

@@ -9,7 +9,7 @@ export {
   setInternalHelperManager,
   setInternalModifierManager,
 } from './lib/internal/api';
-export { componentCapabilities, CustomComponentManager } from './lib/public/component';
+export { CustomComponentManager, componentCapabilities } from './lib/public/component';
 export {
   CustomHelperManager,
   hasDestroyable,

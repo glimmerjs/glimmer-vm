@@ -1,34 +1,34 @@
-import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
-import type { Revision, Tag } from '@glimmer/validator';
 import {
-  check,
   CheckBlockSymbolTable,
   CheckHandle,
   CheckInstanceof,
   CheckNumber,
   CheckOption,
   CheckPrimitive,
+  check,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
+import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
 import {
-  createComputeRef,
-  createConstRef,
-  createPrimitiveRef,
   FALSE_REFERENCE,
-  isConstRef,
   NULL_REFERENCE,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
+  createComputeRef,
+  createConstRef,
+  createPrimitiveRef,
+  isConstRef,
   valueForRef,
 } from '@glimmer/reference';
 import { assert, decodeHandle, decodeImmediate, expect, isHandle, unwrap } from '@glimmer/util';
+import type { Revision, Tag } from '@glimmer/validator';
 import {
-  beginTrackFrame,
   CONSTANT_TAG,
+  INITIAL,
+  beginTrackFrame,
   consumeTag,
   endTrackFrame,
-  INITIAL,
   validateTag,
   valueForTag,
 } from '@glimmer/validator';

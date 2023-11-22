@@ -7,9 +7,9 @@ import type {
   Nullable,
   WireFormat,
 } from '@glimmer/interfaces';
-import type { SavedRegister } from '@glimmer/vm';
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
+import type { SavedRegister } from '@glimmer/vm';
 import { $s0, $s1, $sp, InternalComponentCapabilities, MachineOp, Op } from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';

@@ -10,7 +10,7 @@ import type {
   WireFormat,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
+import { LOCAL_LOGGER, exhausted } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';

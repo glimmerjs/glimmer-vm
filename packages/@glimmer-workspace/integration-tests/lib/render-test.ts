@@ -1,3 +1,5 @@
+import type { NTuple } from '@glimmer-workspace/test-utils';
+import { destroy } from '@glimmer/destroyable';
 import type {
   ComponentDefinitionState,
   Dict,
@@ -9,10 +11,8 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import type { ASTPluginBuilder } from '@glimmer/syntax';
-import type { NTuple } from '@glimmer-workspace/test-utils';
-import { destroy } from '@glimmer/destroyable';
 import { inTransaction } from '@glimmer/runtime';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { assert, clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 

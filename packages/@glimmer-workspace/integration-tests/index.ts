@@ -1,5 +1,6 @@
 import './lib/setup';
 
+export { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 export * from './lib/base-env';
 export * from './lib/compile';
 export * from './lib/components';
@@ -25,4 +26,3 @@ export * from './lib/test-helpers/strings';
 export * from './lib/test-helpers/test';
 export * from './lib/test-helpers/tracked';
 export * from './lib/test-helpers/tracked-object';
-export { syntaxErrorFor } from '@glimmer-workspace/test-utils';

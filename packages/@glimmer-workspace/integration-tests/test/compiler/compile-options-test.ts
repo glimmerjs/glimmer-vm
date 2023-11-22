@@ -1,6 +1,6 @@
+import { precompile } from '@glimmer/compiler';
 import type { WireFormat } from '@glimmer/interfaces';
 import type { TemplateWithIdAndReferrer } from '@glimmer/opcode-compiler';
-import { precompile } from '@glimmer/compiler';
 import { assert as glimmerAssert, unwrapTemplate } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 

@@ -8,7 +8,7 @@ import { getAttrNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
 import { MODIFIER_KEYWORDS } from '../../keywords';
 import { assertIsValidModifier, isHelperInvocation } from '../../utils/is-node';
-import { convertPathToCallIfKeyword, VISIT_EXPRS } from '../expressions';
+import { VISIT_EXPRS, convertPathToCallIfKeyword } from '../expressions';
 
 export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 

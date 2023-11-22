@@ -1,3 +1,4 @@
+import { CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr, check } from '@glimmer/debug';
 import type {
   BlockArguments,
   BlockSymbolTable,
@@ -16,10 +17,9 @@ import type {
   VMArguments,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
+import { UNDEFINED_REFERENCE, createDebugAliasRef, valueForRef } from '@glimmer/reference';
+import { EMPTY_STRING_ARRAY, dict, emptyArray, enumerate, unwrap } from '@glimmer/util';
 import type { Tag } from '@glimmer/validator';
-import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
-import { createDebugAliasRef, UNDEFINED_REFERENCE, valueForRef } from '@glimmer/reference';
-import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
 import { CONSTANT_TAG } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
 

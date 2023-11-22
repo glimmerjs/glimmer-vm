@@ -1,2 +1,2 @@
 export { SourceOffset } from './loc/offset';
-export { type SerializedSourceSpan, SourceSpan } from './loc/span';
+export { SourceSpan, type SerializedSourceSpan } from './loc/span';

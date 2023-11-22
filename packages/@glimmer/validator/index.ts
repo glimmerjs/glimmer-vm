@@ -12,13 +12,19 @@ if (globalObj[GLIMMER_VALIDATOR_REGISTRATION] === true) {
 
 globalObj[GLIMMER_VALIDATOR_REGISTRATION] = true;
 
+export type {
+  CombinatorTag,
+  ConstantTag,
+  DirtyableTag,
+  Tag,
+  UpdatableTag,
+} from '@glimmer/interfaces';
 export { debug } from './lib/debug';
-export { dirtyTagFor, tagFor, type TagMeta, tagMetaFor } from './lib/meta';
+export { dirtyTagFor, tagFor, tagMetaFor, type TagMeta } from './lib/meta';
 export { trackedData } from './lib/tracked-data';
 export {
   beginTrackFrame,
   beginUntrackFrame,
-  type Cache,
   consumeTag,
   createCache,
   endTrackFrame,
@@ -29,33 +35,27 @@ export {
   resetTracking,
   track,
   untrack,
+  type Cache,
 } from './lib/tracking';
 export {
   ALLOW_CYCLES,
-  bump,
-  combine,
   COMPUTE,
   CONSTANT,
   CONSTANT_TAG,
-  createTag,
-  createUpdatableTag,
   CURRENT_TAG,
   CurrentTag,
-  DIRTY_TAG as dirtyTag,
   INITIAL,
-  isConstTag,
-  type Revision,
-  UPDATE_TAG as updateTag,
-  validateTag,
-  valueForTag,
   VOLATILE,
   VOLATILE_TAG,
   VolatileTag,
+  bump,
+  combine,
+  createTag,
+  createUpdatableTag,
+  DIRTY_TAG as dirtyTag,
+  isConstTag,
+  UPDATE_TAG as updateTag,
+  validateTag,
+  valueForTag,
+  type Revision,
 } from './lib/validators';
-export type {
-  CombinatorTag,
-  ConstantTag,
-  DirtyableTag,
-  Tag,
-  UpdatableTag,
-} from '@glimmer/interfaces';

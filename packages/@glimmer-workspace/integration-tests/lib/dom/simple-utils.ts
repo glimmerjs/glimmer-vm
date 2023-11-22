@@ -11,7 +11,7 @@ import type {
   SimpleText,
 } from '@glimmer/interfaces';
 import type { COMMENT_NODE, DOCUMENT_FRAGMENT_NODE, DOCUMENT_NODE, TEXT_NODE } from '@glimmer/util';
-import { clearElement, ELEMENT_NODE, INSERT_AFTER_BEGIN } from '@glimmer/util';
+import { ELEMENT_NODE, INSERT_AFTER_BEGIN, clearElement } from '@glimmer/util';
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
 

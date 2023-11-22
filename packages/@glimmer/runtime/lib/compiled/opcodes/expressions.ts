@@ -1,31 +1,31 @@
+import {
+  CheckBlockSymbolTable,
+  CheckHandle,
+  CheckMaybe,
+  CheckOption,
+  CheckOr,
+  check,
+} from '@glimmer/debug';
+import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
+import { toBool } from '@glimmer/global-context';
 import type {
   CapturedPositionalArguments,
   CurriedType,
   Helper,
   HelperDefinitionState,
   Owner,
+  VM as PublicVM,
   ResolutionTimeConstants,
   RuntimeConstants,
   ScopeBlock,
-  VM as PublicVM,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import {
-  check,
-  CheckBlockSymbolTable,
-  CheckHandle,
-  CheckMaybe,
-  CheckOption,
-  CheckOr,
-} from '@glimmer/debug';
-import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
-import { toBool } from '@glimmer/global-context';
-import {
-  childRefFor,
-  createComputeRef,
   FALSE_REFERENCE,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
+  childRefFor,
+  createComputeRef,
   valueForRef,
 } from '@glimmer/reference';
 import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';

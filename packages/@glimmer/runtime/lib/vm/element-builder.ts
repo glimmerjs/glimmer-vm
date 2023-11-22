@@ -1,3 +1,4 @@
+import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type {
   AttrNamespace,
   Bounds,
@@ -19,7 +20,6 @@ import type {
   SimpleText,
   UpdatableBlock,
 } from '@glimmer/interfaces';
-import { destroy, registerDestructor } from '@glimmer/destroyable';
 import { assert, expect, Stack } from '@glimmer/util';
 
 import type { DynamicAttribute } from './attributes/dynamic';

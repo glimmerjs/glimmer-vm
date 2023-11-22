@@ -1,6 +1,6 @@
 export * from './lib/array-utils';
 export { default as assert, deprecate } from './lib/assert';
-export { dict, isDict, isObject, StackImpl as Stack } from './lib/collections';
+export { StackImpl as Stack, dict, isDict, isObject } from './lib/collections';
 export { beginTestSteps, endTestSteps, logStep, verifySteps } from './lib/debug-steps';
 export { default as debugToString } from './lib/debug-to-string';
 export * from './lib/dom';
@@ -8,8 +8,8 @@ export * from './lib/dom-utils';
 export * from './lib/immediate';
 export { default as intern } from './lib/intern';
 export {
-  isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,
+  isSerializationFirstNode,
 } from './lib/is-serialization-first-node';
 export { assign, entries, fillNulls, values } from './lib/object-utils';
 export * from './lib/platform-utils';

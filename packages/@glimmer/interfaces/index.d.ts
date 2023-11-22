@@ -23,5 +23,4 @@ export * from './lib/template';
 export * from './lib/tier1/symbol-table';
 export * from './lib/type-utils';
 export * from './lib/vm-opcodes';
-
 export { WireFormat };

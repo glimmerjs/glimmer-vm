@@ -9,7 +9,7 @@ import type { AnyPosition, SourceOffset } from './offset';
 import { BROKEN_LOCATION, NON_EXISTENT_LOCATION } from '../location';
 import { SourceSlice } from '../slice';
 import { OffsetKind } from './kinds';
-import { IsInvisible, match, MatchAny } from './match';
+import { IsInvisible, MatchAny, match } from './match';
 import { BROKEN, CharPosition, HbsPosition, InvisiblePosition } from './offset';
 
 /**

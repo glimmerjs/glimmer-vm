@@ -1,3 +1,14 @@
+import {
+  CheckFunction,
+  CheckHandle,
+  CheckInstanceof,
+  CheckInterface,
+  CheckOr,
+  CheckProgramSymbolTable,
+  CheckString,
+  check,
+} from '@glimmer/debug';
+import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Bounds,
   CapabilityMask,
@@ -24,26 +35,15 @@ import type {
   WithElementHook,
   WithUpdateHook,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
-import {
-  check,
-  CheckFunction,
-  CheckHandle,
-  CheckInstanceof,
-  CheckInterface,
-  CheckOr,
-  CheckProgramSymbolTable,
-  CheckString,
-} from '@glimmer/debug';
-import { registerDestructor } from '@glimmer/destroyable';
 import { managerHasCapability } from '@glimmer/manager';
+import type { Reference } from '@glimmer/reference';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import {
+  EMPTY_STRING_ARRAY,
   assert,
   assign,
   debugToString,
   dict,
-  EMPTY_STRING_ARRAY,
   enumerate,
   expect,
   unwrap,

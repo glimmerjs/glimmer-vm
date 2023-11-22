@@ -1,9 +1,9 @@
 import type { GlobalContext } from '@glimmer/global-context';
-import type { OpaqueIterationItem, Reference } from '@glimmer/reference';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
+import type { OpaqueIterationItem, Reference } from '@glimmer/reference';
 import { createComputeRef, createIteratorRef, valueForRef } from '@glimmer/reference';
 import { unwrap } from '@glimmer/util';
-import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';
+import { VOLATILE_TAG, consumeTag } from '@glimmer/validator';
 
 import objectValues from './utils/platform';
 import { module, test } from './utils/qunit';

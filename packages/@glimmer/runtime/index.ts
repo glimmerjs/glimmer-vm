@@ -5,17 +5,20 @@ import './lib/bootstrap';
 
 import type { RichIteratorResult } from '@glimmer/interfaces';
 
-export { clear, ConcreteBounds, CursorImpl } from './lib/bounds';
+// Currently we need to re-export these values for @glimmer/component
+// https://github.com/glimmerjs/glimmer.js/issues/319
+export { destroy, isDestroyed, isDestroying, registerDestructor } from '@glimmer/destroyable';
+export { ConcreteBounds, CursorImpl, clear } from './lib/bounds';
 export {
-  type DebugCallback,
   resetDebuggerCallback,
   setDebuggerCallback,
+  type DebugCallback,
 } from './lib/compiled/opcodes/debugger';
 export {
   TEMPLATE_ONLY_COMPONENT_MANAGER,
   TemplateOnlyComponentDefinition as TemplateOnlyComponent,
-  templateOnlyComponent,
   TemplateOnlyComponentManager,
+  templateOnlyComponent,
 } from './lib/component/template-only';
 export { CurriedValue, curry } from './lib/curried-value';
 export {
@@ -26,10 +29,10 @@ export {
 } from './lib/dom/helper';
 export { normalizeProperty } from './lib/dom/props';
 export {
-  type EnvironmentDelegate,
   EnvironmentImpl,
   inTransaction,
   runtimeContext,
+  type EnvironmentDelegate,
 } from './lib/environment';
 export { array } from './lib/helpers/array';
 export { concat } from './lib/helpers/concat';
@@ -41,36 +44,32 @@ export { on } from './lib/modifiers/on';
 export { renderComponent, renderMain, renderSync } from './lib/render';
 export { DynamicScopeImpl, PartialScopeImpl } from './lib/scope';
 export type { SafeString } from './lib/upsert';
-export { type InternalVM, VM as LowLevelVM, UpdatingVM } from './lib/vm';
+export { VM as LowLevelVM, UpdatingVM, type InternalVM } from './lib/vm';
 export {
-  createCapturedArgs,
   EMPTY_ARGS,
   EMPTY_NAMED,
   EMPTY_POSITIONAL,
+  createCapturedArgs,
   reifyArgs,
   reifyNamed,
   reifyPositional,
 } from './lib/vm/arguments';
 export {
   DynamicAttribute,
-  dynamicAttribute,
   SimpleDynamicAttribute,
+  dynamicAttribute,
 } from './lib/vm/attributes/dynamic';
 export {
-  clientBuilder,
   NewElementBuilder,
   RemoteLiveBlock,
   UpdatableBlockImpl,
+  clientBuilder,
 } from './lib/vm/element-builder';
 export {
-  isSerializationFirstNode,
   RehydrateBuilder,
-  rehydrationBuilder,
   SERIALIZATION_FIRST_NODE_STRING,
+  isSerializationFirstNode,
+  rehydrationBuilder,
 } from './lib/vm/rehydrate-builder';
-
-// Currently we need to re-export these values for @glimmer/component
-// https://github.com/glimmerjs/glimmer.js/issues/319
-export { destroy, isDestroyed, isDestroying, registerDestructor } from '@glimmer/destroyable';
 
 export type IteratorResult<T> = RichIteratorResult<null, T>;

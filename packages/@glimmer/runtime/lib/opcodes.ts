@@ -1,3 +1,4 @@
+import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
 import type {
   Dict,
   Maybe,
@@ -7,10 +8,9 @@ import type {
   VmMachineOp,
   VmOp,
 } from '@glimmer/interfaces';
-import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
-import { assert, fillNulls, LOCAL_LOGGER, unwrap } from '@glimmer/util';
+import { LOCAL_LOGGER, assert, fillNulls, unwrap } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, Op } from '@glimmer/vm';
 
 import type { LowLevelVM, VM } from './vm';

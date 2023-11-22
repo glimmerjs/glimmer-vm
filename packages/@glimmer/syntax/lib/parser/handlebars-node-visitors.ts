@@ -1,6 +1,6 @@
 import type { Nullable, Recast } from '@glimmer/interfaces';
-import type { TokenizerState } from 'simple-html-tokenizer';
 import { getLast, isPresentArray, unwrap } from '@glimmer/util';
+import type { TokenizerState } from 'simple-html-tokenizer';
 
 import type { ParserNodeBuilder, Tag } from '../parser';
 import type * as ASTv1 from '../v1/api';

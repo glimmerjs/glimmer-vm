@@ -1,3 +1,4 @@
+import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Bounds,
   CapturedNamedArguments,
@@ -18,8 +19,6 @@ import type {
   WithDynamicLayout,
   WithDynamicTagName,
 } from '@glimmer/interfaces';
-import type { DirtyableTag } from '@glimmer/validator';
-import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalComponentManager } from '@glimmer/manager';
 import {
   childRefFor,
@@ -29,7 +28,8 @@ import {
   valueForRef,
 } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
-import { assign, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
+import { EMPTY_ARRAY, assign, keys, unwrapTemplate } from '@glimmer/util';
+import type { DirtyableTag } from '@glimmer/validator';
 import { consumeTag, createTag, dirtyTag, dirtyTagFor } from '@glimmer/validator';
 
 import type { TestJitRuntimeResolver } from '../modes/jit/resolver';

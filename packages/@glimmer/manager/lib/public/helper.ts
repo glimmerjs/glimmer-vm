@@ -1,3 +1,4 @@
+import { associateDestroyableChild } from '@glimmer/destroyable';
 import type {
   Helper,
   HelperCapabilities,
@@ -9,7 +10,6 @@ import type {
   InternalHelperManager,
   Owner,
 } from '@glimmer/interfaces';
-import { associateDestroyableChild } from '@glimmer/destroyable';
 import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 
 import type { ManagerFactory } from './index';

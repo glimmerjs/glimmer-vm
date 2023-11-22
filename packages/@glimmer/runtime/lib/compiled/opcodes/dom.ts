@@ -1,3 +1,12 @@
+import {
+  CheckElement,
+  CheckMaybe,
+  CheckNode,
+  CheckOption,
+  CheckString,
+  check,
+} from '@glimmer/debug';
+import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import type {
   CapturedPositionalArguments,
   Environment,
@@ -10,19 +19,10 @@ import type {
   UpdatingVM,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import type { Revision, Tag } from '@glimmer/validator';
-import {
-  check,
-  CheckElement,
-  CheckMaybe,
-  CheckNode,
-  CheckOption,
-  CheckString,
-} from '@glimmer/debug';
-import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { createComputeRef, isConstRef, valueForRef } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
-import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
+import type { Revision, Tag } from '@glimmer/validator';
+import { CURRENT_TAG, consumeTag, validateTag, valueForTag } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
 
 import type { CurriedValue } from '../../curried-value';

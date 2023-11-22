@@ -1,6 +1,4 @@
-import { dirname, resolve } from 'node:path';
 import chalk from 'chalk';
-import { execSync, spawnSync } from 'node:child_process';
 import { Emitter } from './opcodes/utils.mjs';
 
 const emitter = Emitter.argv('opcodes.json', import.meta);

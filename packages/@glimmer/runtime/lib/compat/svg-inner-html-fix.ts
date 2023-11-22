@@ -6,12 +6,12 @@ import type {
   SimpleNode,
 } from '@glimmer/interfaces';
 import {
-  assert,
-  castToBrowser,
-  clearElement,
   INSERT_AFTER_BEGIN,
   INSERT_BEFORE_END,
   NS_SVG,
+  assert,
+  castToBrowser,
+  clearElement,
   unwrap,
 } from '@glimmer/util';
 

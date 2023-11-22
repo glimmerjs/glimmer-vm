@@ -5,8 +5,8 @@ import type {
   WithCreateInstance,
   WithSubOwner,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
 import { setInternalComponentManager } from '@glimmer/manager';
+import type { Reference } from '@glimmer/reference';
 import { NULL_REFERENCE } from '@glimmer/reference';
 
 import type { RenderDelegateOptions } from '..';

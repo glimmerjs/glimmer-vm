@@ -14,7 +14,7 @@ import {
   setInternalModifierManager,
 } from '@glimmer/manager';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
-import { artifacts, RuntimeOpImpl } from '@glimmer/program';
+import { RuntimeOpImpl, artifacts } from '@glimmer/program';
 
 import type { UpdateBenchmark } from '../interfaces';
 

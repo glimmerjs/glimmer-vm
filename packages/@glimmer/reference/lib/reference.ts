@@ -1,3 +1,4 @@
+import { getProp, setProp } from '@glimmer/global-context';
 import type {
   ComputeReference,
   ConstantReference,
@@ -8,13 +9,12 @@ import type {
   ReferenceType,
   UnboundReference,
 } from '@glimmer/interfaces';
-import type { Revision, Tag } from '@glimmer/validator';
-import { getProp, setProp } from '@glimmer/global-context';
 import { expect, isDict } from '@glimmer/util';
+import type { Revision, Tag } from '@glimmer/validator';
 import {
   CONSTANT_TAG,
-  consumeTag,
   INITIAL,
+  consumeTag,
   track,
   validateTag,
   valueForTag,
@@ -27,8 +27,7 @@ const COMPUTE: ComputeReference = 1;
 const UNBOUND: UnboundReference = 2;
 const INVOKABLE: InvokableReference = 3;
 
-export type { Reference as default };
-export type { Reference };
+export type { Reference as default, Reference };
 
 //////////
 

@@ -1,19 +1,19 @@
+import { scheduleRevalidate } from '@glimmer/global-context';
 import type {
+  ConstantTag,
+  DirtyableTag,
   COMBINATOR_TAG_ID as ICOMBINATOR_TAG_ID,
   CONSTANT_TAG_ID as ICONSTANT_TAG_ID,
-  ConstantTag,
   CURRENT_TAG_ID as ICURRENT_TAG_ID,
   DIRTYABLE_TAG_ID as IDIRTYABLE_TAG_ID,
-  DirtyableTag,
+  UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
+  VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
   MonomorphicTagId,
   Tag,
   TagComputeSymbol,
   TagTypeSymbol,
-  UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
   UpdatableTag,
-  VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
 } from '@glimmer/interfaces';
-import { scheduleRevalidate } from '@glimmer/global-context';
 
 import { debug } from './debug';
 import { unwrap } from './utils';

@@ -1,5 +1,5 @@
 import type { AST, ASTPluginBuilder, ASTPluginEnvironment, Syntax } from '@glimmer/syntax';
-import { preprocess, Walker } from '@glimmer/syntax';
+import { Walker, preprocess } from '@glimmer/syntax';
 import { expect as expectPresent } from '@glimmer/util';
 
 const { test } = QUnit;

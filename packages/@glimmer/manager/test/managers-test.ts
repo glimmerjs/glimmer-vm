@@ -7,9 +7,9 @@ import type {
 } from '@glimmer/interfaces';
 import type { CustomHelperManager } from '@glimmer/manager';
 import {
-  componentCapabilities,
   CustomComponentManager,
   CustomModifierManager,
+  componentCapabilities,
   getInternalComponentManager,
   getInternalHelperManager,
   getInternalModifierManager,

@@ -1,3 +1,5 @@
+import { associateDestroyableChild } from '@glimmer/destroyable';
+import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import type {
   CompilableTemplate,
   CompileTimeCompilationContext,
@@ -8,6 +10,7 @@ import type {
   Nullable,
   Owner,
   PartialScope,
+  VM as PublicVM,
   RenderResult,
   ResolutionTimeConstants,
   RichIteratorResult,
@@ -17,17 +20,14 @@ import type {
   RuntimeProgram,
   Scope,
   UpdatingOpcode,
-  VM as PublicVM,
 } from '@glimmer/interfaces';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import type { RuntimeOpImpl } from '@glimmer/program';
 import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/reference';
-import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
-import { associateDestroyableChild } from '@glimmer/destroyable';
-import { assertGlobalContextWasSet } from '@glimmer/global-context';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { createIteratorItemRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
+import { UNDEFINED_REFERENCE, createIteratorItemRef } from '@glimmer/reference';
+import { LOCAL_LOGGER, Stack, assert, expect, reverse, unwrapHandle } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
+import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 
 import type { DebugState } from '../opcodes';

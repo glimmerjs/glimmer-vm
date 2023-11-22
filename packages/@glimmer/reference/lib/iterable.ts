@@ -1,5 +1,5 @@
-import type { Dict, Nullable } from '@glimmer/interfaces';
 import { getPath, toIterator } from '@glimmer/global-context';
+import type { Dict, Nullable } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 

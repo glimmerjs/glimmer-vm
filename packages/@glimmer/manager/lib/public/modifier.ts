@@ -1,3 +1,4 @@
+import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Arguments,
   CapturedArguments,
@@ -9,7 +10,6 @@ import type {
   SimpleElement,
   UpdatableTag,
 } from '@glimmer/interfaces';
-import { registerDestructor } from '@glimmer/destroyable';
 import { valueForRef } from '@glimmer/reference';
 import { castToBrowser, dict } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
