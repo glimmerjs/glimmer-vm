@@ -65,7 +65,7 @@ module.exports = {
       },
     },
     {
-      files: ['package.json', '**/package.json'],
+      files: ['./package.json', '**/package.json'],
       parser: 'jsonc-eslint-parser',
       extends: ['plugin:jsonc/recommended-with-json', 'plugin:jsonc/prettier'],
       rules: {
@@ -78,8 +78,10 @@ module.exports = {
             order: [
               'name',
               'version',
+              'license',
               'description',
               'repository',
+              'author',
               'type',
               'main',
               'types',
@@ -87,10 +89,19 @@ module.exports = {
               'exports',
               'publishConfig',
               'files',
+              'scripts',
+              'dependencies',
+              'peerDependencies',
+              'devDependencies',
+              'release-it',
+              'changelog',
+              'engines',
+              'volta',
             ],
           },
           {
-            pathPattern: '^(?:scripts|devDependencies|peerDependencies|optionalDependencies)$',
+            pathPattern:
+              'scripts|devDependencies|peerDependencies|optionalDependencies|pnpm|overrides|peerDependencyRules|patchedDependencies|dependenciesMeta',
             order: { type: 'asc' },
           },
           // ...
