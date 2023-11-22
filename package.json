@@ -24,7 +24,7 @@
     "lint:format": "prettier -c .",
     "lint:files": "turbo lint",
     "lint:types": "tsc -b",
-    "lint:fix": "pnpm turbo test:lint -- --fix && prettier -w .",
+    "lintfix": "pnpm turbo test:lint -- --fix && prettier -w .",
     "start": "ember serve --port=7357",
     "test": "node bin/run-tests.mjs",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
