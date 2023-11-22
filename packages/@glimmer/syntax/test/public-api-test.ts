@@ -33,6 +33,4 @@ QUnit.test('exports are not accidentally removed', (assert) => {
   assert.ok(syntax.node);
   // deprecated
   assert.ok(syntax.Path);
-  // deprecated
-  assert.ok(syntax.AST);
 });
