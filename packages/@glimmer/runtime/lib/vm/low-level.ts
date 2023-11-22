@@ -203,7 +203,7 @@ export interface Externs {
   debug: VM;
 }
 
-export interface VmDebugState {
+export interface LowLevelVmDebugState {
   readonly registers: Registers;
   readonly currentPc: number;
   readonly stack: DebugStack;
@@ -292,7 +292,7 @@ export class LowLevelVM {
   /**
    * @mutable
    */
-  get debug(): VmDebugState {
+  get debug(): LowLevelVmDebugState {
     return {
       currentPc: this.#registers.pc - this.#currentOpSize,
       registers: this.#registers,

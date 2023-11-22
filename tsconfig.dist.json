@@ -6,8 +6,9 @@
     "target": "es2015",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "isolatedModules": true,
     "lib": ["esnext", "DOM", "DOM.Iterable"],
-    "types": ["node", "vite/client"],
+    "types": ["vite/client"],
 
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
@@ -17,13 +18,12 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "baseUrl": ".",
-    "typeRoots": [],
 
     "paths": {
       "@glimmer/interfaces": ["./packages/@glimmer/interfaces/index.d.ts"],
       "@glimmer/*": ["./packages/@glimmer/*/dist/dev/index.d.ts"]
     }
   },
-  "include": ["packages/@glimmer/*/dist/**/*.d.ts"],
+  "include": ["packages/@glimmer/*/dist/dev/**/*.d.ts"],
   "exclude": ["@types/**"]
 }

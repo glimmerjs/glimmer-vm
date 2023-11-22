@@ -50,6 +50,8 @@ export async function setupQunit() {
 
   testing.begin(() => {
     if (testing.config.ci) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       const tap = qunitLib.reporters.tap;
       tap.init(runner, { log: console.info });
     }

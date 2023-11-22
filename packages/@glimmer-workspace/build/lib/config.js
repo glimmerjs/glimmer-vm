@@ -64,6 +64,7 @@ export function tsconfig(updates) {
     declaration: true,
     declarationMap: true,
     verbatimModuleSyntax: true,
+    isolatedModules: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
     ...updates,
@@ -254,6 +255,8 @@ export class Package {
    * @typedef {object} Formats
    * @property {boolean} [ esm ] enabled by default
    * @property {boolean} [ cjs ] enabled by default until eslint-plugin-ember and ember-source no longer need it
+   *
+   * @param {Formats} [formats]
    *
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
