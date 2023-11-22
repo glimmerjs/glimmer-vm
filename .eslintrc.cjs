@@ -64,6 +64,39 @@ module.exports = {
         '@typescript-eslint/no-var-requires': 'off',
       },
     },
+    {
+      files: ['package.json', '**/package.json'],
+      parser: 'jsonc-eslint-parser',
+      extends: ['plugin:jsonc/recommended-with-json', 'plugin:jsonc/prettier'],
+      rules: {
+        // Enforce order in the scripts object
+        // https://ota-meshi.github.io/eslint-plugin-jsonc/rules/sort-keys.html
+        'jsonc/sort-keys': [
+          'error',
+          {
+            pathPattern: '^$',
+            order: [
+              'name',
+              'version',
+              'description',
+              'repository',
+              'type',
+              'main',
+              'types',
+              'module',
+              'exports',
+              'publishConfig',
+              'files',
+            ],
+          },
+          {
+            pathPattern: '^(?:scripts|devDependencies|peerDependencies|optionalDependencies)$',
+            order: { type: 'asc' },
+          },
+          // ...
+        ],
+      },
+    },
 
     {
       // these packages need to be fixed to avoid these warnings, but in the
