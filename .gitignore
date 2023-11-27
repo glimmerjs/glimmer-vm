@@ -15,3 +15,6 @@ instrumentation.*.json
 .cache
 **/.yalc
 **/*.tgz
+control-dist/
+stats.*.html
+stats.html

@@ -1,0 +1,79 @@
+name: PerformanceCheck
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches: [master]
+
+env:
+  TURBO_API: http://127.0.0.1:9080
+  TURBO_TOKEN: this-is-not-a-secret
+  TURBO_TEAM: myself
+  CONTROL_DIR: '/tmp/glimmer-vm-control/'
+
+jobs:
+  master-krausest-comparison:
+    name: Glimmer Krausest Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 'Setup local TurboRepo server'
+        if: ${{ inputs.repo-token }}
+        uses: felixmosh/turborepo-gh-artifacts@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wyvox/action-setup-pnpm@v3
+        with:
+          node-version: '20.1.0'
+
+      - name: Build Experiment
+        run: |
+          git checkout ${{ github.sha }}
+          pnpm install
+          pnpm build
+
+      - name: Build Control
+        run: |
+          rm -rf ${{ env.CONTROL_DIR }}
+          mkdir -p ${{ env.CONTROL_DIR }}
+          cd ${{ env.CONTROL_DIR }}
+          git clone ${{ github.workspace }} ${{ env.CONTROL_DIR }}
+          cd ${{ env.CONTROL_DIR }}
+          git checkout ${{ github.event.pull_request.base.sha }}
+          pnpm install
+          pnpm build
+
+      - name: Run Analysis
+        timeout-minutes: 10
+        uses: tracerbench/tracerbench-compare-action@master
+        with:
+          build-control: false
+          build-experiment: false
+          pkg-manager: pnpm
+          control-dist: ${{ env.CONTROL_DIR }}/benchmark/benchmarks/krausest
+          experiment-dist: ${{ github.workspace }}/benchmark/benchmarks/krausest
+          control-serve-command: |
+            pnpm -C ${{ env.CONTROL_DIR }}/benchmark/benchmarks/krausest run start --port 5000
+          experiment-serve-command: |
+            pnpm -C ${{ github.workspace }}/benchmark/benchmarks/krausest run start --port 6000
+          control-url: http://localhost:5000
+          experiment-url: http://localhost:6000
+          debug: true
+          regression-threshold: 25
+          fidelity: high
+          markers: 'navigationStart,renderStart,renderEnd'
+          clean-after-analyze: false
+
+      - name: Upload Tracerbench Artifacts
+        if: failure() || success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Trace Artifacts
+          path: tracerbench-results

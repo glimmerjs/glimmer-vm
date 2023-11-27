@@ -8,7 +8,7 @@
   "exports": {
     "types": "./index.ts",
     "development": "./index.ts",
-    "import": "./dist/index.js"
+    "import": "./dist/prod/index.js"
   },
   "publishConfig": {
     "access": "public",

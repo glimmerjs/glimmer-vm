@@ -5,6 +5,9 @@ import { defineConfig, type Plugin } from 'vite';
 
 export default defineConfig({
   plugins: [benchmark()],
+  resolve: {
+    conditions: ['control'],
+  },
 });
 
 function benchmark(): Plugin {
