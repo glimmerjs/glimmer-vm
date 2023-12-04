@@ -62,10 +62,12 @@ jobs:
           runtime-stats: true
           control-dist: ${{ env.CONTROL_DIR }}/benchmark/benchmarks/krausest
           experiment-dist: ${{ github.workspace }}/benchmark/benchmarks/krausest
+          # temporary, because the control branch is behind
+          # cd ${{ env.CONTROL_DIR }}/benchmark/benchmarks/krausest && pnpm run start --port 5000
           control-serve-command: |
-            pnpm -C ${{ env.CONTROL_DIR }}/benchmark/benchmarks/krausest run start --port 5000
+            cd ${{ github.workspace }}/benchmark/benchmarks/krausest && pnpm run start --port 5000
           experiment-serve-command: |
-            pnpm -C ${{ github.workspace }}/benchmark/benchmarks/krausest run start --port 6000
+            cd ${{ github.workspace }}/benchmark/benchmarks/krausest && pnpm run start --port 6000
           control-url: http://localhost:5000
           experiment-url: http://localhost:6000
           debug: true
