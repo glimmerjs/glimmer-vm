@@ -57,6 +57,9 @@ jobs:
           build-control: false
           build-experiment: false
           pkg-manager: pnpm
+          use-pnpm: true
+          sample-timeout: 10
+          runtime-stats: true
           control-dist: ${{ env.CONTROL_DIR }}/benchmark/benchmarks/krausest
           experiment-dist: ${{ github.workspace }}/benchmark/benchmarks/krausest
           control-serve-command: |
