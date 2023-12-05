@@ -11,7 +11,6 @@ import { combine, CONSTANT_TAG, isConstTag, validateTag, valueForTag } from './v
  */
 class Tracker {
   private tags = new Set<Tag>();
-  private last: Tag | null = null;
 
   add(tag: Tag) {
     if (tag === CONSTANT_TAG) return;
@@ -21,20 +20,10 @@ class Tracker {
     if (import.meta.env.DEV) {
       unwrap(debug.markTagAsConsumed)(tag);
     }
-
-    this.last = tag;
   }
 
   combine(): Tag {
-    let { tags } = this;
-
-    if (tags.size === 0) {
-      return CONSTANT_TAG;
-    } else if (tags.size === 1) {
-      return this.last as Tag;
-    } else {
-      return combine(Array.from(this.tags));
-    }
+    return combine(Array.from(this.tags));
   }
 }
 
