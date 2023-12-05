@@ -27,8 +27,10 @@ let DESTROYABLE_META:
   | Map<Destroyable, DestroyableMeta<Destroyable>>
   | WeakMap<Destroyable, DestroyableMeta<Destroyable>> = new WeakMap();
 
-function push<T extends object>(collection: OneOrMany<T>, newItem: T): OneOrMany<T> {
-  if (collection === null) {
+function push<T extends object>(collection: OneOrMany<T>, newItem: T | null): OneOrMany<T> {
+  if (newItem === null) {
+    return collection;
+  } else if (collection === null) {
     return newItem;
   } else if (Array.isArray(collection)) {
     collection.push(newItem);
@@ -116,10 +118,8 @@ export function registerDestructor<T extends Destroyable>(
 
   let meta = getDestroyableMeta(destroyable);
 
-  let destructorsKey: 'eagerDestructors' | 'destructors' =
-    eager === true ? 'eagerDestructors' : 'destructors';
-
-  meta[destructorsKey] = push(meta[destructorsKey], destructor);
+  meta.eagerDestructors = push(meta.eagerDestructors, eager ? destructor : null);
+  meta.destructors = push(meta.destructors, eager ? null : destructor);
 
   return destructor;
 }
