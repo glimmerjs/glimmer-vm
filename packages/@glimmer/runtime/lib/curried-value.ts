@@ -13,11 +13,11 @@ const INNER: unique symbol = Symbol('INNER');
 const OWNER: unique symbol = Symbol('OWNER');
 const ARGS: unique symbol = Symbol('ARGS');
 const RESOLVED: unique symbol = Symbol('RESOLVED');
-
-const CURRIED_VALUES = new WeakSet();
+const IS_CURRIED: unique symbol = Symbol('IS_CURRIED');
 
 export function isCurriedValue(value: unknown): value is CurriedValue<CurriedType> {
-  return CURRIED_VALUES.has(value as object);
+  if (typeof value !== 'object' || typeof value === 'string' || value === null) return false;
+  return IS_CURRIED in value;
 }
 
 export function isCurriedType<T extends CurriedType>(
@@ -33,6 +33,7 @@ export class CurriedValue<T extends CurriedType = CurriedType> {
   [OWNER]: Owner;
   [ARGS]: CapturedArguments | null;
   [RESOLVED]: boolean;
+  [IS_CURRIED]: true;
 
   /** @internal */
   constructor(
@@ -42,7 +43,7 @@ export class CurriedValue<T extends CurriedType = CurriedType> {
     args: CapturedArguments | null,
     resolved = false
   ) {
-    CURRIED_VALUES.add(this);
+    this[IS_CURRIED] = true;
     this[TYPE] = type;
     this[INNER] = inner;
     this[OWNER] = owner;
@@ -75,10 +76,8 @@ export function resolveCurriedValue(
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    let { [ARGS]: curriedArgs, [INNER]: inner } = currentWrapper;
-
-    if (curriedArgs !== null) {
-      let { named: curriedNamed, positional: curriedPositional } = curriedArgs;
+    if (currentWrapper[ARGS] !== null) {
+      const { named: curriedNamed, positional: curriedPositional } = currentWrapper[ARGS];
 
       if (curriedPositional.length > 0) {
         positional =
@@ -92,17 +91,17 @@ export function resolveCurriedValue(
       named.unshift(curriedNamed);
     }
 
-    if (!isCurriedValue(inner)) {
+    if (isCurriedValue(currentWrapper[INNER]) === false) {
       // Save off the owner that this helper was curried with. Later on,
       // we'll fetch the value of this register and set it as the owner on the
       // new root scope.
-      definition = inner;
+      definition = currentWrapper[INNER];
       owner = currentWrapper[OWNER];
       resolved = currentWrapper[RESOLVED];
       break;
+    } else {
+      currentWrapper = currentWrapper[INNER] as CurriedValue<CurriedType>;
     }
-
-    currentWrapper = inner;
   }
 
   return { definition, owner, resolved, positional, named };
