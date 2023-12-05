@@ -73,7 +73,7 @@ jobs:
           debug: true
           regression-threshold: 25
           fidelity: high
-          markers: 'navigationStart,renderStart,renderEnd'
+          markers: 'glimmer-render-1000-rows,glimmer-render-1000-rows-finished'
           clean-after-analyze: false
 
       - name: Upload Tracerbench Artifacts

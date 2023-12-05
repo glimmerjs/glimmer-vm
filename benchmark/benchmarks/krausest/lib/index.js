@@ -21,5 +21,7 @@ export default async function render(element, isInteractive) {
     items: buildData(),
   };
 
+  performance.mark('glimmer-render-1000-rows');
   await benchmark.render('Application', args, element, isInteractive);
+  performance.mark('glimmer-render-1000-rows-finished');
 }
