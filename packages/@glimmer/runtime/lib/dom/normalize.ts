@@ -16,11 +16,11 @@ export function normalizeStringValue(value: unknown): string {
 }
 
 export function normalizeTrustedValue(value: unknown): TrustingInsertion {
-  if (isEmpty(value)) {
-    return '';
-  }
   if (isString(value)) {
     return value;
+  }
+  if (isEmpty(value)) {
+    return '';
   }
   if (isSafeString(value)) {
     return value.toHTML();
@@ -40,7 +40,7 @@ export function shouldCoerce(
 }
 
 export function isEmpty(value: unknown): boolean {
-  return value === null || value === undefined || typeof (value as Dict).toString !== 'function';
+  return value === undefined || value === null || typeof (value as Dict).toString !== 'function';
 }
 
 export function isSafeString(value: unknown): value is SafeString {
