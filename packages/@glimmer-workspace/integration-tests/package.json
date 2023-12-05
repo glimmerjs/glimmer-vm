@@ -4,6 +4,16 @@
   "private": true,
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer-workspace/integration-tests",
   "main": "lib/index.ts",
+  "types": "lib/index.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.ts",
+      "default": "./lib/index.ts"
+    }
+  },
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../tsconfig.json"
@@ -38,15 +48,5 @@
     "@types/js-reporters": "workspace:^",
     "@types/qunit": "^2.19.9",
     "eslint": "^8.52.0"
-  },
-  "types": "lib/index.ts",
-  "files": [
-    "lib"
-  ],
-  "exports": {
-    ".": {
-      "types": "./lib/index.ts",
-      "default": "./lib/index.ts"
-    }
   }
 }

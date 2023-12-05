@@ -11,9 +11,6 @@
   "files": [],
   "references": [
     {
-      "path": "benchmark/tsconfig.json"
-    },
-    {
       "path": "bin/tsconfig.json"
     },
     {
@@ -27,6 +24,9 @@
     },
     {
       "path": "server/tsconfig.json"
+    },
+    {
+      "path": "lib/tsconfig.json"
     },
     {
       "path": "tsconfig.cjs.json"

@@ -2,35 +2,32 @@
   "name": "glimmer-engine",
   "version": "0.87.1",
   "private": true,
-  "license": "MIT",
   "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers",
   "repository": {
     "type": "git",
     "url": "https://github.com/glimmerjs/glimmer-vm.git"
   },
+  "license": "MIT",
   "author": "Tilde, Inc.",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org"
-  },
   "scripts": {
+    "clean": "node ./bin/clean.mjs",
     "browserstack:connect": "ember browserstack:connect",
     "browserstack:disconnect": "ember browserstack:disconnect",
     "browserstack:results": "ember browserstack:results",
     "build": "dotenv -- turbo build",
     "build:control": "rollup -c rollup.config.mjs",
     "build:flags": "RETAIN_FLAGS=true ember build --env production --suppress-sizes",
-    "clean": "node ./bin/clean.mjs",
     "link:all": "esyes ./bin/link-all.mts",
     "lint": "npm-run-all lint:*",
-    "lint:files": "turbo lint",
     "lint:format": "prettier -c .",
+    "lint:files": "turbo lint",
     "lint:types": "tsc -b",
     "lintfix": "pnpm turbo test:lint -- --fix && prettier -w .",
     "start": "vite",
     "test": "node bin/run-tests.mjs",
-    "test:babel-plugins": "yarn workspace @glimmer/vm-babel-plugins test",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
     "test:node": "node bin/run-node-tests.mjs",
+    "test:babel-plugins": "yarn workspace @glimmer/vm-babel-plugins test",
     "test:smoke": "SMOKE_TESTS=true ember test",
     "test:types": "node bin/run-types-tests.mjs",
     "unlink:all": "esyes ./bin/unlink-all.mts",
@@ -39,23 +36,23 @@
   },
   "pnpm": {
     "overrides": {
+      "typescript": "$typescript",
       "@rollup/pluginutils": "^5.0.2",
-      "@types/node": "$@types/node",
-      "typescript": "$typescript"
-    },
-    "patchedDependencies": {
-      "@release-it-plugins/workspaces@4.0.0": "patches/@release-it-plugins__workspaces@4.0.0.patch"
+      "@types/node": "$@types/node"
     },
     "peerDependencyRules": {
+      "allowedVersions": {
+        "typescript": "5",
+        "@rollup/pluginutils": "5",
+        "rollup": "3"
+      },
       "allowAny": [
         "vite-plugin-babel",
         "vite"
-      ],
-      "allowedVersions": {
-        "@rollup/pluginutils": "5",
-        "rollup": "3",
-        "typescript": "5"
-      }
+      ]
+    },
+    "patchedDependencies": {
+      "@release-it-plugins/workspaces@4.0.0": "patches/@release-it-plugins__workspaces@4.0.0.patch"
     }
   },
   "devDependencies": {
@@ -124,12 +121,15 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.10",
     "xo": "^0.56.0",
-    "zx": "^7.2.3",
     "vite-plugin-babel": "^1.1.3",
-    "tracerbench": "^8.0.1",
     "@vitejs/plugin-react-swc": "^3.4.1",
     "@vitejs/plugin-react": "^4.1.1",
-    "@babel/plugin-proposal-decorators": "^7.23.2"
+    "@babel/plugin-proposal-decorators": "^7.23.2",
+    "zx": "^7.2.3",
+    "tracerbench": "^8.0.1"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
   },
   "release-it": {
     "plugins": {
