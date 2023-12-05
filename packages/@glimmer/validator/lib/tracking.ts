@@ -14,8 +14,6 @@ class Tracker {
   private last: Tag | null = null;
 
   add(tag: Tag) {
-    if (tag === CONSTANT_TAG) return;
-
     this.tags.add(tag);
 
     if (import.meta.env.DEV) {
@@ -112,7 +110,7 @@ export function isTracking(): boolean {
 }
 
 export function consumeTag(tag: Tag): void {
-  if (CURRENT_TRACKER !== null) {
+  if (CURRENT_TRACKER !== null && tag !== CONSTANT_TAG) {
     CURRENT_TRACKER.add(tag);
   }
 }
