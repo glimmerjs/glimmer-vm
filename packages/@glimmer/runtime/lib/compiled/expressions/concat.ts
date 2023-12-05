@@ -1,4 +1,3 @@
-
 import type { Dict, Maybe } from '@glimmer/interfaces';
 import type { Reactive } from '@glimmer/reference';
 import { readReactive, ResultFormula } from '@glimmer/reference';
