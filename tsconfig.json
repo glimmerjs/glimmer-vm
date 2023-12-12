@@ -26,9 +26,6 @@
       "path": "server/tsconfig.json"
     },
     {
-      "path": "lib/tsconfig.json"
-    },
-    {
       "path": "tsconfig.cjs.json"
     }
   ]
