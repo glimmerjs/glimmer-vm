@@ -43,11 +43,11 @@
     "@glimmer/util": "workspace:^",
     "@glimmer/validator": "workspace:^",
     "@glimmer/vm": "workspace:^",
-    "@glimmer/wire-format": "workspace:^"
+    "@glimmer/wire-format": "workspace:^",
+    "@glimmer/debug": "workspace:^"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:^",
-    "@glimmer/debug": "workspace:^",
     "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
     "@types/qunit": "^2.19.9",

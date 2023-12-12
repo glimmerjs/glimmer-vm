@@ -11,9 +11,6 @@
   "files": [],
   "references": [
     {
-      "path": "bin/tsconfig.json"
-    },
-    {
       "path": "packages/@glimmer/tsconfig.json"
     },
     {

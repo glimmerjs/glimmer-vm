@@ -9,7 +9,7 @@ import type {
   SimpleElement,
   SimpleNode,
   UpdatingOpcode,
-} from '@glimmer/interfaces';
+} from '../..';
 
 // Make assignment fail in both directions (univariant).
 type SnapshotArray<T = unknown> = readonly T[] & { push?: never };
