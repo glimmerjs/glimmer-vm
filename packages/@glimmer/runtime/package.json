@@ -32,6 +32,7 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
+    "@glimmer/debug": "workspace:^",
     "@glimmer/destroyable": "workspace:^",
     "@glimmer/env": "0.1.7",
     "@glimmer/global-context": "workspace:^",
@@ -47,7 +48,6 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:^",
-    "@glimmer/debug": "workspace:^",
     "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
     "@types/qunit": "^2.19.9",

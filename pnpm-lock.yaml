@@ -1166,6 +1166,9 @@ importers:
 
   packages/@glimmer/runtime:
     dependencies:
+      '@glimmer/debug':
+        specifier: workspace:^
+        version: link:../debug
       '@glimmer/destroyable':
         specifier: workspace:^
         version: link:../destroyable
@@ -1206,9 +1209,6 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:^
         version: link:../../@glimmer-workspace/build
-      '@glimmer/debug':
-        specifier: workspace:^
-        version: link:../debug
       '@glimmer/local-debug-flags':
         specifier: workspace:^
         version: link:../local-debug-flags
