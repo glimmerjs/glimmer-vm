@@ -41,10 +41,10 @@ import {
   isConstant,
   MutableCell,
   readCell,
+  readReactive,
   UNDEFINED_REFERENCE,
   writeCell,
 } from '@glimmer/reference';
-import { readReactive } from '@glimmer/reference/lib/api/core';
 import {
   assert,
   BalancedStack,

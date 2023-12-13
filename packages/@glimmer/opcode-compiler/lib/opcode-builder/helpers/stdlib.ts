@@ -1,13 +1,14 @@
 import type { BlockMetadata, BuilderOp, HighLevelOp, JitContext } from '@glimmer/interfaces';
-import { $s0, Op } from '@glimmer/vm';
 import {
+  $s0,
   COMPONENT_CONTENT,
   FRAGMENT_CONTENT,
   HELPER_CONTENT,
   NODE_CONTENT,
+  Op,
   SAFE_STRING_CONTENT,
   STRING_CONTENT,
-} from '@glimmer/vm/lib/content';
+} from '@glimmer/vm';
 
 import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
 

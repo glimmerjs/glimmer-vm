@@ -1,4 +1,4 @@
-import type { DynamicContentType } from '@glimmer/vm/lib/content';
+import type { DynamicContentType } from '@glimmer/vm';
 import {
   check,
   CheckDocumentFragment,
@@ -10,15 +10,18 @@ import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { isConstant } from '@glimmer/reference';
 import { isObject, LOCAL_LOGGER } from '@glimmer/util';
-import { CURRIED_COMPONENT, CURRIED_HELPER, CurriedTypes, Op } from '@glimmer/vm';
 import {
   COMPONENT_CONTENT,
+  CURRIED_COMPONENT,
+  CURRIED_HELPER,
+  CurriedTypes,
   FRAGMENT_CONTENT,
   HELPER_CONTENT,
   NODE_CONTENT,
+  Op,
   SAFE_STRING_CONTENT,
   STRING_CONTENT,
-} from '@glimmer/vm/lib/content';
+} from '@glimmer/vm';
 
 import { isCurried } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
