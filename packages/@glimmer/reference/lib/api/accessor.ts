@@ -1,6 +1,8 @@
 import type {
+  AccessorType,
   DefaultDescriptionFields,
   DescriptionSpec,
+  MutableReferenceType,
   Reactive,
   ReactiveResult,
 } from '@glimmer/interfaces';
@@ -31,11 +33,22 @@ export function ResultAccessor<T = unknown>(
     get: () => ReactiveResult<T>;
     set: (val: T) => ReactiveResult<void>;
   },
-  description?: DescriptionSpec
+  description?: DescriptionSpec,
 ): Reactive<T> {
-  const { get, set } = options;
+  return InternalResultAccessor(options, description);
+}
 
-  const internal = new InternalReactive<T>(ACCESSOR);
+export function InternalResultAccessor<T = unknown>(
+  options: {
+    get: () => ReactiveResult<T>;
+    set: (val: T) => ReactiveResult<void>;
+  },
+  description?: DescriptionSpec,
+  type: AccessorType | MutableReferenceType = ACCESSOR,
+): Reactive<T> {
+    const { get, set } = options;
+
+  const internal = new InternalReactive<T>(type);
 
   internal.compute = () => setResult(internal, get());
 

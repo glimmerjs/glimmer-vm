@@ -7,6 +7,7 @@ import type {
   DevMode,
   FormulaType,
   MutableCellType,
+  MutableReferenceType,
   Nullable,
   Optional,
   RawReactive,
@@ -29,7 +30,8 @@ export const DEEPLY_CONSTANT: DeeplyConstantType = 2;
 export const FALLIBLE_FORMULA: FormulaType = 3;
 export const COMPUTED_CELL: ComputedCellType = 4;
 export const ACCESSOR: AccessorType = 5;
-export const CONSTANT_ERROR: ConstantErrorType = 6;
+export const MUTABLE_REF: MutableReferenceType = 6;
+export const CONSTANT_ERROR: ConstantErrorType = 7;
 
 export const REACTIVE_DESCRIPTIONS = [
   'mutable',
@@ -38,6 +40,7 @@ export const REACTIVE_DESCRIPTIONS = [
   'fallible formula',
   'infallible formula',
   'accessor',
+  'mut reference',
   'constant error',
 ];
 
