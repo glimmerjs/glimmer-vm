@@ -230,7 +230,15 @@ export default function setGlobalContext(
   scheduleDestroyed = context.scheduleDestroyed;
   toIterator = context.toIterator;
   toBool = context.toBool;
+  getProp = context.getProp;
+  if (context.getProperty) {
+    getProperty = context.getProperty;
+  }
   getPath = context.getPath;
+  setProp = context.setProp;
+  if (context.setProperty) {
+    setProperty = context.setProperty;
+  }
   setPath = context.setPath;
   warnIfStyleNotTrusted = context.warnIfStyleNotTrusted;
   assert = context.assert;
