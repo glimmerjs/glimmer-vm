@@ -1,7 +1,7 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
 import type { Reactive } from '@glimmer/reference';
 import { check } from '@glimmer/debug';
-import { Formula, isAccessor, unwrapReactive, updateReactive } from '@glimmer/reference';
+import { Formula, isMutRef, unwrapReactive, updateReactive } from '@glimmer/reference';
 import { buildUntouchableThis, stringifyDebugLabel } from '@glimmer/util';
 
 import { reifyPositional } from '../vm/arguments';
@@ -82,7 +82,7 @@ export const fn = internalHelper(({ positional }: CapturedArguments) => {
 
       if (import.meta.env.DEV) assertCallbackIsFn(callbackRef);
 
-      if (isAccessor(callbackRef)) {
+      if (isMutRef(callbackRef)) {
         let value = args.length > 0 ? args[0] : invocationArgs[0];
         return updateReactive(callbackRef, value);
       } else {
@@ -94,7 +94,7 @@ export const fn = internalHelper(({ positional }: CapturedArguments) => {
 
 function assertCallbackIsFn(callbackRef: Reactive | undefined): asserts callbackRef is Reactive {
   if (
-    !(callbackRef && (isAccessor(callbackRef) || typeof unwrapReactive(callbackRef) === 'function'))
+    !(callbackRef && (isMutRef(callbackRef) || typeof unwrapReactive(callbackRef) === 'function'))
   ) {
     throw new Error(
       `You must pass a function as the \`fn\` helper's first argument, you passed ${

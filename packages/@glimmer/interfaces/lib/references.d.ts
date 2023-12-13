@@ -30,7 +30,11 @@ export type ComputedCellType = 4;
  * An accessor has both a user-space computation and a userspace update. Both are fallible.
  */
 export type AccessorType = 5;
-export type ConstantErrorType = 6;
+/**
+ * An accessor that was explicitly marked using the toMut() API.
+ */
+export type MutableReferenceType = 6;
+export type ConstantErrorType = 7;
 
 export interface ReactiveTypes {
   readonly MutableCell: MutableCellType;
@@ -39,6 +43,7 @@ export interface ReactiveTypes {
   readonly ComputedCell: ReactiveComputedCell;
   readonly Formula: FormulaType;
   readonly Accessor: AccessorType;
+  readonly MutableReference: MutableReferenceType;
   readonly ConstantError: ConstantErrorType;
 }
 
@@ -49,6 +54,7 @@ export type ReactiveType =
   | ComputedCellType
   | FormulaType
   | AccessorType
+  | MutableReferenceType
   | ConstantErrorType;
 
 declare const REFERENCE: unique symbol;
@@ -185,6 +191,7 @@ export type Reactive<T = unknown> =
   | ReactiveComputedCell<T>
   | ReactiveFormula<T>
   | ReactiveAccessor<T>
+  | ReactiveMutableReference<T>
   | ConstantReactiveError;
 
 export type DeeplyConstantReactiveCell<T = unknown> = RawReactive<T, DeeplyConstantType>;
@@ -207,5 +214,6 @@ export type ReactiveCell<T = unknown> =
 export type ReactiveComputedCell<T = unknown> = RawReactive<T, ComputedCellType>;
 export type ReactiveFormula<T = unknown> = RawReactive<T, FormulaType>;
 export type ReactiveAccessor<T = unknown> = RawReactive<T, AccessorType>;
+export type ReactiveMutableReference<T = unknown> = RawReactive<T, MutableReferenceType>;
 
 export type ReactiveResult<T> = Result<T, UserException>;
