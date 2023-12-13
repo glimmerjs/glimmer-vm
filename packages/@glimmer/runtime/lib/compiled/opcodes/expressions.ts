@@ -280,11 +280,13 @@ APPEND_OPCODES.add(Op.IfInline, (vm) => {
   let truthy = check(vm.stack.pop(), CheckReactive);
   let falsy = check(vm.stack.pop(), CheckReactive);
 
-  return ResultFormula(() => {
-    return chainResult(readReactive(condition), (condition) => {
-      return toBool(condition) ? readReactive(truthy) : readReactive(falsy);
-    });
-  });
+  vm.stack.push(
+    ResultFormula(() => {
+      return chainResult(readReactive(condition), (condition) => {
+        return toBool(condition) ? readReactive(truthy) : readReactive(falsy);
+      });
+    })
+  );
 });
 
 APPEND_OPCODES.add(Op.Not, (vm) => {
