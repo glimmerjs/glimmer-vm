@@ -170,8 +170,9 @@ if (import.meta.env.DEV) {
     }
 
     return trackingStack
-      .map((label, index) => ' '.repeat(2 * index + 1) +
-        inDevmode(stringifyDebugLabel(label))).join('\n');
+      .map((label, index) => ' '.repeat(2 * index) +
+        inDevmode(stringifyDebugLabel(label)))
+      .join('\n');
   };
 
   debug.markTagAsConsumed = (_tag: Tag) => {
