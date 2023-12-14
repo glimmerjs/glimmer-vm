@@ -16,10 +16,8 @@ import { unwrapReactive } from '@glimmer/reference';
 import {
   castToBrowser,
   devmode,
-  devmodeOr,
   dict,
   setDescription,
-  stringifyDebugLabel,
 } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
 
@@ -138,8 +136,12 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     return state;
   }
 
-  getDebugName(state: CustomModifierState<ModifierInstance>) {
-    return devmodeOr(() => stringifyDebugLabel(state), 'modifier');
+  getDebugName(_definition: object) {
+    // FIXME: this implementation is wrong – it expects the instance state to be passed in
+    // (setting the description in `create` to be used here), but this actually operates on
+    // the definition state
+    // return devmodeOr(() => stringifyDebugLabel(state), 'modifier');
+    return 'TODO modifier';
   }
 
   getTag({ tag }: CustomModifierState<ModifierInstance>) {
