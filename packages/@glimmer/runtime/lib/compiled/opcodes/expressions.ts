@@ -127,6 +127,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 
   let helperValueRef = Formula(() => {
     unwrapReactive(helperInstanceRef);
+    return unwrapReactive(helperRef);
   });
 
   vm.associateDestroyable(helperInstanceRef);
