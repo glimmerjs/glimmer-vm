@@ -169,9 +169,8 @@ if (import.meta.env.DEV) {
       current = current.parent;
     }
 
-    // TODO: Use String.prototype.repeat here once we can drop support for IE11
     return trackingStack
-      .map((label, index) => ' '.repeat(2 * index + 1) + inDevmode(stringifyDebugLabel(label)))
+      .map((label, index) => ' '.repeat(2 * index) + inDevmode(stringifyDebugLabel(label)))
       .join('\n');
   };
 
