@@ -358,6 +358,16 @@ function applyComboLabel(parent: MonomorphicTagImpl, tags: Tag | Tag[]) {
 //////////
 
 export const CONSTANT_TAG: ConstantTag = new MonomorphicTagImpl(CONSTANT_TAG_ID);
+setDescription(
+  CONSTANT_TAG,
+  devmode(
+    () =>
+      ({
+        reason: 'cell',
+        label: ['(constant)'],
+      }) satisfies TagDescription
+  )
+);
 
 export function isConstTag(tag: Tag): tag is ConstantTag {
   return tag === CONSTANT_TAG;
