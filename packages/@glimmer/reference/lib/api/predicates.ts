@@ -8,7 +8,13 @@ import type {
 
 import type { InternalReactive } from './internal/reactive';
 
-import { ACCESSOR, CONSTANT_ERROR, FALLIBLE_FORMULA, MUTABLE_REF, REFERENCE } from './internal/reactive';
+import {
+  ACCESSOR,
+  CONSTANT_ERROR,
+  FALLIBLE_FORMULA,
+  MUTABLE_REF,
+  REFERENCE,
+} from './internal/reactive';
 
 export function isFallibleFormula<T>(_ref: Reactive<T>): _ref is ReactiveFormula<T> {
   return _ref[REFERENCE] === FALLIBLE_FORMULA;

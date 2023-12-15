@@ -13,12 +13,7 @@ import type {
 } from '@glimmer/interfaces';
 import { registerDestructor } from '@glimmer/destroyable';
 import { unwrapReactive } from '@glimmer/reference';
-import {
-  castToBrowser,
-  devmode,
-  dict,
-  setDescription,
-} from '@glimmer/util';
+import { castToBrowser, devmode, dict, setDescription } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
 
 import type { ManagerFactory } from '.';

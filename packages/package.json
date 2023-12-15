@@ -1,4 +1,5 @@
 {
+  "name": "@glimmer-workspace/packages",
   "private": true,
   "dependencies": {
     "@types/qunit": "^2.19.9",
