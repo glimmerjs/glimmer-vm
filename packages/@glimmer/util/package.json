@@ -7,6 +7,12 @@
   "type": "module",
   "main": "lib/index.ts",
   "types": "lib/index.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.ts",
+      "default": "./lib/index.ts"
+    }
+  },
   "publishConfig": {
     "access": "public",
     "types": "dist/dev/index.d.ts",
@@ -45,11 +51,5 @@
     "publint": "^0.2.5",
     "rollup": "^4.5.1",
     "typescript": "*"
-  },
-  "exports": {
-    ".": {
-      "types": "./lib/index.ts",
-      "default": "./lib/index.ts"
-    }
   }
 }

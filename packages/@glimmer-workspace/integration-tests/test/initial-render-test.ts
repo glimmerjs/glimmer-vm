@@ -28,7 +28,6 @@ import {
   toTextContent,
 } from '@glimmer-workspace/integration-tests';
 
-
 class RehydrationContext extends RenderTestContext {
   declare delegate: RehydrationDelegate;
   protected declare serverOutput: Nullable<string>;

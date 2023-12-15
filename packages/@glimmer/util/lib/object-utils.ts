@@ -6,7 +6,8 @@ export function array<T>(): {
   allocate: <N extends number>(size: N) => Expand<FixedArray<T | null, N>>;
 } {
   return {
-    allocate: <N extends number>(size: N) => Array(size).fill(null) as Expand<FixedArray<T | null, N>>,
+    allocate: <N extends number>(size: N) =>
+      Array(size).fill(null) as Expand<FixedArray<T | null, N>>,
   };
 }
 

@@ -192,9 +192,9 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
       if (import.meta.env.DEV) {
         const label = stringifyDebugLabel(ref);
         throw new Error(
-          `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${
-            String(label)
-          }}}\`, and the incorrect definition is the value at the path \`${debugToString!(
+          `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${String(
+            label
+          )}}}\`, and the incorrect definition is the value at the path \`${debugToString!(
             hostDefinition
           )}\`, which was: ${debugToString!(hostDefinition)}`
         );

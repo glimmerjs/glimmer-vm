@@ -266,13 +266,13 @@ export function createTag(label?: DevMode<TagDescription>): DirtyableTag {
   return createTagWithId(
     DIRYTABLE_TAG_ID,
     label ??
-    devmode(
-      () =>
-        ({
-          reason: 'cell',
-          label: ['(dirtyable)'],
-        }) satisfies TagDescription
-    )
+      devmode(
+        () =>
+          ({
+            reason: 'cell',
+            label: ['(dirtyable)'],
+          }) satisfies TagDescription
+      )
   );
 }
 
@@ -280,13 +280,13 @@ export function createUpdatableTag(label?: DevMode<TagDescription>): UpdatableTa
   return createTagWithId(
     UPDATABLE_TAG_ID,
     label ??
-    devmode(
-      () =>
-        ({
-          reason: 'cell',
-          label: ['(updatable)'],
-        }) satisfies TagDescription
-    )
+      devmode(
+        () =>
+          ({
+            reason: 'cell',
+            label: ['(updatable)'],
+          }) satisfies TagDescription
+      )
   );
 }
 

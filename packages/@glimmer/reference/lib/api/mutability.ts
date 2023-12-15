@@ -27,10 +27,14 @@ export function toMut<T>(maybeMut: Reactive<T>): Reactive<T> {
   // TODO probably should assert that maybeMut is updatable
   // Ember already has the same assertion
 
-  return InternalResultAccessor({
-    get: () => readInternalReactive(maybeMut as InternalReactive<T>),
-    set: (value: unknown) => updateInternalReactive(reactive, value),
-  }, undefined, MUTABLE_REF);
+  return InternalResultAccessor(
+    {
+      get: () => readInternalReactive(maybeMut as InternalReactive<T>),
+      set: (value: unknown) => updateInternalReactive(reactive, value),
+    },
+    undefined,
+    MUTABLE_REF
+  );
 }
 
 export function isConstant(reactive: Reactive) {

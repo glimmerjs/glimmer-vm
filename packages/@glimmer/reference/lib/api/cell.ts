@@ -1,4 +1,13 @@
-import type {DeeplyConstantReactiveCell, DefaultDescriptionFields, Described, DescriptionSpec, MutableReactiveCell, ReactiveCell, ReferenceDescription, RETURN_TYPE} from '@glimmer/interfaces';
+import type {
+  DeeplyConstantReactiveCell,
+  DefaultDescriptionFields,
+  Described,
+  DescriptionSpec,
+  MutableReactiveCell,
+  ReactiveCell,
+  ReferenceDescription,
+  RETURN_TYPE,
+} from '@glimmer/interfaces';
 import { devmode, setDescription, toValidatableDescription } from '@glimmer/util';
 import { CONSTANT_TAG, consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 

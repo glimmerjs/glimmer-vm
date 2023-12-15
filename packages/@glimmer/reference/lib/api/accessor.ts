@@ -33,7 +33,7 @@ export function ResultAccessor<T = unknown>(
     get: () => ReactiveResult<T>;
     set: (val: T) => ReactiveResult<void>;
   },
-  description?: DescriptionSpec,
+  description?: DescriptionSpec
 ): Reactive<T> {
   return InternalResultAccessor(options, description);
 }
@@ -44,9 +44,9 @@ export function InternalResultAccessor<T = unknown>(
     set: (val: T) => ReactiveResult<void>;
   },
   description?: DescriptionSpec,
-  type: AccessorType | MutableReferenceType = ACCESSOR,
+  type: AccessorType | MutableReferenceType = ACCESSOR
 ): Reactive<T> {
-    const { get, set } = options;
+  const { get, set } = options;
 
   const internal = new InternalReactive<T>(type);
 

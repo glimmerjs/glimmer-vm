@@ -139,36 +139,36 @@ export interface Op {
 }
 type StackOption =
   | {
-    type: 'stack:unchecked';
-    reason: string;
-  }
+      type: 'stack:unchecked';
+      reason: string;
+    }
   | {
-    type: 'stack:delta';
-    value: number;
-  }
+      type: 'stack:delta';
+      value: number;
+    }
   | {
-    type: 'stack:params';
-    value: ShorthandStackParam[];
-  }
+      type: 'stack:params';
+      value: ShorthandStackParam[];
+    }
   | {
-    type: 'stack:peeks';
-    value: ShorthandStackParam[];
-  }
+      type: 'stack:peeks';
+      value: ShorthandStackParam[];
+    }
   | {
-    type: 'stack:returns';
-    value: ShorthandStackReturn[];
-  }
+      type: 'stack:returns';
+      value: ShorthandStackReturn[];
+    }
   | {
-    type: 'stack:dynamic';
-    value: DynamicStackFn | { reason: string };
-  };
+      type: 'stack:dynamic';
+      value: DynamicStackFn | { reason: string };
+    };
 
 type MetadataOption =
   | ShorthandOperandList
   | {
-    type: 'multi';
-    options: StackOption[];
-  }
+      type: 'multi';
+      options: StackOption[];
+    }
   | StackOption;
 
 function stackDelta(change: number): MetadataOption {
@@ -392,9 +392,9 @@ export class MetadataBuilder<
       const normalizedOptions: NormalizedOptions =
         name === RESERVED
           ? ([
-            [],
-            () => ({ type: 'unchecked', reason: 'reserved', delta: undefined }),
-          ] satisfies NormalizedOptions)
+              [],
+              () => ({ type: 'unchecked', reason: 'reserved', delta: undefined }),
+            ] satisfies NormalizedOptions)
           : toOptions(options);
 
       this.#push(name, normalizedOptions);

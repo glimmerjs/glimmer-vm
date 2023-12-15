@@ -5,9 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  typescript: ^5.2.2
   '@rollup/pluginutils': ^5.0.2
   '@types/node': ^20.9.4
+  typescript: ^5.2.2
 
 patchedDependencies:
   '@release-it-plugins/workspaces@4.0.0':

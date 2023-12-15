@@ -4,18 +4,18 @@ import { asPresentArray, devmode, getLast, inDevmode, stringifyDebugLabel } from
 
 interface DebugTransaction {
   beginTrackingTransaction?:
-  | undefined
-  | ((debuggingContext: Description, deprecate?: boolean) => void);
+    | undefined
+    | ((debuggingContext: Description, deprecate?: boolean) => void);
   endTrackingTransaction?: undefined | (() => void);
   runInTrackingTransaction?: undefined | (<T>(fn: () => T, debuggingContext?: Description) => T);
 
   resetTrackingTransaction?: undefined | (() => string);
   setTrackingTransactionEnv?:
-  | undefined
-  | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
+    | undefined
+    | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
   assertTagNotConsumed?:
-  | undefined
-  | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
+    | undefined
+    | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
 
   markTagAsConsumed?: undefined | ((_tag: Tag) => void);
 
@@ -170,8 +170,7 @@ if (import.meta.env.DEV) {
     }
 
     return trackingStack
-      .map((label, index) => ' '.repeat(2 * index) +
-        inDevmode(stringifyDebugLabel(label)))
+      .map((label, index) => ' '.repeat(2 * index) + inDevmode(stringifyDebugLabel(label)))
       .join('\n');
   };
 
