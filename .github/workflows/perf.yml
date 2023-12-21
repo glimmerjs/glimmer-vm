@@ -72,7 +72,7 @@ jobs:
           experiment-url: http://localhost:6000
           debug: true
           regression-threshold: 25
-          fidelity: high
+          fidelity: low
           markers: 'glimmer-render-1000-rows,glimmer-render-1000-rows-finished'
           clean-after-analyze: false
 
