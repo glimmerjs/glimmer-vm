@@ -69,22 +69,19 @@ export class VMArgumentsImpl implements VMArguments {
                  bbase         pbase       nbase  sp
     */
 
-    let named = this.named;
     let namedCount = names.length;
     let namedBase = stack[REGISTERS][$sp] - namedCount + 1;
 
-    named.setup(stack, namedBase, namedCount, names, atNames);
+    this.named.setup(stack, namedBase, namedCount, names, atNames);
 
-    let positional = this.positional;
     let positionalBase = namedBase - positionalCount;
 
-    positional.setup(stack, positionalBase, positionalCount);
+    this.positional.setup(stack, positionalBase, positionalCount);
 
-    let blocks = this.blocks;
     let blocksCount = blockNames.length;
     let blocksBase = positionalBase - blocksCount * 3;
 
-    blocks.setup(stack, blocksBase, blocksCount, blockNames);
+    this.blocks.setup(stack, blocksBase, blocksCount, blockNames);
   }
 
   get base(): number {
@@ -193,7 +190,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   private get references(): readonly Reference[] {
     let references = this._references;
 
-    if (!references) {
+    if (references === null) {
       let { stack, base, length } = this;
       references = this._references = stack.slice<Reference>(base, base + length);
     }
@@ -254,7 +251,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   get names(): readonly string[] {
     let names = this._names;
 
-    if (!names) {
+    if (names === null) {
       names = this._names = this._atNames!.map(this.toSyntheticName);
     }
 
@@ -264,7 +261,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   get atNames(): readonly string[] {
     let atNames = this._atNames;
 
-    if (!atNames) {
+    if (atNames === null) {
       atNames = this._atNames = this._names!.map(this.toAtName);
     }
 
@@ -336,7 +333,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   private get references(): readonly Reference[] {
     let references = this._references;
 
-    if (!references) {
+    if (references === null) {
       let { base, length, stack } = this;
       references = this._references = stack.slice<Reference>(base, base + length);
     }
@@ -400,7 +397,7 @@ export class BlockArgumentsImpl implements BlockArguments {
   get values(): readonly BlockValue[] {
     let values = this.internalValues;
 
-    if (!values) {
+    if (values === null) {
       let { base, length, stack } = this;
       values = this.internalValues = stack.slice<BlockValue>(base, base + length * 3);
     }

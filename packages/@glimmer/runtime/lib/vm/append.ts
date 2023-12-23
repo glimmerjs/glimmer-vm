@@ -569,7 +569,7 @@ export class VM implements PublicVM, InternalVM {
       LOCAL_LOGGER.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
     }
 
-    if (initialize) initialize(this);
+    if (initialize !== undefined) initialize(this);
 
     let result: RichIteratorResult<null, RenderResult>;
 

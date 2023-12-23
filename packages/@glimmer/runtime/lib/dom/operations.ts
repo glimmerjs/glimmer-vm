@@ -40,7 +40,7 @@ export class DOMOperations {
   createElement(tag: string, context?: SimpleElement): SimpleElement {
     let isElementInSVGNamespace: boolean, isHTMLIntegrationPoint: boolean;
 
-    if (context) {
+    if (context !== undefined) {
       isElementInSVGNamespace = context.namespaceURI === NS_SVG || tag === 'svg';
       isHTMLIntegrationPoint = !!(SVG_INTEGRATION_POINTS as Dict<number>)[context.tagName];
     } else {
