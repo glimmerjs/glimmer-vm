@@ -6,6 +6,11 @@ import { debug } from './debug';
 import { unwrap } from './utils';
 import { combine, CONSTANT_TAG, isConstTag, validateTag, valueForTag } from './validators';
 
+const TRACKING_WARM_STACK_SIZE = 20000;
+
+function getTracker() {
+  return trackingStack.pop() ?? new Tracker();
+}
 /**
  * An object that that tracks @tracked properties that were consumed.
  */
@@ -36,7 +41,15 @@ class Tracker {
       return combine(Array.from(this.tags));
     }
   }
+  recycle() {
+    this.tags.clear();
+    trackingStack.push(this);
+  }
 }
+
+const trackingStack: Tracker[] = new Array(TRACKING_WARM_STACK_SIZE)
+  .fill(null)
+  .map(() => new Tracker());
 
 /**
  * Whenever a tracked computed property is entered, the current tracker is
@@ -58,7 +71,7 @@ const OPEN_TRACK_FRAMES: (Tracker | null)[] = [];
 export function beginTrackFrame(debuggingContext?: string | false): void {
   OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
 
-  CURRENT_TRACKER = new Tracker();
+  CURRENT_TRACKER = getTracker();
 
   if (import.meta.env.DEV) {
     unwrap(debug.beginTrackingTransaction)(debuggingContext);
@@ -78,7 +91,11 @@ export function endTrackFrame(): Tag {
 
   CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
 
-  return unwrap(current).combine();
+  try {
+    return unwrap(current).combine();
+  } finally {
+    current!.recycle();
+  }
 }
 
 export function beginUntrackFrame(): void {

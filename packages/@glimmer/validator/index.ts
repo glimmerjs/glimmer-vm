@@ -44,6 +44,7 @@ export {
   DIRTY_TAG as dirtyTag,
   INITIAL,
   isConstTag,
+  prepareTagsIfNeeded,
   type Revision,
   UPDATE_TAG as updateTag,
   validateTag,

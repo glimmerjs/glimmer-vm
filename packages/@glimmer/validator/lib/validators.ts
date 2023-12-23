@@ -28,6 +28,11 @@ export const VOLATILE: Revision = NaN;
 
 export let $REVISION = INITIAL;
 
+const UPDATABLE_TAG_WARM_CHUNK_SIZE = 1000;
+const UPDATABLE_TAG_WARM_STACK_SIZE = UPDATABLE_TAG_WARM_CHUNK_SIZE * 20;
+const DIRTYABLE_TAG_WARM_CHUNK_SIZE = 1000;
+const DIRTYABLE_TAG_WARM_STACK_SIZE = DIRTYABLE_TAG_WARM_CHUNK_SIZE * 20;
+
 export function bump(): void {
   $REVISION++;
 }
@@ -38,8 +43,6 @@ const DIRYTABLE_TAG_ID: IDIRTYABLE_TAG_ID = 0;
 const UPDATABLE_TAG_ID: IUPDATABLE_TAG_ID = 1;
 const COMBINATOR_TAG_ID: ICOMBINATOR_TAG_ID = 2;
 const CONSTANT_TAG_ID: ICONSTANT_TAG_ID = 3;
-
-//////////
 
 export const COMPUTE: TagComputeSymbol = Symbol('TAG_COMPUTE') as TagComputeSymbol;
 
@@ -87,6 +90,19 @@ function allowsCycles(tag: Tag): boolean {
     return true;
   } else {
     return ALLOW_CYCLES.has(tag);
+  }
+}
+
+export function prepareTagsIfNeeded() {
+  if (UPDATABLE_TAGS.length < UPDATABLE_TAG_WARM_CHUNK_SIZE) {
+    for (let i = 0; i < UPDATABLE_TAG_WARM_CHUNK_SIZE; i++) {
+      UPDATABLE_TAGS.push(new MonomorphicTagImpl(UPDATABLE_TAG_ID));
+    }
+  }
+  if (DIRYTABLE_TAGS.length < DIRTYABLE_TAG_WARM_CHUNK_SIZE) {
+    for (let i = 0; i < DIRTYABLE_TAG_WARM_CHUNK_SIZE; i++) {
+      DIRYTABLE_TAGS.push(new MonomorphicTagImpl(DIRYTABLE_TAG_ID));
+    }
   }
 }
 
@@ -222,17 +238,28 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
   }
 }
 
+//////////
+
+const UPDATABLE_TAGS: UpdatableTag[] = new Array(UPDATABLE_TAG_WARM_STACK_SIZE)
+  .fill(null)
+  .map(() => new MonomorphicTagImpl(1 as IUPDATABLE_TAG_ID));
+const DIRYTABLE_TAGS: DirtyableTag[] = new Array(DIRTYABLE_TAG_WARM_STACK_SIZE)
+  .fill(null)
+  .map(() => new MonomorphicTagImpl(0 as IDIRTYABLE_TAG_ID));
+
+//////////
+
 export const DIRTY_TAG = MonomorphicTagImpl.dirtyTag;
 export const UPDATE_TAG = MonomorphicTagImpl.updateTag;
 
 //////////
 
 export function createTag(): DirtyableTag {
-  return new MonomorphicTagImpl(DIRYTABLE_TAG_ID);
+  return DIRYTABLE_TAGS.pop() ?? new MonomorphicTagImpl(DIRYTABLE_TAG_ID);
 }
 
 export function createUpdatableTag(): UpdatableTag {
-  return new MonomorphicTagImpl(UPDATABLE_TAG_ID);
+  return UPDATABLE_TAGS.pop() ?? new MonomorphicTagImpl(UPDATABLE_TAG_ID);
 }
 
 //////////
