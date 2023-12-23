@@ -202,14 +202,6 @@ export class ListItemOpcode extends TryOpcode {
     updateRef(this.value, item.value);
     updateRef(this.memo, item.memo);
   }
-
-  shouldRemove(): boolean {
-    return !this.retained;
-  }
-
-  reset() {
-    this.retained = false;
-  }
 }
 
 export class ListBlockOpcode extends BlockOpcode {
@@ -333,7 +325,7 @@ export class ListBlockOpcode extends BlockOpcode {
       if (opcode.retained === false) {
         this.deleteItem(opcode);
       } else {
-        opcode.reset();
+        opcode.retained = false;
       }
     }
   }
@@ -345,10 +337,7 @@ export class ListBlockOpcode extends BlockOpcode {
 
     let { children } = this;
 
-    updateRef(opcode.memo, item.memo);
-    updateRef(opcode.value, item.value);
-    opcode.retained = true;
-
+    opcode.updateReferences(item);
     opcode.index = children.length;
     children.push(opcode);
   }
@@ -387,9 +376,7 @@ export class ListBlockOpcode extends BlockOpcode {
   ) {
     let { children } = this;
 
-    updateRef(opcode.memo, item.memo);
-    updateRef(opcode.value, item.value);
-    opcode.retained = true;
+    opcode.updateReferences(item);
 
     let currentSibling, nextSibling;
 

@@ -56,6 +56,9 @@ importers:
       '@release-it-plugins/workspaces':
         specifier: ^4.0.0
         version: 4.0.0(patch_hash=lhefrznz336tkf55irfqm4hld4)(release-it@16.2.1)
+      '@rollup/plugin-strip':
+        specifier: ^3.0.4
+        version: 3.0.4(rollup@4.5.1)
       '@rollup/plugin-terser':
         specifier: ^0.4.4
         version: 0.4.4(rollup@4.5.1)
@@ -354,6 +357,9 @@ importers:
       '@rollup/plugin-replace':
         specifier: ^5.0.5
         version: 5.0.5(rollup@4.5.1)
+      '@rollup/plugin-strip':
+        specifier: ^3.0.4
+        version: 3.0.4(rollup@4.5.1)
       '@rollup/plugin-terser':
         specifier: ^0.4.4
         version: 0.4.4(rollup@4.5.1)
@@ -3538,6 +3544,20 @@ packages:
       rollup: 4.5.1
     dev: false
 
+  /@rollup/plugin-strip@3.0.4(rollup@4.5.1):
+    resolution: {integrity: sha512-LDRV49ZaavxUo2YoKKMQjCxzCxugu1rCPQa0lDYBOWLj6vtzBMr8DcoJjsmg+s450RbKbe3qI9ZLaSO+O1oNbg==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      rollup: ^1.20.0 || ^2.0.0 || ^3.0.0 || ^4.0.0 || 3
+    peerDependenciesMeta:
+      rollup:
+        optional: true
+    dependencies:
+      '@rollup/pluginutils': 5.0.5(rollup@4.5.1)
+      estree-walker: 2.0.2
+      magic-string: 0.30.5
+      rollup: 4.5.1
+
   /@rollup/plugin-terser@0.4.4(rollup@4.5.1):
     resolution: {integrity: sha512-XHeJC5Bgvs8LfukDwWZp7yeqin6ns8RTl2B9avbejt6tZqsqvVoWI7ZTQrcNsfKEDWBTnTxM8nMDkO2IFFbd0A==}
     engines: {node: '>=14.0.0'}
@@ -3565,7 +3585,6 @@ packages:
       estree-walker: 2.0.2
       picomatch: 2.3.1
       rollup: 4.5.1
-    dev: false
 
   /@rollup/rollup-android-arm-eabi@4.5.1:
     resolution: {integrity: sha512-YaN43wTyEBaMqLDYeze+gQ4ZrW5RbTEGtT5o1GVDkhpdNcsLTnLRcLccvwy3E9wiDKWg9RIhuoy3JQKDRBfaZA==}
@@ -8467,7 +8486,6 @@ packages:
 
   /estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
-    dev: false
 
   /esutils@2.0.3:
     resolution: {integrity: sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==}

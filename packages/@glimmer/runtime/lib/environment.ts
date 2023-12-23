@@ -14,7 +14,7 @@ import type {
 } from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, expect } from '@glimmer/util';
-import { track, updateTag } from '@glimmer/validator';
+import { prepareTagsIfNeeded, track, updateTag } from '@glimmer/validator';
 
 import DebugRenderTree from './debug-render-tree';
 import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
@@ -137,6 +137,7 @@ export class EnvironmentImpl implements Environment {
       'A glimmer transaction was begun, but one already exists. You may have a nested transaction, possibly caused by an earlier runtime exception while rendering. Please check your console for the stack trace of any prior exceptions.'
     );
 
+    prepareTagsIfNeeded();
     this.debugRenderTree?.begin();
 
     this[TRANSACTION] = new TransactionImpl();

@@ -136,11 +136,7 @@ APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
   let stack = vm.stack;
   let block = stack.pop<Nullable<CompilableTemplate> | 0>();
 
-  if (block) {
-    stack.push(vm.compile(block));
-  } else {
-    stack.push(null);
-  }
+  stack.push(block ? vm.compile(block) : null);
 });
 
 APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
@@ -190,15 +186,11 @@ APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
   let value = Boolean(valueForRef(reference));
 
-  if (isConstRef(reference)) {
-    if (value === true) {
-      vm.goto(target);
-    }
-  } else {
-    if (value === true) {
-      vm.goto(target);
-    }
+  if (value === true) {
+    vm.goto(target);
+  }
 
+  if (!isConstRef(reference)) {
     vm.updateWith(new Assert(reference));
   }
 });
@@ -207,15 +199,11 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
   let value = Boolean(valueForRef(reference));
 
-  if (isConstRef(reference)) {
-    if (value === false) {
-      vm.goto(target);
-    }
-  } else {
-    if (value === false) {
-      vm.goto(target);
-    }
+  if (value === false) {
+    vm.goto(target);
+  }
 
+  if (!isConstRef(reference)) {
     vm.updateWith(new Assert(reference));
   }
 });

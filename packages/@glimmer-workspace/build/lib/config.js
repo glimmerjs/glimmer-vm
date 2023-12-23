@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import replace from '@rollup/plugin-replace';
+import strip from '@rollup/plugin-strip';
 import terser from '@rollup/plugin-terser';
 import * as insert from 'rollup-plugin-insert';
 import rollupTS from 'rollup-plugin-ts';
@@ -96,7 +97,31 @@ export function typescript(pkg, config) {
   return rollupTS({
     transpiler: 'babel',
     transpileOnly: true,
-    babelConfig: { presets },
+    babelConfig: {
+      presets,
+      plugins: [
+        function () {
+          return {
+            name: 'remove-unwrap-fn',
+            visitor: {
+              ImportSpecifier(path) {
+                if (path.node.imported.name === 'unwrap') {
+                  path.remove();
+                }
+              },
+              CallExpression(path) {
+                if (path.node.callee && path.node.callee.type === 'Identifier') {
+                  // remove unwrap and expect calls
+                  if (path.node.callee.name === 'unwrap' || path.node.callee.name === 'expect') {
+                    path.replaceWith(path.node.arguments[0]);
+                  }
+                }
+              },
+            },
+          };
+        },
+      ],
+    },
     /**
      * This shouldn't be required, but it is.
      * If we use @rollup/plugin-babel, we can remove this.
@@ -315,7 +340,25 @@ export class Package {
         commonjs(),
         nodeResolve(),
         ...this.replacements(env),
-        ...(env === 'prod' ? [terser()] : []),
+        ...(env === 'prod'
+          ? [
+              strip({
+                functions: ['assert', 'deprecate'],
+              }),
+              terser({
+                compress: {
+                  ecma: 2020,
+                  hoist_funs: true,
+                  module: true,
+                  passes: 3,
+                  toplevel: true,
+                  unsafe_undefined: true,
+                  negate_iife: false,
+                },
+                module: true,
+              }),
+            ]
+          : []),
         postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
