@@ -1034,6 +1034,39 @@ export class InitialRenderSuite extends RenderTest {
   }
 
   @test
+  'Lists could be updated'() {
+    const people = [
+      { handle: 'tomdale', name: 'Tom Dale' },
+      { handle: 'chancancode', name: 'Godfrey Chan' },
+      { handle: 'wycats', name: 'Yehuda Katz' },
+    ];
+    this.render(
+      '<div>{{#each this.people key="handle" as |p|}}<span>{{p.handle}}</span> - {{p.name}}{{/each}}</div>',
+      {
+        people,
+      }
+    );
+
+    this.assertHTML(
+      '<div><span>tomdale</span> - Tom Dale<span>chancancode</span> - Godfrey Chan<span>wycats</span> - Yehuda Katz</div>'
+    );
+
+    this.rerender({
+      people: [people[2], people[0]],
+    });
+
+    this.assertHTML('<div><span>wycats</span> - Yehuda Katz<span>tomdale</span> - Tom Dale</div>');
+
+    this.rerender({
+      people,
+    });
+
+    this.assertHTML(
+      '<div><span>tomdale</span> - Tom Dale<span>chancancode</span> - Godfrey Chan<span>wycats</span> - Yehuda Katz</div>'
+    );
+  }
+
+  @test
   'Simple helpers'() {
     this.registerHelper('testing', ([id]) => id);
     this.render('<div>{{testing this.title}}</div>', { title: 'hello' });

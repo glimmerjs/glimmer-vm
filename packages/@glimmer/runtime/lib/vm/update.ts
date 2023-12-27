@@ -18,7 +18,7 @@ import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/re
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { updateRef, valueForRef } from '@glimmer/reference';
-import { expect, logStep, Stack, unwrap } from '@glimmer/util';
+import { expect, logStep, Stack } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
 
 import type { InternalVM, VmInitCallback } from './append';
@@ -183,7 +183,6 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 }
 
 export class ListItemOpcode extends TryOpcode {
-  public retained = false;
   public index = -1;
 
   constructor(
@@ -198,17 +197,8 @@ export class ListItemOpcode extends TryOpcode {
   }
 
   updateReferences(item: OpaqueIterationItem) {
-    this.retained = true;
     updateRef(this.value, item.value);
     updateRef(this.memo, item.memo);
-  }
-
-  shouldRemove(): boolean {
-    return !this.retained;
-  }
-
-  reset() {
-    this.retained = false;
   }
 }
 
@@ -266,76 +256,54 @@ export class ListBlockOpcode extends BlockOpcode {
   private sync(iterator: OpaqueIterator) {
     let { opcodeMap: itemMap, children } = this;
 
-    let currentOpcodeIndex = 0;
-    let seenIndex = 0;
-
     this.children = this.bounds.boundList = [];
+
+    let items: OpaqueIterationItem[] = [];
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       let item = iterator.next();
-
       if (item === null) break;
+      items.push(item);
+    }
 
-      let opcode = children[currentOpcodeIndex];
-      let { key } = item;
+    const existingKeys = new Set(itemMap.keys());
+    const updatingKeys = new Set(items.map((item) => item.key));
+    const keysToRemove = [...existingKeys].filter((key) => !updatingKeys.has(key));
+    const removedIndexes = [];
 
-      // Items that have already been found and moved will already be retained,
-      // we can continue until we find the next unretained item
-      while (opcode !== undefined && opcode.retained === true) {
-        opcode = children[++currentOpcodeIndex];
+    if (keysToRemove.length === existingKeys.size) {
+      this.deleteAllItems(children);
+      children.splice(0, children.length);
+    } else {
+      for (const key of keysToRemove) {
+        const opcode = itemMap.get(key)!;
+        removedIndexes.push(opcode.index);
+        this.deleteItem(opcode);
+        children.splice(children.indexOf(opcode), 1);
       }
+    }
 
-      if (opcode !== undefined && opcode.key === key) {
-        this.retainItem(opcode, item);
-        currentOpcodeIndex++;
-      } else if (itemMap.has(key)) {
-        let itemOpcode = itemMap.get(key)!;
+    for (const value of children) {
+      removedIndexes.forEach((index) => {
+        if (value.index > index) {
+          value.index--;
+        }
+      });
+    }
 
-        // The item opcode was seen already, so we should move it.
-        if (itemOpcode.index < seenIndex) {
-          this.moveItem(itemOpcode, item, opcode);
+    items.forEach((item, index) => {
+      const opcode = itemMap.get(item.key);
+      if (opcode !== undefined) {
+        if (opcode.index !== index) {
+          this.moveItem(opcode, item, index === 0 ? children[index] : undefined);
         } else {
-          // Update the seen index, we are going to be moving this item around
-          // so any other items that come before it will likely need to move as
-          // well.
-          seenIndex = itemOpcode.index;
-
-          let seenUnretained = false;
-
-          // iterate through all of the opcodes between the current position and
-          // the position of the item's opcode, and determine if they are all
-          // retained.
-          for (let i = currentOpcodeIndex + 1; i < seenIndex; i++) {
-            if (unwrap(children[i]).retained === false) {
-              seenUnretained = true;
-              break;
-            }
-          }
-
-          // If we have seen only retained opcodes between this and the matching
-          // opcode, it means that all the opcodes in between have been moved
-          // already, and we can safely retain this item's opcode.
-          if (seenUnretained === false) {
-            this.retainItem(itemOpcode, item);
-            currentOpcodeIndex = seenIndex + 1;
-          } else {
-            this.moveItem(itemOpcode, item, opcode);
-            currentOpcodeIndex++;
-          }
+          this.retainItem(opcode, item);
         }
       } else {
-        this.insertItem(item, opcode);
+        this.insertItem(item, undefined);
       }
-    }
-
-    for (const opcode of children) {
-      if (opcode.retained === false) {
-        this.deleteItem(opcode);
-      } else {
-        opcode.reset();
-      }
-    }
+    });
   }
 
   private retainItem(opcode: ListItemOpcode, item: OpaqueIterationItem) {
@@ -347,9 +315,6 @@ export class ListBlockOpcode extends BlockOpcode {
 
     updateRef(opcode.memo, item.memo);
     updateRef(opcode.value, item.value);
-    opcode.retained = true;
-
-    opcode.index = children.length;
     children.push(opcode);
   }
 
@@ -389,7 +354,6 @@ export class ListBlockOpcode extends BlockOpcode {
 
     updateRef(opcode.memo, item.memo);
     updateRef(opcode.value, item.value);
-    opcode.retained = true;
 
     let currentSibling, nextSibling;
 
@@ -415,6 +379,19 @@ export class ListBlockOpcode extends BlockOpcode {
       let type = currentSibling && currentSibling === nextSibling ? 'move-retain' : 'move';
       logStep!('list-updates', [type, item.key]);
     }
+  }
+
+  private deleteAllItems(opcodes: ListItemOpcode[]) {
+    if (LOCAL_DEBUG) {
+      for (const opcode of opcodes) {
+        logStep!('list-updates', ['delete', opcode.key]);
+      }
+    }
+    for (const opcode of opcodes) {
+      destroy(opcode);
+      clear(opcode);
+    }
+    this.opcodeMap.clear();
   }
 
   private deleteItem(opcode: ListItemOpcode) {
