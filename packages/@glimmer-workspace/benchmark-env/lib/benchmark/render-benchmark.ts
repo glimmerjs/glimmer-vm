@@ -51,7 +51,7 @@ export default async function renderBenchmark(
       }
     });
   });
-
+  //
   performance.measure('load', 'navigationStart', 'renderStart');
 
   return async (name, update) => {

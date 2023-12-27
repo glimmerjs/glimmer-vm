@@ -65,11 +65,11 @@ const pwdRaw = await $`pwd`;
 const pwd = pwdRaw.toString().trim();
 
 // we use benchmark from current commit, very useful if we need to tweak it
-const benchmarkFolder = 'benchmark';
+// const benchmarkFolder = 'benchmark';
 
 // remove node_modules from benchmark folder, maybe we could figure out better option to distribute bench source
-await $`rm -rf ${join(pwd, benchmarkFolder, 'node_modules')}`;
-await $`rm -rf ${join(pwd, benchmarkFolder, 'benchmarks', 'krausest', 'node_modules')}`;
+// await $`rm -rf ${join(pwd, benchmarkFolder, 'node_modules')}`;
+// await $`rm -rf ${join(pwd, benchmarkFolder, 'benchmarks', 'krausest', 'node_modules')}`;
 
 await $`rm -rf ${CONTROL_DIR}`;
 await $`rm -rf ${EXPERIMENT_DIR}`;
@@ -78,7 +78,7 @@ await $`mkdir ${EXPERIMENT_DIR}`;
 
 const isMacOs = os.platform() === 'darwin';
 
-const BENCHMARK_FOLDER = join(pwd, benchmarkFolder);
+// const BENCHMARK_FOLDER = join(pwd, benchmarkFolder);
 
 const rawUpstreamUrl = await $`git ls-remote --get-url upstream`;
 const rawOriginUrl = await $`git ls-remote --get-url origin`;
@@ -107,8 +107,8 @@ await within(async () => {
   await cd(EXPERIMENT_DIR);
   await $`git clone ${originUrlStr} .`;
   await $`git checkout ${experimentBranchName}`;
-  await $`rm -rf ./benchmark`;
-  await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
+  // await $`rm -rf ./benchmark`;
+  // await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
   console.info('installing experiment source');
   await $`pnpm install --no-frozen-lockfile`.quiet();
@@ -134,8 +134,8 @@ await within(async () => {
   await cd(CONTROL_DIR);
   await $`git clone ${upstreamUrlStr} .`;
   await $`git checkout ${controlBranchName}`;
-  await $`rm -rf ./benchmark`;
-  await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
+  // await $`rm -rf ./benchmark`;
+  // await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
   console.info('installing control source');
   await $`pnpm install --no-frozen-lockfile`.quiet();
