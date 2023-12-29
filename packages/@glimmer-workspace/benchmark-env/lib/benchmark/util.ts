@@ -11,6 +11,8 @@ export async function measureRender(
   endMark: string,
   render: () => Promise<void> | void
 ) {
+  name = `vm-bench__${name}`;
+
   const endObserved = new Promise<void>((resolve) => {
     new PerformanceObserver((entries, observer) => {
       if (entries.getEntriesByName(endMark, 'mark').length > 0) {
