@@ -29,11 +29,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: wyvox/action-setup-pnpm@v3
-        with:
-          node-version: '20.1.0'
 
-      - name: RUN
-        run: pnpm run benchmark:setup
+      - run: pnpm run benchmark:setup
 
       - name: Remove unused artifacts
         run: rm -rf ./tracerbench-results/traces && rm -rf ./tracerbench-results/traces.zip
@@ -52,3 +49,8 @@ jobs:
           update-only: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add artifact links to pull request
+        uses: tonyhallett/artifacts-url-comments@v1.1.0
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
