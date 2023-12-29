@@ -189,10 +189,20 @@ await setup({
 });
 
 console.info({
-  upstreamUrlStr,
-  originUrlStr,
-  EXPERIMENT_DIR,
-  CONTROL_DIR,
+  control: {
+    upstreamUrlStr,
+    controlBranchName,
+    CONTROL_DIR,
+    CONTROL_PORT,
+    CONTROL_URL,
+  },
+  experiment: {
+    originUrlStr,
+    experimentBranchName,
+    EXPERIMENT_DIR,
+    EXPERIMENT_PORT,
+    EXPERIMENT_URL,
+  },
 });
 
 // start build assets
