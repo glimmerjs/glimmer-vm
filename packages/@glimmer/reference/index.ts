@@ -1,3 +1,4 @@
+export * from './lib/api/index';
 export {
   type AbstractIterator,
   createIteratorItemRef,
@@ -7,26 +8,4 @@ export {
   type OpaqueIterationItem,
   type OpaqueIterator,
 } from './lib/iterable';
-export {
-  childRefFor,
-  childRefFromParts,
-  createComputeRef,
-  createConstRef,
-  createDebugAliasRef,
-  createInvokableRef,
-  createPrimitiveRef,
-  createReadOnlyRef,
-  createUnboundRef,
-  FALSE_REFERENCE,
-  isConstRef,
-  isInvokableRef,
-  isUpdatableRef,
-  NULL_REFERENCE,
-  REFERENCE,
-  type Reference,
-  type ReferenceEnvironment,
-  TRUE_REFERENCE,
-  UNDEFINED_REFERENCE,
-  updateRef,
-  valueForRef,
-} from './lib/reference';
+export type { Reactive } from '@glimmer/interfaces';

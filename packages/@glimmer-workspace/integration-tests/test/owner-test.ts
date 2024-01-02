@@ -5,23 +5,21 @@ import type {
   WithCreateInstance,
   WithSubOwner,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
+import type { RenderDelegateOptions } from '@glimmer-workspace/integration-tests';
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE } from '@glimmer/reference';
-
-import type { RenderDelegateOptions } from '..';
-
 import {
+  ClientSideRenderDelegate,
   createTemplate,
   defineComponent,
   EmberishCurlyComponent,
   GlimmerishComponent,
-  JitRenderDelegate,
-  RenderTest,
-  suite,
+  RenderTestContext,
   test,
   TestJitRuntimeResolver,
-} from '..';
+  testSuite,
+} from '@glimmer-workspace/integration-tests';
 
 class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {
   override lookupComponent(name: string, owner: () => void): ResolvedComponentDefinition | null {
@@ -31,7 +29,7 @@ class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {
   }
 }
 
-class OwnerJitRenderDelegate extends JitRenderDelegate {
+class OwnerJitRenderDelegate extends ClientSideRenderDelegate {
   constructor(options?: RenderDelegateOptions) {
     super({
       ...options,
@@ -73,7 +71,7 @@ class MountManager implements WithCreateInstance<object>, WithSubOwner<object> {
     return state.owner;
   }
 
-  getSelf(): Reference {
+  getSelf(): Reactive {
     return NULL_REFERENCE;
   }
 
@@ -114,7 +112,7 @@ function defineCheckOwnerComponent(ownerToCheck: object | undefined, assert: Ass
   });
 }
 
-class OwnerTest extends RenderTest {
+class OwnerTest extends RenderTestContext {
   static suiteName = '[owner]';
 
   declare delegate: OwnerJitRenderDelegate;
@@ -133,21 +131,20 @@ class OwnerTest extends RenderTest {
       });
     }
 
-    this.delegate.registerComponent('Curly', 'Curly', 'FooBar', null, FooBar);
-    this.delegate.registerComponent('Curly', 'Curly', 'FooBaz', null, FooBaz);
-    this.delegate.registerComponent('TemplateOnly', 'TemplateOnly', 'FooQux', 'testing');
+    this.register.component('Curly', 'FooBar', null, FooBar);
+    this.register.component('Curly', 'FooBaz', null, FooBaz);
+    this.register.component('TemplateOnly', 'FooQux', 'testing');
 
-    this.render('<FooBar/>');
+    this.render.template('<FooBar/>');
 
     assert.verifySteps(['foo-bar owner called', 'foo-baz owner called'], 'owners used correctly');
   }
 
   @test
   'owner can be used per-template in runtime resolver'(assert: Assert) {
-    this.delegate.registerComponent('TemplateOnly', 'TemplateOnly', 'FooQux', 'testing');
+    this.register.component('TemplateOnly', 'FooQux', 'testing');
 
-    this.delegate.registerComponent(
-      'Curly',
+    this.register.component(
       'Curly',
       'FooBaz',
       null,
@@ -158,8 +155,7 @@ class OwnerTest extends RenderTest {
       }
     );
 
-    this.delegate.registerComponent(
-      'Curly',
+    this.register.component(
       'Curly',
       'FooBar',
       null,
@@ -170,7 +166,7 @@ class OwnerTest extends RenderTest {
       }
     );
 
-    this.render('<FooBar/>');
+    this.render.template('<FooBar/>');
 
     assert.verifySteps(['foo-bar owner called', 'foo-baz owner called'], 'owners used correctly');
   }
@@ -190,7 +186,7 @@ class OwnerTest extends RenderTest {
       `<CheckOwner1/><Mount2><CheckOwner1/></Mount2>`
     );
 
-    this.renderComponent(Mount1);
+    this.render.component(Mount1);
   }
 
   @test
@@ -208,7 +204,7 @@ class OwnerTest extends RenderTest {
       `<CheckOwner1/><Mount2 @CheckOwner1={{component CheckOwner1}}/>`
     );
 
-    this.renderComponent(Mount1);
+    this.render.component(Mount1);
   }
 
   // TODO: This behavior could be confusing the users, but currently we don't know of a way
@@ -229,18 +225,18 @@ class OwnerTest extends RenderTest {
       `<CheckOwner1/><Mount2 @CheckOwner2={{CheckOwner2}}/>`
     );
 
-    this.renderComponent(Mount1);
+    this.render.component(Mount1);
   }
 
   @test
   'resolution mode components defined within strict mode components receive correct owner during compilation'() {
-    this.registerComponent('TemplateOnly', 'Foo', 'Hello, world!');
+    this.register.component('TemplateOnly', 'Foo', 'Hello, world!');
 
     const Bar = defineComponent(null, '<Foo/>');
     const Baz = defineComponent({ Bar }, '<Bar/>');
 
-    this.renderComponent(Baz);
+    this.render.component(Baz);
   }
 }
 
-suite(OwnerTest, OwnerJitRenderDelegate);
+testSuite(OwnerTest, OwnerJitRenderDelegate);

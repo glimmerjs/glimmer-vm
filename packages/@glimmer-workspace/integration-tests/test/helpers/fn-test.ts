@@ -1,21 +1,25 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-import { createInvokableRef } from '@glimmer/reference';
+import { toMut } from '@glimmer/reference';
+import {
+  GlimmerishComponent,
+  jitSuite,
+  RenderTestContext,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
-import { GlimmerishComponent, jitSuite, RenderTest, test } from '../..';
-
-class FnTest extends RenderTest {
+class FnTest extends RenderTestContext {
   static suiteName = 'Helpers test: {{fn}}';
 
   stashedFn?: () => unknown;
 
-  beforeEach() {
-    this.registerHelper('invoke', ([fn]) => {
+  override readonly beforeEach = () => {
+    this.register.helper('invoke', ([fn]) => {
       return (fn as () => unknown)();
     });
 
     const setStashedFn = (value: unknown) => (this.stashedFn = value as () => unknown);
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'Stash',
       '',
@@ -26,11 +30,11 @@ class FnTest extends RenderTest {
         }
       }
     );
-  }
+  };
 
   @test
   'updates when arguments change'() {
-    this.render(`{{invoke (fn this.myFunc this.arg1 this.arg2)}}`, {
+    this.render.template(`{{invoke (fn this.myFunc this.arg1 this.arg2)}}`, {
       myFunc(arg1: string, arg2: string) {
         return `arg1: ${arg1}, arg2: ${arg2}`;
       },
@@ -58,7 +62,7 @@ class FnTest extends RenderTest {
     let func1 = (arg1: string, arg2: string) => `arg1: ${arg1}, arg2: ${arg2}`;
     let func2 = (arg1: string, arg2: string) => `arg2: ${arg2}, arg1: ${arg1}`;
 
-    this.render(`{{invoke (fn this.myFunc this.arg1 this.arg2)}}`, {
+    this.render.template(`{{invoke (fn this.myFunc this.arg1 this.arg2)}}`, {
       myFunc: func1,
 
       arg1: 'foo',
@@ -77,7 +81,7 @@ class FnTest extends RenderTest {
 
   @test
   'a stashed fn result update arguments when invoked'(assert: Assert) {
-    this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1 this.arg2}}/>`, {
+    this.render.template(`<Stash @stashedFn={{fn this.myFunc this.arg1 this.arg2}}/>`, {
       myFunc(arg1: string, arg2: string) {
         return `arg1: ${arg1}, arg2: ${arg2}`;
       },
@@ -105,7 +109,7 @@ class FnTest extends RenderTest {
     let func1 = (arg1: string, arg2: string) => `arg1: ${arg1}, arg2: ${arg2}`;
     let func2 = (arg1: string, arg2: string) => `arg2: ${arg2}, arg1: ${arg1}`;
 
-    this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1 this.arg2}}/>`, {
+    this.render.template(`<Stash @stashedFn={{fn this.myFunc this.arg1 this.arg2}}/>`, {
       myFunc: func1,
 
       arg1: 'foo',
@@ -124,7 +128,7 @@ class FnTest extends RenderTest {
   @test
   'asserts if no argument given'(assert: Assert) {
     assert.throws(() => {
-      this.render(`{{fn}}`, {
+      this.render.template(`{{fn}}`, {
         myFunc: null,
         arg1: 'foo',
         arg2: 'bar',
@@ -135,7 +139,7 @@ class FnTest extends RenderTest {
   @test
   'asserts if the first argument is undefined'(assert: Assert) {
     assert.throws(() => {
-      this.render(`{{fn this.myFunc this.arg1 this.arg2}}`, {
+      this.render.template(`{{fn this.myFunc this.arg1 this.arg2}}`, {
         myFunc: undefined,
         arg1: 'foo',
         arg2: 'bar',
@@ -146,7 +150,7 @@ class FnTest extends RenderTest {
   @test
   'asserts if the first argument is null'(assert: Assert) {
     assert.throws(() => {
-      this.render(`{{fn this.myFunc this.arg1 this.arg2}}`, {
+      this.render.template(`{{fn this.myFunc this.arg1 this.arg2}}`, {
         myFunc: null,
         arg1: 'foo',
         arg2: 'bar',
@@ -158,7 +162,7 @@ class FnTest extends RenderTest {
   'asserts if the provided function accesses `this` without being bound prior to passing to fn'(
     assert: Assert
   ) {
-    this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
+    this.render.template(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
       myFunc(arg1: string) {
         return `arg1: ${arg1}, arg2: ${this['arg2']}`;
       },
@@ -174,7 +178,7 @@ class FnTest extends RenderTest {
 
   @test
   'there is no `this` context within the callback'(assert: Assert) {
-    this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
+    this.render.template(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
       myFunc() {
         assert.step('calling stashed function');
         assert.throws(() => String(this), /not bound to a valid `this` context/u);
@@ -199,14 +203,14 @@ class FnTest extends RenderTest {
 
     context.myFunc = context.myFunc.bind(context);
 
-    this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, context);
+    this.render.template(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, context);
 
     assert.strictEqual(this.stashedFn?.(), 'arg1: foo, arg2: bar');
   }
 
   @test
   'partially applies each layer when nested [GH#17959]'() {
-    this.render(`{{invoke (fn (fn (fn this.myFunc this.arg1) this.arg2) this.arg3)}}`, {
+    this.render.template(`{{invoke (fn (fn (fn this.myFunc this.arg1) this.arg2) this.arg3)}}`, {
       myFunc(arg1: string, arg2: string, arg3: string) {
         return `arg1: ${arg1}, arg2: ${arg2}, arg3: ${arg3}`;
       },
@@ -234,12 +238,12 @@ class FnTest extends RenderTest {
 
   @test
   'can be used on the result of `mut`'() {
-    this.registerInternalHelper('mut', (args: CapturedArguments) => {
+    this.register.internalHelper('mut', (args: CapturedArguments) => {
       let [first] = this.guardArray({ positional: args.positional }, { min: 1 });
-      return createInvokableRef(first);
+      return toMut(first);
     });
 
-    this.render(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {
+    this.render.template(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {
       arg1: 'foo',
       arg2: 'bar',
     });
@@ -254,12 +258,12 @@ class FnTest extends RenderTest {
 
   @test
   'can be used on the result of `mut` with a falsy value'() {
-    this.registerInternalHelper('mut', (args: CapturedArguments) => {
+    this.register.internalHelper('mut', (args: CapturedArguments) => {
       let [first] = this.guardArray({ positional: args.positional }, { min: 1 });
-      return createInvokableRef(first);
+      return toMut(first);
     });
 
-    this.render(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {
+    this.render.template(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {
       arg1: 'foo',
       arg2: false,
     });

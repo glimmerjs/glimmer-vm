@@ -29,6 +29,7 @@ import type {
   GetLexicalSymbolOpcode,
   GetStrictKeywordOpcode,
   GetSymbolOpcode,
+  HandleErrorOpcode,
   HasBlockOpcode,
   HasBlockParamsOpcode,
   IfInlineOpcode,
@@ -306,6 +307,13 @@ export namespace Statements {
     inverse: Nullable<SerializedInlineBlock>,
   ];
 
+  export type HandleError = [
+    op: HandleErrorOpcode,
+    handler: Expression,
+    block: SerializedInlineBlock,
+    inverse: Nullable<SerializedInlineBlock>,
+  ];
+
   export type Each = [
     op: EachOpcode,
     condition: Expression,
@@ -363,7 +371,8 @@ export namespace Statements {
     | With
     | Let
     | WithDynamicVars
-    | InvokeComponent;
+    | InvokeComponent
+    | HandleError;
 
   export type Attribute =
     | StaticAttr
@@ -402,7 +411,11 @@ export type SyntaxWithInternal =
  */
 export type SerializedBlock = [statements: Statements.Statement[]];
 
-export type SerializedInlineBlock = [statements: Statements.Statement[], parameters: number[]];
+export type SerializedInlineBlock = [
+  statements: Statements.Statement[],
+  parameters: number[],
+  names?: string[],
+];
 
 /**
  * A JSON object that the compiled TemplateBlock was serialized into.

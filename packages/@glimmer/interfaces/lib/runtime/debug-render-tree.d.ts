@@ -1,6 +1,6 @@
 import type { SimpleElement, SimpleNode } from '@simple-dom/interface';
 
-import type { Bounds } from '../dom/bounds';
+import type { BlockBounds } from '../dom/bounds';
 import type { Arguments, CapturedArguments } from './arguments';
 
 export type RenderNodeType = 'outlet' | 'engine' | 'route-template' | 'component';
@@ -35,7 +35,7 @@ export interface DebugRenderTree<Bucket extends object = object> {
 
   update(state: Bucket): void;
 
-  didRender(state: Bucket, bounds: Bounds): void;
+  didRender(state: Bucket, bounds: BlockBounds): void;
 
   willDestroy(state: Bucket): void;
 

@@ -5,8 +5,14 @@
   "description": "Common utilities used in Glimmer",
   "repository": "https://github.com/tildeio/glimmer/tree/main/packages/@glimmer/util",
   "type": "module",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "lib/index.ts",
+  "types": "lib/index.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.ts",
+      "default": "./lib/index.ts"
+    }
+  },
   "publishConfig": {
     "access": "public",
     "types": "dist/dev/index.d.ts",

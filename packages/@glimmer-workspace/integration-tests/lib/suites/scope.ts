@@ -1,13 +1,13 @@
-import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { RenderTestContext } from '../render-test';
+import { render } from '../test-decorator';
 import { stripTight } from '../test-helpers/strings';
 
-export class ScopeSuite extends RenderTest {
+export class ScopeSuite extends RenderTestContext {
   static suiteName = 'Scope';
 
-  @test
+  @render
   'correct scope - conflicting local names'() {
-    this.render({
+    this.render.template({
       layout: stripTight`
         {{#with @a as |item|}}{{@a}}: {{item}},
           {{#with @b as |item|}} {{@b}}: {{item}},
@@ -21,9 +21,9 @@ export class ScopeSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'correct scope - conflicting block param and attr names'() {
-    this.render({
+    this.render.template({
       layout:
         'Outer: {{@conflict}} {{#with @item as |conflict|}}Inner: {{@conflict}} Block: {{conflict}}{{/with}}',
       args: { item: '"from block"', conflict: '"from attr"' },

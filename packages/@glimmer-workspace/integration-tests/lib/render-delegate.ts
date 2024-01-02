@@ -1,61 +1,87 @@
 import type {
   Cursor,
   Dict,
-  DynamicScope,
   ElementBuilder,
   ElementNamespace,
   Environment,
-  Helper,
+  Optional,
   RenderResult,
   SimpleDocument,
   SimpleDocumentFragment,
   SimpleElement,
   SimpleText,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 
-import type { ComponentKind, ComponentTypes } from './components';
-import type { UserHelper } from './helpers';
+import type { TestJitContext } from './modes/jit/delegate';
 import type { TestJitRegistry } from './modes/jit/registry';
 import type { TestJitRuntimeResolver } from './modes/jit/resolver';
+import type { Self } from './render-test';
 
 export interface RenderDelegateOptions {
   doc?: SimpleDocument | Document | undefined;
-  env?: EnvironmentDelegate | undefined;
+  env?: Optional<EnvironmentDelegate>;
   resolver?: (registry: TestJitRegistry) => TestJitRuntimeResolver;
 }
 
-export default interface RenderDelegate {
+export interface DomDelegate {
   getInitialElement(): SimpleElement;
+
   createElement(tagName: string): SimpleElement;
   createTextNode(content: string): SimpleText;
   createElementNS(namespace: ElementNamespace, tagName: string): SimpleElement;
   createDocumentFragment(): SimpleDocumentFragment;
-  registerComponent<K extends ComponentKind, L extends ComponentKind>(
-    type: K,
-    testType: L,
-    name: string,
-    layout: string,
-    Class?: ComponentTypes[K]
-  ): void;
-  registerPlugin(plugin: ASTPluginBuilder): void;
-  registerHelper(name: string, helper: UserHelper): void;
-  registerInternalHelper(name: string, helper: Helper): void;
-  registerModifier(name: string, klass: unknown): void;
+}
+
+/**
+ * A WrappedTemplate is used to wrap tests in no-op handling (such as `{{#-try}}` error recovery).
+ *
+ * It has the wrapped template itself, as well as any properties (`this` values) needed to make the template work.
+ */
+export interface WrappedTemplate {
+  template: string;
+  properties?: Dict;
+}
+
+export interface LogRender {
+  template: string;
+  self: Self;
+  element: SimpleElement;
+}
+
+export default interface RenderDelegate {
+  // Each registered value (using the `test.register.XXX` APIs) will be registered in each of these
+  // registries. In rehydration tests, this causes values to be registered on both the emulated
+  // server and client.
+  readonly registries: TestJitRegistry[];
+
+  // The compilation and runtime contexts for the current testing environment.
+  readonly context: TestJitContext;
+
+  readonly dom: {
+    document: SimpleDocument | Document;
+    getInitialElement: (doc: SimpleDocument | Document) => SimpleElement;
+  };
+
+  /**
+   * Optionally wrap the template in some additional code. This is used to wrap tests in no-op handling (such as
+   * `{{#-try}}` error recovery).
+   */
+  wrap(template: string): WrappedTemplate;
+
+  // Render the template into the given element. Rehydration delegates will emulate
+  // rendering on the server and having the contents already present in the DOM.
   renderTemplate(
     template: string,
-    context: Dict<unknown>,
+    self: Self,
     element: SimpleElement,
-    snapshot: () => void
+    snapshot: () => void,
+    plugins: ASTPluginBuilder[]
   ): RenderResult;
-  renderComponent?(
-    component: object,
-    args: Record<string, unknown>,
-    element: SimpleElement,
-    dynamicScope?: DynamicScope
-  ): RenderResult;
+
+  // Get the appropriate element builder for the current environment.
   getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder;
-  getSelf(env: Environment, context: unknown): Reference;
 }
+
+export type { RenderDelegate };

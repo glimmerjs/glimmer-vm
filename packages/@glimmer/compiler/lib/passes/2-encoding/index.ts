@@ -1,5 +1,5 @@
 import type { WireFormat } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 import type * as mir from './mir';
@@ -13,13 +13,13 @@ export function visit(template: mir.Template): WireFormat.SerializedTemplateBloc
   let block: WireFormat.SerializedTemplateBlock = [
     statements,
     scope.symbols,
-    scope.hasEval,
+    scope.hasDebug,
     scope.upvars,
   ];
 
-  if (LOCAL_SHOULD_LOG) {
+  if (LOCAL_TRACE_LOGGING) {
     let debug = new WireFormatDebugger(block);
-    LOCAL_LOGGER.log(
+    LOCAL_LOGGER.debug(
       `-> `,
       statements.map((s) => debug.formatOpcode(s))
     );

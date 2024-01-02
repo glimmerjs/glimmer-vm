@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 import chalk from 'chalk';
 
-import { type Package, packages } from './packages.mjs';
+import { packages, type Package } from './packages.mjs';
 
 const ROLLUP_CONFIG = [
   `import { Package } from '@glimmer-workspace/build-support'`,

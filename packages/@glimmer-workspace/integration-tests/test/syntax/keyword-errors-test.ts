@@ -1,7 +1,11 @@
 import type { KeywordType } from '@glimmer/syntax';
 import { KEYWORDS_TYPES } from '@glimmer/syntax';
-
-import { jitSuite, preprocess, RenderTest, test } from '../..';
+import {
+  jitSuite,
+  preprocess,
+  RenderTestContext,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
 type KeywordName = keyof typeof KEYWORDS_TYPES;
 const TYPES: Record<KeywordName, readonly KeywordType[]> = KEYWORDS_TYPES;
@@ -13,7 +17,7 @@ const CALL_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Call'));
 const MODIFIER_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Modifier'));
 
 for (let keyword of KEYWORDS) {
-  class KeywordSyntaxErrors extends RenderTest {
+  class KeywordSyntaxErrors extends RenderTestContext {
     static suiteName = `\`${keyword}\` keyword syntax errors`;
 
     @test

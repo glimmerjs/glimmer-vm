@@ -1,37 +1,36 @@
 import type {
   CapturedArguments,
   CurriedType,
-  Dict,
-  Maybe,
   Nullable,
   Owner,
   RuntimeResolver,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
-import { createComputeRef, valueForRef } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
+import { Formula, unwrapReactive } from '@glimmer/reference';
 import { expect, isObject } from '@glimmer/util';
 import { CurriedTypes } from '@glimmer/vm';
 
-import { curry, isCurriedType } from '../curried-value';
+import { curry, isCurried } from '../curried-value';
 
 export default function createCurryRef(
   type: CurriedType,
-  inner: Reference,
+  inner: Reactive,
   owner: Owner,
   args: Nullable<CapturedArguments>,
   resolver: RuntimeResolver,
   isStrict: boolean
 ) {
-  let lastValue: Maybe<Dict> | string, curriedDefinition: object | string | null;
+  let lastValue: unknown;
+  let curriedDefinition: object | string | null;
 
-  return createComputeRef(() => {
-    let value = valueForRef(inner) as Maybe<Dict> | string;
+  return Formula(() => {
+    let value = unwrapReactive(inner);
 
     if (value === lastValue) {
       return curriedDefinition;
     }
 
-    if (isCurriedType(value, type)) {
+    if (isCurried(value, type)) {
       curriedDefinition = args ? curry(type, value, owner, args) : args;
     } else if (type === CurriedTypes.Component && typeof value === 'string' && value) {
       // Only components should enter this path, as helpers and modifiers do not

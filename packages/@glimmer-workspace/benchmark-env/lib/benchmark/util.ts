@@ -1,7 +1,7 @@
-import type { CompileTimeCompilationContext, CompileTimeComponent } from '@glimmer/interfaces';
+import type { CompileTimeComponent, JitContext } from '@glimmer/interfaces';
 import { unwrapHandle } from '@glimmer/util';
 
-export function compileEntry(entry: CompileTimeComponent, context: CompileTimeCompilationContext) {
+export function compileEntry(entry: CompileTimeComponent, context: JitContext) {
   return unwrapHandle(entry.compilable!.compile(context));
 }
 

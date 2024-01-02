@@ -9,68 +9,64 @@ import type {
   UpdatingOpcode,
   UpdatingVM,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 import type { Revision, Tag } from '@glimmer/validator';
-import {
-  check,
-  CheckElement,
-  CheckMaybe,
-  CheckNode,
-  CheckOption,
-  CheckString,
-} from '@glimmer/debug';
+import { check, CheckElement, CheckMaybe, CheckNode, CheckString } from '@glimmer/debug';
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { getInternalModifierManager } from '@glimmer/manager';
-import { createComputeRef, isConstRef, valueForRef } from '@glimmer/reference';
-import { assign, debugToString, expect, isObject } from '@glimmer/util';
+import { Formula, isConstant, readReactive, unwrapReactive } from '@glimmer/reference';
+import {
+  assign,
+  debugToString,
+  expect,
+  isObject,
+  Results,
+  stringifyDebugLabel,
+} from '@glimmer/util';
 import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
 
 import type { CurriedValue } from '../../curried-value';
 import type { DynamicAttribute } from '../../vm/attributes/dynamic';
 
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { isCurried, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
-import { CONSTANTS } from '../../symbols';
-import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
+import { CheckArguments, CheckOperations, CheckReactive } from './-debug-strip';
 import { Assert } from './vm';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
-  vm.elements().appendText(vm[CONSTANTS].getValue(text));
+  vm.elements().appendText(vm.constants.getValue(text));
 });
 
 APPEND_OPCODES.add(Op.Comment, (vm, { op1: text }) => {
-  vm.elements().appendComment(vm[CONSTANTS].getValue(text));
+  vm.elements().appendComment(vm.constants.getValue(text));
 });
 
 APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
-  vm.elements().openElement(vm[CONSTANTS].getValue(tag));
+  vm.elements().openElement(vm.constants.getValue(tag));
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, (vm) => {
-  let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
-  vm.elements().openElement(tagName);
+  vm.popReactive((tagName) => vm.elements().openElement(tagName), CheckString);
 });
 
 APPEND_OPCODES.add(Op.PushRemoteElement, (vm) => {
-  let elementRef = check(vm.stack.pop(), CheckReference);
-  let insertBeforeRef = check(vm.stack.pop(), CheckReference);
-  let guidRef = check(vm.stack.pop(), CheckReference);
+  let [reactiveElement, element] = vm.popResult(CheckElement);
+  let [reactiveInsertBefore, insertBefore] = vm.popResult(CheckMaybe(CheckNode));
+  let [, guid] = vm.popResult(CheckString);
 
-  let element = check(valueForRef(elementRef), CheckElement);
-  let insertBefore = check(valueForRef(insertBeforeRef), CheckMaybe(CheckOption(CheckNode)));
-  let guid = valueForRef(guidRef) as string;
+  vm.unwrap(Results([element, insertBefore, guid]), ([element, insertBefore, guid]) => {
+    if (!isConstant(reactiveElement)) {
+      vm.updateWith(Assert.of(reactiveElement, element));
+    }
 
-  if (!isConstRef(elementRef)) {
-    vm.updateWith(new Assert(elementRef));
-  }
+    if (insertBefore !== undefined && !isConstant(reactiveInsertBefore)) {
+      vm.updateWith(Assert.of(reactiveInsertBefore, insertBefore));
+    }
 
-  if (insertBefore !== undefined && !isConstRef(insertBeforeRef)) {
-    vm.updateWith(new Assert(insertBeforeRef));
-  }
-
-  let block = vm.elements().pushRemoteElement(element, guid, insertBefore);
-  if (block) vm.associateDestroyable(block);
+    let block = vm.elements().pushRemoteElement(element, guid, insertBefore);
+    if (block) vm.associateDestroyable(block);
+  });
 });
 
 APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
@@ -110,8 +106,9 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
   }
 
   let owner = vm.getOwner();
+
   let args = check(vm.stack.pop(), CheckArguments);
-  let definition = vm[CONSTANTS].getValue<ModifierDefinition>(handle);
+  let definition = vm.constants.getValue<ModifierDefinition>(handle);
 
   let { manager } = definition;
 
@@ -151,13 +148,13 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
   }
 
   let { stack } = vm;
-  let ref = check(stack.pop(), CheckReference);
+  let ref = check(stack.pop(), CheckReactive);
   let args = check(stack.pop(), CheckArguments).capture();
   let { constructing } = vm.elements();
   let initialOwner = vm.getOwner();
 
-  let instanceRef = createComputeRef(() => {
-    let value = valueForRef(ref);
+  let instanceRef = Formula(() => {
+    let value = unwrapReactive(ref);
     let owner: Owner;
 
     if (!isObject(value)) {
@@ -166,7 +163,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
     let hostDefinition: CurriedValue | ModifierDefinitionState;
 
-    if (isCurriedType(value, CurriedTypes.Modifier)) {
+    if (isCurried(value, CurriedTypes.Modifier)) {
       let {
         definition: resolvedDefinition,
         owner: curriedOwner,
@@ -193,12 +190,13 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
     if (manager === null) {
       if (import.meta.env.DEV) {
+        const label = stringifyDebugLabel(ref);
         throw new Error(
-          `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${
-            ref.debugLabel
-          }}}\`, and the incorrect definition is the value at the path \`${
-            ref.debugLabel
-          }\`, which was: ${debugToString!(hostDefinition)}`
+          `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${String(
+            label
+          )}}}\`, and the incorrect definition is the value at the path \`${debugToString!(
+            hostDefinition
+          )}\`, which was: ${debugToString!(hostDefinition)}`
         );
       } else {
         throw new Error('BUG: modifier manager expected');
@@ -225,26 +223,30 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
     };
   });
 
-  let instance = valueForRef(instanceRef);
-  let tag = null;
+  let result = readReactive(instanceRef);
 
-  if (instance !== undefined) {
-    let operations = expect(
-      check(vm.fetchValue($t0), CheckOperations),
-      'BUG: ElementModifier could not find operations to append to'
-    );
+  if (vm.unwrapResult(result)) {
+    const instance = result.value;
+    let tag = null;
 
-    operations.addModifier(instance);
+    if (instance !== undefined) {
+      let operations = expect(
+        check(vm.fetchValue($t0), CheckOperations),
+        'BUG: ElementModifier could not find operations to append to'
+      );
 
-    tag = instance.manager.getTag(instance.state);
+      operations.addModifier(instance);
 
-    if (tag !== null) {
-      consumeTag(tag);
+      tag = instance.manager.getTag(instance.state);
+
+      if (tag !== null) {
+        consumeTag(tag);
+      }
     }
-  }
 
-  if (!isConstRef(ref) || tag) {
-    return vm.updateWith(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
+    if (!isConstant(ref) || tag) {
+      return vm.updateWith(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
+    }
   }
 });
 
@@ -276,7 +278,7 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
   constructor(
     private tag: Tag | null,
     private instance: ModifierInstance | undefined,
-    private instanceRef: Reference<ModifierInstance | undefined>
+    private instanceRef: Reactive<ModifierInstance | undefined>
   ) {
     this.lastUpdated = valueForTag(tag ?? CURRENT_TAG);
   }
@@ -284,7 +286,7 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
   evaluate(vm: UpdatingVM) {
     let { tag, lastUpdated, instance, instanceRef } = this;
 
-    let newInstance = valueForRef(instanceRef);
+    let newInstance = unwrapReactive(instanceRef);
 
     if (newInstance !== instance) {
       if (instance !== undefined) {
@@ -326,35 +328,37 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
 }
 
 APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getValue<string>(_name);
-  let value = vm[CONSTANTS].getValue<string>(_value);
-  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
+  let name = vm.constants.getValue<string>(_name);
+  let value = vm.constants.getValue<string>(_value);
+  let namespace = _namespace ? vm.constants.getValue<string>(_namespace) : null;
 
   vm.elements().setStaticAttribute(name, value, namespace);
 });
 
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getValue<string>(_name);
-  let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
-  let reference = check(vm.stack.pop(), CheckReference);
-  let value = valueForRef(reference);
-  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
+  let name = vm.constants.getValue<string>(_name);
+  let trusting = vm.constants.getValue<boolean>(_trusting);
+  let reference = check(vm.stack.pop(), CheckReactive);
 
-  let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
+  vm.deref(reference, (value) => {
+    let namespace = _namespace ? vm.constants.getValue<string>(_namespace) : null;
 
-  if (!isConstRef(reference)) {
-    vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
-  }
+    let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
+
+    if (!isConstant(reference)) {
+      vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
+    }
+  });
 });
 
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
-  private updateRef: Reference;
+  private updateRef: Reactive;
 
-  constructor(reference: Reference<unknown>, attribute: DynamicAttribute, env: Environment) {
+  constructor(reference: Reactive<unknown>, attribute: DynamicAttribute, env: Environment) {
     let initialized = false;
 
-    this.updateRef = createComputeRef(() => {
-      let value = valueForRef(reference);
+    this.updateRef = Formula(() => {
+      let value = unwrapReactive(reference);
 
       if (initialized === true) {
         attribute.update(value, env);
@@ -363,10 +367,14 @@ export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
       }
     });
 
-    valueForRef(this.updateRef);
+    unwrapReactive(this.updateRef);
   }
 
-  evaluate() {
-    valueForRef(this.updateRef);
+  evaluate(vm: UpdatingVM) {
+    const result = readReactive(this.updateRef);
+
+    if (result.type === 'err') {
+      vm.unwind();
+    }
   }
 }

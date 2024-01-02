@@ -1,5 +1,5 @@
 import type {
-  Bounds,
+  BlockBounds,
   Dict,
   Nullable,
   SimpleComment,
@@ -66,7 +66,11 @@ export class DOMOperations {
     parent.insertBefore(node, reference);
   }
 
-  insertHTMLBefore(parent: SimpleElement, nextSibling: Nullable<SimpleNode>, html: string): Bounds {
+  insertHTMLBefore(
+    parent: SimpleElement,
+    nextSibling: Nullable<SimpleNode>,
+    html: string
+  ): BlockBounds {
     if (html === '') {
       const comment = this.createComment('');
       parent.insertBefore(comment, nextSibling);
@@ -113,7 +117,7 @@ export function moveNodesBefore(
   source: SimpleNode,
   target: SimpleElement,
   nextSibling: Nullable<SimpleNode>
-): Bounds {
+): BlockBounds {
   const first = expect(source.firstChild, 'source is empty');
   let last: SimpleNode = first;
   let current: Nullable<SimpleNode> = first;

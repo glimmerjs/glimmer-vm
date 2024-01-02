@@ -3,7 +3,17 @@
   "version": "0.84.3",
   "private": true,
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer-workspace/integration-tests",
-  "main": "index.ts",
+  "main": "lib/index.ts",
+  "types": "lib/index.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.ts",
+      "default": "./lib/index.ts"
+    }
+  },
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../tsconfig.json"

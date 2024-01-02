@@ -36,6 +36,7 @@ export interface Environment {
 
   scheduleInstallModifier(modifier: ModifierInstance): void;
   scheduleUpdateModifier(modifier: ModifierInstance): void;
+  scheduleAfterRender(callback: () => void): void;
 
   begin(): void;
   commit(): void;
@@ -44,5 +45,7 @@ export interface Environment {
   getAppendOperations(): GlimmerTreeConstruction;
 
   isInteractive: boolean;
-  debugRenderTree?: DebugRenderTree | undefined;
+  debugRenderTree: DebugRenderTree | undefined;
+
+  withDebug(debug: (tree: DebugRenderTree) => void): void;
 }

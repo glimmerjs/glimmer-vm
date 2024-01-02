@@ -1,24 +1,35 @@
-import type { Reference } from '@glimmer/reference';
-import { createComputeRef, valueForRef } from '@glimmer/reference';
+import type { Dict, Maybe } from '@glimmer/interfaces';
+import type { Reactive } from '@glimmer/reference';
+import { readReactive, ResultFormula } from '@glimmer/reference';
+import { Ok, stringifyDebugLabel } from '@glimmer/util';
 
-export function createConcatRef(partsRefs: Reference[]) {
-  return createComputeRef(() => {
-    const parts: string[] = [];
+export function createConcatRef(partsRefs: Reactive[]) {
+  return ResultFormula(
+    () => {
+      const parts: string[] = [];
 
-    for (const ref of partsRefs) {
-      const value = valueForRef(ref);
+      for (const ref of partsRefs) {
+        let result = readReactive(ref);
 
-      if (value !== null && value !== undefined) {
-        parts.push(castToString(value));
+        if (result.type === 'err') {
+          return result;
+        }
+
+        const value = result.value as Maybe<Dict>;
+        if (value !== null && value !== undefined) {
+          parts.push(castToString(value));
+        }
       }
-    }
 
-    if (parts.length > 0) {
-      return parts.join('');
-    }
+      return Ok(parts.length > 0 ? parts.join('') : null);
+    },
+    import.meta.env.DEV ? concatLabel(partsRefs) : undefined
+  );
+}
 
-    return null;
-  });
+function concatLabel(parts: Reactive[]) {
+  const body = parts.map((reactive) => `{${stringifyDebugLabel(reactive)}}`).join(' + ');
+  return `(concat ${body})`;
 }
 
 function castToString(value: string | object) {

@@ -1,10 +1,16 @@
 import type { SimpleElement } from '@glimmer/interfaces';
 import { normalizeProperty } from '@glimmer/runtime';
 import { castToBrowser, expect, NS_SVG } from '@glimmer/util';
+import {
+  assertingElement,
+  hasAttribute,
+  jitSuite,
+  RenderTestContext,
+  test,
+  tracked,
+} from '@glimmer-workspace/integration-tests';
 
-import { assertingElement, hasAttribute, jitSuite, RenderTest, test, tracked } from '..';
-
-export class AttributesTests extends RenderTest {
+export class AttributesTests extends RenderTestContext {
   static suiteName = 'Attributes';
 
   protected readDOMAttr(attr: string, element = this.element.firstChild as SimpleElement) {
@@ -33,11 +39,11 @@ export class AttributesTests extends RenderTest {
 
   @test
   'helpers shadow self'() {
-    this.registerHelper('foo', () => {
+    this.register.helper('foo', () => {
       return 'hello';
     });
 
-    this.render('<div data-test="{{foo}}"></div>', { foo: 'bye' });
+    this.render.template('<div data-test="{{foo}}"></div>', { foo: 'bye' });
     this.assertHTML('<div data-test="hello"></div>');
     this.assertStableRerender();
 
@@ -52,7 +58,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'disable updates properly'() {
-    this.render('<input disabled={{this.enabled}} />', { enabled: true });
+    this.render.template('<input disabled={{this.enabled}} />', { enabled: true });
     this.assertHTML('<input disabled />');
     this.assertStableRerender();
 
@@ -83,7 +89,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'Quoted disabled is always disabled if a not-null, not-undefined value is given'() {
-    this.render('<input disabled="{{this.enabled}}" />', { enabled: true });
+    this.render.template('<input disabled="{{this.enabled}}" />', { enabled: true });
     this.assertHTML('<input disabled />');
     this.assertStableRerender();
 
@@ -114,7 +120,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'disabled without an explicit value is truthy'() {
-    this.render('<input disabled />');
+    this.render.template('<input disabled />');
     this.assertHTML('<input disabled />');
     this.assert.ok(this.readDOMAttr('disabled'));
 
@@ -124,7 +130,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'div[href] is not marked as unsafe'() {
-    this.render('<div href="{{this.foo}}"></div>', { foo: 'javascript:foo()' });
+    this.render.template('<div href="{{this.foo}}"></div>', { foo: 'javascript:foo()' });
     this.assertHTML('<div href="javascript:foo()"></div>');
     this.assertStableRerender();
 
@@ -139,7 +145,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'triple curlies in attribute position'() {
-    this.render('<div data-bar="bar" data-foo={{{this.rawString}}}>Hello</div>', {
+    this.render.template('<div data-bar="bar" data-foo={{{this.rawString}}}>Hello</div>', {
       rawString: 'TRIPLE',
     });
     this.assertHTML('<div data-foo="TRIPLE" data-bar="bar">Hello</div>');
@@ -156,35 +162,37 @@ export class AttributesTests extends RenderTest {
 
   @test
   'can read attributes'() {
-    this.render('<div data-bar="bar"></div>');
+    this.render.template('<div data-bar="bar"></div>');
     this.assert.strictEqual(this.readDOMAttr('data-bar'), 'bar');
     this.assertStableRerender();
   }
 
   @test
   'can read attributes from namespace elements'() {
-    this.render('<svg viewBox="0 0 0 0"></svg>');
+    this.render.template('<svg viewBox="0 0 0 0"></svg>');
     this.assert.strictEqual(this.readDOMAttr('viewBox'), '0 0 0 0');
     this.assertStableRerender();
   }
 
   @test
   'can read properties'() {
-    this.render('<input value="gnargnar" />');
+    this.render.template('<input value="gnargnar" />');
     this.assert.strictEqual(this.readDOMAttr('value'), 'gnargnar');
     this.assertStableRerender();
   }
 
   @test
   'can read the form attribute'() {
-    this.render('<button form="gnargnar" />');
+    this.render.template('<button form="gnargnar" />');
     this.assert.strictEqual(this.readDOMAttr('form'), 'gnargnar');
     this.assertStableRerender();
   }
 
   @test
   'can set attributes on form properties'() {
-    this.render('<form id={{this.foo}}></form><output form={{this.foo}}></output>', { foo: 'bar' });
+    this.render.template('<form id={{this.foo}}></form><output form={{this.foo}}></output>', {
+      foo: 'bar',
+    });
 
     const outputElement = assertingElement(this.element.lastChild);
 
@@ -197,7 +205,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'handles null input values'() {
-    this.render('<input value={{this.isNull}} />', { isNull: null });
+    this.render.template('<input value={{this.isNull}} />', { isNull: null });
     this.assert.strictEqual(this.readDOMAttr('value'), '');
     this.assertStableRerender();
 
@@ -212,7 +220,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'handles undefined input values'() {
-    this.render('<input value={{this.isUndefined}} />', { isUndefined: null });
+    this.render.template('<input value={{this.isUndefined}} />', { isUndefined: null });
     this.assert.strictEqual(this.readDOMAttr('value'), '');
     this.assertStableRerender();
 
@@ -228,7 +236,7 @@ export class AttributesTests extends RenderTest {
   @test
   'handles undefined `toString` input values'() {
     const obj = Object.create(null);
-    this.render('<input value={{this.obj}} />', { obj });
+    this.render.template('<input value={{this.obj}} />', { obj });
     this.assert.strictEqual(this.readDOMAttr('value'), '');
     this.assertStableRerender();
 
@@ -249,7 +257,7 @@ export class AttributesTests extends RenderTest {
 
     const model = new Model();
 
-    this.render('<input value={{this.model.value}} />', { model });
+    this.render.template('<input value={{this.model.value}} />', { model });
     this.assert.strictEqual(this.readDOMAttr('value'), '');
     this.assertStableRerender();
 
@@ -277,7 +285,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'input[checked] prop updates when set to undefined'() {
-    this.registerHelper('if', (params) => {
+    this.register.helper('if', (params) => {
       if (params[0]) {
         return params[1];
       } else {
@@ -285,7 +293,7 @@ export class AttributesTests extends RenderTest {
       }
     });
 
-    this.render('<input checked={{if this.foo true undefined}} />', { foo: true });
+    this.render.template('<input checked={{if this.foo true undefined}} />', { foo: true });
     this.assert.strictEqual(this.readDOMAttr('checked'), true);
     this.assertStableRerender();
 
@@ -300,7 +308,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'input[checked] prop updates when set to null'() {
-    this.render('<input checked={{this.foo}} />', { foo: true });
+    this.render.template('<input checked={{this.foo}} />', { foo: true });
     this.assert.strictEqual(this.readDOMAttr('checked'), true);
     this.assertStableRerender();
 
@@ -316,7 +324,7 @@ export class AttributesTests extends RenderTest {
   @test
   'select[value] prop updates when set to undefined'() {
     // setting `select[value]` only works after initial render, just use
-    this.render(
+    this.render.template(
       '<select value={{this.foo}}><option></option><option value="us" selected>us</option></select>',
       { foo: undefined }
     );
@@ -335,7 +343,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'handles empty string textarea values'() {
-    this.render('<textarea value={{this.name}} />', { name: '' });
+    this.render.template('<textarea value={{this.name}} />', { name: '' });
     this.assert.strictEqual(this.readDOMAttr('value'), '');
     this.assertStableRerender();
 
@@ -350,7 +358,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'handles empty string input placeholders'() {
-    this.render('<input type="text" placeholder={{this.name}} />', { name: '' });
+    this.render.template('<input type="text" placeholder={{this.name}} />', { name: '' });
     this.assert.strictEqual(this.readDOMAttr('placeholder'), '');
     this.assertStableRerender();
 
@@ -364,7 +372,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'type attribute can be set to non-valid type'() {
-    this.render('<input type="yolo" />');
+    this.render.template('<input type="yolo" />');
     this.assert.strictEqual(this.readDOMAttr('type'), 'text');
     this.assertStableRerender();
 
@@ -374,10 +382,13 @@ export class AttributesTests extends RenderTest {
 
   @test
   'does not set undefined attributes'() {
-    this.render('<div data-foo={{this.isUndefined}} /><div data-foo={{this.isNotUndefined}} />', {
-      isUndefined: undefined,
-      isNotUndefined: 'hello',
-    });
+    this.render.template(
+      '<div data-foo={{this.isUndefined}} /><div data-foo={{this.isNotUndefined}} />',
+      {
+        isUndefined: undefined,
+        isNotUndefined: 'hello',
+      }
+    );
 
     const firstElement = assertingElement(this.element.firstChild);
     const secondElement = assertingElement(this.element.lastChild);
@@ -410,7 +421,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'does not set null attributes'() {
-    this.render('<div data-foo={{this.isNull}} /><div data-foo={{this.isNotNull}} />', {
+    this.render.template('<div data-foo={{this.isNull}} /><div data-foo={{this.isNotNull}} />', {
       isNull: null,
       isNotNull: 'hello',
     });
@@ -450,10 +461,13 @@ export class AttributesTests extends RenderTest {
 
   @test
   'does not set undefined properties initially'() {
-    this.render('<div title={{this.isUndefined}} /><div title={{this.isNotUndefined}} />', {
-      isUndefined: undefined,
-      isNotUndefined: 'hello',
-    });
+    this.render.template(
+      '<div title={{this.isUndefined}} /><div title={{this.isNotUndefined}} />',
+      {
+        isUndefined: undefined,
+        isNotUndefined: 'hello',
+      }
+    );
 
     const firstElement = assertingElement(this.element.firstChild);
     const secondElement = assertingElement(this.element.lastChild);
@@ -487,7 +501,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'does not set null properties initially'() {
-    this.render('<div title={{this.isNull}} /><div title={{this.isNotNull}} />', {
+    this.render.template('<div title={{this.isNull}} /><div title={{this.isNotNull}} />', {
       isNull: undefined,
       isNotNull: 'hello',
     });
@@ -524,7 +538,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'input list attribute updates properly'() {
-    this.render('<input list="{{this.foo}}" />', { foo: 'bar' });
+    this.render.template('<input list="{{this.foo}}" />', { foo: 'bar' });
     this.assertHTML('<input list="bar" />');
     this.assertStableRerender();
 
@@ -539,7 +553,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'normalizes lowercase dynamic properties correctly'() {
-    this.render('<div tiTle={{this.foo}} />', { foo: 'bar' });
+    this.render.template('<div tiTle={{this.foo}} />', { foo: 'bar' });
     this.assertHTML('<div title="bar" />');
     this.assertStableRerender();
 
@@ -554,7 +568,7 @@ export class AttributesTests extends RenderTest {
 
   @test
   'normalizes mix-case dynamic properties correctly'() {
-    this.render('<svg viewBox={{this.foo}} />', { foo: '0 0 100 100' });
+    this.render.template('<svg viewBox={{this.foo}} />', { foo: '0 0 100 100' });
     this.assertHTML('<svg viewBox="0 0 100 100" />');
     this.assertStableRerender();
 
@@ -570,7 +584,7 @@ export class AttributesTests extends RenderTest {
 
 jitSuite(AttributesTests);
 
-abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
+abstract class BoundValuesToSpecialAttributeTests extends RenderTestContext {
   protected abstract tag: string;
   protected abstract attr: string;
   protected isEmptyElement = false;
@@ -578,7 +592,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
 
   @test
   'marks javascript: protocol as unsafe'() {
-    this.render(this.tmplt('{{this.foo}}'), {
+    this.render.template(this.tmplt('{{this.foo}}'), {
       foo: 'javascript:foo()',
     });
     this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
@@ -595,7 +609,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
 
   @test
   'marks javascript: protocol as unsafe, http as safe'() {
-    this.render(this.tmplt('{{this.foo}}'), { foo: 'javascript:foo()' });
+    this.render.template(this.tmplt('{{this.foo}}'), { foo: 'javascript:foo()' });
     this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
     this.assertStableRerender();
 
@@ -610,7 +624,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
 
   @test
   'marks javascript: protocol as unsafe on updates'() {
-    this.render(this.tmplt('{{this.foo}}'), { foo: 'http://foo.bar' });
+    this.render.template(this.tmplt('{{this.foo}}'), { foo: 'http://foo.bar' });
     this.assertHTML(this.tmplt('http://foo.bar', true));
     this.assertStableRerender();
 
@@ -625,7 +639,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
 
   @test
   'marks vbscript: protocol as unsafe'() {
-    this.render(this.tmplt('{{this.foo}}'), { foo: 'vbscript:foo()' });
+    this.render.template(this.tmplt('{{this.foo}}'), { foo: 'vbscript:foo()' });
     this.assertHTML(this.tmplt('unsafe:vbscript:foo()', true));
     this.assertStableRerender();
 
@@ -640,7 +654,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
 
   @test
   'can be removed by setting to `null`'() {
-    this.render(this.tmplt('{{this.foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
+    this.render.template(this.tmplt('{{this.foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
     this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));
     this.assertStableRerender();
 
@@ -655,7 +669,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
 
   @test
   'can be removed by setting to `undefined`'() {
-    this.render(this.tmplt('{{this.foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
+    this.render.template(this.tmplt('{{this.foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
     this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));
     this.assertStableRerender();
 

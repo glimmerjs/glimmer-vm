@@ -1,4 +1,5 @@
-import type { ConstantTag, UpdatableTag } from '@glimmer/interfaces';
+import type { ConstantTag, Optional, TagDescription, UpdatableTag } from '@glimmer/interfaces';
+import { devmode } from '@glimmer/util';
 
 import type { Indexable } from './utils';
 
@@ -57,13 +58,21 @@ export function tagMetaFor(obj: object): TagMeta {
 export function tagFor<T extends object>(
   obj: T,
   key: keyof T | string | symbol,
-  meta?: TagMeta
+  meta?: Optional<TagMeta>
 ): UpdatableTag | ConstantTag {
   let tags = meta === undefined ? tagMetaFor(obj) : meta;
   let tag = tags.get(key);
 
   if (tag === undefined) {
-    tag = createUpdatableTag();
+    tag = createUpdatableTag(
+      devmode(
+        () =>
+          ({
+            reason: 'property',
+            label: ['(object)', key as string | symbol],
+          }) satisfies TagDescription
+      )
+    );
     tags.set(key, tag);
   }
 

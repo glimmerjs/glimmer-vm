@@ -1,343 +1,357 @@
-import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { matrix } from '@glimmer-workspace/integration-tests';
 
-export class HasBlockSuite extends RenderTest {
-  static suiteName = 'has-block';
-
-  @test({ kind: 'curly' })
-  'parameterized has-block (subexpr, else) when else supplied'() {
-    this.render({
+matrix('has-block', (spec) => {
+  spec({ type: 'curly' }, 'parameterized has-block (subexpr, else) when else supplied', (ctx) => {
+    ctx.render.template({
       layout: '{{#if (has-block "inverse")}}Yes{{else}}No{{/if}}',
       template: 'block here',
       else: 'else here',
     });
 
-    this.assertComponent('Yes');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('Yes');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (subexpr, else) when else not supplied'() {
-    this.render({
+  spec('parameterized has-block (subexpr, else) when else not supplied', (ctx) => {
+    ctx.render.template({
       layout: '{{#if (has-block "inverse")}}Yes{{else}}No{{/if}}',
       template: 'block here',
     });
 
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('No');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (subexpr, default) when block supplied'() {
-    this.render({
+  spec('parameterized has-block (subexpr, default) when block supplied', (ctx) => {
+    ctx.render.template({
       layout: '{{#if (has-block)}}Yes{{else}}No{{/if}}',
       template: 'block here',
     });
 
-    this.assertComponent('Yes');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('Yes');
+    ctx.assertStableRerender();
+  });
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (subexpr, default) when block not supplied'() {
-    this.render({
-      layout: '{{#if (has-block)}}Yes{{else}}No{{/if}}',
-    });
+  spec(
+    { type: 'curly' },
+    'parameterized has-block (subexpr, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{#if (has-block)}}Yes{{else}}No{{/if}}',
+      });
 
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('No');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (content, else) when else supplied'() {
-    this.render({
+  spec({ type: 'curly' }, 'parameterized has-block (content, else) when else supplied', (ctx) => {
+    ctx.render.template({
       layout: '{{has-block "inverse"}}',
       template: 'block here',
       else: 'else here',
     });
 
-    this.assertComponent('true');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('true');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (content, else) when else not supplied'() {
-    this.render({
+  spec('parameterized has-block (content, else) when else not supplied', (ctx) => {
+    ctx.render.template({
       layout: '{{has-block "inverse"}}',
       template: 'block here',
     });
 
-    this.assertComponent('false');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('false');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (content, default) when block supplied'() {
-    this.render({
+  spec('parameterized has-block (content, default) when block supplied', (ctx) => {
+    ctx.render.template({
       layout: '{{has-block}}',
       template: 'block here',
     });
 
-    this.assertComponent('true');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('true');
+    ctx.assertStableRerender();
+  });
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (content, default) when block not supplied'() {
-    this.render({
-      layout: '{{has-block}}',
-    });
+  spec(
+    { type: 'curly' },
+    'parameterized has-block (content, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '{{has-block}}',
+      });
 
-    this.assertComponent('false');
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('false');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (prop, else) when else supplied'() {
-    this.render({
+  spec({ type: 'curly' }, 'parameterized has-block (prop, else) when else supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button name={{has-block "inverse"}}></button>',
       template: 'block here',
       else: 'else here',
     });
 
-    this.assertComponent('<button name="true"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button name="true"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (prop, else) when else not supplied'() {
-    this.render({
+  spec('parameterized has-block (prop, else) when else not supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button name={{has-block "inverse"}}></button>',
       template: 'block here',
     });
 
-    this.assertComponent('<button name="false"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button name="false"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (prop, default) when block supplied'() {
-    this.render({
+  spec('parameterized has-block (prop, default) when block supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button name={{has-block}}></button>',
       template: 'block here',
     });
 
-    this.assertComponent('<button name="true"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button name="true"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (prop, default) when block not supplied'() {
-    this.render({
-      layout: '<button name={{has-block}}></button>',
-    });
+  spec(
+    { type: 'curly' },
+    'parameterized has-block (prop, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button name={{has-block}}></button>',
+      });
 
-    this.assertComponent('<button name="false"></button>');
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('<button name="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'curly' })
-  'has-block works when used directly as an argument without extra parens (prop, default)'() {
-    this.registerComponent('TemplateOnly', 'Foo', '{{@hasBlock}}');
+  spec(
+    { type: 'curly' },
+    'has-block works when used directly as an argument without extra parens (prop, default)',
+    (ctx) => {
+      ctx.register.component('TemplateOnly', 'Foo', '{{@hasBlock}}');
 
-    this.render({
-      layout: '<Foo @hasBlock={{has-block}}></Foo>',
-    });
+      ctx.render.template({
+        layout: '<Foo @hasBlock={{has-block}}></Foo>',
+      });
 
-    this.assertComponent('false');
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('false');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (attr, else) when else supplied'() {
-    this.render({
+  spec({ type: 'curly' }, 'parameterized has-block (attr, else) when else supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button data-has-block="{{has-block "inverse"}}"></button>',
       template: 'block here',
       else: 'else here',
     });
 
-    this.assertComponent('<button data-has-block="true"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button data-has-block="true"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (attr, else) when else not supplied'() {
-    this.render({
+  spec('parameterized has-block (attr, else) when else not supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button data-has-block="{{has-block "inverse"}}"></button>',
       template: 'block here',
     });
 
-    this.assertComponent('<button data-has-block="false"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button data-has-block="false"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (attr, default) when block supplied'() {
-    this.render({
+  spec('parameterized has-block (attr, default) when block supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button data-has-block="{{has-block}}"></button>',
       template: 'block here',
     });
 
-    this.assertComponent('<button data-has-block="true"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button data-has-block="true"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (attr, default) when block not supplied'() {
-    this.render({
-      layout: '<button data-has-block="{{has-block}}"></button>',
-    });
+  spec(
+    { type: 'curly' },
+    'parameterized has-block (attr, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block="{{has-block}}"></button>',
+      });
 
-    this.assertComponent('<button data-has-block="false"></button>');
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('<button data-has-block="false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (concatted attr, else) when else supplied'() {
-    this.render({
+  spec(
+    { type: 'curly' },
+    'parameterized has-block (concatted attr, else) when else supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block="is-{{has-block "inverse"}}"></button>',
+        template: 'block here',
+        else: 'else here',
+      });
+
+      ctx.assertComponent('<button data-has-block="is-true"></button>');
+      ctx.assertStableRerender();
+    }
+  );
+
+  spec('parameterized has-block (concatted attr, else) when else not supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button data-has-block="is-{{has-block "inverse"}}"></button>',
       template: 'block here',
-      else: 'else here',
     });
 
-    this.assertComponent('<button data-has-block="is-true"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button data-has-block="is-false"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test
-  'parameterized has-block (concatted attr, else) when else not supplied'() {
-    this.render({
-      layout: '<button data-has-block="is-{{has-block "inverse"}}"></button>',
-      template: 'block here',
-    });
-
-    this.assertComponent('<button data-has-block="is-false"></button>');
-    this.assertStableRerender();
-  }
-
-  @test
-  'parameterized has-block (concatted attr, default) when block supplied'() {
-    this.render({
+  spec('parameterized has-block (concatted attr, default) when block supplied', (ctx) => {
+    ctx.render.template({
       layout: '<button data-has-block="is-{{has-block}}"></button>',
       template: 'block here',
     });
 
-    this.assertComponent('<button data-has-block="is-true"></button>');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('<button data-has-block="is-true"></button>');
+    ctx.assertStableRerender();
+  });
 
-  @test({ kind: 'curly' })
-  'parameterized has-block (concatted attr, default) when block not supplied'() {
-    this.render({
-      layout: '<button data-has-block="is-{{has-block}}"></button>',
-    });
+  spec(
+    { type: 'curly' },
+    'parameterized has-block (concatted attr, default) when block not supplied',
+    (ctx) => {
+      ctx.render.template({
+        layout: '<button data-has-block="is-{{has-block}}"></button>',
+      });
 
-    this.assertComponent('<button data-has-block="is-false"></button>');
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('<button data-has-block="is-false"></button>');
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'glimmer' })
-  'self closing angle bracket invocation (subexpr, default)'() {
-    this.registerComponent(
+  spec({ type: 'glimmer' }, 'self closing angle bracket invocation (subexpr, default)', (ctx) => {
+    ctx.register.component(
       'Glimmer',
       'TestComponent',
       `<div ...attributes>{{#if (has-block)}}Yes{{else}}No{{/if}}</div>`
     );
-    this.render(`<TestComponent />`);
+    ctx.render.template(`<TestComponent />`);
 
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('No');
+    ctx.assertStableRerender();
+  });
 
-  @test({ kind: 'glimmer' })
-  'self closing angle bracket invocation (subexpr, else)'() {
-    this.registerComponent(
+  spec({ type: 'glimmer' }, 'self closing angle bracket invocation (subexpr, else)', (ctx) => {
+    ctx.register.component(
       'Glimmer',
       'TestComponent',
       `<div ...attributes>{{#if (has-block 'inverse')}}Yes{{else}}No{{/if}}</div>`
     );
-    this.render(`<TestComponent />`);
+    ctx.render.template(`<TestComponent />`);
 
-    this.assertComponent('No');
-    this.assertStableRerender();
-  }
+    ctx.assertComponent('No');
+    ctx.assertStableRerender();
+  });
 
-  @test({ kind: 'glimmer' })
-  'self closing angle bracket invocation (concatted attr, default)'() {
-    this.registerComponent(
-      'Glimmer',
-      'TestComponent',
-      `<div data-has-block="{{has-block}}" ...attributes></div>`
-    );
-    this.render(`<TestComponent />`);
+  spec(
+    { type: 'glimmer' },
+    'self closing angle bracket invocation (concatted attr, default)',
+    (ctx) => {
+      ctx.register.component(
+        'Glimmer',
+        'TestComponent',
+        `<div data-has-block="{{has-block}}" ...attributes></div>`
+      );
+      ctx.render.template(`<TestComponent />`);
 
-    this.assertComponent('', { 'data-has-block': 'false' });
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('', { 'data-has-block': 'false' });
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'glimmer' })
-  'has-block works within a yielded curried component invoked within mustaches'() {
-    this.registerComponent(
-      'Glimmer',
-      'ComponentWithHasBlock',
-      `<div data-has-block="{{has-block}}" ...attributes></div>`
-    );
+  spec(
+    { type: 'glimmer' },
+    'has-block works within a yielded curried component invoked within mustaches',
+    (ctx) => {
+      ctx.register.component(
+        'Glimmer',
+        'ComponentWithHasBlock',
+        `<div data-has-block="{{has-block}}" ...attributes></div>`
+      );
 
-    this.registerComponent('Glimmer', 'Yielder', `{{yield (component 'ComponentWithHasBlock')}}`);
+      ctx.register.component('Glimmer', 'Yielder', `{{yield (component 'ComponentWithHasBlock')}}`);
 
-    this.registerComponent(
-      'Glimmer',
-      'TestComponent',
-      `<Yielder as |componentWithHasBlock|>{{componentWithHasBlock}}</Yielder>`
-    );
+      ctx.register.component(
+        'Glimmer',
+        'TestComponent',
+        `<Yielder as |componentWithHasBlock|>{{componentWithHasBlock}}</Yielder>`
+      );
 
-    this.render(`<TestComponent />`);
+      ctx.render.template(`<TestComponent />`);
 
-    this.assertComponent('', { 'data-has-block': 'false' });
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('', { 'data-has-block': 'false' });
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'glimmer' })
-  'has-block works within a yielded curried component invoked with angle bracket invocation (falsy)'() {
-    this.registerComponent(
-      'Glimmer',
-      'ComponentWithHasBlock',
-      `<div data-has-block="{{has-block}}" ...attributes></div>`
-    );
+  spec(
+    { type: 'glimmer' },
+    'has-block works within a yielded curried component invoked with angle bracket invocation (falsy)',
+    (ctx) => {
+      ctx.register.component(
+        'Glimmer',
+        'ComponentWithHasBlock',
+        `<div data-has-block="{{has-block}}" ...attributes></div>`
+      );
 
-    this.registerComponent('Glimmer', 'Yielder', `{{yield (component 'ComponentWithHasBlock')}}`);
+      ctx.register.component('Glimmer', 'Yielder', `{{yield (component 'ComponentWithHasBlock')}}`);
 
-    this.registerComponent(
-      'Glimmer',
-      'TestComponent',
-      `<Yielder as |componentWithHasBlock|><componentWithHasBlock/></Yielder>`
-    );
+      ctx.register.component(
+        'Glimmer',
+        'TestComponent',
+        `<Yielder as |componentWithHasBlock|><componentWithHasBlock/></Yielder>`
+      );
 
-    this.render(`<TestComponent />`);
+      ctx.render.template(`<TestComponent />`);
 
-    this.assertComponent('', { 'data-has-block': 'false' });
-    this.assertStableRerender();
-  }
+      ctx.assertComponent('', { 'data-has-block': 'false' });
+      ctx.assertStableRerender();
+    }
+  );
 
-  @test({ kind: 'glimmer' })
-  'has-block works within a yielded curried component invoked with angle bracket invocation (truthy)'() {
-    this.registerComponent(
-      'Glimmer',
-      'ComponentWithHasBlock',
-      `<div data-has-block="{{has-block}}" ...attributes></div>`
-    );
+  spec(
+    { type: 'glimmer' },
+    'has-block works within a yielded curried component invoked with angle bracket invocation (truthy)',
+    (ctx) => {
+      ctx.register.component(
+        'Glimmer',
+        'ComponentWithHasBlock',
+        `<div data-has-block="{{has-block}}" ...attributes></div>`
+      );
 
-    this.registerComponent('Glimmer', 'Yielder', `{{yield (component 'ComponentWithHasBlock')}}`);
+      ctx.register.component('Glimmer', 'Yielder', `{{yield (component 'ComponentWithHasBlock')}}`);
 
-    this.registerComponent(
-      'Glimmer',
-      'TestComponent',
-      `<Yielder as |componentWithHasBlock|><componentWithHasBlock></componentWithHasBlock></Yielder>`
-    );
+      ctx.register.component(
+        'Glimmer',
+        'TestComponent',
+        `<Yielder as |componentWithHasBlock|><componentWithHasBlock></componentWithHasBlock></Yielder>`
+      );
 
-    this.render(`<TestComponent />`);
+      ctx.render.template(`<TestComponent />`);
 
-    this.assertComponent('', { 'data-has-block': 'true' });
-    this.assertStableRerender();
-  }
-}
+      ctx.assertComponent('', { 'data-has-block': 'true' });
+      ctx.assertStableRerender();
+    }
+  );
+}).client();

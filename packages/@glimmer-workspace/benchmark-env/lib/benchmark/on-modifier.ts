@@ -1,31 +1,45 @@
 import type {
   CapturedArguments,
+  DevMode,
   InternalModifierManager,
   Owner,
   SimpleElement,
+  TagDescription,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
-import { valueForRef } from '@glimmer/reference';
-import { castToBrowser } from '@glimmer/util';
+import type { Reactive } from '@glimmer/reference';
+import { unwrapReactive } from '@glimmer/reference';
+import { castToBrowser, devmode, getDescription, setDescription } from '@glimmer/util';
 import { createUpdatableTag } from '@glimmer/validator';
 
 interface OnModifierState {
   element: SimpleElement;
-  nameRef: Reference<string>;
-  listenerRef: Reference<EventListener>;
+  nameRef: Reactive<string>;
+  listenerRef: Reactive<EventListener>;
   name: string | null;
   listener: EventListener | null;
+  description: DevMode<TagDescription>;
 }
 
 class OnModifierManager implements InternalModifierManager<OnModifierState, object> {
   create(_owner: Owner, element: SimpleElement, _: {}, args: CapturedArguments) {
-    return {
+    const state = {
       element,
-      nameRef: args.positional[0] as Reference<string>,
-      listenerRef: args.positional[1] as Reference<EventListener>,
+      nameRef: args.positional[0] as Reactive<string>,
+      listenerRef: args.positional[1] as Reactive<EventListener>,
       name: null,
       listener: null,
     };
+    setDescription(
+      state,
+      devmode(
+        () =>
+          ({
+            reason: 'modifier',
+            label: ['on'],
+          }) satisfies TagDescription
+      )
+    );
+    return state;
   }
 
   getDebugName() {
@@ -33,8 +47,8 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
   }
 
   install(state: OnModifierState) {
-    const name = valueForRef(state.nameRef);
-    const listener = valueForRef(state.listenerRef);
+    const name = unwrapReactive(state.nameRef);
+    const listener = unwrapReactive(state.listenerRef);
     castToBrowser(state.element, 'ELEMENT').addEventListener(name, listener);
     state.listener = listener;
     state.name = name;
@@ -42,8 +56,8 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
 
   update(state: OnModifierState) {
     const element = castToBrowser(state.element, 'ELEMENT');
-    const name = valueForRef(state.nameRef);
-    const listener = valueForRef(state.listenerRef);
+    const name = unwrapReactive(state.nameRef);
+    const listener = unwrapReactive(state.listenerRef);
     if (name !== state.name || listener !== state.listener) {
       element.removeEventListener(state.name!, state.listener!);
       element.addEventListener(name, listener);
@@ -56,8 +70,8 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
     return state;
   }
 
-  getTag() {
-    return createUpdatableTag();
+  getTag(state: OnModifierState) {
+    return createUpdatableTag(getDescription(state));
   }
 }
 

@@ -1,13 +1,14 @@
+import './suites/has-block';
+import './suites/has-block-params';
+
 export * from './suites/components';
 export * from './suites/custom-dom-helper';
 export * from './suites/debugger';
 export * from './suites/each';
 export * from './suites/emberish-components';
-export * from './suites/entry-point';
-export * from './suites/has-block';
-export * from './suites/has-block-params';
+export * from './suites/error-recovery';
 export * from './suites/in-element';
-export * from './suites/initial-render';
+export * from './suites/initial-render/index';
 export * from './suites/scope';
 export * from './suites/shadowing';
 export * from './suites/ssr';

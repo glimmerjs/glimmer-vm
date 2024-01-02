@@ -64,9 +64,9 @@ export function tsconfig(updates) {
     declaration: true,
     declarationMap: true,
     verbatimModuleSyntax: true,
+    isolatedModules: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
     ...updates,
   };
 }
@@ -256,6 +256,8 @@ export class Package {
    * @property {boolean} [ esm ] enabled by default
    * @property {boolean} [ cjs ] enabled by default until eslint-plugin-ember and ember-source no longer need it
    *
+   * @param {Formats} [formats]
+   *
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
   config(formats = {}) {
@@ -315,7 +317,6 @@ export class Package {
         commonjs(),
         nodeResolve(),
         ...this.replacements(env),
-        ...(env === 'prod' ? [terser()] : []),
         postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
@@ -343,7 +344,7 @@ export class Package {
         typescript(this.#package, {
           target: ScriptTarget.ES2021,
           module: ModuleKind.CommonJS,
-          moduleResolution: ModuleResolutionKind.NodeJs,
+          moduleResolution: ModuleResolutionKind.Bundler,
         }),
       ],
     }));
@@ -356,7 +357,7 @@ export class Package {
    */
   replacements(env) {
     return env === 'prod'
-      ? [importMeta]
+      ? [importMeta, terser({ compress: { passes: 4 } })]
       : [
           replace({
             preventAssignment: true,
@@ -371,6 +372,31 @@ export class Package {
               return `import { DEBUG } from '@glimmer/env';\n` + code;
             }
             return code;
+          }),
+          terser({
+            module: true,
+            compress: {
+              // In Dev mode, keep as much of the original code as possible.
+              // But it's still important that we have "passes: 2", so that we can inline
+              // the variables (that were import.meta.env) and then continue inlining
+              //
+              // Defaults: https://github.com/terser/terser/blob/862226f234ed9c7180a8f8abe875b905ff4eacbb/lib/compress/index.js#L218C6-L274C45
+              //
+              // Mimics behavior from SWC:
+              //   https://play.swc.rs/?version=1.3.94-nightly-20231016.1&code=H4sIAAAAAAAAA4VTXW%2FiMBB8j5T%2FsKAeSSSUvoNQRUsOIeWgAno66XQiJtkklowd2Q60Av577fChctX1Xvzg9czO7KzpphJSwx4mi9Uo%2Brn6MRtFcIRcig20M1zXRbvvOuA6qeBKQzx7Gsbm4ePLGAZQEvWdkcL3MqrImuGKiZSwVQPzgv4taDkfPkWreDYeT6Y3YOQNVkuSWoaioPwzOvr1HA8n0%2F%2Fi8bVihBNNDfYTyWS6jObTYbz4goZyjZITpv4pZfHyuIy%2FcqLqtWa3Vlzn%2Fh6WJVWQ1zy16kCVomYZ6FpyME0FEGi6EK4hkdjc50YHJqYMCW2CCjeoSYh8Gz7PZ6Ok2%2FDuSpqWFz7KGeUIlRQVSvYGW0rAOFIou6B2KRCeAap1TVkWus5VzcVDbo4eKC2N8qAHWtYIh5MO2JtFAJqD%2F2FXgtMtAEMNNv6GbQD6rUKRw47yTOygNRiAV%2FMMc6Mt86DTOVfCC6R%2FYjn7brX8K5d5y3EHcyyi18pPfnce%2Ftztrcyj%2F9DrHO4O34Kka9i9INSotP8XcaiQyLQMgqbDEfDq5NqtcXcqu87xHJa2Ydm87DSNaao9ZYMgXOgSJWxEVjN0HTuPD7%2FiPA%2BbpGBoVBR%2B2%2BwkckW3CAaIbavk%2BA7blFKyeAMAAA%3D%3D&config=H4sIAAAAAAAAA31VPY%2FbMAzd71cEmjsUGTp0vivQIehQ4FZBsShHV1kyRCqXIPB%2FLy07H5fQ2Sw%2BPlLix%2FPpZbVSH9ion6sTf%2FKhNxkhX85swWMkc2CLomMP2GTfk%2Fp2RglHyJmAUE3DhCgyuQUaWYDr7%2Bv1zFAhJYQzY7Z1Pnp3vM3ZpK7PgHhjYyuHLB1Ewq%2F8GcvpcwQol1v7NqUAJj5BtEHtI0ELWQrcpBBMj6D3JgtRxpua7DFJKUawEFjd59SLeLSefIqc8xG1YKxukgUB8hka8nuQaJyLaRH5ecJ7KmxhW9q29vmODXsTiiEhJxxqS%2Fi2QtRd8kjalSiVcAIXajCBc3Hvmd7pDFRyfOR9JB8XevIPgCsQDGI0HUhxq4fjeVpiu6dMHx2PLB0FnOdbemWElouqvXdCZcfKQCYvdTODLQ2MlW2k68zwQvnQW9DgHM%2BKEBo%2FPTU7Kem46MkJAPfXOGmqJkBftnABHxfiCfyLX0nygM0enaHdMorHbpvCkwQd0C7ZJw7cCkrLcGaVOPTLeIkWeDTAii4FK%2FAoArwAlHSoevkwG7weHFG3IW2vMjE7DBcd7kxs7%2Ff9osWZZc6l3H2VWE67SbaEOgEndU1wUlUf6tfvv%2Fr17V1v%2Fry%2BjWJeo6thGKYEL3MS1dVA19%2FIOEGT%2BP9QV6ezzl%2FuqDxuzsz6rOE%2FQnOQmpIGAAA%3D
+              defaults: false,
+              passes: 4,
+              hoist_funs: true,
+              dead_code: true,
+              conditionals: true,
+              drop_debugger: true,
+              evaluate: true,
+              inline: true,
+              reduce_vars: true,
+              side_effects: true,
+              unused: true,
+            },
+            mangle: false,
           }),
         ];
   }

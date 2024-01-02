@@ -4,6 +4,7 @@
     // Compilation Configuration
     "lib": ["esnext", "DOM", "DOM.Iterable"],
     "allowJs": true,
+    "checkJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
     "declaration": true,
@@ -15,9 +16,8 @@
     "verbatimModuleSyntax": true,
 
     // Environment Configuration
-    "experimentalDecorators": true,
-    "target": "es2020",
-    "module": "ESNext",
+    "target": "esnext",
+    "module": "esnext",
     "moduleResolution": "bundler",
 
     // Enhance Strictness

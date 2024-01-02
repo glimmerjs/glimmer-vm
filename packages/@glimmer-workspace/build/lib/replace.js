@@ -70,6 +70,8 @@ export function createReplacePlugin(test, replacements, sourcemap) {
         /** @type {TransformResult} */
         const result = { code: s.toString() };
         if (sourcemap) {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
           result.map = s.generateMap({ hires: true });
         }
         return result;

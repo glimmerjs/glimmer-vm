@@ -1,24 +1,23 @@
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
+import type { ClientSideRenderDelegate } from '@glimmer-workspace/integration-tests';
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
-import { createComputeRef, createConstRef, createPrimitiveRef } from '@glimmer/reference';
-import { expect } from '@glimmer/util';
+import { createPrimitiveCell, Formula, ReadonlyCell } from '@glimmer/reference';
+import { devmode, expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
-
-import type { JitRenderDelegate } from '..';
-
 import {
   assertNodeTagName,
   getElementByClassName,
   getElementsByTagName,
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   stripTight,
   test,
   tracked,
   trimLines,
-} from '..';
+} from '@glimmer-workspace/integration-tests';
+
 import { assert } from './support';
 
 function makeSafeString(value: string): SafeString {
@@ -35,14 +34,14 @@ class SafeStringImpl implements SafeString {
   }
 }
 
-class UpdatingTest extends RenderTest {
+class UpdatingTest extends RenderTestContext {
   static suiteName = 'Updating';
 
-  declare delegate: JitRenderDelegate;
+  declare delegate: ClientSideRenderDelegate;
 
   @test
   'updating a single curly'() {
-    this.render('<div><p>{{this.value}}</p></div>', { value: 'hello world' });
+    this.render.template('<div><p>{{this.value}}</p></div>', { value: 'hello world' });
     this.assertHTML('<div><p>hello world</p></div>', 'Initial render');
     this.assertStableRerender();
 
@@ -53,7 +52,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'updating a single curly with siblings'() {
-    this.render('<div>hello {{this.value}}world</div>', { value: 'brave new ' });
+    this.render.template('<div>hello {{this.value}}world</div>', { value: 'brave new ' });
     this.assertHTML('<div>hello brave new world</div>');
     this.assertStableRerender();
 
@@ -68,7 +67,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'null and undefined produces empty text nodes'() {
-    this.render('<div><p>{{this.v1}}</p><p>{{this.v2}}</p></div>', {
+    this.render.template('<div><p>{{this.v1}}</p><p>{{this.v2}}</p></div>', {
       v1: null,
       v2: undefined,
     });
@@ -99,12 +98,12 @@ class UpdatingTest extends RenderTest {
       false: 'false',
       this: 'this',
       'foo.bar': 'foo.bar',
-      nested: null as any | null,
+      nested: null as any,
     };
 
     state.nested = state;
 
-    this.render(
+    this.render.template(
       stripTight`
         <div>
           [{{this.['']}}]
@@ -225,7 +224,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'updating a single trusting curly'() {
-    this.render('<div>{{{this.value}}}</div>', { value: '<p>hello world</p>' });
+    this.render.template('<div>{{{this.value}}}</div>', { value: '<p>hello world</p>' });
 
     this.assertHTML(`<div><p>hello world</p></div>`, 'Initial render');
     this.assertStableRerender();
@@ -245,7 +244,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'updating a single trusting curly with siblings'() {
-    this.render('<div>hello {{{this.value}}}world</div>', {
+    this.render.template('<div>hello {{{this.value}}}world</div>', {
       value: '<b>brave new </b>',
     });
 
@@ -267,7 +266,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'updating a single trusting curly with previous sibling'() {
-    this.render('<div>hello {{{this.value}}}</div>', {
+    this.render.template('<div>hello {{{this.value}}}</div>', {
       value: '<b>brave new </b>',
     });
 
@@ -289,7 +288,7 @@ class UpdatingTest extends RenderTest {
     let a = '<p>A</p>';
     let b = '<p>B</p>';
 
-    this.render('<div>{{{this.value}}}</div>', { value: a });
+    this.render.template('<div>{{{this.value}}}</div>', { value: a });
 
     this.assertHTML('<div><p>A</p></div>', 'Initial render');
 
@@ -324,7 +323,7 @@ class UpdatingTest extends RenderTest {
     };
     let unsafeString = '<b>Big old world!</b>';
 
-    this.render('<div>{{this.value}}</div>', {
+    this.render.template('<div>{{this.value}}</div>', {
       value: safeString,
     });
 
@@ -348,7 +347,7 @@ class UpdatingTest extends RenderTest {
     let safeString = makeSafeString('<p>hello world</p>');
     let unsafeString = '<b>Big old world!</b>';
 
-    this.render('<div>{{{this.value}}}</div>', {
+    this.render.template('<div>{{{this.value}}}</div>', {
       value: safeString,
     });
 
@@ -370,7 +369,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'triple curlies with empty string initial value'() {
-    this.render('<div>{{{this.value}}}</div>', {
+    this.render.template('<div>{{{this.value}}}</div>', {
       value: '',
     });
 
@@ -392,11 +391,11 @@ class UpdatingTest extends RenderTest {
   'double curlies with const SafeString'() {
     let rawString = '<b>bold</b> and spicy';
 
-    this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(makeSafeString(rawString), 'safe-string');
+    this.register.internalHelper('const-foobar', () => {
+      return ReadonlyCell(makeSafeString(rawString), 'safe-string');
     });
 
-    this.render('<div>{{const-foobar}}</div>', {});
+    this.render.template('<div>{{const-foobar}}</div>', {});
     this.assertHTML('<div><b>bold</b> and spicy</div>', 'initial render');
     this.assertStableRerender();
   }
@@ -405,11 +404,11 @@ class UpdatingTest extends RenderTest {
   'double curlies with const Node'() {
     let rawString = '<b>bold</b> and spicy';
 
-    this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+    this.register.internalHelper('const-foobar', () => {
+      return ReadonlyCell(this.dom.createTextNode(rawString), 'text-node');
     });
 
-    this.render('<div>{{const-foobar}}</div>');
+    this.render.template('<div>{{const-foobar}}</div>');
     this.assertHTML('<div>&lt;b&gt;bold&lt;/b&gt; and spicy</div>', 'initial render');
     this.assertStableRerender();
   }
@@ -418,11 +417,11 @@ class UpdatingTest extends RenderTest {
   'triple curlies with const SafeString'() {
     let rawString = '<b>bold</b> and spicy';
 
-    this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(makeSafeString(rawString), 'safe-string');
+    this.register.internalHelper('const-foobar', () => {
+      return ReadonlyCell(makeSafeString(rawString), 'safe-string');
     });
 
-    this.render('<div>{{{const-foobar}}}</div>');
+    this.render.template('<div>{{{const-foobar}}}</div>');
     this.assertHTML('<div><b>bold</b> and spicy</div>', 'initial render');
     this.assertStableRerender();
   }
@@ -431,11 +430,11 @@ class UpdatingTest extends RenderTest {
   'triple curlies with const Node'() {
     let rawString = '<b>bold</b> and spicy';
 
-    this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+    this.register.internalHelper('const-foobar', () => {
+      return ReadonlyCell(this.dom.createTextNode(rawString), 'text-node');
     });
 
-    this.render('<div>{{{const-foobar}}}</div>');
+    this.render.template('<div>{{{const-foobar}}}</div>');
     this.assertHTML('<div>&lt;b&gt;bold&lt;/b&gt; and spicy</div>', 'initial render');
     this.assertStableRerender();
   }
@@ -450,15 +449,15 @@ class UpdatingTest extends RenderTest {
       destroyable.count++;
     });
 
-    this.registerInternalHelper('destroy-me', (_args) => {
-      let ref = createPrimitiveRef('destroy me!');
+    this.register.internalHelper('destroy-me', (_args) => {
+      let ref = createPrimitiveCell('destroy me!');
 
       associateDestroyableChild(ref, destroyable);
 
       return ref;
     });
 
-    this.render('<div>{{destroy-me}}</div>', {});
+    this.render.template('<div>{{destroy-me}}</div>', {});
 
     this.assertHTML('<div>destroy me!</div>', 'initial render');
     assert.strictEqual(destroyable.count, 0, 'not destroyed');
@@ -487,13 +486,20 @@ class UpdatingTest extends RenderTest {
     let { template, truthyValue, falsyValue, element } = arg1;
     let didCreate = 0;
     let didDestroy = 0;
-    let tag = createTag();
+    let tag = createTag(
+      devmode(() => ({
+        kind: 'formula',
+        fallible: true,
+        readonly: true,
+        label: ['(stateful helper)'],
+      }))
+    );
     let currentValue: T | U = truthyValue;
 
-    this.registerInternalHelper('stateful-foo', (_args) => {
+    this.register.internalHelper('stateful-foo', (_args) => {
       didCreate++;
 
-      let ref = createComputeRef(() => {
+      let ref = Formula(() => {
         consumeTag(tag);
         return currentValue;
       });
@@ -509,7 +515,7 @@ class UpdatingTest extends RenderTest {
     assert.strictEqual(didCreate, 0, 'didCreate: before render');
     assert.strictEqual(didDestroy, 0, 'didDestroy: before render');
 
-    this.render(template, {});
+    this.render.template(template, {});
 
     this.assertHTML('Yes', element, 'initial render');
     assert.strictEqual(didCreate, 1, 'didCreate: after initial render');
@@ -584,7 +590,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'helpers passed as arguments to {{component}} are not torn down when switching between blocks'() {
-    this.registerComponent('Glimmer', 'XYasss', 'Yes');
+    this.register.component('Glimmer', 'XYasss', 'Yes');
 
     let options = {
       template: '{{component (stateful-foo)}}',
@@ -597,7 +603,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'helpers passed as arguments to {{#in-element}} are not torn down when switching between blocks'() {
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = this.dom.createElement('div');
 
     let options = {
       template: '{{#in-element (stateful-foo)}}Yes{{/in-element}}',
@@ -611,7 +617,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'updating a curly with this'() {
-    this.render('<div><p>{{this.value}}</p></div>', { value: 'hello world' });
+    this.render.template('<div><p>{{this.value}}</p></div>', { value: 'hello world' });
 
     this.assertHTML('<div><p>hello world</p></div>');
     this.assertStableRerender();
@@ -623,7 +629,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'a simple implementation of a dirtying rerender'() {
-    this.render(
+    this.render.template(
       '<div>{{#if this.condition}}<p>{{this.value}}</p>{{else}}<p>Nothing</p>{{/if}}</div>',
       {
         condition: true,
@@ -645,7 +651,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'The if helper should consider an empty array truthy'() {
-    this.render(
+    this.render.template(
       '<div>{{#if this.condition}}<p>{{this.value}}</p>{{else}}<p>Nothing</p>{{/if}}</div>',
       { condition: [], value: 'hello world' }
     );
@@ -661,7 +667,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'a simple implementation of a dirtying rerender without else'() {
-    this.render('<div>{{#if this.condition}}<p>{{this.value}}</p>{{/if}}</div>', {
+    this.render.template('<div>{{#if this.condition}}<p>{{this.value}}</p>{{/if}}</div>', {
       condition: true,
       value: 'hello world',
     });
@@ -680,7 +686,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'The unless helper without else'() {
-    this.render('<div>{{#unless this.condition}}<p>{{this.value}}</p>{{/unless}}</div>', {
+    this.render.template('<div>{{#unless this.condition}}<p>{{this.value}}</p>{{/unless}}</div>', {
       condition: true,
       value: 'hello world',
     });
@@ -699,7 +705,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'The unless helper with else'() {
-    this.render(
+    this.render.template(
       '<div>{{#unless this.condition}}<p>{{this.value}}</p>{{else}}<p>Nothing</p>{{/unless}}</div>',
       { condition: true, value: 'hello world' }
     );
@@ -718,7 +724,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'The unless helper should consider an empty array truthy'() {
-    this.render(
+    this.render.template(
       '<div>{{#unless this.condition}}<p>{{this.value}}</p>{{else}}<p>Nothing</p>{{/unless}}</div>',
       { condition: [], value: 'hello world' }
     );
@@ -734,7 +740,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'if keyword in append position'() {
-    this.render('{{if this.condition "truthy"}}', {
+    this.render.template('{{if this.condition "truthy"}}', {
       condition: true,
     });
 
@@ -749,9 +755,9 @@ class UpdatingTest extends RenderTest {
 
   @test
   'if keyword in SubExpression without falsey value returns undefined [GH emberjs/ember.js#19409]'() {
-    this.registerHelper('to-string', (args) => `${args[0]}`);
+    this.register.helper('to-string', (args) => `${args[0]}`);
 
-    this.render('{{to-string (if this.condition "truthy")}}', {
+    this.render.template('{{to-string (if this.condition "truthy")}}', {
       condition: false,
     });
 
@@ -760,7 +766,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'if keyword in append position with falsy'() {
-    this.render('{{if this.condition "truthy" "falsy"}}', {
+    this.render.template('{{if this.condition "truthy" "falsy"}}', {
       condition: true,
     });
 
@@ -775,7 +781,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'unless keyword in append position'() {
-    this.render('{{unless this.condition "falsy"}}', {
+    this.render.template('{{unless this.condition "falsy"}}', {
       condition: false,
     });
 
@@ -790,7 +796,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'unless keyword in append position with truthy'() {
-    this.render('{{unless this.condition "falsy" "truthy"}}', {
+    this.render.template('{{unless this.condition "falsy" "truthy"}}', {
       condition: false,
     });
 
@@ -805,8 +811,8 @@ class UpdatingTest extends RenderTest {
 
   @test
   'if keyword in call position'() {
-    this.registerComponent('TemplateOnly', 'Foo', '{{@value}}');
-    this.render('<Foo @value={{if this.condition "truthy"}}/>', {
+    this.register.component('TemplateOnly', 'Foo', '{{@value}}');
+    this.render.template('<Foo @value={{if this.condition "truthy"}}/>', {
       condition: true,
     });
 
@@ -821,8 +827,8 @@ class UpdatingTest extends RenderTest {
 
   @test
   'if keyword in call position with falsy'() {
-    this.registerComponent('TemplateOnly', 'Foo', '{{@value}}');
-    this.render('<Foo @value={{if this.condition "truthy" "falsy"}}/>', {
+    this.register.component('TemplateOnly', 'Foo', '{{@value}}');
+    this.render.template('<Foo @value={{if this.condition "truthy" "falsy"}}/>', {
       condition: true,
     });
 
@@ -837,8 +843,8 @@ class UpdatingTest extends RenderTest {
 
   @test
   'unless keyword in call position'() {
-    this.registerComponent('TemplateOnly', 'Foo', '{{@value}}');
-    this.render('<Foo @value={{unless this.condition "falsy"}}/>', {
+    this.register.component('TemplateOnly', 'Foo', '{{@value}}');
+    this.render.template('<Foo @value={{unless this.condition "falsy"}}/>', {
       condition: false,
     });
 
@@ -853,8 +859,8 @@ class UpdatingTest extends RenderTest {
 
   @test
   'unless keyword in call position with truthy'() {
-    this.registerComponent('TemplateOnly', 'Foo', '{{@value}}');
-    this.render('<Foo @value={{unless this.condition "falsy" "truthy"}}/>', {
+    this.register.component('TemplateOnly', 'Foo', '{{@value}}');
+    this.render.template('<Foo @value={{unless this.condition "falsy" "truthy"}}/>', {
       condition: false,
     });
 
@@ -869,7 +875,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'a conditional that is false on the first run'() {
-    this.render('<div>{{#if this.condition}}<p>{{this.value}}</p>{{/if}}</div>', {
+    this.render.template('<div>{{#if this.condition}}<p>{{this.value}}</p>{{/if}}</div>', {
       condition: false,
       value: 'hello world',
     });
@@ -900,7 +906,7 @@ class UpdatingTest extends RenderTest {
 
     const person = { name: new Name('Godfrey', 'Chan') };
 
-    this.render('<div>{{#with this.person.name.first as |f|}}{{f}}{{/with}}</div>', {
+    this.render.template('<div>{{#with this.person.name.first as |f|}}{{f}}{{/with}}</div>', {
       person,
     });
 
@@ -918,19 +924,19 @@ class UpdatingTest extends RenderTest {
 
   @test
   'missing helper'(assert: Assert) {
-    this.registerHelper('hello', () => 'hello');
+    this.register.helper('hello', () => 'hello');
 
     assert.throws(() => {
-      this.delegate.compileTemplate('{{helo world}}');
+      this.delegate.compileTemplate('{{helo world}}', this.plugins);
     }, /Error: Attempted to resolve `helo`, which was expected to be a component or helper, but nothing was found./u);
   }
 
   @test
   'block arguments should have higher precedence than helpers'() {
     // Note: This test intentionally tests property fallback
-    this.registerHelper('foo', () => 'foo-helper');
-    this.registerHelper('bar', () => 'bar-helper');
-    this.registerHelper('echo', (args) => args[0]);
+    this.register.helper('foo', () => 'foo-helper');
+    this.register.helper('bar', () => 'bar-helper');
+    this.register.helper('echo', (args) => args[0]);
 
     let template = trimLines`
       <div>
@@ -976,7 +982,7 @@ class UpdatingTest extends RenderTest {
       </div>
     `;
 
-    this.render(template, { foo: 'foo-value', bar: 'bar-value', value: 'value-value' });
+    this.render.template(template, { foo: 'foo-value', bar: 'bar-value', value: 'value-value' });
 
     this.assertHTML(
       trimLines`
@@ -1108,10 +1114,13 @@ class UpdatingTest extends RenderTest {
   @test
   'block arguments (ensure balanced push/pop)'() {
     let person = { name: { first: 'Godfrey', last: 'Chan' } };
-    this.render('<div>{{#with this.person.name.first as |f|}}{{f}}{{/with}}{{this.f}}</div>', {
-      person,
-      f: 'Outer',
-    });
+    this.render.template(
+      '<div>{{#with this.person.name.first as |f|}}{{f}}{{/with}}{{this.f}}</div>',
+      {
+        person,
+        f: 'Outer',
+      }
+    );
 
     this.assertHTML('<div>GodfreyOuter</div>', 'Initial render');
 
@@ -1123,9 +1132,9 @@ class UpdatingTest extends RenderTest {
 
   @test
   'block arguments cannot be accessed through {{this}}'() {
-    this.registerHelper('noop', (params) => params[0]);
+    this.register.helper('noop', (params) => params[0]);
 
-    this.render(
+    this.render.template(
       stripTight`
         <div>
           [{{#with this.person as |name|}}{{this.name}}{{/with}}]
@@ -1148,7 +1157,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'The with helper should consider an empty array truthy'() {
-    this.render('<div>{{#with this.condition as |c|}}{{c.length}}{{/with}}</div>', {
+    this.render.template('<div>{{#with this.condition as |c|}}{{c.length}}{{/with}}</div>', {
       condition: [],
     });
 
@@ -1163,7 +1172,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'block helpers whose template has a morph at the edge'() {
-    this.render('{{#if true}}{{this.value}}{{/if}}', { value: 'hello world' });
+    this.render.template('{{#if true}}{{this.value}}{{/if}}', { value: 'hello world' });
     this.assertHTML('hello world');
 
     let firstNode = this.element.firstChild;
@@ -1182,7 +1191,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   "clean content doesn't get blown away"() {
-    this.render('<div>{{this.value}}</div>', { value: 'hello' });
+    this.render.template('<div>{{this.value}}</div>', { value: 'hello' });
 
     let firstNode: Nullable<SimpleNode> = this.element.firstChild;
     let textNode: Node | null;
@@ -1206,7 +1215,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'helper calls follow the normal dirtying rules'() {
-    this.registerHelper('capitalize', (params) => {
+    this.register.helper('capitalize', (params) => {
       let value = params[0];
       if (value !== null && value !== undefined && typeof value === 'string') {
         return value.toUpperCase();
@@ -1214,7 +1223,7 @@ class UpdatingTest extends RenderTest {
       return;
     });
 
-    this.render('<div>{{capitalize this.value}}</div>', { value: 'hello' });
+    this.render.template('<div>{{capitalize this.value}}</div>', { value: 'hello' });
     this.assertHTML('<div>HELLO</div>');
 
     this.rerender({
@@ -1234,7 +1243,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'class attribute follow the normal dirtying rules'() {
-    this.render("<div class='{{this.value}}'>hello</div>", { value: 'world' });
+    this.render.template("<div class='{{this.value}}'>hello</div>", { value: 'world' });
 
     this.assertHTML("<div class='world'>hello</div>", 'Initial render');
 
@@ -1254,7 +1263,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'class attribute w/ concat follow the normal dirtying rules'() {
-    this.render("<div class='hello {{this.value}}'>hello</div>", { value: 'world' });
+    this.render.template("<div class='hello {{this.value}}'>hello</div>", { value: 'world' });
 
     this.assertHTML("<div class='hello world'>hello</div>");
     this.assertStableRerender();
@@ -1271,7 +1280,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'class attribute is removed if the binding becomes null or undefined'() {
-    this.render('<div class={{this.value}}>hello</div>', { value: 'foo' });
+    this.render.template('<div class={{this.value}}>hello</div>', { value: 'foo' });
 
     this.assertHTML("<div class='foo'>hello</div>");
     this.assertStableRerender();
@@ -1291,7 +1300,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'attribute nodes follow the normal dirtying rules'() {
-    this.render("<div data-value='{{this.value}}'>hello</div>", { value: 'world' });
+    this.render.template("<div data-value='{{this.value}}'>hello</div>", { value: 'world' });
     this.assertHTML("<div data-value='world'>hello</div>", 'Initial render');
 
     this.rerender({ value: 'universe' });
@@ -1307,7 +1316,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'attribute nodes w/ concat follow the normal dirtying rules'() {
-    this.render("<div data-value='hello {{this.value}}'>hello</div>", { value: 'world' });
+    this.render.template("<div data-value='hello {{this.value}}'>hello</div>", { value: 'world' });
     this.assertHTML("<div data-value='hello world'>hello</div>");
     this.assertStableRerender();
 
@@ -1323,7 +1332,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'attributes values are normalized correctly'() {
-    this.render('<div data-value={{this.value}}>hello</div>', {
+    this.render.template('<div data-value={{this.value}}>hello</div>', {
       value: {
         toString() {
           return 'world';
@@ -1357,7 +1366,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'namespaced attribute nodes follow the normal dirtying rules'() {
-    this.render("<div xml:lang='{{this.lang}}'>hello</div>", { lang: 'en-us' });
+    this.render.template("<div xml:lang='{{this.lang}}'>hello</div>", { lang: 'en-us' });
 
     this.assertHTML("<div xml:lang='en-us'>hello</div>", 'Initial render');
 
@@ -1369,7 +1378,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'namespaced attribute nodes w/ concat follow the normal dirtying rules'() {
-    this.render("<div xml:lang='en-{{this.locale}}'>hello</div>", { locale: 'us' });
+    this.render.template("<div xml:lang='en-{{this.locale}}'>hello</div>", { locale: 'us' });
 
     this.assertHTML("<div xml:lang='en-us'>hello</div>", 'Initial render');
     this.assertStableRerender();
@@ -1386,7 +1395,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'non-standard namespaced attribute nodes follow the normal dirtying rules'() {
-    this.render("<div epub:type='{{this.type}}'>hello</div>", { type: 'dedication' });
+    this.render.template("<div epub:type='{{this.type}}'>hello</div>", { type: 'dedication' });
     this.assertHTML("<div epub:type='dedication'>hello</div>", 'Initial render');
 
     this.rerender({ type: 'backmatter' });
@@ -1396,7 +1405,9 @@ class UpdatingTest extends RenderTest {
 
   @test
   'non-standard namespaced attribute nodes w/ concat follow the normal dirtying rules'() {
-    this.render("<div epub:type='dedication {{this.type}}'>hello</div>", { type: 'backmatter' });
+    this.render.template("<div epub:type='dedication {{this.type}}'>hello</div>", {
+      type: 'backmatter',
+    });
 
     this.assertHTML("<div epub:type='dedication backmatter'>hello</div>", 'Initial render');
     this.assertStableRerender();
@@ -1418,8 +1429,7 @@ class UpdatingTest extends RenderTest {
       let actualSelected = [];
 
       for (const option of options) {
-        // TODO: these type errors reflect real incompatibility with
-        // SimpleDOM
+        // TODO: these type errors reflect real incompatibility with SimpleDOM
 
         if (!('selected' in option) || !('value' in option)) {
           assert.notOk(
@@ -1448,7 +1458,7 @@ class UpdatingTest extends RenderTest {
       </select>
     `;
 
-    this.render(template, {
+    this.render.template(template, {
       one: true,
       two: 'is-true',
       three: undefined,
@@ -1537,7 +1547,7 @@ class UpdatingTest extends RenderTest {
     let tom = { key: '1', name: 'Tom Dale', class: 'tomdale' };
     let yehuda = { key: '2', name: 'Yehuda Katz', class: 'wycats' };
 
-    this.render("{{#each this.list key='key' as |item|}}{{item.name}}{{/each}}", {
+    this.render.template("{{#each this.list key='key' as |item|}}{{item.name}}{{/each}}", {
       list: [tom, yehuda],
     });
     this.assertInvariants('initial render');
@@ -1560,7 +1570,7 @@ class UpdatingTest extends RenderTest {
     let tom = { name: 'Tom Dale' };
     let yehuda = { name: 'Yehuda Katz' };
 
-    this.render('{{#if this.item}}{{this.item.name}}{{/if}}', { item: tom });
+    this.render.template('{{#if this.item}}{{this.item.name}}{{/if}}', { item: tom });
     this.assertInvariants('initial render');
 
     this.rerender();
@@ -1575,7 +1585,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'top-level bounds are correct when changing innerHTML'() {
-    this.render('{{{this.html}}}', { html: '<b>inner</b>-<b>before</b>' });
+    this.render.template('{{{this.html}}}', { html: '<b>inner</b>-<b>before</b>' });
     this.assertInvariants('initial render');
 
     this.rerender();
@@ -1593,7 +1603,7 @@ class UpdatingTest extends RenderTest {
     let tom = { key: '1', name: 'Tom Dale', class: 'tomdale' };
     let yehuda = { key: '2', name: 'Yehuda Katz', class: 'wycats' };
 
-    this.render(
+    this.render.template(
       "<ul>{{#each this.list key='key' as |item|}}<li class='{{item.class}}'>{{item.name}}</li>{{/each}}</ul>",
       { list: [tom, yehuda] }
     );
@@ -1643,7 +1653,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'The each helper with empty string items'() {
-    this.render(
+    this.render.template(
       `<ul>{{#each this.list key='@identity' as |item|}}<li>{{item}}</li>{{/each}}</ul>`,
       {
         list: [''],
@@ -1670,7 +1680,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'The each helper with else'() {
-    this.render(
+    this.render.template(
       `<ul>{{#each this.list key='name' as |item|}}<li class="{{item.class}}">{{item.name}}</li>{{else}}<li class="none">none</li>{{/each}}</ul>`,
       {
         list: [],
@@ -1710,7 +1720,7 @@ class UpdatingTest extends RenderTest {
     let tom = { name: 'Tom Dale', class: 'tomdale' };
     let yehuda = { name: 'Yehuda Katz', class: 'wycats' };
 
-    this.render(
+    this.render.template(
       "<ul>{{#each this.list key='@index' as |item index|}}<li class='{{item.class}}'>{{item.name}}<p class='index-{{index}}'>{{index}}</p></li>{{/each}}</ul>",
       { list: [tom, yehuda] }
     );
@@ -1869,7 +1879,7 @@ class UpdatingTest extends RenderTest {
     let tom = { key: '1', name: 'Tom Dale', class: 'tomdale' };
     let yehuda = { key: '2', name: 'Yehuda Katz', class: 'wycats' };
 
-    this.render(
+    this.render.template(
       "<ul>{{#each this.list key='key' as |item index|}}<li class='{{item.class}}'>{{item.name}}<p class='index-{{index}}'>{{index}}</p></li>{{/each}}</ul>",
       { list: [tom, yehuda] }
     );
@@ -2029,7 +2039,7 @@ class UpdatingTest extends RenderTest {
   '{{each}} items destroy correctly when destroying the whole list (new and updated items)'() {
     let destroyCount = 0;
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'DestroyableComponent',
       '{{@item}}',
@@ -2040,7 +2050,7 @@ class UpdatingTest extends RenderTest {
       }
     );
 
-    this.render(
+    this.render.template(
       stripTight`
         {{#each this.list as |item|}}
           <div><DestroyableComponent @item={{item}}/></div>
@@ -2067,7 +2077,7 @@ class UpdatingTest extends RenderTest {
   '{{each}} items destroy correctly if they were added after initial render'() {
     let destroyCount = 0;
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'DestroyableComponent',
       '{{@item}}',
@@ -2078,7 +2088,7 @@ class UpdatingTest extends RenderTest {
       }
     );
 
-    this.render(
+    this.render.template(
       stripTight`
         {{#each this.list as |item|}}
           <div><DestroyableComponent @item={{item}}/></div>

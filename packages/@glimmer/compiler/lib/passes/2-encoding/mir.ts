@@ -1,4 +1,4 @@
-import type { CurriedType, PresentArray } from '@glimmer/interfaces';
+import type { CurriedType, Nullable, PresentArray } from '@glimmer/interfaces';
 import type {
   ASTv2,
   BlockSymbolTable,
@@ -26,6 +26,12 @@ export class Not extends node('Not').fields<{ value: ExpressionNode }>() {}
 
 export class If extends node('If').fields<{
   condition: ExpressionNode;
+  block: NamedBlock;
+  inverse: NamedBlock | null;
+}>() {}
+
+export class HandleError extends node('HandleError').fields<{
+  handler: Nullable<ExpressionNode>;
   block: NamedBlock;
   inverse: NamedBlock | null;
 }>() {}
@@ -241,6 +247,7 @@ export type Statement =
   | InvokeBlock
   | AppendComment
   | If
+  | HandleError
   | Each
   | With
   | Let

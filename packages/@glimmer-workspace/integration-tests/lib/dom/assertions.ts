@@ -1,5 +1,5 @@
 import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { assign, dict, isSimpleElement } from '@glimmer/util';
+import { dict, ELEMENT_NODE, isSimpleElement } from '@glimmer/util';
 
 export interface DebugElement {
   element: SimpleElement | null | undefined;
@@ -102,25 +102,25 @@ export function equalsElement(
 }
 
 // TODO: Consider removing this
-interface CompatibleTagNameMap extends ElementTagNameMap {
-  foreignobject: SVGForeignObjectElement;
-}
 
 export function assertIsElement(node: SimpleNode | null): node is SimpleElement {
   let nodeType = node === null ? null : node.nodeType;
   QUnit.assert.pushResult({
-    result: nodeType === 1,
+    result: nodeType === ELEMENT_NODE,
     expected: 1,
     actual: nodeType,
     message: 'expected node to be an element',
   });
-  return nodeType === 1;
+  return nodeType === ELEMENT_NODE;
 }
 
-export function assertNodeTagName<
-  T extends keyof CompatibleTagNameMap,
-  U extends CompatibleTagNameMap[T],
->(node: SimpleNode | null, tagName: T): node is SimpleNode & U {
+type AllTagNameMap = HTMLElementTagNameMap &
+  Omit<SVGElementTagNameMap, keyof HTMLElementTagNameMap>;
+
+export function assertNodeTagName<T extends keyof AllTagNameMap, U extends AllTagNameMap[T]>(
+  node: SimpleNode | null,
+  tagName: T
+): node is SimpleNode & U {
   if (assertIsElement(node)) {
     const lowerTagName = node.tagName.toLowerCase();
     const nodeTagName = node.tagName;
@@ -156,22 +156,12 @@ export function equalsAttr(expected: any): Matcher {
 export function assertEmberishElement(
   element: SimpleElement,
   tagName: string,
-  attrs: Object,
-  contents: string
-): void;
-export function assertEmberishElement(element: SimpleElement, tagName: string, attrs: Object): void;
-export function assertEmberishElement(
-  element: SimpleElement,
-  tagName: string,
-  contents: string
-): void;
-export function assertEmberishElement(element: SimpleElement, tagName: string): void;
-export function assertEmberishElement(...args: any[]): void {
-  let [element, tagName, attrs, contents] = processAssertComponentArgs(args);
+  attrs?: Dict,
+  contents?: string
+): void {
+  let fullAttrs = { class: classes('ember-view'), id: regex(/^ember\d*$/u), ...attrs };
 
-  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
-
-  equalsElement(element, tagName, fullAttrs, contents);
+  equalsElement(element, tagName, fullAttrs, contents ?? null);
 }
 
 export function assertSerializedInElement(result: string, expected: string, message?: string) {

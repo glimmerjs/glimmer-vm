@@ -1,12 +1,12 @@
-import type { InsertPosition, Namespace } from '@glimmer/interfaces';
+import type { InsertPosition, Namespace, NodeType } from '@glimmer/interfaces';
 
-export const RAW_NODE = -1;
-export const ELEMENT_NODE = 1;
-export const TEXT_NODE = 3;
-export const COMMENT_NODE = 8;
-export const DOCUMENT_NODE = 9;
-export const DOCUMENT_TYPE_NODE = 10;
-export const DOCUMENT_FRAGMENT_NODE = 11;
+export const RAW_NODE = -1 satisfies NodeType.RAW_NODE;
+export const ELEMENT_NODE = 1 satisfies NodeType.ELEMENT_NODE;
+export const TEXT_NODE = 3 satisfies NodeType.TEXT_NODE;
+export const COMMENT_NODE = 8 satisfies NodeType.COMMENT_NODE;
+export const DOCUMENT_NODE = 9 satisfies NodeType.DOCUMENT_NODE;
+export const DOCUMENT_TYPE_NODE = 10 satisfies NodeType.DOCUMENT_TYPE_NODE;
+export const DOCUMENT_FRAGMENT_NODE = 11 satisfies NodeType.DOCUMENT_FRAGMENT_NODE;
 
 export const NS_HTML = 'http://www.w3.org/1999/xhtml' as Namespace.HTML;
 export const NS_MATHML = 'http://www.w3.org/1998/Math/MathML' as Namespace.MathML;

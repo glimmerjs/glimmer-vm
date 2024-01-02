@@ -6,6 +6,8 @@ import setGlobalContext from '@glimmer/global-context';
 
 type Queue = (() => void)[];
 
+type Dict<T = unknown> = object & Record<string, T>;
+
 const scheduledDestructors: Queue = [];
 const scheduledFinalizers: Queue = [];
 
@@ -49,6 +51,14 @@ setGlobalContext({
 
   setProp(obj: unknown, prop: string, value: unknown) {
     (obj as Record<string, unknown>)[prop] = value;
+  },
+
+  setProperty<T extends Dict, K extends keyof T>(parent: T, key: K, value: T[K]) {
+    Reflect.set(parent, key, value);
+  },
+
+  getProperty<T extends Dict, K extends keyof T>(parent: T, key: K) {
+    return Reflect.get(parent, key);
   },
 
   getPath(obj: unknown, path: string) {

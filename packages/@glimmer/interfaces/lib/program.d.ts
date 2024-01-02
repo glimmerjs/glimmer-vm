@@ -1,16 +1,17 @@
 import type { Encoder } from './compile';
 import type { ComponentDefinition, ComponentDefinitionState } from './components';
+import type { Nullable } from './core';
 import type { HelperDefinitionState } from './runtime';
 import type { ModifierDefinitionState } from './runtime/modifier';
 import type { CompileTimeResolver, ResolvedComponentDefinition } from './serialize';
-import type { ContainingMetadata, STDLib, Template } from './template';
-import type { SomeVmOp, VmMachineOp, VmOp } from './vm-opcodes';
+import type { BlockMetadata, STDLib, Template } from './template';
+import type { VmMachineOp, VmOp } from './vm-opcodes';
 
 export type CreateRuntimeOp = (heap: CompileTimeHeap) => RuntimeOp;
 
 export interface RuntimeOp {
   offset: number;
-  type: SomeVmOp;
+  type: VmOp;
   op1: number;
   op2: number;
   op3: number;
@@ -49,14 +50,19 @@ export interface RuntimeHeap extends OpcodeHeap {
   sizeof(handle: number): number;
 }
 
-export interface CompileTimeCompilationContext {
+export interface DebugConstants {
+  getValue<T>(handle: number): T;
+  getArray<T extends Nullable<unknown[]>>(value: number): T;
+}
+
+export interface JitContext {
   // The offsets to stdlib functions
   readonly stdlib: STDLib;
 
   readonly createOp: CreateRuntimeOp;
 
   // Interned constants
-  readonly constants: CompileTimeConstants & ResolutionTimeConstants;
+  readonly constants: CompileTimeConstants & ResolutionTimeConstants & DebugConstants;
 
   // The mechanism of resolving names to values at compile-time
   readonly resolver: CompileTimeResolver;
@@ -71,9 +77,9 @@ export interface CompileTimeCompilationContext {
  * template when compiling blocks nested inside of it.
  */
 export interface TemplateCompilationContext {
-  readonly program: CompileTimeCompilationContext;
+  readonly program: JitContext;
   readonly encoder: Encoder;
-  readonly meta: ContainingMetadata;
+  readonly meta: BlockMetadata;
 }
 
 export type EMPTY_ARRAY = Array<ReadonlyArray<never>>;
@@ -132,12 +138,12 @@ export interface ResolutionTimeConstants {
   ): ComponentDefinition;
 }
 
-export interface RuntimeConstants {
+export interface RuntimeConstants extends DebugConstants {
   getValue<T>(handle: number): T;
-  getArray<T>(handle: number): T[];
+  getArray<T extends Nullable<unknown[]>>(handle: number): T;
 }
 
 export interface CompileTimeArtifacts {
   heap: CompileTimeHeap;
-  constants: CompileTimeConstants & ResolutionTimeConstants;
+  constants: CompileTimeConstants & ResolutionTimeConstants & DebugConstants;
 }

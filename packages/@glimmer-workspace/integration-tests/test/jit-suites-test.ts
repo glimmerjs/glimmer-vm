@@ -3,8 +3,6 @@ import {
   EachSuite,
   EmberishComponentTests,
   GlimmerishComponents,
-  HasBlockParamsHelperSuite,
-  HasBlockSuite,
   InElementSuite,
   jitComponentSuite,
   jitSuite,
@@ -13,7 +11,7 @@ import {
   TemplateOnlyComponents,
   WithDynamicVarsSuite,
   YieldSuite,
-} from '..';
+} from '@glimmer-workspace/integration-tests';
 
 jitSuite(DebuggerSuite);
 jitSuite(EachSuite);
@@ -22,8 +20,6 @@ jitSuite(InElementSuite);
 jitComponentSuite(GlimmerishComponents);
 jitComponentSuite(TemplateOnlyComponents);
 jitComponentSuite(EmberishComponentTests);
-jitComponentSuite(HasBlockSuite);
-jitComponentSuite(HasBlockParamsHelperSuite);
 jitComponentSuite(ScopeSuite);
 jitComponentSuite(ShadowingSuite);
 jitComponentSuite(WithDynamicVarsSuite);

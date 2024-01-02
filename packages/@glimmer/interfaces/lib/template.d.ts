@@ -3,7 +3,7 @@ import type { Operand, SerializedInlineBlock, SerializedTemplateBlock } from './
 import type { EncoderError } from './compile/encoder';
 import type { Nullable } from './core';
 import type { InternalComponentCapabilities } from './managers/internal/component';
-import type { CompileTimeCompilationContext, ConstantPool, SerializedHeap } from './program';
+import type { ConstantPool, JitContext, SerializedHeap } from './program';
 import type { Owner } from './runtime';
 import type { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './tier1/symbol-table';
 
@@ -93,8 +93,8 @@ export interface NamedBlocks {
   names: string[];
 }
 
-export interface ContainingMetadata {
-  evalSymbols: Nullable<string[]>;
+export interface BlockMetadata {
+  debugSymbols: Nullable<string[]>;
   upvars: Nullable<string[]>;
   scopeValues: unknown[] | null;
   isStrictMode: boolean;
@@ -108,7 +108,12 @@ export interface CompilerArtifacts {
   constants: ConstantPool;
 }
 
+export declare const IS_COMPILABLE_TEMPLATE_BRAND: unique symbol;
+export type IS_COMPILABLE_TEMPLATE_BRAND = typeof IS_COMPILABLE_TEMPLATE_BRAND;
+
 export interface CompilableTemplate<S extends SymbolTable = SymbolTable> {
+  readonly [IS_COMPILABLE_TEMPLATE_BRAND]: true;
   symbolTable: S;
-  compile(context: CompileTimeCompilationContext): HandleResult;
+  meta: BlockMetadata;
+  compile(context: JitContext): HandleResult;
 }
