@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { execa } from 'execa';
 import { packages } from './packages.mjs';
+import chalk from 'chalk';
 
 import { previewPublish } from './preview-publish.mjs';
 
