@@ -24,7 +24,7 @@ export default async function renderBenchmark(
 ): Promise<UpdateBenchmark> {
   let resolveRender: (() => void) | undefined;
 
-  await measureRender('render', 'renderStart', 'renderEnd', async () => {
+  await measureRender('render', 'renderStart', 'renderEnd', () => {
     const document = element.ownerDocument;
     const envDelegate = createEnvDelegate(isInteractive);
     const runtime = runtimeContext(
@@ -43,8 +43,6 @@ export default async function renderBenchmark(
       env,
       renderComponent(runtime, treeBuilder, context, {}, component.state, args)
     );
-
-    await new Promise(resolve => setTimeout(resolve, 100));
 
     registerResult(result, () => {
       if (resolveRender !== undefined) {
