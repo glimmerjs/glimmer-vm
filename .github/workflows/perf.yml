@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
       - uses: wyvox/action-setup-pnpm@v3
         with:
-          node-version: '20.1.0'
+          node-version: '21.5.0'
           
       - run: pnpm run benchmark:setup
 
