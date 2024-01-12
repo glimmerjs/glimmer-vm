@@ -29,7 +29,9 @@ jobs:
         with:
           fetch-depth: 0
       - uses: wyvox/action-setup-pnpm@v3
-
+        with:
+          node-version: '20.1.0'
+          
       - run: pnpm run benchmark:setup
 
       - name: Remove unused artifacts
