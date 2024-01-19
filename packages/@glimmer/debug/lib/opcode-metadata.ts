@@ -1187,36 +1187,6 @@ METADATA[Op.GetComponentLayout] = {
   check: true,
 };
 
-METADATA[Op.BindEvalScope] = {
-  name: 'BindEvalScope',
-  mnemonic: 'eval_scope',
-  before: null,
-  stackChange: 0,
-  ops: [
-    {
-      name: 'state',
-      type: 'register',
-    },
-  ],
-  operands: 1,
-  check: true,
-};
-
-METADATA[Op.SetupForEval] = {
-  name: 'SetupForEval',
-  mnemonic: 'eval_setup',
-  before: null,
-  stackChange: 0,
-  ops: [
-    {
-      name: 'state',
-      type: 'register',
-    },
-  ],
-  operands: 1,
-  check: true,
-};
-
 METADATA[Op.PopulateLayout] = {
   name: 'PopulateLayout',
   mnemonic: 'comp_layoutput',

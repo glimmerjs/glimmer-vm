@@ -414,7 +414,6 @@ export function invokePreparedComponent(
 
   op(Op.VirtualRootScope, $s0);
   op(Op.SetVariable, 0);
-  op(Op.SetupForEval, $s0);
 
   if (bindableAtNames) op(Op.SetNamedVariables, $s0);
   if (bindableBlocks) op(Op.SetBlocks, $s0);
