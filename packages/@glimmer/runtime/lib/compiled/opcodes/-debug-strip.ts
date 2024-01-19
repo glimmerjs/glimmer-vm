@@ -11,7 +11,6 @@ import type {
   InternalComponentManager,
   Invocation,
   Nullable,
-  Scope,
   ScopeBlock,
 } from '@glimmer/interfaces';
 import type { OpaqueIterator, Reference } from '@glimmer/reference';
@@ -36,7 +35,6 @@ import {
 import { REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { COMPUTE } from '@glimmer/validator';
 
-import { PartialScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { ComponentElementOperations } from './component';
 
@@ -91,8 +89,6 @@ export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface
   positional: wrap(() => CheckArray(CheckReference)),
   named: wrap(() => CheckDict(CheckReference)),
 });
-
-export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(PartialScopeImpl));
 
 export const CheckComponentManager: Checker<InternalComponentManager<unknown>> = CheckInterface({
   getCapabilities: CheckFunction,
