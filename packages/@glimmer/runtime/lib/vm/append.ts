@@ -7,6 +7,7 @@ import type {
   Environment,
   Nullable,
   Owner,
+  PartialScope,
   RenderResult,
   ResolutionTimeConstants,
   RichIteratorResult,
@@ -40,6 +41,7 @@ import {
   JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES } from '../opcodes';
+import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import { LowLevelVM } from './low-level';
@@ -94,6 +96,7 @@ export interface InternalVM {
   enterItem(item: OpaqueIterationItem): ListItemOpcode;
   registerItem(item: ListItemOpcode): void;
 
+  pushRootScope(size: number, owner: Owner): PartialScope;
   pushChildScope(): void;
   popScope(): void;
   pushScope(scope: Scope): void;
