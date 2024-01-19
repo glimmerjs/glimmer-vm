@@ -875,18 +875,6 @@ operation = "Invoke didCreateElement on the current component manager"
 format = ["DidRenderLayout", "state:register"]
 operation = "Invoke didRenderLayout on the current component manager"
 
-[syscall.eval_varload]
-
-format = ["ResolveMaybeLocal", "local:str"]
-operation = """
-Resolve {{foo}} inside a partial, which could be either a self-lookup
-or a local variable that is in-scope for the caller.
-"""
-operand-stack = [
-  [],
-  ["Reference"]
-]
-
 [syscall.debugger]
 
 format = ["Debugger", "symbols:str-array", "debugInfo:array"]

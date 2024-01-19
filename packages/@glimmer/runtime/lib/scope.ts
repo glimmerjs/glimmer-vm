@@ -3,7 +3,6 @@ import type {
   DynamicScope,
   Nullable,
   Owner,
-  PartialScope,
   Scope,
   ScopeBlock,
   ScopeSlot,
@@ -41,27 +40,28 @@ export function isScopeReference(s: ScopeSlot): s is Reference {
   return true;
 }
 
-export class PartialScopeImpl implements PartialScope {
-  static root(self: Reference<unknown>, size = 0, owner: Owner): PartialScope {
+export class ScopeImpl implements Scope {
+  static root(self: Reference<unknown>, size = 0, owner: Owner): Scope {
     let refs: Reference<unknown>[] = new Array(size + 1).fill(UNDEFINED_REFERENCE);
 
-    return new PartialScopeImpl(refs, owner, null, null).init({ self });
+    return new ScopeImpl(refs, owner, null).init({ self });
   }
 
   static sized(size = 0, owner: Owner): Scope {
     let refs: Reference<unknown>[] = new Array(size + 1).fill(UNDEFINED_REFERENCE);
 
-    return new PartialScopeImpl(refs, owner, null, null);
+    return new ScopeImpl(refs, owner, null);
   }
 
   constructor(
     // the 0th slot is `self`
     readonly slots: Array<ScopeSlot>,
     readonly owner: Owner,
-    private callerScope: Scope | null,
-    // locals in scope when the partial was invoked
-    private partialMap: Dict<Reference<unknown>> | null
+    private callerScope: Scope | null
   ) {}
+  getPartialMap(): Nullable<Dict<Reference<unknown>>> {
+    throw new Error('Method not implemented.');
+  }
 
   init({ self }: { self: Reference<unknown> }): this {
     this.slots[0] = self;
@@ -81,10 +81,6 @@ export class PartialScopeImpl implements PartialScope {
     return block === UNDEFINED_REFERENCE ? null : (block as ScopeBlock);
   }
 
-  getPartialMap(): Nullable<Dict<Reference<unknown>>> {
-    return this.partialMap;
-  }
-
   bind(symbol: number, value: ScopeSlot) {
     this.set(symbol, value);
   }
@@ -101,10 +97,6 @@ export class PartialScopeImpl implements PartialScope {
     this.set<Nullable<ScopeBlock>>(symbol, value);
   }
 
-  bindPartialMap(map: Dict<Reference<unknown>>) {
-    this.partialMap = map;
-  }
-
   bindCallerScope(scope: Nullable<Scope>): void {
     this.callerScope = scope;
   }
@@ -114,11 +106,10 @@ export class PartialScopeImpl implements PartialScope {
   }
 
   child(): Scope {
-    return new PartialScopeImpl(
+    return new ScopeImpl(
       this.slots.slice(),
       this.owner,
       this.callerScope,
-      this.partialMap
     );
   }
 

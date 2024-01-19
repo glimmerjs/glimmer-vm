@@ -1,4 +1,4 @@
-import type { Dict, Nullable } from '../core.js';
+import type { Nullable } from '../core.js';
 import type { Reference } from '../references.js';
 import type { CompilableBlock } from '../template.js';
 import type { BlockSymbolTable } from '../tier1/symbol-table.js';
@@ -18,17 +18,11 @@ export interface Scope {
   getSelf(): Reference;
   getSymbol(symbol: number): Reference;
   getBlock(symbol: number): Nullable<ScopeBlock>;
-  getPartialMap(): Nullable<Dict<Reference>>;
   bind(symbol: number, value: ScopeSlot): void;
   bindSelf(self: Reference): void;
   bindSymbol(symbol: number, value: Reference): void;
   bindBlock(symbol: number, value: Nullable<ScopeBlock>): void;
-  bindPartialMap(map: Dict<Reference>): void;
   child(): Scope;
-}
-
-export interface PartialScope extends Scope {
-  // FIXME remove this
 }
 
 export interface DynamicScope {

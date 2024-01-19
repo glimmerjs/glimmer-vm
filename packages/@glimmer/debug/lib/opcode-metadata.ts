@@ -1267,21 +1267,6 @@ METADATA[Op.DidRenderLayout] = {
   check: true,
 };
 
-METADATA[Op.ResolveMaybeLocal] = {
-  name: 'ResolveMaybeLocal',
-  mnemonic: 'eval_varload',
-  before: null,
-  stackChange: 1,
-  ops: [
-    {
-      name: 'local',
-      type: 'str',
-    },
-  ],
-  operands: 1,
-  check: true,
-};
-
 METADATA[Op.Debugger] = {
   name: 'Debugger',
   mnemonic: 'debugger',

@@ -102,7 +102,6 @@ export type VmBeginComponentTransaction = 97;
 export type VmCommitComponentTransaction = 98;
 export type VmDidCreateElement = 99;
 export type VmDidRenderLayout = 100;
-export type VmResolveMaybeLocal = 102;
 export type VmDebugger = 103;
 export type VmSize = 104;
 export type VmStaticComponentAttr = 105;
@@ -198,7 +197,6 @@ export type VmOp =
   | VmCommitComponentTransaction
   | VmDidCreateElement
   | VmDidRenderLayout
-  | VmResolveMaybeLocal
   | VmDebugger
   | VmSize
   | VmStaticComponentAttr
