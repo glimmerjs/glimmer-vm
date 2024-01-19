@@ -58,7 +58,7 @@ class ScopeInspector {
       ref = scope.getSelf();
     } else if (locals[head]) {
       ref = unwrap(locals[head]);
-    // FIXME restore get("@foo") functionality
+      // FIXME restore get("@foo") functionality
     } else {
       ref = this.scope.getSelf();
       tail = parts;

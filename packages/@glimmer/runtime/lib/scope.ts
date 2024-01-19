@@ -106,11 +106,7 @@ export class ScopeImpl implements Scope {
   }
 
   child(): Scope {
-    return new ScopeImpl(
-      this.slots.slice(),
-      this.owner,
-      this.callerScope,
-    );
+    return new ScopeImpl(this.slots.slice(), this.owner, this.callerScope);
   }
 
   private get<T extends ScopeSlot>(index: number): T {
