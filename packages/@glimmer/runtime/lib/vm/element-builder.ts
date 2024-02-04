@@ -20,6 +20,7 @@ import type {
   UpdatableBlock,
 } from '@glimmer/interfaces';
 import { destroy, registerDestructor } from '@glimmer/destroyable';
+import { createUnboundRef } from '@glimmer/reference';
 import { assert, expect, Stack } from '@glimmer/util';
 
 import type { DynamicAttribute } from './attributes/dynamic';
@@ -100,10 +101,10 @@ export class NewElementBuilder implements ElementBuilder {
 
   constructor(env: Environment, parentNode: SimpleElement, nextSibling: Nullable<SimpleNode>) {
     this.pushElement(parentNode, nextSibling);
-
     this.env = env;
     this.dom = env.getAppendOperations();
     this.updateOperations = env.getDOM();
+    this.remoteStateStack = [];
   }
 
   protected initialize(): this {
@@ -215,6 +216,28 @@ export class NewElementBuilder implements ElementBuilder {
     guid: string,
     insertBefore: Maybe<SimpleNode>
   ): Nullable<RemoteLiveBlock> {
+    if (this.env.debugRenderTree) {
+      this.remoteStateStack.push({});
+      const ref = createUnboundRef(element);
+      this.env.debugRenderTree.create(remoteStateStack.at(-1), {
+        type: 'remote-element',
+        name: 'in-element',
+        args: {
+          positional: [],
+          named: {
+           destination: ref,
+          },
+        },
+        instance: {
+          args: {
+            destination: ref,
+          },
+          constructor: {
+            name: 'InElement',
+          },
+        },
+      });
+    }
     return this.__pushRemoteElement(element, guid, insertBefore);
   }
 
@@ -237,6 +260,14 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   popRemoteElement() {
+    if (this.env.debugRenderTree) {
+      this.env.debugRenderTree?.didRender(remoteStack.at(-1), {
+        parentElement: () => this.element.parentElement,
+        firstNode: () => this.element,
+        lastNode: () => this.element,
+      });
+      this.remoteStateStack.pop();
+    }
     this.popBlock();
     this.popElement();
   }
