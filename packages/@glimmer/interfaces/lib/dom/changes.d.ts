@@ -1,4 +1,3 @@
-import '@types/trusted-types';
 import {
   Namespace,
   SimpleComment,
@@ -12,11 +11,7 @@ import { Bounds } from './bounds';
 export interface GlimmerDOMOperations {
   createElement(tag: string, context?: SimpleElement): SimpleElement;
   insertBefore(parent: SimpleElement, node: SimpleNode, reference: Option<SimpleNode>): void;
-  insertHTMLBefore(
-    parent: SimpleElement,
-    nextSibling: Option<SimpleNode>,
-    html: string | TrustedHTML
-  ): Bounds;
+  insertHTMLBefore(parent: SimpleElement, nextSibling: Option<SimpleNode>, html: string): Bounds;
   createTextNode(text: string): SimpleText;
   createComment(data: string): SimpleComment;
 }

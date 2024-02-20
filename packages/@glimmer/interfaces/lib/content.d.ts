@@ -4,7 +4,6 @@ export const enum ContentType {
   String,
   Empty,
   SafeString,
-  TrustedHTML,
   Fragment,
   Node,
   Other,

@@ -75,11 +75,6 @@ export function StdAppend(
         op(Op.AppendSafeHTML);
       });
 
-      when(ContentType.TrustedHTML, () => {
-        op(Op.AssertSame);
-        op(Op.AppendHTML);
-      });
-
       when(ContentType.Fragment, () => {
         op(Op.AssertSame);
         op(Op.AppendDocumentFragment);

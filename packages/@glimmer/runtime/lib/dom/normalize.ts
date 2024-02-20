@@ -48,10 +48,6 @@ export function isSafeString(value: unknown): value is SafeString {
   return typeof value === 'object' && value !== null && typeof (value as any).toHTML === 'function';
 }
 
-export function isTrustedHTML(value: unknown): value is TrustedHTML {
-  return typeof value === 'object' && value !== null && typeof TrustedHTML === 'function' && value instanceof TrustedHTML;
-}
-
 export function isNode(value: unknown): value is SimpleNode {
   return typeof value === 'object' && value !== null && typeof (value as any).nodeType === 'number';
 }
