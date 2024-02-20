@@ -1,16 +1,22 @@
-import { Option } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 
-import * as ASTv1 from '../v1/api';
+import type * as ASTv1 from '../v1/api';
 
 export interface TraversalError extends Error {
   constructor: TraversalErrorConstructor;
   key: string;
   node: ASTv1.Node;
-  parent: Option<ASTv1.Node>;
+  parent: Nullable<ASTv1.Node>;
+  stack?: string;
 }
 
 export interface TraversalErrorConstructor {
-  new (message: string, node: ASTv1.Node, parent: Option<ASTv1.Node>, key: string): TraversalError;
+  new (
+    message: string,
+    node: ASTv1.Node,
+    parent: Nullable<ASTv1.Node>,
+    key: string
+  ): TraversalError;
   readonly prototype: TraversalError;
 }
 
@@ -22,7 +28,7 @@ const TraversalError: TraversalErrorConstructor = (function () {
     this: TraversalError,
     message: string,
     node: ASTv1.Node,
-    parent: Option<ASTv1.Node>,
+    parent: Nullable<ASTv1.Node>,
     key: string
   ) {
     let error = Error.call(this, message);
@@ -31,10 +37,13 @@ const TraversalError: TraversalErrorConstructor = (function () {
     this.message = message;
     this.node = node;
     this.parent = parent;
-    this.stack = error.stack;
+
+    if (error.stack) {
+      this.stack = error.stack;
+    }
   }
 
-  return (TraversalError as unknown) as TraversalErrorConstructor;
+  return TraversalError as unknown as TraversalErrorConstructor;
 })();
 
 export default TraversalError;

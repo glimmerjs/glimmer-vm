@@ -1,8 +1,9 @@
-import { ASTv2, SymbolTable } from '@glimmer/syntax';
+import type { ASTv2, SymbolTable } from '@glimmer/syntax';
 
-import { OptionalList } from '../../shared/list';
-import { Result } from '../../shared/result';
-import * as mir from '../2-encoding/mir';
+import type { OptionalList } from '../../shared/list';
+import type { Result } from '../../shared/result';
+import type * as mir from '../2-encoding/mir';
+
 import { VISIT_STMTS } from './visitors/statements';
 
 /**
@@ -12,7 +13,10 @@ export class NormalizationState {
   _currentScope: SymbolTable;
   _cursorCount = 0;
 
-  constructor(block: SymbolTable, readonly isStrict: boolean) {
+  constructor(
+    block: SymbolTable,
+    readonly isStrict: boolean
+  ) {
     this._currentScope = block;
   }
 

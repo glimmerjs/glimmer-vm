@@ -1,6 +1,9 @@
-import { Op, Scope } from '@glimmer/interfaces';
-import { Reference, childRefFor, valueForRef } from '@glimmer/reference';
-import { dict, decodeHandle } from '@glimmer/util';
+import type { Scope } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
+import { childRefFor, valueForRef } from '@glimmer/reference';
+import { decodeHandle, dict, unwrap } from '@glimmer/util';
+import { Op } from '@glimmer/vm';
+
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 
@@ -13,7 +16,6 @@ function debugCallback(context: unknown, get: DebugGet): void {
   console.info('Use `context`, and `get(<path>)` to debug this template.');
 
   // for example...
-  // eslint-disable-next-line no-unused-expressions
   context === get('this');
 
   // eslint-disable-next-line no-debugger
@@ -34,10 +36,13 @@ export function resetDebuggerCallback() {
 class ScopeInspector {
   private locals = dict<Reference>();
 
-  constructor(private scope: Scope, symbols: string[], evalInfo: number[]) {
-    for (let i = 0; i < evalInfo.length; i++) {
-      let slot = evalInfo[i];
-      let name = symbols[slot - 1];
+  constructor(
+    private scope: Scope,
+    symbols: string[],
+    debugInfo: number[]
+  ) {
+    for (const slot of debugInfo) {
+      let name = unwrap(symbols[slot - 1]);
       let ref = scope.getSymbol(slot);
       this.locals[name] = ref;
     }
@@ -46,7 +51,7 @@ class ScopeInspector {
   get(path: string): Reference {
     let { scope, locals } = this;
     let parts = path.split('.');
-    let [head, ...tail] = path.split('.');
+    let [head, ...tail] = path.split('.') as [string, ...string[]];
 
     let evalScope = scope.getEvalScope()!;
     let ref: Reference;
@@ -54,7 +59,7 @@ class ScopeInspector {
     if (head === 'this') {
       ref = scope.getSelf();
     } else if (locals[head]) {
-      ref = locals[head];
+      ref = unwrap(locals[head]);
     } else if (head.indexOf('@') === 0 && evalScope[head]) {
       ref = evalScope[head] as Reference;
     } else {
@@ -66,9 +71,9 @@ class ScopeInspector {
   }
 }
 
-APPEND_OPCODES.add(Op.Debugger, (vm, { op1: _symbols, op2: _evalInfo }) => {
+APPEND_OPCODES.add(Op.Debugger, (vm, { op1: _symbols, op2: _debugInfo }) => {
   let symbols = vm[CONSTANTS].getArray<string>(_symbols);
-  let evalInfo = vm[CONSTANTS].getArray<number>(decodeHandle(_evalInfo));
-  let inspector = new ScopeInspector(vm.scope(), symbols, evalInfo);
+  let debugInfo = vm[CONSTANTS].getArray<number>(decodeHandle(_debugInfo));
+  let inspector = new ScopeInspector(vm.scope(), symbols, debugInfo);
   callback(valueForRef(vm.getSelf()), (path) => valueForRef(inspector.get(path)));
 });

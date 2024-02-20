@@ -1,15 +1,19 @@
-import { Bounds, ElementBuilder, Environment, Option, Maybe } from '@glimmer/interfaces';
-import { assert, castToBrowser, castToSimple, expect, Stack } from '@glimmer/util';
-import {
+import type {
   AttrNamespace,
-  Namespace,
-  NodeType,
+  Bounds,
+  ElementBuilder,
+  Environment,
+  Maybe,
+  Nullable,
   SimpleAttr,
   SimpleComment,
   SimpleElement,
   SimpleNode,
   SimpleText,
-} from '@simple-dom/interface';
+} from '@glimmer/interfaces';
+import type { Stack } from '@glimmer/util';
+import { assert, castToBrowser, castToSimple, COMMENT_NODE, expect, NS_SVG } from '@glimmer/util';
+
 import { ConcreteBounds, CursorImpl } from '../bounds';
 import { CURSOR_STACK, NewElementBuilder, RemoteLiveBlock } from './element-builder';
 
@@ -20,12 +24,12 @@ export function isSerializationFirstNode(node: SimpleNode): boolean {
 }
 
 export class RehydratingCursor extends CursorImpl {
-  candidate: Option<SimpleNode> = null;
+  candidate: Nullable<SimpleNode> = null;
   openBlockDepth: number;
   injectedOmittedNode = false;
   constructor(
     element: SimpleElement,
-    nextSibling: Option<SimpleNode>,
+    nextSibling: Nullable<SimpleNode>,
     public readonly startingBlockDepth: number
   ) {
     super(element, nextSibling);
@@ -34,12 +38,12 @@ export class RehydratingCursor extends CursorImpl {
 }
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
-  private unmatchedAttributes: Option<SimpleAttr[]> = null;
-  [CURSOR_STACK]!: Stack<RehydratingCursor>; // Hides property on base class
+  private unmatchedAttributes: Nullable<SimpleAttr[]> = null;
+  declare [CURSOR_STACK]: Stack<RehydratingCursor>; // Hides property on base class
   blockDepth = 0;
   startingBlockOffset: number;
 
-  constructor(env: Environment, parentNode: SimpleElement, nextSibling: Option<SimpleNode>) {
+  constructor(env: Environment, parentNode: SimpleElement, nextSibling: Nullable<SimpleNode>) {
     super(env, parentNode, nextSibling);
     if (nextSibling) throw new Error('Rehydration with nextSibling not supported');
 
@@ -54,7 +58,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
     assert(node, 'Must have opening comment for rehydration.');
     this.candidate = node;
-    const startingBlockOffset = getBlockDepth(node as SimpleComment);
+    const startingBlockOffset = getBlockDepth(node);
     if (startingBlockOffset !== 0) {
       // We are rehydrating from a partial tree and not the root component
       // We need to add an extra block before the first block to rehydrate correctly
@@ -62,8 +66,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       const newBlockDepth = startingBlockOffset - 1;
       const newCandidate = this.dom.createComment(`%+b:${newBlockDepth}%`);
 
-      node!.parentNode!.insertBefore(newCandidate, this.candidate);
-      let closingNode = node!.nextSibling;
+      node.parentNode!.insertBefore(newCandidate, this.candidate);
+      let closingNode = node.nextSibling;
       while (closingNode !== null) {
         if (isCloseBlock(closingNode) && getBlockDepth(closingNode) === startingBlockOffset) {
           break;
@@ -73,7 +77,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
       assert(closingNode, 'Must have closing comment for starting block comment');
       const newClosingBlock = this.dom.createComment(`%-b:${newBlockDepth}%`);
-      node!.parentNode!.insertBefore(newClosingBlock, closingNode!.nextSibling);
+      node.parentNode!.insertBefore(newClosingBlock, closingNode.nextSibling);
       this.candidate = newCandidate;
       this.startingBlockOffset = newBlockDepth;
     } else {
@@ -81,11 +85,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  get currentCursor(): Option<RehydratingCursor> {
+  get currentCursor(): Nullable<RehydratingCursor> {
     return this[CURSOR_STACK].current;
   }
 
-  get candidate(): Option<SimpleNode> {
+  get candidate(): Nullable<SimpleNode> {
     if (this.currentCursor) {
       return this.currentCursor.candidate!;
     }
@@ -93,14 +97,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return null;
   }
 
-  set candidate(node: Option<SimpleNode>) {
-    let currentCursor = this.currentCursor!;
+  set candidate(node: Nullable<SimpleNode>) {
+    const currentCursor = this.currentCursor!;
 
     currentCursor.candidate = node;
   }
 
-  disableRehydration(nextSibling: Option<SimpleNode>) {
-    let currentCursor = this.currentCursor!;
+  disableRehydration(nextSibling: Nullable<SimpleNode>) {
+    const currentCursor = this.currentCursor!;
 
     // rehydration will be disabled until we either:
     // * hit popElement (and return to using the parent elements cursor)
@@ -110,14 +114,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     currentCursor.nextSibling = nextSibling;
   }
 
-  enableRehydration(candidate: Option<SimpleNode>) {
-    let currentCursor = this.currentCursor!;
+  enableRehydration(candidate: Nullable<SimpleNode>) {
+    const currentCursor = this.currentCursor!;
 
     currentCursor.candidate = candidate;
     currentCursor.nextSibling = null;
   }
 
-  pushElement(
+  override pushElement(
     /** called from parent constructor before we initialize this */
     this:
       | RehydrateBuilder
@@ -125,7 +129,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     element: SimpleElement,
     nextSibling: Maybe<SimpleNode> = null
   ) {
-    let cursor = new RehydratingCursor(element, nextSibling, this.blockDepth || 0);
+    const cursor = new RehydratingCursor(element, nextSibling, this.blockDepth || 0);
 
     /**
      * <div>   <---------------  currentCursor.element
@@ -148,14 +152,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   // clears until the end of the current container
   // either the current open block or higher
   private clearMismatch(candidate: SimpleNode) {
-    let current: Option<SimpleNode> = candidate;
-    let currentCursor = this.currentCursor;
+    let current: Nullable<SimpleNode> = candidate;
+    const currentCursor = this.currentCursor;
     if (currentCursor !== null) {
-      let openBlockDepth = currentCursor.openBlockDepth;
+      const openBlockDepth = currentCursor.openBlockDepth;
       if (openBlockDepth >= currentCursor.startingBlockDepth) {
         while (current) {
           if (isCloseBlock(current)) {
-            let closeBlockDepth = getBlockDepthWithOffset(current, this.startingBlockOffset);
+            const closeBlockDepth = getBlockDepthWithOffset(current, this.startingBlockOffset);
             if (openBlockDepth >= closeBlockDepth) {
               break;
             }
@@ -173,18 +177,18 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __openBlock(): void {
-    let { currentCursor } = this;
+  override __openBlock(): void {
+    const { currentCursor } = this;
     if (currentCursor === null) return;
 
-    let blockDepth = this.blockDepth;
+    const blockDepth = this.blockDepth;
 
     this.blockDepth++;
 
-    let { candidate } = currentCursor;
+    const { candidate } = currentCursor;
     if (candidate === null) return;
 
-    let { tagName } = currentCursor.element;
+    const { tagName } = currentCursor.element;
 
     if (
       isOpenBlock(candidate) &&
@@ -197,17 +201,17 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __closeBlock(): void {
-    let { currentCursor } = this;
+  override __closeBlock(): void {
+    const { currentCursor } = this;
     if (currentCursor === null) return;
 
     // openBlock is the last rehydrated open block
-    let openBlockDepth = currentCursor.openBlockDepth;
+    const openBlockDepth = currentCursor.openBlockDepth;
 
     // this currently is the expected next open block depth
     this.blockDepth--;
 
-    let { candidate } = currentCursor;
+    const { candidate } = currentCursor;
 
     let isRehydrating = false;
 
@@ -222,7 +226,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
         isCloseBlock(candidate) &&
         getBlockDepthWithOffset(candidate, this.startingBlockOffset) === openBlockDepth
       ) {
-        let nextSibling = this.remove(candidate);
+        const nextSibling = this.remove(candidate);
         this.candidate = nextSibling;
         currentCursor.openBlockDepth--;
       } else {
@@ -238,14 +242,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       // check if nextSibling matches our expected close block
       // if so, we remove the close block comment and
       // restore rehydration after clearMismatch disabled
-      let nextSibling = currentCursor.nextSibling;
+      const nextSibling = currentCursor.nextSibling;
       if (
         nextSibling !== null &&
         isCloseBlock(nextSibling) &&
         getBlockDepthWithOffset(nextSibling, this.startingBlockOffset) === this.blockDepth
       ) {
         // restore rehydration state
-        let candidate = this.remove(nextSibling);
+        const candidate = this.remove(nextSibling);
         this.enableRehydration(candidate);
 
         currentCursor.openBlockDepth--;
@@ -253,8 +257,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __appendNode(node: SimpleNode): SimpleNode {
-    let { candidate } = this;
+  override __appendNode(node: SimpleNode): SimpleNode {
+    const { candidate } = this;
 
     // This code path is only used when inserting precisely one node. It needs more
     // comparison logic, but we can probably lean on the cases where this code path
@@ -266,16 +270,16 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __appendHTML(html: string): Bounds {
-    let candidateBounds = this.markerBounds();
+  override __appendHTML(html: string): Bounds {
+    const candidateBounds = this.markerBounds();
 
     if (candidateBounds) {
-      let first = candidateBounds.firstNode()!;
-      let last = candidateBounds.lastNode()!;
+      const first = candidateBounds.firstNode()!;
+      const last = candidateBounds.lastNode()!;
 
-      let newBounds = new ConcreteBounds(this.element, first.nextSibling!, last.previousSibling!);
+      const newBounds = new ConcreteBounds(this.element, first.nextSibling!, last.previousSibling!);
 
-      let possibleEmptyMarker = this.remove(first);
+      const possibleEmptyMarker = this.remove(first);
       this.remove(last);
 
       if (possibleEmptyMarker !== null && isEmpty(possibleEmptyMarker)) {
@@ -292,18 +296,18 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  protected remove(node: SimpleNode): Option<SimpleNode> {
-    let element = expect(node.parentNode, `cannot remove a detached node`) as SimpleElement;
-    let next = node.nextSibling;
+  protected remove(node: SimpleNode): Nullable<SimpleNode> {
+    const element = expect(node.parentNode, `cannot remove a detached node`) as SimpleElement;
+    const next = node.nextSibling;
     element.removeChild(node);
     return next;
   }
 
-  private markerBounds(): Option<Bounds> {
-    let _candidate = this.candidate;
+  private markerBounds(): Nullable<Bounds> {
+    const _candidate = this.candidate;
 
     if (_candidate && isMarker(_candidate)) {
-      let first = _candidate;
+      const first = _candidate;
       let last = expect(first.nextSibling, `BUG: serialization markers must be paired`);
 
       while (last && !isMarker(last)) {
@@ -316,8 +320,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __appendText(string: string): SimpleText {
-    let { candidate } = this;
+  override __appendText(string: string): SimpleText {
+    const { candidate } = this;
 
     if (candidate) {
       if (isTextNode(candidate)) {
@@ -345,8 +349,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __appendComment(string: string): SimpleComment {
-    let _candidate = this.candidate;
+  override __appendComment(string: string): SimpleComment {
+    const _candidate = this.candidate;
     if (_candidate && isComment(_candidate)) {
       if (_candidate.nodeValue !== string) {
         _candidate.nodeValue = string;
@@ -361,8 +365,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return super.__appendComment(string);
   }
 
-  __openElement(tag: string): SimpleElement {
-    let _candidate = this.candidate;
+  override __openElement(tag: string): SimpleElement {
+    const _candidate = this.candidate;
 
     if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
@@ -379,11 +383,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return super.__openElement(tag);
   }
 
-  __setAttribute(name: string, value: string, namespace: Option<AttrNamespace>): void {
-    let unmatched = this.unmatchedAttributes;
+  override __setAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {
+    const unmatched = this.unmatchedAttributes;
 
     if (unmatched) {
-      let attr = findByName(unmatched, name);
+      const attr = findByName(unmatched, name);
       if (attr) {
         if (attr.value !== value) {
           attr.value = value;
@@ -396,11 +400,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return super.__setAttribute(name, value, namespace);
   }
 
-  __setProperty(name: string, value: string): void {
-    let unmatched = this.unmatchedAttributes;
+  override __setProperty(name: string, value: string): void {
+    const unmatched = this.unmatchedAttributes;
 
     if (unmatched) {
-      let attr = findByName(unmatched, name);
+      const attr = findByName(unmatched, name);
       if (attr) {
         if (attr.value !== value) {
           attr.value = value;
@@ -413,11 +417,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return super.__setProperty(name, value);
   }
 
-  __flushElement(parent: SimpleElement, constructing: SimpleElement): void {
-    let { unmatchedAttributes: unmatched } = this;
+  override __flushElement(parent: SimpleElement, constructing: SimpleElement): void {
+    const { unmatchedAttributes: unmatched } = this;
     if (unmatched) {
-      for (let i = 0; i < unmatched.length; i++) {
-        this.constructing!.removeAttribute(unmatched[i].name);
+      for (const attr of unmatched) {
+        this.constructing!.removeAttribute(attr.name);
       }
       this.unmatchedAttributes = null;
     } else {
@@ -425,8 +429,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  willCloseElement() {
-    let { candidate, currentCursor } = this;
+  override willCloseElement() {
+    const { candidate, currentCursor } = this;
 
     if (candidate !== null) {
       this.clearMismatch(candidate);
@@ -439,20 +443,20 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     super.willCloseElement();
   }
 
-  getMarker(element: HTMLElement, guid: string): Option<SimpleNode> {
-    let marker = element.querySelector(`script[glmr="${guid}"]`);
+  getMarker(element: HTMLElement, guid: string): Nullable<SimpleNode> {
+    const marker = element.querySelector(`script[glmr="${guid}"]`);
     if (marker) {
       return castToSimple(marker);
     }
     return null;
   }
 
-  __pushRemoteElement(
+  override __pushRemoteElement(
     element: SimpleElement,
     cursorId: string,
     insertBefore: Maybe<SimpleNode>
-  ): Option<RemoteLiveBlock> {
-    let marker = this.getMarker(castToBrowser(element, 'HTML'), cursorId);
+  ): Nullable<RemoteLiveBlock> {
+    const marker = this.getMarker(castToBrowser(element, 'HTML'), cursorId);
 
     assert(
       !marker || marker.parentNode === element,
@@ -467,7 +471,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       insertBefore = null;
     }
 
-    let cursor = new RehydratingCursor(element, null, this.blockDepth);
+    const cursor = new RehydratingCursor(element, null, this.blockDepth);
     this[CURSOR_STACK].push(cursor);
 
     if (marker === null) {
@@ -476,14 +480,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.candidate = this.remove(marker);
     }
 
-    let block = new RemoteLiveBlock(element);
+    const block = new RemoteLiveBlock(element);
     return this.pushLiveBlock(block, true);
   }
 
-  didAppendBounds(bounds: Bounds): Bounds {
+  override didAppendBounds(bounds: Bounds): Bounds {
     super.didAppendBounds(bounds);
     if (this.candidate) {
-      let last = bounds.lastNode();
+      const last = bounds.lastNode();
       this.candidate = last && last.nextSibling;
     }
     return bounds;
@@ -499,11 +503,11 @@ function isComment(node: SimpleNode): node is SimpleComment {
 }
 
 function isOpenBlock(node: SimpleNode): node is SimpleComment {
-  return node.nodeType === NodeType.COMMENT_NODE && node.nodeValue.lastIndexOf('%+b:', 0) === 0;
+  return node.nodeType === COMMENT_NODE && node.nodeValue.lastIndexOf('%+b:', 0) === 0;
 }
 
 function isCloseBlock(node: SimpleNode): node is SimpleComment {
-  return node.nodeType === NodeType.COMMENT_NODE && node.nodeValue.lastIndexOf('%-b:', 0) === 0;
+  return node.nodeType === COMMENT_NODE && node.nodeValue.lastIndexOf('%-b:', 0) === 0;
 }
 
 function getBlockDepth(node: SimpleComment): number {
@@ -531,15 +535,14 @@ function isEmpty(node: SimpleNode): boolean {
 }
 
 function isSameNodeType(candidate: SimpleElement, tag: string) {
-  if (candidate.namespaceURI === Namespace.SVG) {
+  if (candidate.namespaceURI === NS_SVG) {
     return candidate.tagName === tag;
   }
   return candidate.tagName === tag.toUpperCase();
 }
 
 function findByName(array: SimpleAttr[], name: string): SimpleAttr | undefined {
-  for (let i = 0; i < array.length; i++) {
-    let attr = array[i];
+  for (const attr of array) {
     if (attr.name === name) return attr;
   }
 

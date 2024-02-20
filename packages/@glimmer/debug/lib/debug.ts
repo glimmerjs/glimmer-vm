@@ -1,18 +1,20 @@
-import {
+import type {
   CompileTimeConstants,
-  Recast,
-  RuntimeOp,
   Dict,
   Maybe,
-  TemplateCompilationContext,
+  Recast,
   ResolutionTimeConstants,
+  RuntimeOp,
+  TemplateCompilationContext,
 } from '@glimmer/interfaces';
+import type { Register } from '@glimmer/vm';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { RuntimeOpImpl } from '@glimmer/program';
-import { Register, $s0, $s1, $t0, $t1, $v0, $fp, $sp, $pc, $ra } from '@glimmer/vm';
-import { decodeImmediate, decodeHandle, LOCAL_LOGGER } from '@glimmer/util';
+import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER } from '@glimmer/util';
+import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
+
+import type { Primitive } from './stack-check';
+
 import { opcodeMetadata } from './opcode-metadata';
-import { Primitive } from './stack-check';
 
 export interface DebugConstants {
   getValue<T>(handle: number): T;
@@ -24,7 +26,7 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
     LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
 
     let heap = context.program.heap;
-    let opcode = new RuntimeOpImpl(heap);
+    let opcode = context.program.createOp(heap);
 
     let _size = 0;
     for (let i = start; i < end; i = i + _size) {
@@ -99,7 +101,7 @@ export function debug(
 
     let out = Object.create(null);
 
-    metadata.ops.forEach((operand, index: number) => {
+    for (const [index, operand] of enumerate(metadata.ops)) {
       let actualOperand = opcodeOperand(op, index);
 
       switch (operand.type) {
@@ -138,7 +140,7 @@ export function debug(
         default:
           throw new Error(`Unexpected operand type ${operand.type} for debug output`);
       }
-    });
+    }
 
     return [metadata.name, out];
   }

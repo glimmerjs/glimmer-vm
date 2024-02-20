@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
 'use strict';
 
 const FailureOnlyReporterGroupedByBrowser = require('testem-failure-only-reporter/grouped-by-browser');
@@ -97,7 +95,7 @@ module.exports = {
         '--os',
         'OS X',
         '--osv',
-        'Mojave',
+        'Monterey',
         '--b',
         'safari',
         '--bv',
@@ -115,7 +113,7 @@ module.exports = {
         '--os',
         'OS X',
         '--osv',
-        'High Sierra',
+        'Big Sur',
         '--b',
         'safari',
         '--bv',

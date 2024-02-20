@@ -1,26 +1,40 @@
-import { preprocess as parse, AST, PreprocessOptions } from '..';
+import type { AST, PreprocessOptions } from '@glimmer/syntax';
+import { preprocess as parse } from '@glimmer/syntax';
+import { entries } from '@glimmer/util';
 
 function normalizeNode(obj: AST.Node | Array<AST.Node>): AST.Node | Array<AST.Node> {
+  return normalizeValue(obj);
+}
+
+function normalizeValue<T extends AST.Node | AST.Node[] | unknown>(obj: T): T {
   if (obj && typeof obj === 'object') {
-    let newObj: any;
     if (Array.isArray(obj)) {
-      newObj = obj.slice();
-      for (let i = 0; i < obj.length; i++) {
-        newObj[i] = normalizeNode(obj[i]);
-      }
+      return obj.map(normalizeValue) as T;
     } else {
-      newObj = {};
-      let keys = Object.keys(obj);
-      for (let i = 0; i < keys.length; i++) {
-        let key = keys[i];
-        if (key === 'loc') continue;
-        newObj[key] = normalizeNode((obj as any)[key]);
-      }
+      return fromEntries(
+        entries(obj).flatMap(([key, value]) =>
+          key === 'loc' ? [] : [[key, normalizeValue(value)]]
+        )
+      ) as T;
     }
-    return newObj;
   } else {
     return obj;
   }
+}
+
+// convert entries ([string, unknown][]) into a record
+type FromEntries<T extends [PropertyKey, unknown][]> = {
+  [K in T[number] as K[0]]: Extract<K, [PropertyKey, unknown]>[1];
+};
+
+function fromEntries<T extends [PropertyKey, unknown][]>(entries: T): FromEntries<T> {
+  const out: any = {};
+
+  for (const [key, value] of entries) {
+    out[key as string] = value;
+  }
+
+  return out as FromEntries<T>;
 }
 
 export function astEqual(

@@ -1,48 +1,54 @@
 name: PerformanceCheck
 
 on:
-  pull_request:
+  workflow_dispatch:
+  push:
     branches:
-      - master
+      - main
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  EXPERIMENT_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  CONTROL_BRANCH_NAME: 'main'
+  FIDELITY: 100
+  THROTTLE: 4
+  FORK_NAME: ${{ github.event.pull_request.head.repo.full_name }}
 
 jobs:
   master-krausest-comparison:
-    strategy:
-      fail-fast: false
     name: Glimmer Krausest Benchmark
     runs-on: ubuntu-latest
+    timeout-minutes: 70
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: volta-cli/action@v1
-      - name: Build Control
-        run: |
-          git checkout ${{ github.event.pull_request.base.sha }}
-          yarn install --frozen-lockfile
-          yarn ember build --env production --suppress-sizes --output-path control-dist
-      - name: Build Experiment
-        run: |
-          git checkout ${{ github.sha }}
-          yarn install --frozen-lockfile
-          yarn ember build --env production --suppress-sizes --output-path dist
-      - name: Run Analysis
-        timeout-minutes: 10
-        uses: tracerbench/tracerbench-compare-action@master
+      - uses: wyvox/action-setup-pnpm@v3
         with:
-          build-control: false
-          build-experiment: false
-          control-serve-command: yarn benchmark:control
-          experiment-serve-command: yarn benchmark:experiment
-          control-url: http://localhost:3000/krausest/
-          experiment-url: http://localhost:3001/krausest/
-          regression-threshold: 25
-          fidelity: high
-          markers: 'navigationStart,renderStart,renderEnd'
-          clean-after-analyze: false
+          node-version: '20.1.0'
+
+      - name: RUN
+        run: pnpm run benchmark:setup
+
+      - name: Remove unused artifacts
+        run: rm -rf ./tracerbench-results/traces && rm -rf ./tracerbench-results/traces.zip
+
       - name: Upload Tracerbench Artifacts
         if: failure() || success()
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: Trace Artifacts
           path: tracerbench-results
+
+      - name: Write message
+        uses: mshick/add-pr-comment@v2
+        with:
+          message-path: "tracerbench-results/msg.txt"
+          update-only: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

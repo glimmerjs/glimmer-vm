@@ -1,15 +1,16 @@
-import {
-  DynamicScope,
+import type {
   Dict,
-  PartialScope,
-  ScopeSlot,
-  ScopeBlock,
-  Option,
-  Scope,
+  DynamicScope,
+  Nullable,
   Owner,
+  PartialScope,
+  Scope,
+  ScopeBlock,
+  ScopeSlot,
 } from '@glimmer/interfaces';
-import { assign } from '@glimmer/util';
-import { Reference, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import type { Reference } from '@glimmer/reference';
+import { UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { assign, unwrap } from '@glimmer/util';
 
 export class DynamicScopeImpl implements DynamicScope {
   private bucket: Dict<Reference>;
@@ -23,7 +24,7 @@ export class DynamicScopeImpl implements DynamicScope {
   }
 
   get(key: string): Reference {
-    return this.bucket[key];
+    return unwrap(this.bucket[key]);
   }
 
   set(key: string, reference: Reference): Reference {
@@ -42,21 +43,13 @@ export function isScopeReference(s: ScopeSlot): s is Reference {
 
 export class PartialScopeImpl implements PartialScope {
   static root(self: Reference<unknown>, size = 0, owner: Owner): PartialScope {
-    let refs: Reference<unknown>[] = new Array(size + 1);
-
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
-    }
+    let refs: Reference<unknown>[] = new Array(size + 1).fill(UNDEFINED_REFERENCE);
 
     return new PartialScopeImpl(refs, owner, null, null, null).init({ self });
   }
 
   static sized(size = 0, owner: Owner): Scope {
-    let refs: Reference<unknown>[] = new Array(size + 1);
-
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
-    }
+    let refs: Reference<unknown>[] = new Array(size + 1).fill(UNDEFINED_REFERENCE);
 
     return new PartialScopeImpl(refs, owner, null, null, null);
   }
@@ -85,16 +78,16 @@ export class PartialScopeImpl implements PartialScope {
     return this.get<Reference<unknown>>(symbol);
   }
 
-  getBlock(symbol: number): Option<ScopeBlock> {
+  getBlock(symbol: number): Nullable<ScopeBlock> {
     let block = this.get(symbol);
     return block === UNDEFINED_REFERENCE ? null : (block as ScopeBlock);
   }
 
-  getEvalScope(): Option<Dict<ScopeSlot>> {
+  getEvalScope(): Nullable<Dict<ScopeSlot>> {
     return this.evalScope;
   }
 
-  getPartialMap(): Option<Dict<Reference<unknown>>> {
+  getPartialMap(): Nullable<Dict<Reference<unknown>>> {
     return this.partialMap;
   }
 
@@ -110,11 +103,11 @@ export class PartialScopeImpl implements PartialScope {
     this.set(symbol, value);
   }
 
-  bindBlock(symbol: number, value: Option<ScopeBlock>) {
-    this.set<Option<ScopeBlock>>(symbol, value);
+  bindBlock(symbol: number, value: Nullable<ScopeBlock>) {
+    this.set<Nullable<ScopeBlock>>(symbol, value);
   }
 
-  bindEvalScope(map: Option<Dict<ScopeSlot>>) {
+  bindEvalScope(map: Nullable<Dict<ScopeSlot>>) {
     this.evalScope = map;
   }
 
@@ -122,11 +115,11 @@ export class PartialScopeImpl implements PartialScope {
     this.partialMap = map;
   }
 
-  bindCallerScope(scope: Option<Scope>): void {
+  bindCallerScope(scope: Nullable<Scope>): void {
     this.callerScope = scope;
   }
 
-  getCallerScope(): Option<Scope> {
+  getCallerScope(): Nullable<Scope> {
     return this.callerScope;
   }
 

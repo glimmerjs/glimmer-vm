@@ -1,4 +1,5 @@
-import { IteratorDelegate } from '../..';
+import type { IteratorDelegate } from '@glimmer/reference';
+
 import objectValues from './platform';
 
 abstract class BoundedIterator implements IteratorDelegate {
@@ -44,7 +45,10 @@ class ObjectIterator extends BoundedIterator {
     return new this(keys, values);
   }
 
-  constructor(private keys: unknown[], private values: unknown[]) {
+  constructor(
+    private keys: unknown[],
+    private values: unknown[]
+  ) {
     super(values.length);
   }
 
@@ -52,7 +56,7 @@ class ObjectIterator extends BoundedIterator {
     return this.values[position];
   }
 
-  memoFor(position: number): unknown {
+  override memoFor(position: number): unknown {
     return this.keys[position];
   }
 }

@@ -1,9 +1,11 @@
 import { ASTv2, generateSyntaxError, SourceSlice } from '@glimmer/syntax';
 
-import { Err, Ok, Result } from '../../../../shared/result';
+import type { Result } from '../../../../shared/result';
+import type { NormalizationState } from '../../context';
+import type { GenericKeywordNode, KeywordDelegate } from '../impl';
+
+import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { NormalizationState } from '../../context';
-import { GenericKeywordNode, KeywordDelegate } from '../impl';
 
 function assertHasBlockKeyword(type: string) {
   return (node: GenericKeywordNode): Result<SourceSlice> => {
@@ -19,7 +21,7 @@ function assertHasBlockKeyword(type: string) {
     if (!positionals || positionals.isEmpty()) {
       return Ok(SourceSlice.synthetic('default'));
     } else if (positionals.exprs.length === 1) {
-      let positional = positionals.exprs[0];
+      let positional = positionals.exprs[0] as ASTv2.ExpressionNode;
       if (ASTv2.isLiteral(positional, 'string')) {
         return Ok(positional.toSlice());
       } else {

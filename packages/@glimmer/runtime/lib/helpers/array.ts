@@ -1,6 +1,8 @@
-import { CapturedArguments } from '@glimmer/interfaces';
-import { createComputeRef, Reference } from '@glimmer/reference';
-import { reifyPositional } from '@glimmer/runtime';
+import type { CapturedArguments } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
+import { createComputeRef } from '@glimmer/reference';
+
+import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
 
 /**
@@ -37,8 +39,6 @@ import { internalHelper } from './internal-helper';
    @public
  */
 
-export default internalHelper(
-  ({ positional }: CapturedArguments): Reference<unknown[]> => {
-    return createComputeRef(() => reifyPositional(positional), null, 'array');
-  }
-);
+export const array = internalHelper(({ positional }: CapturedArguments): Reference<unknown[]> => {
+  return createComputeRef(() => reifyPositional(positional), null, 'array');
+});

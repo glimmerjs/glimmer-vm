@@ -1,61 +1,32 @@
+import type {
+  CapturedArguments,
+  InternalModifierManager,
+  Owner,
+  SimpleElement,
+} from '@glimmer/interfaces';
+import type { UpdatableTag } from '@glimmer/validator';
+import { check, CheckFunction, CheckString } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
-import { DEBUG } from '@glimmer/env';
-import { CapturedArguments, InternalModifierManager, Owner } from '@glimmer/interfaces';
 import { setInternalModifierManager } from '@glimmer/manager';
 import { valueForRef } from '@glimmer/reference';
-import { reifyNamed } from '@glimmer/runtime';
-import { createUpdatableTag, UpdatableTag } from '@glimmer/validator';
-import { SimpleElement } from '@simple-dom/interface';
-import { buildUntouchableThis } from '@glimmer/util';
+import { buildUntouchableThis, expect } from '@glimmer/util';
+import { createUpdatableTag } from '@glimmer/validator';
+
+import { reifyNamed } from '../vm/arguments';
 
 const untouchableContext = buildUntouchableThis('`on` modifier');
-
-/*
-  Internet Explorer 11 does not support `once` and also does not support
-  passing `eventOptions`. In some situations it then throws a weird script
-  error, like:
-
-  ```
-  Could not complete the operation due to error 80020101
-  ```
-
-  This flag determines, whether `{ once: true }` and thus also event options in
-  general are supported.
-*/
-const SUPPORTS_EVENT_OPTIONS = (() => {
-  try {
-    const div = document.createElement('div');
-    let counter = 0;
-    div.addEventListener('click', () => counter++, { once: true });
-
-    let event;
-    if (typeof Event === 'function') {
-      event = new Event('click');
-    } else {
-      event = document.createEvent('Event');
-      event.initEvent('click', true, true);
-    }
-
-    div.dispatchEvent(event);
-    div.dispatchEvent(event);
-
-    return counter === 1;
-  } catch (error) {
-    return false;
-  }
-})();
 
 export class OnModifierState {
   public tag = createUpdatableTag();
   public element: Element;
   public args: CapturedArguments;
-  public eventName!: string;
-  public callback!: EventListener;
-  private userProvidedCallback!: EventListener;
-  public once?: boolean;
-  public passive?: boolean;
-  public capture?: boolean;
-  public options?: AddEventListenerOptions;
+  public declare eventName: string;
+  public declare callback: EventListener;
+  private declare userProvidedCallback: EventListener;
+  public once?: boolean | undefined;
+  public passive?: boolean | undefined;
+  public capture?: boolean | undefined;
+  public options?: AddEventListenerOptions | undefined;
   public shouldUpdate = true;
 
   constructor(element: Element, args: CapturedArguments) {
@@ -82,79 +53,73 @@ export class OnModifierState {
       this.shouldUpdate = true;
     }
 
-    let options: AddEventListenerOptions;
-    if (once || passive || capture) {
-      options = this.options = { once, passive, capture };
+    // we want to handle both `true` and `false` because both have a meaning:
+    // https://bugs.chromium.org/p/chromium/issues/detail?id=770208
+    if (once !== undefined || passive !== undefined || capture !== undefined) {
+      this.options = { once, passive, capture } as AddEventListenerOptions;
     } else {
       this.options = undefined;
     }
 
-    if (
-      DEBUG &&
-      (args.positional[0] === undefined || typeof valueForRef(args.positional[0]) !== 'string')
-    ) {
-      throw new Error(
-        'You must pass a valid DOM event name as the first argument to the `on` modifier'
-      );
-    }
+    let first = expect(
+      args.positional[0],
+      'You must pass a valid DOM event name as the first argument to the `on` modifier'
+    );
 
-    let eventName = valueForRef(args.positional[0]) as string;
+    let eventName = check(
+      valueForRef(first),
+      CheckString,
+      () => 'You must pass a valid DOM event name as the first argument to the `on` modifier'
+    );
+
     if (eventName !== this.eventName) {
       this.eventName = eventName;
       this.shouldUpdate = true;
     }
 
-    let userProvidedCallbackReference = args.positional[1];
+    const userProvidedCallbackReference = expect(
+      args.positional[1],
+      'You must pass a function as the second argument to the `on` modifier'
+    );
 
-    if (DEBUG) {
-      if (args.positional[1] === undefined) {
-        throw new Error(`You must pass a function as the second argument to the \`on\` modifier.`);
+    const userProvidedCallback = check(
+      valueForRef(userProvidedCallbackReference),
+      CheckFunction,
+      (actual) => {
+        return `You must pass a function as the second argument to the \`on\` modifier; you passed ${
+          actual === null ? 'null' : typeof actual
+        }. While rendering:\n\n${userProvidedCallbackReference.debugLabel ?? `{unlabeled value}`}`;
       }
+    ) as EventListener;
 
-      let value = valueForRef(userProvidedCallbackReference);
-
-      if (typeof value !== 'function') {
-        throw new Error(
-          `You must pass a function as the second argument to the \`on\` modifier; you passed ${
-            value === null ? 'null' : typeof value
-          }. While rendering:\n\n${userProvidedCallbackReference.debugLabel}`
-        );
-      }
-    }
-
-    let userProvidedCallback = valueForRef(userProvidedCallbackReference) as EventListener;
     if (userProvidedCallback !== this.userProvidedCallback) {
       this.userProvidedCallback = userProvidedCallback;
       this.shouldUpdate = true;
     }
 
-    if (DEBUG && args.positional.length !== 2) {
+    if (import.meta.env.DEV && args.positional.length !== 2) {
       throw new Error(
         `You can only pass two positional arguments (event name and callback) to the \`on\` modifier, but you provided ${args.positional.length}. Consider using the \`fn\` helper to provide additional arguments to the \`on\` callback.`
       );
     }
 
-    let needsCustomCallback =
-      (SUPPORTS_EVENT_OPTIONS === false && once) /* needs manual once implementation */ ||
-      (DEBUG && passive); /* needs passive enforcement */
+    let needsCustomCallback = import.meta.env.DEV && passive; /* needs passive enforcement */
 
     if (this.shouldUpdate) {
       if (needsCustomCallback) {
-        let callback = (this.callback = function (this: Element, event) {
-          if (DEBUG && passive) {
+        this.callback = function (this: Element, event) {
+          if (import.meta.env.DEV && passive) {
             event.preventDefault = () => {
               throw new Error(
-                `You marked this listener as 'passive', meaning that you must not call 'event.preventDefault()': \n\n${userProvidedCallback}`
+                `You marked this listener as 'passive', meaning that you must not call 'event.preventDefault()': \n\n${
+                  userProvidedCallback.name ?? `{anonymous function}`
+                }`
               );
             };
           }
-
-          if (!SUPPORTS_EVENT_OPTIONS && once) {
-            removeEventListener(this, eventName, callback, options);
-          }
           return userProvidedCallback.call(untouchableContext, event);
-        });
-      } else if (DEBUG) {
+        };
+      } else if (import.meta.env.DEV) {
         // prevent the callback from being bound to the element
         this.callback = userProvidedCallback.bind(untouchableContext);
       } else {
@@ -175,24 +140,7 @@ function removeEventListener(
 ): void {
   removes++;
 
-  if (SUPPORTS_EVENT_OPTIONS) {
-    // when options are supported, use them across the board
-    element.removeEventListener(eventName, callback, options);
-  } else if (options !== undefined && options.capture) {
-    // used only in the following case:
-    //
-    // `{ once: true | false, passive: true | false, capture: true }
-    //
-    // `once` is handled via a custom callback that removes after first
-    // invocation so we only care about capture here as a boolean
-    element.removeEventListener(eventName, callback, true);
-  } else {
-    // used only in the following cases:
-    //
-    // * where there is no options
-    // * `{ once: true | false, passive: true | false, capture: false }
-    element.removeEventListener(eventName, callback);
-  }
+  element.removeEventListener(eventName, callback, options);
 }
 
 function addEventListener(
@@ -202,25 +150,7 @@ function addEventListener(
   options?: AddEventListenerOptions
 ): void {
   adds++;
-
-  if (SUPPORTS_EVENT_OPTIONS) {
-    // when options are supported, use them across the board
-    element.addEventListener(eventName, callback, options);
-  } else if (options !== undefined && options.capture) {
-    // used only in the following case:
-    //
-    // `{ once: true | false, passive: true | false, capture: true }
-    //
-    // `once` is handled via a custom callback that removes after first
-    // invocation so we only care about capture here as a boolean
-    element.addEventListener(eventName, callback, true);
-  } else {
-    // used only in the following cases:
-    //
-    // * where there is no options
-    // * `{ once: true | false, passive: true | false, capture: false }
-    element.addEventListener(eventName, callback);
-  }
+  element.addEventListener(eventName, callback, options);
 }
 
 /**
@@ -310,8 +240,6 @@ function addEventListener(
   @public
 */
 class OnModifierManager implements InternalModifierManager<OnModifierState | null, object> {
-  public SUPPORTS_EVENT_OPTIONS: boolean = SUPPORTS_EVENT_OPTIONS;
-
   getDebugName(): string {
     return 'on';
   }
@@ -381,4 +309,4 @@ class OnModifierManager implements InternalModifierManager<OnModifierState | nul
   }
 }
 
-export default setInternalModifierManager(new OnModifierManager(), {});
+export const on = setInternalModifierManager(new OnModifierManager(), {});

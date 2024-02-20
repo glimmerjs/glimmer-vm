@@ -1,11 +1,12 @@
-import { PresentArray } from '@glimmer/interfaces';
+import type { PresentArray } from '@glimmer/interfaces';
 import { ASTv2, KEYWORDS_TYPES } from '@glimmer/syntax';
-import { isPresent } from '@glimmer/util';
+import { getLast, isPresentArray } from '@glimmer/util';
 
-import { AnyOptionalList, PresentList } from '../../../shared/list';
+import type { AnyOptionalList, PresentList } from '../../../shared/list';
+import type { NormalizationState } from '../context';
+
 import { Ok, Result, ResultArray } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { NormalizationState } from '../context';
 import { CALL_KEYWORDS } from '../keywords';
 import { hasPath } from '../utils/is-node';
 
@@ -18,7 +19,7 @@ export class NormalizeExpressions {
         return this.Interpolate(node, state);
       case 'Path':
         return this.PathExpression(node);
-      case 'Call':
+      case 'Call': {
         let translated = CALL_KEYWORDS.translate(node, state);
 
         if (translated !== null) {
@@ -26,6 +27,7 @@ export class NormalizeExpressions {
         }
 
         return this.CallExpression(node, state);
+      }
       case 'DeprecatedCall':
         return this.DeprecaedCallExpression(node, state);
     }
@@ -56,8 +58,8 @@ export class NormalizeExpressions {
     let ref = this.VariableReference(path.ref);
     let { tail } = path;
 
-    if (isPresent(tail)) {
-      let tailLoc = tail[0].loc.extend(tail[tail.length - 1].loc);
+    if (isPresentArray(tail)) {
+      let tailLoc = tail[0].loc.extend(getLast(tail).loc);
       return Ok(
         new mir.PathExpression({
           loc: path.loc,

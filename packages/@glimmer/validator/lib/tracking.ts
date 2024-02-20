@@ -1,21 +1,10 @@
-import { DEBUG } from '@glimmer/env';
-import {
-  Tag,
-  CONSTANT_TAG,
-  validateTag,
-  Revision,
-  valueForTag,
-  isConstTag,
-  combine,
-} from './validators';
+import type { Tag } from '@glimmer/interfaces';
 
-import {
-  markTagAsConsumed,
-  beginTrackingTransaction,
-  endTrackingTransaction,
-  resetTrackingTransaction,
-} from './debug';
-import { symbol, unwrap } from './utils';
+import type { Revision } from './validators';
+
+import { debug } from './debug';
+import { unwrap } from './utils';
+import { combine, CONSTANT_TAG, isConstTag, validateTag, valueForTag } from './validators';
 
 /**
  * An object that that tracks @tracked properties that were consumed.
@@ -29,8 +18,8 @@ class Tracker {
 
     this.tags.add(tag);
 
-    if (DEBUG) {
-      unwrap(markTagAsConsumed)(tag);
+    if (import.meta.env.DEV) {
+      unwrap(debug.markTagAsConsumed)(tag);
     }
 
     this.last = tag;
@@ -44,9 +33,7 @@ class Tracker {
     } else if (tags.size === 1) {
       return this.last as Tag;
     } else {
-      let tagsArr: Tag[] = [];
-      tags.forEach((tag) => tagsArr.push(tag));
-      return combine(tagsArr);
+      return combine(Array.from(this.tags));
     }
   }
 }
@@ -73,20 +60,20 @@ export function beginTrackFrame(debuggingContext?: string | false): void {
 
   CURRENT_TRACKER = new Tracker();
 
-  if (DEBUG) {
-    unwrap(beginTrackingTransaction)(debuggingContext);
+  if (import.meta.env.DEV) {
+    unwrap(debug.beginTrackingTransaction)(debuggingContext);
   }
 }
 
 export function endTrackFrame(): Tag {
   let current = CURRENT_TRACKER;
 
-  if (DEBUG) {
+  if (import.meta.env.DEV) {
     if (OPEN_TRACK_FRAMES.length === 0) {
       throw new Error('attempted to close a tracking frame, but one was not open');
     }
 
-    unwrap(endTrackingTransaction)();
+    unwrap(debug.endTrackingTransaction)();
   }
 
   CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
@@ -100,7 +87,7 @@ export function beginUntrackFrame(): void {
 }
 
 export function endUntrackFrame(): void {
-  if (DEBUG && OPEN_TRACK_FRAMES.length === 0) {
+  if (import.meta.env.DEV && OPEN_TRACK_FRAMES.length === 0) {
     throw new Error('attempted to close a tracking frame, but one was not open');
   }
 
@@ -115,8 +102,8 @@ export function resetTracking(): string | void {
 
   CURRENT_TRACKER = null;
 
-  if (DEBUG) {
-    return unwrap(resetTrackingTransaction)();
+  if (import.meta.env.DEV) {
+    return unwrap(debug.resetTrackingTransaction)();
   }
 }
 
@@ -132,29 +119,29 @@ export function consumeTag(tag: Tag): void {
 
 //////////
 
-const CACHE_KEY: unique symbol = symbol('CACHE_KEY');
+const CACHE_KEY = Symbol('CACHE_KEY');
 
 // public interface
 export interface Cache<T = unknown> {
   [CACHE_KEY]: T;
 }
 
-const FN: unique symbol = symbol('FN');
-const LAST_VALUE: unique symbol = symbol('LAST_VALUE');
-const TAG: unique symbol = symbol('TAG');
-const SNAPSHOT: unique symbol = symbol('SNAPSHOT');
-const DEBUG_LABEL: unique symbol = symbol('DEBUG_LABEL');
+const FN = Symbol('FN');
+const LAST_VALUE = Symbol('LAST_VALUE');
+const TAG = Symbol('TAG');
+const SNAPSHOT = Symbol('SNAPSHOT');
+const DEBUG_LABEL = Symbol('DEBUG_LABEL');
 
 interface InternalCache<T = unknown> {
   [FN]: (...args: unknown[]) => T;
   [LAST_VALUE]: T | undefined;
   [TAG]: Tag | undefined;
   [SNAPSHOT]: Revision;
-  [DEBUG_LABEL]?: string | false;
+  [DEBUG_LABEL]?: string | false | undefined;
 }
 
 export function createCache<T>(fn: () => T, debuggingLabel?: string | false): Cache<T> {
-  if (DEBUG && !(typeof fn === 'function')) {
+  if (import.meta.env.DEV && !(typeof fn === 'function')) {
     throw new Error(
       `createCache() must be passed a function as its first parameter. Called with: ${String(fn)}`
     );
@@ -167,11 +154,11 @@ export function createCache<T>(fn: () => T, debuggingLabel?: string | false): Ca
     [SNAPSHOT]: -1,
   };
 
-  if (DEBUG) {
+  if (import.meta.env.DEV) {
     cache[DEBUG_LABEL] = debuggingLabel;
   }
 
-  return (cache as unknown) as Cache<T>;
+  return cache as unknown as Cache<T>;
 }
 
 export function getValue<T>(cache: Cache<T>): T | undefined {
@@ -213,7 +200,7 @@ function assertCache<T>(
   value: Cache<T> | InternalCache<T>,
   fnName: string
 ): asserts value is InternalCache<T> {
-  if (DEBUG && !(typeof value === 'object' && value !== null && FN in value)) {
+  if (import.meta.env.DEV && !(typeof value === 'object' && value !== null && FN in value)) {
     throw new Error(
       `${fnName}() can only be used on an instance of a cache created with createCache(). Called with: ${String(
         value
@@ -224,7 +211,7 @@ function assertCache<T>(
 
 // replace this with `expect` when we can
 function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is Tag {
-  if (DEBUG && tag === undefined) {
+  if (import.meta.env.DEV && tag === undefined) {
     throw new Error(
       `isConst() can only be used on a cache once getValue() has been called at least once. Called with cache function:\n\n${String(
         cache[FN]
@@ -241,13 +228,13 @@ function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is T
 // refactors are merged, and we should generally be moving away from it. It may
 // be necessary in Ember for a while longer, but I think we'll be able to drop
 // it in favor of cache sooner rather than later.
-export function track(callback: () => void, debugLabel?: string | false): Tag {
+export function track(block: () => void, debugLabel?: string | false): Tag {
   beginTrackFrame(debugLabel);
 
   let tag;
 
   try {
-    callback();
+    block();
   } finally {
     tag = endTrackFrame();
   }

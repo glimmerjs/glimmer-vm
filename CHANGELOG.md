@@ -1,3 +1,313 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## v0.88.1 (2024-01-31)
+
+#### :bug: Bug Fix
+* `@glimmer/interfaces`
+  * [#1555](https://github.com/glimmerjs/glimmer-vm/pull/1555) @glimmer/interfaces now uses extensions in its imports. ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.88.0 (2024-01-26)
+
+#### :rocket: Enhancement
+* `@glimmer/syntax`
+  * [#1552](https://github.com/glimmerjs/glimmer-vm/pull/1552) add block param nodes ([@patricklx](https://github.com/patricklx))
+  * [#1553](https://github.com/glimmerjs/glimmer-vm/pull/1553) add element parts, startTag & endTag ([@patricklx](https://github.com/patricklx))
+
+#### :bug: Bug Fix
+* `@glimmer/destroyable`
+  * [#1543](https://github.com/glimmerjs/glimmer-vm/pull/1543) Fix @glimmer/destroyable dev exports ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* [#1554](https://github.com/glimmerjs/glimmer-vm/pull/1554) support run tests on windows ([@patricklx](https://github.com/patricklx))
+* [#1544](https://github.com/glimmerjs/glimmer-vm/pull/1544) Upgrade esyes ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 2
+- Patrick Pircher ([@patricklx](https://github.com/patricklx))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.87.1 (2023-12-24)
+
+#### :rocket: Enhancement
+* `@glimmer-workspace/integration-tests`, `@glimmer/runtime`
+  * [#1535](https://github.com/glimmerjs/glimmer-vm/pull/1535) [chore] remove ie11 `on` fallback ([@lifeart](https://github.com/lifeart))
+
+#### Committers: 1
+- Alex Kanunnikov ([@lifeart](https://github.com/lifeart))
+
+## v0.87.0 (2023-12-24)
+
+#### :rocket: Enhancement
+* `@glimmer-workspace/integration-tests`, `@glimmer/debug`, `@glimmer/runtime`, `@glimmer/util`, `@glimmer/validator`
+  * [#1539](https://github.com/glimmerjs/glimmer-vm/pull/1539) Drop ie11 code ([@ef4](https://github.com/ef4))
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1538](https://github.com/glimmerjs/glimmer-vm/pull/1538) Make feature discovery lazy ([@ef4](https://github.com/ef4))
+
+#### :house: Internal
+* [#1537](https://github.com/glimmerjs/glimmer-vm/pull/1537) adjust benchmark close to real-life usage ([@lifeart](https://github.com/lifeart))
+
+#### Committers: 2
+- Alex Kanunnikov ([@lifeart](https://github.com/lifeart))
+- Edward Faulkner ([@ef4](https://github.com/ef4))
+
+## v0.86.0 (2023-12-20)
+
+#### :rocket: Enhancement
+* `@glimmer/debug`, `@glimmer/runtime`, `@glimmer/util`
+  * [#1518](https://github.com/glimmerjs/glimmer-vm/pull/1518) [perf] avoid double memory usage in append opcodes ([@lifeart](https://github.com/lifeart))
+* `@glimmer/validator`
+  * [#1520](https://github.com/glimmerjs/glimmer-vm/pull/1520) [perf] replace Math.max usage with reduce and pure compare ([@lifeart](https://github.com/lifeart))
+  * [#1522](https://github.com/glimmerjs/glimmer-vm/pull/1522) [memory] replace forEach with arrayFrom ([@lifeart](https://github.com/lifeart))
+* `@glimmer/runtime`
+  * [#1510](https://github.com/glimmerjs/glimmer-vm/pull/1510) [perf | trim] Remove extra class ([@lifeart](https://github.com/lifeart))
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1440](https://github.com/glimmerjs/glimmer-vm/pull/1440) Fix helper/modifier memory leak ([@bendemboski](https://github.com/bendemboski))
+* `@glimmer/debug`, `@glimmer/destroyable`
+  * [#1516](https://github.com/glimmerjs/glimmer-vm/pull/1516) fix `exports` config for @glimmer/destroyable and @glimmer/debug ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* `@glimmer-workspace/build`
+  * [#1530](https://github.com/glimmerjs/glimmer-vm/pull/1530) Upgrade to vite 5 ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1495](https://github.com/glimmerjs/glimmer-vm/pull/1495) make it run on windows ([@patricklx](https://github.com/patricklx))
+* Other
+  * [#1523](https://github.com/glimmerjs/glimmer-vm/pull/1523) Restore a working linking setup ([@chancancode](https://github.com/chancancode))
+  * [#1497](https://github.com/glimmerjs/glimmer-vm/pull/1497) Create codemods and opcode generator ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/benchmark-env`, `@glimmer-workspace/build`, `@glimmer-workspace/integration-tests`, `@glimmer-workspace/test-utils`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1506](https://github.com/glimmerjs/glimmer-vm/pull/1506) Sort package.json files to reduce diff from the Error Recovery PR ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/reference`
+  * [#1483](https://github.com/glimmerjs/glimmer-vm/pull/1483) Use stricter type for createPrimitiveRef ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 5
+- Alex Kanunnikov ([@lifeart](https://github.com/lifeart))
+- Ben Demboski ([@bendemboski](https://github.com/bendemboski))
+- Godfrey Chan ([@chancancode](https://github.com/chancancode))
+- Patrick Pircher ([@patricklx](https://github.com/patricklx))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.13 (2023-11-14)
+
+#### :house: Internal
+* `@glimmer-workspace/build`, `@glimmer/local-debug-flags`
+  * [#1494](https://github.com/glimmerjs/glimmer-vm/pull/1494) Compile away local debug for publish ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/integration-tests`, `@glimmer/interfaces`, `@glimmer/runtime`, `@glimmer/vm-babel-plugins`
+  * [#1493](https://github.com/glimmerjs/glimmer-vm/pull/1493) Revert "fix capture render tree fails when errors in args" ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.12 (2023-11-02)
+
+#### :bug: Bug Fix
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1488](https://github.com/glimmerjs/glimmer-vm/pull/1488) Add back package.json#module so the ember build can have fewer changes ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/integration-tests`, `@glimmer/interfaces`, `@glimmer/runtime`, `@glimmer/vm-babel-plugins`
+  * [#1460](https://github.com/glimmerjs/glimmer-vm/pull/1460) fix capture render tree fails when errors in args ([@patricklx](https://github.com/patricklx))
+
+#### :house: Internal
+* `@glimmer`, `@glimmer/dom-change-list`
+  * [#1486](https://github.com/glimmerjs/glimmer-vm/pull/1486) Remove @glimmer/dom-change-list as nothing depends on it ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1482](https://github.com/glimmerjs/glimmer-vm/pull/1482) Setup the cache server ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 2
+- Patrick Pircher ([@patricklx](https://github.com/patricklx))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.11 (2023-11-01)
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1485](https://github.com/glimmerjs/glimmer-vm/pull/1485) Remove dependency on @glimmer/low-level because it doesn't exist anymore (and is unused) ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.10 (2023-11-01)
+
+#### :bug: Bug Fix
+* `@glimmer/reference`
+  * [#1484](https://github.com/glimmerjs/glimmer-vm/pull/1484) Unify reference factory function signatures ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.9 (2023-11-01)
+
+#### :bug: Bug Fix
+* `@glimmer/reference`
+  * [#1481](https://github.com/glimmerjs/glimmer-vm/pull/1481) MakePrimitiveRef generic so that UNDEFINED_REFERENCE can be Reference<undefined> rather than Reference<unknown> ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.8 (2023-10-31)
+
+#### :house: Internal
+* `@glimmer/vm`
+  * [#1480](https://github.com/glimmerjs/glimmer-vm/pull/1480) Re-add CJS exports to the VM package ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.7 (2023-10-31)
+
+#### :house: Internal
+* `@glimmer-workspace/build`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1479](https://github.com/glimmerjs/glimmer-vm/pull/1479) CJS needs to be enabled entirely, because ember-source requires it for now  ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.6 (2023-10-31)
+
+#### :bug: Bug Fix
+* `@glimmer-workspace/build`, `@glimmer/compiler`, `@glimmer/syntax`
+  * [#1478](https://github.com/glimmerjs/glimmer-vm/pull/1478) Add CJS back to glimmer/syntax,compiler ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.5 (2023-10-30)
+
+#### :bug: Bug Fix
+* `@glimmer/global-context`
+  * [#1476](https://github.com/glimmerjs/glimmer-vm/pull/1476) @glimmer/global-context forgot to override main/types during publish ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.85.4 (2023-10-30)
+
+#### :bug: Bug Fix
+* `@glimmer-workspace/eslint-plugin`, `@glimmer`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1470](https://github.com/glimmerjs/glimmer-vm/pull/1470) Fix the package contents of each package, only publishing dist ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/syntax`
+  * [#1467](https://github.com/glimmerjs/glimmer-vm/pull/1467) visitorKeys is needed for prettier ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1468](https://github.com/glimmerjs/glimmer-vm/pull/1468) Use a Set for checking if an element is a void element, which is faster than object access ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1466](https://github.com/glimmerjs/glimmer-vm/pull/1466) declare type=module ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* `@glimmer-workspace/build`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1472](https://github.com/glimmerjs/glimmer-vm/pull/1472) Fix the build. Split dev from prod. In dev, convert import.meta.env.DEV to DEBUG from `@glimmer/env` ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* Other
+  * [#1475](https://github.com/glimmerjs/glimmer-vm/pull/1475) dedupe lockfile ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1471](https://github.com/glimmerjs/glimmer-vm/pull/1471) Set default git config, add github config, per the rest of ember-family-of-projects-automation ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace`, `@glimmer-workspace/benchmark-env`, `@glimmer-workspace/build`, `@glimmer-workspace/eslint-plugin`, `@glimmer-workspace/integration-tests`, `@glimmer-workspace/test-utils`, `@glimmer`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1474](https://github.com/glimmerjs/glimmer-vm/pull/1474) Update lints ahead of #1462, so that #1462's diff is smaller ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1473](https://github.com/glimmerjs/glimmer-vm/pull/1473) Add rollup to every package with a rollup config ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## 0.85.3 (2023-10-24)
+
+#### :bug: Bug Fix
+* `@glimmer-workspace/integration-tests`, `@glimmer/runtime`
+  * [#1459](https://github.com/glimmerjs/glimmer-vm/pull/1459) Revert "fix: capture render tree can fail if args cannot be obtained" ([@patricklx](https://github.com/patricklx))
+
+#### :house: Internal
+* [#1452](https://github.com/glimmerjs/glimmer-vm/pull/1452) rename local token in release workflow ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 2
+- Patrick Pircher ([@patricklx](https://github.com/patricklx))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## 0.85.2 (2023-10-23)
+
+#### :house: Internal
+* [#1451](https://github.com/glimmerjs/glimmer-vm/pull/1451) Allow publishing from tags / non-branches ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## 0.85.1 (2023-10-23)
+
+#### :house: Internal
+* `@glimmer/wire-format`
+  * [#1450](https://github.com/glimmerjs/glimmer-vm/pull/1450) Use workspace protocol everywhere so release-it doesn't cause a diff,… ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## 0.85.0 (2023-10-23)
+
+#### :rocket: Enhancement
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/dom-change-list`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/opcode-compiler`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/validator`, `@glimmer/vm`
+  * [#1421](https://github.com/glimmerjs/glimmer-vm/pull/1421) Improve lexical scope ([@wycats](https://github.com/wycats))
+* `@glimmer/syntax`
+  * [#1420](https://github.com/glimmerjs/glimmer-vm/pull/1420) [syntax] Remove v2-b and rename v2-a to v2 ([@wycats](https://github.com/wycats))
+
+#### :bug: Bug Fix
+* `@glimmer/syntax`
+  * [#1412](https://github.com/glimmerjs/glimmer-vm/pull/1412) Fix another issue with getTemplateLocals and block params ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* Other
+  * [#1444](https://github.com/glimmerjs/glimmer-vm/pull/1444) Add release workflow ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1437](https://github.com/glimmerjs/glimmer-vm/pull/1437) GH Actions: Move to wyvox and off branch ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1415](https://github.com/glimmerjs/glimmer-vm/pull/1415) Try upgrading ember-cli-browserstack ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace`, `@glimmer-workspace/benchmark-env`, `@glimmer-workspace/build`, `@glimmer-workspace/eslint-plugin`, `@glimmer-workspace/integration-tests`, `@glimmer-workspace/test-utils`, `@glimmer`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/test-utils`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`, `@types`, `@types/qunit`, `build-utils`
+  * [#1427](https://github.com/glimmerjs/glimmer-vm/pull/1427) Restore performance tests ([@wycats](https://github.com/wycats))
+* `@glimmer`, `@glimmer/benchmark-env`, `@glimmer/compiler`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm`, `@types`, `@types/puppeteer-chromium-resolver`, `@types/qunit`, `build-utils`
+  * [#1426](https://github.com/glimmerjs/glimmer-vm/pull/1426) Follow-up migrate to vite (restore type tests) ([@wycats](https://github.com/wycats))
+* `@glimmer/benchmark-env`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/test-utils`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm`, `@glimmer/wire-format`, `@types/js-reporters`, `@types/qunit`
+  * [#1423](https://github.com/glimmerjs/glimmer-vm/pull/1423) Migrate to Vite ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/debug`, `@glimmer/dom-change-list`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/node`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/validator`
+  * [#1419](https://github.com/glimmerjs/glimmer-vm/pull/1419) Continue updating infrastructure ([@wycats](https://github.com/wycats))
+* `@glimmer/benchmark-env`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/dom-change-list`, `@glimmer/encoder`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1418](https://github.com/glimmerjs/glimmer-vm/pull/1418) Modernize Infrastructure ([@wycats](https://github.com/wycats))
+
+#### Committers: 3
+- Patrick Pircher ([@patricklx](https://github.com/patricklx))
+- Yehuda Katz ([@wycats](https://github.com/wycats))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.84.3 (2023-03-23)
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1402](https://github.com/glimmerjs/glimmer-vm/pull/1402) Allow passing `false` to the `on` modifier's options ([@boris-petrov](https://github.com/boris-petrov))
+* `@glimmer/integration-tests`
+  * [#1391](https://github.com/glimmerjs/glimmer-vm/pull/1391) Update Firefox detection in `on` modifier test (remove use of `InstallTrigger`) ([@bertdeblock](https://github.com/bertdeblock))
+* `@glimmer/syntax`
+  * [#1390](https://github.com/glimmerjs/glimmer-vm/pull/1390) Allow components to be named the same as void tags ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* `@glimmer/integration-tests`
+  * [#1394](https://github.com/glimmerjs/glimmer-vm/pull/1394) Fix typo ([@2hu12](https://github.com/2hu12))
+
+#### Committers: 5
+- 2hu ([@2hu12](https://github.com/2hu12))
+- Bert De Block ([@bertdeblock](https://github.com/bertdeblock))
+- Boris Petrov ([@boris-petrov](https://github.com/boris-petrov))
+- Simon Ihmig ([@simonihmig](https://github.com/simonihmig))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## v0.84.2 (2022-04-13)
 
 #### :bug: Bug Fix

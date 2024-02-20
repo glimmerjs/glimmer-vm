@@ -1,30 +1,34 @@
-import { InstructionEncoderImpl } from '@glimmer/encoder';
-import {
-  CompileTimeConstants,
-  Operand,
-  CompileTimeHeap,
-  Op,
-  BuilderOpcode,
-  HighLevelBuilderOpcode,
-  MachineOp,
-  SingleBuilderOperand,
-  Encoder,
-  HighLevelResolutionOpcode,
-  HighLevelOp,
-  OpcodeSize,
-  InstructionEncoder,
-  Dict,
-  EncoderError,
-  HandleResult,
+import type {
   BuilderOp,
+  BuilderOpcode,
+  CompileTimeConstants,
+  CompileTimeHeap,
   CompileTimeResolver,
   ContainingMetadata,
-  HighLevelOperand,
-  STDLib,
+  Dict,
+  Encoder,
+  EncoderError,
+  HandleResult,
+  HighLevelOp,
+  InstructionEncoder,
+  Operand,
   ResolutionTimeConstants,
+  SingleBuilderOperand,
+  STDLib,
 } from '@glimmer/interfaces';
-import { isMachineOp } from '@glimmer/vm';
-import { Stack, dict, expect, EMPTY_STRING_ARRAY, encodeHandle, assert } from '@glimmer/util';
+import { InstructionEncoderImpl } from '@glimmer/encoder';
+import {
+  assert,
+  dict,
+  EMPTY_STRING_ARRAY,
+  encodeHandle,
+  expect,
+  isPresentArray,
+  Stack,
+} from '@glimmer/util';
+import { ARG_SHIFT, isMachineOp, MACHINE_MASK, MachineOp, Op, TYPE_SIZE } from '@glimmer/vm';
+
+import { compilableBlock } from '../compilable-template';
 import {
   resolveComponent,
   resolveComponentOrHelper,
@@ -33,8 +37,8 @@ import {
   resolveOptionalComponentOrHelper,
   resolveOptionalHelper,
 } from './helpers/resolution';
-import { compilableBlock } from '../compilable-template';
-import { DEBUG } from '@glimmer/env';
+import { HighLevelBuilderOpcodes, HighLevelResolutionOpcodes } from './opcodes';
+import { HighLevelOperands } from './operands';
 
 export class Labels {
   labels: Dict<number> = dict();
@@ -50,9 +54,9 @@ export class Labels {
 
   patch(heap: CompileTimeHeap): void {
     let { targets, labels } = this;
-    for (let i = 0; i < targets.length; i++) {
-      let { at, target } = targets[i];
-      let address = labels[target] - at;
+
+    for (const { at, target } of targets) {
+      let address = labels[target]! - at;
 
       assert(heap.getbyaddr(at) === -1, 'Expected heap to contain a placeholder, but it did not');
 
@@ -73,39 +77,39 @@ export function encodeOp(
     encoder.push(constants, type, ...(operands as SingleBuilderOperand[]));
   } else {
     switch (op[0]) {
-      case HighLevelBuilderOpcode.Label:
+      case HighLevelBuilderOpcodes.Label:
         return encoder.label(op[1]);
-      case HighLevelBuilderOpcode.StartLabels:
+      case HighLevelBuilderOpcodes.StartLabels:
         return encoder.startLabels();
-      case HighLevelBuilderOpcode.StopLabels:
+      case HighLevelBuilderOpcodes.StopLabels:
         return encoder.stopLabels();
 
-      case HighLevelResolutionOpcode.ResolveComponent:
+      case HighLevelResolutionOpcodes.Component:
         return resolveComponent(resolver, constants, meta, op);
-      case HighLevelResolutionOpcode.ResolveModifier:
+      case HighLevelResolutionOpcodes.Modifier:
         return resolveModifier(resolver, constants, meta, op);
-      case HighLevelResolutionOpcode.ResolveHelper:
+      case HighLevelResolutionOpcodes.Helper:
         return resolveHelper(resolver, constants, meta, op);
-      case HighLevelResolutionOpcode.ResolveComponentOrHelper:
+      case HighLevelResolutionOpcodes.ComponentOrHelper:
         return resolveComponentOrHelper(resolver, constants, meta, op);
-      case HighLevelResolutionOpcode.ResolveOptionalHelper:
+      case HighLevelResolutionOpcodes.OptionalHelper:
         return resolveOptionalHelper(resolver, constants, meta, op);
-      case HighLevelResolutionOpcode.ResolveOptionalComponentOrHelper:
+      case HighLevelResolutionOpcodes.OptionalComponentOrHelper:
         return resolveOptionalComponentOrHelper(resolver, constants, meta, op);
 
-      case HighLevelResolutionOpcode.ResolveLocal:
+      case HighLevelResolutionOpcodes.Local: {
         let freeVar = op[1];
         let name = expect(meta.upvars, 'BUG: attempted to resolve value but no upvars found')[
           freeVar
-        ];
+        ]!;
 
         let andThen = op[2];
-
         andThen(name, meta.moduleName);
 
         break;
+      }
 
-      case HighLevelResolutionOpcode.ResolveTemplateLocal:
+      case HighLevelResolutionOpcodes.TemplateLocal: {
         let [, valueIndex, then] = op;
         let value = expect(
           meta.scopeValues,
@@ -115,9 +119,10 @@ export function encodeOp(
         then(constants.value(value));
 
         break;
+      }
 
-      case HighLevelResolutionOpcode.ResolveFree:
-        if (DEBUG) {
+      case HighLevelResolutionOpcodes.Free:
+        if (import.meta.env.DEV) {
           let [, upvarIndex] = op;
           let freeName = expect(meta.upvars, 'BUG: attempted to resolve value but no upvars found')[
             upvarIndex
@@ -157,10 +162,10 @@ export class EncoderImpl implements Encoder {
   commit(size: number): HandleResult {
     let handle = this.handle;
 
-    this.heap.push(MachineOp.Return | OpcodeSize.MACHINE_MASK);
+    this.heap.pushMachine(MachineOp.Return);
     this.heap.finishMalloc(handle, size);
 
-    if (this.errors.length) {
+    if (isPresentArray(this.errors)) {
       return { errors: this.errors, handle };
     } else {
       return handle;
@@ -174,18 +179,18 @@ export class EncoderImpl implements Encoder {
   ): void {
     let { heap } = this;
 
-    if (DEBUG && (type as number) > OpcodeSize.TYPE_SIZE) {
+    if (import.meta.env.DEV && (type as number) > TYPE_SIZE) {
       throw new Error(`Opcode type over 8-bits. Got ${type}.`);
     }
 
-    let machine = isMachineOp(type) ? OpcodeSize.MACHINE_MASK : 0;
-    let first = type | machine | (args.length << OpcodeSize.ARG_SHIFT);
+    let machine = isMachineOp(type) ? MACHINE_MASK : 0;
+    let first = type | machine | (args.length << ARG_SHIFT);
 
-    heap.push(first);
+    heap.pushRaw(first);
 
     for (let i = 0; i < args.length; i++) {
       let op = args[i];
-      heap.push(this.operand(constants, op));
+      heap.pushRaw(this.operand(constants, op));
     }
   }
 
@@ -199,28 +204,28 @@ export class EncoderImpl implements Encoder {
         return encodeHandle(constants.array(operand));
       } else {
         switch (operand.type) {
-          case HighLevelOperand.Label:
+          case HighLevelOperands.Label:
             this.currentLabels.target(this.heap.offset, operand.value);
             return -1;
 
-          case HighLevelOperand.IsStrictMode:
+          case HighLevelOperands.IsStrictMode:
             return encodeHandle(constants.value(this.meta.isStrictMode));
 
-          case HighLevelOperand.EvalSymbols:
+          case HighLevelOperands.DebugSymbols:
             return encodeHandle(constants.array(this.meta.evalSymbols || EMPTY_STRING_ARRAY));
 
-          case HighLevelOperand.Block:
+          case HighLevelOperands.Block:
             return encodeHandle(constants.value(compilableBlock(operand.value, this.meta)));
 
-          case HighLevelOperand.StdLib:
+          case HighLevelOperands.StdLib:
             return expect(
               this.stdlib,
               'attempted to encode a stdlib operand, but the encoder did not have a stdlib. Are you currently building the stdlib?'
             )[operand.value];
 
-          case HighLevelOperand.NonSmallInt:
-          case HighLevelOperand.SymbolTable:
-          case HighLevelOperand.Layout:
+          case HighLevelOperands.NonSmallInt:
+          case HighLevelOperands.SymbolTable:
+          case HighLevelOperands.Layout:
             return constants.value(operand.value);
         }
       }
@@ -248,5 +253,5 @@ export class EncoderImpl implements Encoder {
 }
 
 function isBuilderOpcode(op: number): op is BuilderOpcode {
-  return op < HighLevelBuilderOpcode.Start;
+  return op < HighLevelBuilderOpcodes.Start;
 }

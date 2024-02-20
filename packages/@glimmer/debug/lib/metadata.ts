@@ -1,30 +1,28 @@
-import { Option, Dict } from '@glimmer/interfaces';
-
-const tuple = <T extends string[]>(...args: T) => args;
+import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
 
 // TODO: How do these map onto constant and machine types?
-export const OPERAND_TYPES = tuple(
+export const OPERAND_TYPES = [
   'u32',
   'i32',
+  'owner',
   'handle',
-  'bool',
   'str',
   'option-str',
-  'str-array',
   'array',
-  'unknown',
+  'str-array',
+  'bool',
   'primitive',
-  'scope',
-  'symbol-table',
   'register',
-  'owner'
-);
+  'unknown',
+  'symbol-table',
+  'scope',
+];
 
 function isOperandType(s: string): s is OperandType {
   return OPERAND_TYPES.indexOf(s as any) !== -1;
 }
 
-export type OperandType = typeof OPERAND_TYPES[number];
+export type OperandType = (typeof OPERAND_TYPES)[number];
 
 export interface Operand {
   type: OperandType;
@@ -38,7 +36,7 @@ export interface NormalizedMetadata {
   name: string;
   mnemonic: string;
   before: null;
-  stackChange: Option<number>;
+  stackChange: Nullable<number>;
   ops: OperandList;
   operands: number;
   check: boolean;
@@ -55,10 +53,11 @@ export interface RawOperandMetadata {
   notes?: string;
 }
 
-export type RawOperandFormat = string | string[];
+export type OperandName = `${string}:${string}`;
+export type RawOperandFormat = OperandName | PresentArray<OperandName>;
 
 export function normalize(key: string, input: RawOperandMetadata): NormalizedMetadata {
-  let name;
+  let name: string;
 
   if (input.format === undefined) {
     throw new Error(`Missing format in ${JSON.stringify(input)}`);
@@ -83,7 +82,7 @@ export function normalize(key: string, input: RawOperandMetadata): NormalizedMet
   };
 }
 
-function stackChange(stack?: Stack): Option<number> {
+function stackChange(stack?: Stack): Nullable<number> {
   if (stack === undefined) {
     return 0;
   }
@@ -105,15 +104,15 @@ function hasRest(input: string[]): boolean {
   return input.some((s) => s.slice(-3) === '...');
 }
 
-function operands(input: string[]): OperandList {
+function operands(input: `${string}:${string}`[]): OperandList {
   if (!Array.isArray(input)) {
     throw new Error(`Expected operands array, got ${JSON.stringify(input)}`);
   }
   return input.map(op) as OperandList;
 }
 
-function op(input: string): Operand {
-  let [name, type] = input.split(':');
+function op(input: `${string}:${string}`): Operand {
+  let [name, type] = input.split(':') as [string, string];
 
   if (isOperandType(type)) {
     return { name, type };
@@ -122,10 +121,15 @@ function op(input: string): Operand {
   }
 }
 
+export interface NormalizedOpcodes {
+  readonly machine: Dict<NormalizedMetadata>;
+  readonly syscall: Dict<NormalizedMetadata>;
+}
+
 export function normalizeAll(parsed: {
   machine: Dict<RawOperandMetadata>;
   syscall: Dict<RawOperandMetadata>;
-}): { machine: Dict<NormalizedMetadata>; syscall: Dict<NormalizedMetadata> } {
+}): NormalizedOpcodes {
   let machine = normalizeParsed(parsed.machine);
   let syscall = normalizeParsed(parsed.syscall);
 
@@ -135,8 +139,8 @@ export function normalizeAll(parsed: {
 export function normalizeParsed(parsed: Dict<RawOperandMetadata>): Dict<NormalizedMetadata> {
   let out = Object.create(null) as Dict<NormalizedMetadata>;
 
-  for (let key of Object.keys(parsed)) {
-    out[key] = normalize(key, parsed[key]);
+  for (const [key, value] of Object.entries(parsed)) {
+    out[key] = normalize(key, value);
   }
 
   return out;
@@ -148,12 +152,12 @@ export function buildEnum(
   offset: number,
   max?: number
 ): { enumString: string; predicate: string } {
-  let e = [`export const enum ${name} {`];
+  let e = [`export enum ${name} {`];
 
   let last: number;
 
-  Object.keys(parsed).forEach((key, i) => {
-    e.push(`  ${parsed[key].name} = ${offset + i},`);
+  Object.values(parsed).forEach((value, i) => {
+    e.push(`  ${value.name} = ${offset + i},`);
     last = i;
   });
 
@@ -190,12 +194,13 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
     out += `${string}${dynamic}`;
   }
 
-  out = out.match(/^\s*?\n?([\s\S]*?)\n?\s*$/)![1];
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
+  out = /^\s*?\n?([\s\S]*?)\s*$/u.exec(out)![1] as string;
 
-  let min = 9007199254740991; // Number.MAX_SAFE_INTEGER isn't available on IE11
+  let min = Number.MAX_SAFE_INTEGER;
 
   for (let line of out.split('\n')) {
-    let leading = line.match(/^\s*/)![0].length;
+    let leading = /^\s*/u.exec(line)![0].length;
 
     min = Math.min(min, leading);
   }
@@ -209,16 +214,16 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   return stripped;
 }
 
-export const META_KIND = tuple('METADATA', 'MACHINE_METADATA');
-export type META_KIND = typeof META_KIND[number];
+export const META_KIND = ['METADATA', 'MACHINE_METADATA'];
+export type META_KIND = (typeof META_KIND)[number];
 
-export function buildSingleMeta(
+export function buildSingleMeta<D extends Dict<NormalizedMetadata>>(
   kind: META_KIND,
-  all: Dict<NormalizedMetadata>,
-  key: keyof typeof all
+  all: D,
+  key: keyof D
 ): string {
   let e = kind === 'MACHINE_METADATA' ? 'MachineOp' : 'Op';
-  return `${kind}[${e}.${all[key].name}] = ${stringify(all[key], 0)};`;
+  return `${kind}[${e}.${all[key]!.name}] = ${stringify(all[key], 0)};`;
 }
 
 function stringify(o: unknown, pad: number): string {

@@ -1,9 +1,6 @@
-// eslint-disable-next-line node/no-extraneous-import
-import { Reference } from '@glimmer/reference';
-// eslint-disable-next-line node/no-extraneous-import
-import { Tag } from '@glimmer/validator';
-import { Dict, Option } from '../core';
-import { ScopeBlock, Block } from './scope';
+import type { Nullable } from '../core.js';
+import type { Reference } from '../references.js';
+import type { ScopeBlock } from './scope.js';
 
 declare const CAPTURED_ARGS: unique symbol;
 
@@ -44,7 +41,7 @@ export interface BlockArguments {
   names: readonly string[];
   length: number;
   has(name: string): boolean;
-  get(name: string): Option<ScopeBlock>;
+  get(name: string): Nullable<ScopeBlock>;
   capture(): CapturedBlockArguments;
 }
 
@@ -52,11 +49,10 @@ export interface CapturedBlockArguments {
   names: readonly string[];
   length: number;
   has(name: string): boolean;
-  get(name: string): Option<ScopeBlock>;
+  get(name: string): Nullable<ScopeBlock>;
 }
 
-export interface CapturedNamedArguments {
-  [key: string]: Reference;
+export interface CapturedNamedArguments extends Record<string, Reference> {
   [CAPTURED_ARGS]: true;
 }
 

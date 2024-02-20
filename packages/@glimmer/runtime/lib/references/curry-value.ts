@@ -1,22 +1,24 @@
-import { DEBUG } from '@glimmer/env';
-import {
+import type {
   CapturedArguments,
   CurriedType,
   Dict,
   Maybe,
-  Option,
+  Nullable,
   Owner,
   RuntimeResolver,
 } from '@glimmer/interfaces';
-import { createComputeRef, Reference, valueForRef } from '@glimmer/reference';
+import type { Reference } from '@glimmer/reference';
+import { createComputeRef, valueForRef } from '@glimmer/reference';
 import { expect, isObject } from '@glimmer/util';
+import { CurriedTypes } from '@glimmer/vm';
+
 import { curry, isCurriedType } from '../curried-value';
 
 export default function createCurryRef(
   type: CurriedType,
   inner: Reference,
   owner: Owner,
-  args: Option<CapturedArguments>,
+  args: Nullable<CapturedArguments>,
   resolver: RuntimeResolver,
   isStrict: boolean
 ) {
@@ -31,11 +33,11 @@ export default function createCurryRef(
 
     if (isCurriedType(value, type)) {
       curriedDefinition = args ? curry(type, value, owner, args) : args;
-    } else if (type === CurriedType.Component && typeof value === 'string' && value) {
+    } else if (type === CurriedTypes.Component && typeof value === 'string' && value) {
       // Only components should enter this path, as helpers and modifiers do not
       // support string based resolution
 
-      if (DEBUG) {
+      if (import.meta.env.DEV) {
         if (isStrict) {
           throw new Error(
             `Attempted to resolve a dynamic component with a string definition, \`${value}\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`

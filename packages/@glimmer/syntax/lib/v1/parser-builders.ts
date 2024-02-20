@@ -1,10 +1,11 @@
-import { Dict, Option, PresentArray } from '@glimmer/interfaces';
+import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
 
-import { ParserNodeBuilder } from '../parser';
-import { SourceLocation } from '../source/location';
-import { SourceOffset, SourceSpan } from '../source/span';
-import * as ASTv1 from './api';
+import type { ParserNodeBuilder } from '../parser';
+import type { SourceLocation } from '../source/location';
+import type { SourceOffset, SourceSpan } from '../source/span';
+import type * as ASTv1 from './api';
+
 import { PathExpressionImplV1 } from './legacy-interop';
 
 const DEFAULT_STRIP = {
@@ -27,20 +28,23 @@ class Builders {
   }
 
   blockItself({
-    body,
-    blockParams,
+    body = [],
+    blockParams = [],
     chained = false,
     loc,
   }: {
-    body?: ASTv1.Statement[];
-    blockParams?: string[];
-    chained?: boolean;
+    body?: ASTv1.Statement[] | undefined;
+    blockParams?: string[] | undefined;
+    chained?: boolean | undefined;
     loc: SourceSpan;
   }): ASTv1.Block {
     return {
       type: 'Block',
-      body: body || [],
-      blockParams: blockParams || [],
+      body: body,
+      blockParams: blockParams,
+      blockParamNodes: blockParams?.map(
+        (b) => ({ type: 'BlockParam', value: b }) as ASTv1.BlockParam
+      ),
       chained,
       loc,
     };
@@ -105,7 +109,7 @@ class Builders {
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     defaultBlock: ASTv1.Block;
-    elseBlock?: Option<ASTv1.Block>;
+    elseBlock?: Nullable<ASTv1.Block>;
     loc: SourceSpan;
     openStrip: ASTv1.StripFlags;
     inverseStrip: ASTv1.StripFlags;
@@ -165,9 +169,26 @@ class Builders {
     return {
       type: 'ElementNode',
       tag,
+      nameNode: {
+        type: 'ElementNameNode',
+        value: tag,
+      } as ASTv1.ElementNameNode,
+      startTag: {
+        type: 'ElementStartNode',
+        value: tag,
+      } as ASTv1.ElementStartNode,
+      endTag: {
+        type: 'ElementEndNode',
+        value: selfClosing ? '' : tag,
+      } as ASTv1.ElementEndNode,
+      parts: tag
+        .split('.')
+        .map((t) => ({ type: 'ElementPartNode', value: t }) as ASTv1.ElementPartNode),
       selfClosing: selfClosing,
       attributes: attrs || [],
-      blockParams: blockParams || [],
+      blockParams: blockParams,
+      blockParamNodes:
+        blockParams.map((x) => ({ type: 'BlockParam', value: x }) as ASTv1.BlockParam) || [],
       modifiers: modifiers || [],
       comments: (comments as ASTv1.MustacheCommentStatement[]) || [],
       children: children || [],

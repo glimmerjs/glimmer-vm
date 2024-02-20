@@ -13,12 +13,6 @@
  *
  */
 
-import { DEBUG } from '@glimmer/env';
-
-//////////
-
-export let FEATURE_DEFAULT_HELPER_MANAGER = true;
-
 //////////
 
 /**
@@ -166,7 +160,7 @@ export interface GlobalContext {
 let globalContextWasSet = false;
 
 export default function setGlobalContext(context: GlobalContext) {
-  if (DEBUG) {
+  if (import.meta.env.DEV) {
     if (globalContextWasSet) {
       throw new Error('Attempted to set the global context twice. This should only be set once.');
     }
@@ -186,10 +180,6 @@ export default function setGlobalContext(context: GlobalContext) {
   warnIfStyleNotTrusted = context.warnIfStyleNotTrusted;
   assert = context.assert;
   deprecate = context.deprecate;
-
-  if (typeof context.FEATURES?.DEFAULT_HELPER_MANAGER === 'boolean') {
-    FEATURE_DEFAULT_HELPER_MANAGER = context.FEATURES.DEFAULT_HELPER_MANAGER;
-  }
 }
 
 export let assertGlobalContextWasSet: (() => void) | undefined;
@@ -197,7 +187,7 @@ export let testOverrideGlobalContext:
   | ((context: Partial<GlobalContext> | null) => GlobalContext | null)
   | undefined;
 
-if (DEBUG) {
+if (import.meta.env.DEV) {
   assertGlobalContextWasSet = () => {
     if (globalContextWasSet === false) {
       throw new Error(

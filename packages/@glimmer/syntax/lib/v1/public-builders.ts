@@ -1,11 +1,12 @@
-import { Dict, Option } from '@glimmer/interfaces';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { assert, assign, deprecate, isPresent } from '@glimmer/util';
+import type { Dict, Nullable } from '@glimmer/interfaces';
+import { asPresentArray, assert, assign, deprecate, isPresentArray } from '@glimmer/util';
 
-import { SourceLocation, SourcePosition, SYNTHETIC_LOCATION } from '../source/location';
+import type { SourceLocation, SourcePosition } from '../source/location';
+import type * as ASTv1 from './api';
+
+import { SYNTHETIC_LOCATION } from '../source/location';
 import { Source } from '../source/source';
 import { SourceSpan } from '../source/span';
-import * as ASTv1 from './api';
 import { PathExpressionImplV1 } from './legacy-interop';
 
 let _SOURCE: Source | undefined;
@@ -51,34 +52,30 @@ function buildMustache(
 
 function buildBlock(
   path: BuilderHead,
-  params: Option<ASTv1.Expression[]>,
-  hash: Option<ASTv1.Hash>,
+  params: Nullable<ASTv1.Expression[]>,
+  hash: Nullable<ASTv1.Hash>,
   _defaultBlock: ASTv1.PossiblyDeprecatedBlock,
-  _elseBlock?: Option<ASTv1.PossiblyDeprecatedBlock>,
+  _elseBlock?: Nullable<ASTv1.PossiblyDeprecatedBlock>,
   loc?: SourceLocation,
   openStrip?: ASTv1.StripFlags,
   inverseStrip?: ASTv1.StripFlags,
   closeStrip?: ASTv1.StripFlags
 ): ASTv1.BlockStatement {
   let defaultBlock: ASTv1.Block;
-  let elseBlock: Option<ASTv1.Block> | undefined;
+  let elseBlock: Nullable<ASTv1.Block> | undefined;
 
   if (_defaultBlock.type === 'Template') {
-    if (LOCAL_DEBUG) {
-      deprecate(`b.program is deprecated. Use b.blockItself instead.`);
-    }
+    deprecate(`b.program is deprecated. Use b.blockItself instead.`);
 
-    defaultBlock = (assign({}, _defaultBlock, { type: 'Block' }) as unknown) as ASTv1.Block;
+    defaultBlock = assign({}, _defaultBlock, { type: 'Block' }) as unknown as ASTv1.Block;
   } else {
     defaultBlock = _defaultBlock;
   }
 
   if (_elseBlock !== undefined && _elseBlock !== null && _elseBlock.type === 'Template') {
-    if (LOCAL_DEBUG) {
-      deprecate(`b.program is deprecated. Use b.blockItself instead.`);
-    }
+    deprecate(`b.program is deprecated. Use b.blockItself instead.`);
 
-    elseBlock = (assign({}, _elseBlock, { type: 'Block' }) as unknown) as ASTv1.Block;
+    elseBlock = assign({}, _elseBlock, { type: 'Block' }) as unknown as ASTv1.Block;
   } else {
     elseBlock = _elseBlock;
   }
@@ -101,7 +98,7 @@ function buildElementModifier(
   path: BuilderHead | ASTv1.Expression,
   params?: ASTv1.Expression[],
   hash?: ASTv1.Hash,
-  loc?: Option<SourceLocation>
+  loc?: Nullable<SourceLocation>
 ): ASTv1.ElementModifierStatement {
   return {
     type: 'ElementModifierStatement',
@@ -150,7 +147,7 @@ function buildConcat(
   parts: (ASTv1.TextNode | ASTv1.MustacheStatement)[],
   loc?: SourceLocation
 ): ASTv1.ConcatStatement {
-  if (!isPresent(parts)) {
+  if (!isPresentArray(parts)) {
     throw new Error(`b.concat requires at least one part`);
   }
 
@@ -222,9 +219,26 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions = {}): AS
   return {
     type: 'ElementNode',
     tag: tagName,
+    nameNode: {
+      type: 'ElementNameNode',
+      value: tag,
+    } as ASTv1.ElementNameNode,
+    startTag: {
+      type: 'ElementStartNode',
+      value: tag,
+    } as ASTv1.ElementStartNode,
+    endTag: {
+      type: 'ElementEndNode',
+      value: selfClosing ? '' : tag,
+    } as ASTv1.ElementEndNode,
+    parts: tagName
+      .split('.')
+      .map((t) => ({ type: 'ElementPartNode', value: t }) as ASTv1.ElementPartNode),
     selfClosing: selfClosing,
     attributes: attrs || [],
     blockParams: blockParams || [],
+    blockParamNodes:
+      blockParams?.map((x) => ({ type: 'BlockParam', value: x }) as ASTv1.BlockParam) || [],
     modifiers: modifiers || [],
     comments: (comments as ASTv1.MustacheCommentStatement[]) || [],
     children: children || [],
@@ -285,7 +299,7 @@ function buildHead(
   original: string,
   loc: SourceLocation
 ): { head: ASTv1.PathHead; tail: string[] } {
-  let [head, ...tail] = original.split('.');
+  let [head, ...tail] = asPresentArray(original.split('.'));
   let headNode: ASTv1.PathHead;
 
   if (head === 'this') {
@@ -353,14 +367,6 @@ function buildHeadFromString(head: string, loc: SourceLocation): ASTv1.PathHead 
   } else {
     return buildVar(head, loc);
   }
-}
-
-function buildNamedBlockName(name: string, loc?: SourceLocation): ASTv1.NamedBlockName {
-  return {
-    type: 'NamedBlockName',
-    name,
-    loc: buildLoc(loc || null),
-  };
 }
 
 function buildCleanPath(
@@ -467,6 +473,8 @@ function buildBlockItself(
     type: 'Block',
     body: body || [],
     blockParams: blockParams || [],
+    blockParamNodes:
+      blockParams?.map((b) => ({ type: 'BlockParam', value: b }) as ASTv1.BlockParam) || [],
     chained,
     loc: buildLoc(loc || null),
   };
@@ -492,7 +500,7 @@ function buildPosition(line: number, column: number): SourcePosition {
   };
 }
 
-function buildLoc(loc: Option<SourceLocation>): SourceSpan;
+function buildLoc(loc: Nullable<SourceLocation>): SourceSpan;
 function buildLoc(
   startLine: number,
   startColumn: number,
@@ -556,7 +564,6 @@ export default {
   at: buildAtName,
   var: buildVar,
   this: buildThis,
-  blockName: buildNamedBlockName,
 
   string: literal('StringLiteral') as (value: string) => ASTv1.StringLiteral,
   boolean: literal('BooleanLiteral') as (value: boolean) => ASTv1.BooleanLiteral,

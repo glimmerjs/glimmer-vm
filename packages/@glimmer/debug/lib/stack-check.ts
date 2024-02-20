@@ -1,5 +1,13 @@
-import { Option, Dict, BlockSymbolTable, ProgramSymbolTable, Maybe } from '@glimmer/interfaces';
-import { SimpleElement, SimpleDocumentFragment, SimpleNode } from '@simple-dom/interface';
+import type {
+  BlockSymbolTable,
+  Dict,
+  Maybe,
+  Nullable,
+  ProgramSymbolTable,
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleNode,
+} from '@glimmer/interfaces';
 
 export interface Checker<T> {
   type: T;
@@ -10,7 +18,7 @@ export interface Checker<T> {
 
 export function wrap<T>(checker: () => Checker<T>): Checker<T> {
   class Wrapped {
-    type!: T;
+    declare type: T;
 
     validate(value: unknown): value is T {
       return checker().validate(value);
@@ -29,7 +37,7 @@ export interface Constructor<T> extends Function {
 }
 
 class TypeofChecker<T> implements Checker<T> {
-  type!: T;
+  declare type: T;
 
   constructor(private expectedType: string) {}
 
@@ -45,7 +53,7 @@ class TypeofChecker<T> implements Checker<T> {
 export type Primitive = undefined | null | boolean | number | string;
 
 class PrimitiveChecker implements Checker<Primitive> {
-  type!: Primitive;
+  declare type: Primitive;
 
   validate(value: unknown): value is Primitive {
     return (
@@ -63,7 +71,7 @@ class PrimitiveChecker implements Checker<Primitive> {
 }
 
 class NullChecker implements Checker<null> {
-  type!: null;
+  declare type: null;
 
   validate(value: unknown): value is null {
     return value === null;
@@ -75,7 +83,7 @@ class NullChecker implements Checker<null> {
 }
 
 class InstanceofChecker<T> implements Checker<T> {
-  type!: T;
+  declare type: T;
 
   constructor(private Class: Constructor<T>) {}
 
@@ -88,12 +96,15 @@ class InstanceofChecker<T> implements Checker<T> {
   }
 }
 
-class OptionChecker<T> implements Checker<Option<T>> {
-  type!: Option<T>;
+class OptionChecker<T> implements Checker<Nullable<T>> {
+  declare type: Nullable<T>;
 
-  constructor(private checker: Checker<T>, private emptyValue: null | undefined) {}
+  constructor(
+    private checker: Checker<T>,
+    private emptyValue: null | undefined
+  ) {}
 
-  validate(value: unknown): value is Option<T> {
+  validate(value: unknown): value is Nullable<T> {
     if (value === this.emptyValue) return true;
     return this.checker.validate(value);
   }
@@ -104,7 +115,7 @@ class OptionChecker<T> implements Checker<Option<T>> {
 }
 
 class MaybeChecker<T> implements Checker<Maybe<T>> {
-  type!: Maybe<T>;
+  declare type: Maybe<T>;
 
   constructor(private checker: Checker<T>) {}
 
@@ -119,9 +130,12 @@ class MaybeChecker<T> implements Checker<Maybe<T>> {
 }
 
 class OrChecker<T, U> implements Checker<T | U> {
-  type!: T | U;
+  declare type: T | U;
 
-  constructor(private left: Checker<T>, private right: Checker<U>) {}
+  constructor(
+    private left: Checker<T>,
+    private right: Checker<U>
+  ) {}
 
   validate(value: unknown): value is T | U {
     return this.left.validate(value) || this.right.validate(value);
@@ -133,9 +147,12 @@ class OrChecker<T, U> implements Checker<T | U> {
 }
 
 class ExactValueChecker<T> implements Checker<T> {
-  type!: T;
+  declare type: T;
 
-  constructor(private value: T, private desc: string) {}
+  constructor(
+    private value: T,
+    private desc: string
+  ) {}
 
   validate(obj: unknown): obj is T {
     return obj === this.value;
@@ -147,7 +164,7 @@ class ExactValueChecker<T> implements Checker<T> {
 }
 
 class PropertyChecker<T> implements Checker<T> {
-  type!: T;
+  declare type: T;
 
   constructor(private checkers: Dict<Checker<unknown>>) {}
 
@@ -155,19 +172,14 @@ class PropertyChecker<T> implements Checker<T> {
     if (typeof obj !== 'object') return false;
     if (obj === null || obj === undefined) return false;
 
-    return Object.keys(this.checkers).every((k) => {
-      if (!(k in obj)) return false;
-
-      let value = (obj as Dict)[k];
-      let checker = this.checkers[k];
-
-      return checker.validate(value);
-    });
+    return Object.entries(this.checkers).every(([k, checker]) =>
+      k in obj ? checker.validate((obj as Dict)[k]) : false
+    );
   }
 
   expected(): string {
-    let pairs = Object.keys(this.checkers).map((k) => {
-      return `${k}: ${this.checkers[k].expected()}`;
+    let pairs = Object.entries(this.checkers).map(([k, checker]) => {
+      return `${k}: ${checker.expected()}`;
     });
 
     return `{ ${pairs.join(',')} }`;
@@ -175,7 +187,7 @@ class PropertyChecker<T> implements Checker<T> {
 }
 
 class ArrayChecker<T> implements Checker<T[]> {
-  type!: T[];
+  declare type: T[];
 
   constructor(private checker: Checker<T>) {}
 
@@ -192,7 +204,7 @@ class ArrayChecker<T> implements Checker<T[]> {
 }
 
 class DictChecker<T> implements Checker<Dict<T>> {
-  type!: Dict<T>;
+  declare type: Dict<T>;
 
   constructor(private checker: Checker<T>) {}
 
@@ -231,7 +243,7 @@ class OpaqueChecker implements Checker<unknown> {
 }
 
 class ObjectChecker implements Checker<unknown> {
-  type!: object;
+  declare type: object;
 
   validate(obj: unknown): obj is object {
     return typeof obj === 'function' || (typeof obj === 'object' && obj !== null);
@@ -247,7 +259,7 @@ export interface SafeString {
 }
 
 class SafeStringChecker implements Checker<SafeString> {
-  type!: SafeString;
+  declare type: SafeString;
 
   validate(value: unknown): value is SafeString {
     return (
@@ -264,7 +276,7 @@ export function CheckInstanceof<T>(Class: Constructor<T>): Checker<T> {
   return new InstanceofChecker<T>(Class);
 }
 
-export function CheckOption<T>(checker: Checker<T>): Checker<Option<T>> {
+export function CheckOption<T>(checker: Checker<T>): Checker<Nullable<T>> {
   return new OptionChecker(checker, null);
 }
 
@@ -274,7 +286,7 @@ export function CheckMaybe<T>(checker: Checker<T>): Checker<Maybe<T>> {
 
 export function CheckInterface<
   I extends { [P in keyof O]: O[P]['type'] },
-  O extends Dict<Checker<unknown>>
+  O extends Dict<Checker<unknown>>,
 >(obj: O): Checker<I> {
   return new PropertyChecker(obj);
 }
@@ -287,11 +299,29 @@ export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
   return new DictChecker(obj);
 }
 
-export function check<T>(value: unknown, checker: Checker<T>): T {
+function defaultMessage(value: unknown, expected: string): string {
+  return `Got ${value}, expected:\n${expected}`;
+}
+
+export function check<T>(
+  value: unknown,
+  checker: Checker<T>,
+  message?: (value: unknown, expected: string) => string
+): T;
+export function check<T, U extends T>(value: T, checker: (value: T) => asserts value is U): U;
+export function check<T>(
+  value: unknown,
+  checker: Checker<T> | ((value: unknown) => void),
+  message: (value: unknown, expected: string) => string = defaultMessage
+): T {
+  if (typeof checker === 'function') {
+    checker(value);
+    return value as T;
+  }
   if (checker.validate(value)) {
     return value;
   } else {
-    throw new Error(`Got ${value}, expected:\n${checker.expected()}`);
+    throw new Error(message(value, checker.expected()));
   }
 }
 

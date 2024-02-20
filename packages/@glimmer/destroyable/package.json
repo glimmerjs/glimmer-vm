@@ -1,13 +1,48 @@
 {
   "name": "@glimmer/destroyable",
-  "version": "0.84.2",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/destroyable",
-  "description": "Utilities for creating and managing a destroyable hierarchy of objects",
+  "version": "0.88.1",
   "license": "MIT",
+  "description": "Utilities for creating and managing a destroyable hierarchy of objects",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/destroyable",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "publishConfig": {
+    "access": "public",
+    "types": "dist/dev/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/dev/index.d.ts",
+        "development": {
+          "import": "./dist/dev/index.js"
+        },
+        "import": "./dist/prod/index.js"
+      }
+    },
+    "main": null,
+    "module": "dist/dev/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "test:lint": "eslint .",
+    "test:publint": "publint",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
+  },
   "dependencies": {
     "@glimmer/env": "0.1.7",
-    "@glimmer/global-context": "0.84.2",
-    "@glimmer/interfaces": "0.84.2",
-    "@glimmer/util": "0.84.2"
+    "@glimmer/global-context": "workspace:^",
+    "@glimmer/interfaces": "workspace:^",
+    "@glimmer/util": "workspace:^"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^4.5.1",
+    "typescript": "*"
   }
 }

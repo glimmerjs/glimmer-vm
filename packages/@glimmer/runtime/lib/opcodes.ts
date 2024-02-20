@@ -1,21 +1,31 @@
+import type {
+  Dict,
+  Maybe,
+  Nullable,
+  RuntimeOp,
+  SomeVmOp,
+  VmMachineOp,
+  VmOp,
+} from '@glimmer/interfaces';
 import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
-import { Dict, Maybe, Op, Option, RuntimeOp } from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
-import { assert, fillNulls, LOCAL_LOGGER } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp } from '@glimmer/vm';
+import { assert, LOCAL_LOGGER, unwrap } from '@glimmer/util';
+import { $fp, $pc, $ra, $sp, Op } from '@glimmer/vm';
+
+import type { LowLevelVM, VM } from './vm';
+import type { InternalVM } from './vm/append';
+
 import { isScopeReference } from './scope';
 import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
-import { LowLevelVM, VM } from './vm';
-import { InternalVM } from './vm/append';
 import { CURSOR_STACK } from './vm/element-builder';
 
 export interface OpcodeJSON {
   type: number | string;
-  guid?: Option<number>;
+  guid?: Nullable<number>;
   deopted?: boolean;
   args?: string[];
-  details?: Dict<Option<string>>;
+  details?: Dict<Nullable<string>>;
   children?: OpcodeJSON[];
 }
 
@@ -33,20 +43,24 @@ export type Evaluate =
 export type DebugState = {
   pc: number;
   sp: number;
-  type: number;
+  type: VmMachineOp | VmOp;
   isMachine: 0 | 1;
   size: number;
-  params?: Maybe<Dict>;
-  name?: string;
+  params?: Maybe<Dict> | undefined;
+  name?: string | undefined;
   state: unknown;
 };
 
 export class AppendOpcodes {
-  private evaluateOpcode: Evaluate[] = fillNulls<Evaluate>(Op.Size).slice();
+  private evaluateOpcode: Evaluate[] = new Array(Op.Size).fill(null);
 
-  add<Name extends Op>(name: Name, evaluate: Syscall): void;
-  add<Name extends Op>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;
-  add<Name extends Op>(name: Name, evaluate: Syscall | MachineOpcode, kind = 'syscall'): void {
+  add<Name extends VmOp>(name: Name, evaluate: Syscall): void;
+  add<Name extends VmMachineOp>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;
+  add<Name extends SomeVmOp>(
+    name: Name,
+    evaluate: Syscall | MachineOpcode,
+    kind = 'syscall'
+  ): void {
     this.evaluateOpcode[name as number] = {
       syscall: kind !== 'machine',
       evaluate,
@@ -97,18 +111,18 @@ export class AppendOpcodes {
 
     if (LOCAL_DEBUG) {
       let meta = opcodeMetadata(type, isMachine);
-      let actualChange = vm.fetchValue($sp) - sp!;
+      let actualChange = vm.fetchValue($sp) - sp;
       if (
         meta &&
         meta.check &&
         typeof meta.stackChange! === 'number' &&
-        meta.stackChange! !== actualChange
+        meta.stackChange !== actualChange
       ) {
         throw new Error(
           `Error in ${pre.name}:\n\n${pc}. ${logOpcode(
             pre.name!,
-            pre.params!
-          )}\n\nStack changed by ${actualChange}, expected ${meta.stackChange!}`
+            pre.params
+          )}\n\nStack changed by ${actualChange}, expected ${meta.stackChange}`
         );
       }
 
@@ -155,7 +169,7 @@ export class AppendOpcodes {
   }
 
   evaluate(vm: VM, opcode: RuntimeOp, type: number) {
-    let operation = this.evaluateOpcode[type];
+    let operation = unwrap(this.evaluateOpcode[type]);
 
     if (operation.syscall) {
       assert(

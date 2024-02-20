@@ -1,10 +1,13 @@
-import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
+import type { ASTv2 } from '@glimmer/syntax';
+import { generateSyntaxError } from '@glimmer/syntax';
 
-import { Err, Ok, Result } from '../../../../shared/result';
+import type { Result } from '../../../../shared/result';
+import type { NormalizationState } from '../../context';
+import type { GenericKeywordNode, KeywordDelegate } from '../impl';
+
+import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { NormalizationState } from '../../context';
 import { VISIT_EXPRS } from '../../visitors/expressions';
-import { GenericKeywordNode, KeywordDelegate } from '../impl';
 
 function assertGetDynamicVarKeyword(node: GenericKeywordNode): Result<ASTv2.ExpressionNode> {
   let call = node.type === 'AppendContent' ? node.value : node;

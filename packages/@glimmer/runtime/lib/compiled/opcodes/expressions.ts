@@ -1,53 +1,51 @@
-import {
+import type {
   CapturedPositionalArguments,
   CurriedType,
   Helper,
   HelperDefinitionState,
-  Op,
   Owner,
-  ResolutionTimeConstants,
-  RuntimeConstants,
   ScopeBlock,
   VM as PublicVM,
 } from '@glimmer/interfaces';
-import {
-  Reference,
-  childRefFor,
-  UNDEFINED_REFERENCE,
-  TRUE_REFERENCE,
-  FALSE_REFERENCE,
-  valueForRef,
-  createComputeRef,
-} from '@glimmer/reference';
-import { $v0 } from '@glimmer/vm';
-import { APPEND_OPCODES } from '../../opcodes';
-import { createConcatRef } from '../expressions/concat';
-import { associateDestroyableChild, destroy, _hasDestroyableChildren } from '@glimmer/destroyable';
-import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
-import { toBool } from '@glimmer/global-context';
+import type { Reference } from '@glimmer/reference';
 import {
   check,
-  CheckOption,
-  CheckHandle,
   CheckBlockSymbolTable,
-  CheckOr,
+  CheckHandle,
   CheckMaybe,
+  CheckOption,
+  CheckOr,
 } from '@glimmer/debug';
+import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
+import { toBool } from '@glimmer/global-context';
+import { getInternalHelperManager } from '@glimmer/manager';
+import {
+  childRefFor,
+  createComputeRef,
+  FALSE_REFERENCE,
+  TRUE_REFERENCE,
+  UNDEFINED_REFERENCE,
+  valueForRef,
+} from '@glimmer/reference';
+import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
+import { $v0, CurriedTypes, Op } from '@glimmer/vm';
+
+import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { APPEND_OPCODES } from '../../opcodes';
+import createCurryRef from '../../references/curry-value';
+import { CONSTANTS } from '../../symbols';
+import { reifyPositional } from '../../vm/arguments';
+import { createConcatRef } from '../expressions/concat';
 import {
   CheckArguments,
-  CheckReference,
-  CheckCompilableBlock,
-  CheckScope,
-  CheckHelper,
-  CheckUndefinedReference,
-  CheckScopeBlock,
   CheckCapturedArguments,
+  CheckCompilableBlock,
+  CheckHelper,
+  CheckReference,
+  CheckScope,
+  CheckScopeBlock,
+  CheckUndefinedReference,
 } from './-debug-strip';
-import { CONSTANTS } from '../../symbols';
-import { DEBUG } from '@glimmer/env';
-import createCurryRef from '../../references/curry-value';
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
-import { reifyPositional } from '../../vm/arguments';
 
 export type FunctionExpression<T> = (vm: PublicVM) => Reference<T>;
 
@@ -62,8 +60,8 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
   let isStrict = false;
 
-  if (DEBUG) {
-    // strict check only happens in DEBUG builds, no reason to load it otherwise
+  if (import.meta.env.DEV) {
+    // strict check only happens in import.meta.env.DEV builds, no reason to load it otherwise
     isStrict = vm[CONSTANTS].getValue<boolean>(decodeHandle(_isStrict));
   }
 
@@ -88,10 +86,10 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 
     let definition = valueForRef(ref);
 
-    if (isCurriedType(definition, CurriedType.Helper)) {
+    if (isCurriedType(definition, CurriedTypes.Helper)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
 
-      let helper = resolveHelper(vm[CONSTANTS], resolvedDef, ref);
+      let helper = resolveHelper(resolvedDef, ref);
 
       if (named !== undefined) {
         args.named = assign({}, ...named, args.named);
@@ -105,7 +103,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 
       associateDestroyableChild(helperInstanceRef, helperRef);
     } else if (isObject(definition)) {
-      let helper = resolveHelper(vm[CONSTANTS], definition, ref);
+      let helper = resolveHelper(definition, ref);
       helperRef = helper(args, initialOwner);
 
       if (_hasDestroyableChildren(helperRef)) {
@@ -125,14 +123,20 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
   vm.loadValue($v0, helperValueRef);
 });
 
-function resolveHelper(
-  constants: RuntimeConstants & ResolutionTimeConstants,
-  definition: HelperDefinitionState,
-  ref: Reference
-): Helper {
-  let handle = constants.helper(definition, null, true)!;
+function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helper {
+  let managerOrHelper = getInternalHelperManager(definition, true);
+  let helper;
+  if (managerOrHelper === null) {
+    helper = null;
+  } else {
+    helper =
+      typeof managerOrHelper === 'function'
+        ? managerOrHelper
+        : managerOrHelper.getHelper(definition);
+    assert(managerOrHelper, 'BUG: expected manager or helper');
+  }
 
-  if (DEBUG && handle === null) {
+  if (import.meta.env.DEV && helper === null) {
     throw new Error(
       `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${
         ref.debugLabel
@@ -142,7 +146,7 @@ function resolveHelper(
     );
   }
 
-  return constants.getValue(handle);
+  return helper!;
 }
 
 APPEND_OPCODES.add(Op.Helper, (vm, { op1: handle }) => {

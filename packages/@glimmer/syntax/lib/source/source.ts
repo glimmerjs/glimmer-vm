@@ -1,13 +1,20 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DEBUG } from '@glimmer/env';
-import type { Option } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
 
-import { SourceLocation, SourcePosition } from './location';
+import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
+import type { SourceLocation, SourcePosition } from './location';
+
 import { SourceOffset, SourceSpan } from './span';
 
 export class Source {
-  constructor(readonly source: string, readonly module: string = 'an unknown module') {}
+  static from(source: string, options: PrecompileOptions = {}): Source {
+    return new Source(source, options.meta?.moduleName);
+  }
+
+  constructor(
+    readonly source: string,
+    readonly module = 'an unknown module'
+  ) {}
 
   /**
    * Validate that the character offset represents a position in the source string.
@@ -31,7 +38,7 @@ export class Source {
     });
   }
 
-  hbsPosFor(offset: number): Option<SourcePosition> {
+  hbsPosFor(offset: number): Nullable<SourcePosition> {
     let seenLines = 0;
     let seenChars = 0;
 
@@ -39,6 +46,7 @@ export class Source {
       return null;
     }
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       let nextLine = this.source.indexOf('\n', seenChars);
 
@@ -61,16 +69,14 @@ export class Source {
     let seenLines = 0;
     let seenChars = 0;
 
-    while (true) {
-      if (seenChars >= sourceLength) return sourceLength;
-
+    while (seenChars < sourceLength) {
       let nextLine = this.source.indexOf('\n', seenChars);
       if (nextLine === -1) nextLine = this.source.length;
 
       if (seenLines === line - 1) {
         if (seenChars + column > nextLine) return nextLine;
 
-        if (DEBUG) {
+        if (import.meta.env.DEV) {
           let roundTrip = this.hbsPosFor(seenChars + column);
           assert(roundTrip !== null, `the returned offset failed to round-trip`);
           assert(roundTrip.line === line, `the round-tripped line didn't match the original line`);
@@ -88,5 +94,7 @@ export class Source {
         seenChars = nextLine + 1;
       }
     }
+
+    return sourceLength;
   }
 }

@@ -1,39 +1,13 @@
-import { Dict, Option, PresentArray, WireFormat } from '@glimmer/interfaces';
+import type { Nullable, PresentArray } from '@glimmer/interfaces';
 
-import { SourceLocation } from '../source/location';
-import { SourceSpan } from '../source/span';
-
-export interface Symbols {
-  symbols: string[];
-
-  has(name: string): boolean;
-  get(name: string): number;
-
-  getLocalsMap(): Dict<number>;
-  getEvalInfo(): WireFormat.Core.EvalInfo;
-
-  allocateFree(name: string): number;
-  allocateNamed(name: string): number;
-  allocateBlock(name: string): number;
-  allocate(identifier: string): number;
-
-  child(locals: string[]): BlockSymbols;
-}
-
-export interface BlockSymbols extends Symbols {
-  slots: number[];
-}
-
-export interface ProgramSymbols extends Symbols {
-  freeVariables: string[];
-}
+import type * as src from '../source/api';
 
 export interface BaseNode {
   // Every leaf interface that extends BaseNode must specify a type property.
   // The type property should be a string literal. For example, Identifier
   // has: `type: "Identifier"`
   type: NodeType;
-  loc: SourceSpan;
+  loc: src.SourceSpan;
 }
 
 export interface CommonProgram extends BaseNode {
@@ -44,11 +18,11 @@ export interface CommonProgram extends BaseNode {
 
 export interface Program extends CommonProgram {
   type: 'Program';
-  symbols?: Symbols;
 }
 
 export interface Block extends CommonProgram {
   type: 'Block';
+  blockParamNodes: BlockParam[];
 }
 
 export type EntityEncodingState = 'transformed' | 'raw';
@@ -95,7 +69,7 @@ export interface BlockStatement extends BaseNode {
   params: Expression[];
   hash: Hash;
   program: Block;
-  inverse?: Option<Block>;
+  inverse?: Nullable<Block>;
   openStrip: StripFlags;
   inverseStrip: StripFlags;
   closeStrip: StripFlags;
@@ -130,24 +104,52 @@ export interface MustacheCommentStatement extends BaseNode {
   value: string;
 }
 
-export interface NamedBlockName {
-  type: 'NamedBlockName';
-  name: string;
-  loc: SourceLocation;
-}
-
 export interface ElementName {
   type: 'ElementName';
   name: string;
-  loc: SourceLocation;
+  loc: src.SourceLocation;
 }
 
+export interface ElementStartNode extends BaseNode {
+  type: 'ElementStartNode';
+  value: string;
+}
+
+export interface ElementNameNode extends BaseNode {
+  type: 'ElementNameNode';
+  value: string;
+}
+
+export interface ElementEndNode extends BaseNode {
+  type: 'ElementEndNode';
+  value: string;
+}
+
+export interface ElementPartNode extends BaseNode {
+  type: 'ElementPartNode';
+  value: string;
+}
+
+/*
+  <Foo.bar.x attr='2'></Foo.bar.x>
+   ^-- ElementPartNode
+       ^-- ElementPartNode
+          ^- ElementPartNode
+   ^-------- ElementNameNode
+  ^------------------ ElementStartNode
+                      ^----------- ElementEndNode
+ */
 export interface ElementNode extends BaseNode {
   type: 'ElementNode';
   tag: string;
+  nameNode: ElementNameNode;
+  startTag: ElementStartNode;
+  endTag: ElementEndNode;
+  parts: ElementPartNode[];
   selfClosing: boolean;
   attributes: AttrNode[];
   blockParams: string[];
+  blockParamNodes: BlockParam[];
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
   children: Statement[];
@@ -165,10 +167,11 @@ export type StatementName =
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
   name: string;
-  value: TextNode | MustacheStatement | ConcatStatement;
+  value: AttrValue;
 }
 
 export type AttrValue = TextNode | MustacheStatement | ConcatStatement;
+export type AttrPart = TextNode | MustacheStatement;
 
 export interface TextNode extends BaseNode {
   type: 'TextNode';
@@ -191,31 +194,19 @@ export interface SubExpression extends Call {
 
 export interface ThisHead {
   type: 'ThisHead';
-  loc: SourceLocation;
+  loc: src.SourceLocation;
 }
 
 export interface AtHead {
   type: 'AtHead';
   name: string;
-  loc: SourceLocation;
+  loc: src.SourceLocation;
 }
 
 export interface VarHead {
   type: 'VarHead';
   name: string;
-  loc: SourceLocation;
-}
-
-export interface FreeVarHead {
-  type: 'FreeVarHead';
-  name: string;
-  loc: SourceLocation;
-}
-
-export interface LocalVarHead {
-  type: 'LocalVarHead';
-  name: string;
-  loc: SourceLocation;
+  loc: src.SourceLocation;
 }
 
 export type PathHead = ThisHead | AtHead | VarHead;
@@ -293,6 +284,16 @@ export interface HashPair extends BaseNode {
   value: Expression;
 }
 
+/**
+ * a param inside the pipes of elements or mustache blocks,
+ * <Foo as |bar|>... bar is a BlockParam.
+ * {{#Foo as |bar|}}... bar is a BlockParam.
+ */
+export interface BlockParam extends BaseNode {
+  type: 'BlockParam';
+  value: string;
+}
+
 export interface StripFlags {
   open: boolean;
   close: boolean;
@@ -315,6 +316,10 @@ export type SharedNodes = {
 };
 
 export type Nodes = SharedNodes & {
+  ElementEndNode: ElementEndNode;
+  ElementStartNode: ElementStartNode;
+  ElementPartNode: ElementPartNode;
+  ElementNameNode: ElementNameNode;
   Program: Program;
   Template: Template;
   Block: Block;
@@ -324,6 +329,7 @@ export type Nodes = SharedNodes & {
   PathExpression: PathExpression;
   Hash: Hash;
   HashPair: HashPair;
+  BlockParam: BlockParam;
 };
 
 export type NodeType = keyof Nodes;
@@ -335,3 +341,5 @@ export type Literal = Nodes[LiteralName];
 export type Expression = Nodes[ExpressionName];
 export type Expressions = Pick<Nodes, ExpressionName>;
 export type TopLevelStatement = Statement | Nodes['Block'];
+
+export type ParentNode = Template | Block | ElementNode;

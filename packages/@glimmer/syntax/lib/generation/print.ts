@@ -1,5 +1,7 @@
-import * as ASTv1 from '../v1/api';
-import Printer, { PrinterOptions } from './printer';
+import type * as ASTv1 from '../v1/api';
+import type { PrinterOptions } from './printer';
+
+import Printer from './printer';
 
 export default function build(
   ast: ASTv1.Node,

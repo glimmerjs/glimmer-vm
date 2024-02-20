@@ -1,18 +1,13 @@
-import { module, test } from './utils/qunit';
+import type { GlobalContext } from '@glimmer/global-context';
+import type { OpaqueIterationItem, Reference } from '@glimmer/reference';
+import { testOverrideGlobalContext } from '@glimmer/global-context';
+import { createComputeRef, createIteratorRef, valueForRef } from '@glimmer/reference';
+import { unwrap } from '@glimmer/util';
+import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';
 
-import {
-  createIteratorRef,
-  createComputeRef,
-  OpaqueIterationItem,
-  Reference,
-  valueForRef,
-} from '..';
-import { symbol } from '@glimmer/util';
-import { testOverrideGlobalContext, GlobalContext } from '@glimmer/global-context';
-import { VOLATILE_TAG, consumeTag } from '@glimmer/validator';
-
-import { TestContext } from './utils/template';
 import objectValues from './utils/platform';
+import { module, test } from './utils/qunit';
+import { TestContext } from './utils/template';
 
 class IterableWrapper {
   private iterable: Reference<{ next(): OpaqueIterationItem | null }>;
@@ -30,13 +25,11 @@ class IterableWrapper {
 
     // bootstrap
     let iterator = valueForRef(this.iterable);
+    let item = iterator.next();
 
-    while (true) {
-      let item = iterator.next();
-
-      if (item === null) break;
-
+    while (item !== null) {
       result.push(item);
+      item = iterator.next();
     }
 
     return result;
@@ -55,11 +48,11 @@ module('@glimmer/reference: IterableReference', (hooks) => {
   let originalContext: GlobalContext | null;
 
   hooks.beforeEach(() => {
-    originalContext = testOverrideGlobalContext!(TestContext);
+    originalContext = unwrap(testOverrideGlobalContext)(TestContext);
   });
 
   hooks.afterEach(() => {
-    testOverrideGlobalContext!(originalContext);
+    unwrap(testOverrideGlobalContext)(originalContext);
   });
 
   module('iterator delegates', () => {
@@ -113,25 +106,25 @@ module('@glimmer/reference: IterableReference', (hooks) => {
 
       let keys1 = target.toKeys();
 
-      assert.equal(keys1.length, 3);
-      assert.equal(keys1[0], yehuda);
-      assert.equal(keys1[1], godfrey);
+      assert.strictEqual(keys1.length, 3);
+      assert.strictEqual(keys1[0], yehuda);
+      assert.strictEqual(keys1[1], godfrey);
 
       arr.pop();
       arr.unshift(godfrey);
 
       let keys2 = target.toKeys();
 
-      assert.equal(keys2.length, 3);
-      assert.equal(keys2[0], godfrey);
-      assert.equal(keys2[1], yehuda);
+      assert.strictEqual(keys2.length, 3);
+      assert.strictEqual(keys2[0], godfrey);
+      assert.strictEqual(keys2[1], yehuda);
 
       // Test that a unique key was created and is used consistently
-      assert.equal(keys1[2], keys2[2]);
+      assert.strictEqual(keys1[2], keys2[2]);
     });
 
     test('@identity works with primitives (except null)', (assert) => {
-      let arr = [undefined, 123, 'foo', symbol('bar'), true];
+      let arr = [undefined, 123, 'foo', Symbol('bar'), true];
       let target = new IterableWrapper(arr);
 
       assert.deepEqual(target.toValues(), arr);
@@ -148,7 +141,7 @@ module('@glimmer/reference: IterableReference', (hooks) => {
 
       let keys2 = target.toKeys();
 
-      assert.equal(keys1[0], keys2[1]);
+      assert.strictEqual(keys1[0], keys2[1]);
     });
 
     test('@identity works with multiple null values', (assert) => {
@@ -161,8 +154,8 @@ module('@glimmer/reference: IterableReference', (hooks) => {
 
       let keys2 = target.toKeys();
 
-      assert.equal(keys2.length, 2);
-      assert.equal(keys1[0], keys2[0]);
+      assert.strictEqual(keys2.length, 2);
+      assert.strictEqual(keys1[0], keys2[0]);
       assert.notEqual(keys1[0], keys2[1]);
     });
 

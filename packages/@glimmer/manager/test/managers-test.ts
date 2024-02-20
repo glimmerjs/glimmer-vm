@@ -1,32 +1,29 @@
-import { DEBUG } from '@glimmer/env';
-import { FEATURE_DEFAULT_HELPER_MANAGER } from '@glimmer/global-context';
-import {
+import type {
   ComponentManager,
   HelperManager,
   InternalComponentManager,
   InternalHelperManager,
   ModifierManager,
 } from '@glimmer/interfaces';
-import { UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { createUpdatableTag } from '@glimmer/validator';
-
+import type { CustomHelperManager } from '@glimmer/manager';
 import {
-  setInternalComponentManager,
-  getInternalComponentManager,
-  setInternalModifierManager,
-  getInternalModifierManager,
-  setInternalHelperManager,
-  getInternalHelperManager,
-  setComponentManager,
-  setModifierManager,
-  setHelperManager,
   componentCapabilities,
-  modifierCapabilities,
-  helperCapabilities,
   CustomComponentManager,
   CustomModifierManager,
-  CustomHelperManager,
-} from '..';
+  getInternalComponentManager,
+  getInternalHelperManager,
+  getInternalModifierManager,
+  helperCapabilities,
+  modifierCapabilities,
+  setComponentManager,
+  setHelperManager,
+  setInternalComponentManager,
+  setInternalHelperManager,
+  setInternalModifierManager,
+  setModifierManager,
+} from '@glimmer/manager';
+import { UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { createUpdatableTag } from '@glimmer/validator';
 
 const { module, test } = QUnit;
 
@@ -52,7 +49,11 @@ module('Managers', () => {
       >;
 
       assert.ok(instance instanceof CustomComponentManager, 'internal manager is a custom manager');
-      assert.equal(instance['factory'], factory, 'delegate is an instance of the custom manager');
+      assert.strictEqual(
+        instance['factory'],
+        factory,
+        'delegate is an instance of the custom manager'
+      );
     });
 
     test('it works with internal managers', (assert) => {
@@ -102,66 +103,53 @@ module('Managers', () => {
       );
     });
 
-    test('throws if multiple component managers associated with the same definition', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
+    if (import.meta.env.DEV) {
+      test('throws if multiple component managers associated with the same definition', (assert) => {
+        let definition = setInternalComponentManager({} as any, {});
 
-      let definition = setInternalComponentManager({} as any, {});
+        assert.throws(() => {
+          setComponentManager(() => {
+            return {} as any;
+          }, definition);
+        }, /Attempted to set the same type of manager multiple times on a value. You can only associate one manager of each type/u);
+      });
 
-      assert.throws(() => {
-        setComponentManager(() => {
+      test('throws a useful error when missing capabilities on non-internal managers', (assert) => {
+        let definition = setComponentManager(() => {
           return {} as any;
-        }, definition);
-      }, /Attempted to set the same type of manager multiple times on a value. You can only associate one manager of each type/);
-    });
+        }, {});
 
-    test('throws a useful error when missing capabilities on non-internal managers', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
+        let manager = getInternalComponentManager(definition) as CustomComponentManager<
+          object,
+          unknown
+        >;
 
-      let definition = setComponentManager(() => {
-        return {} as any;
-      }, {});
+        assert.throws(() => {
+          manager.create({}, {}, {} as any);
+        }, /Custom component managers must have a `capabilities` property /u);
+      });
 
-      let manager = getInternalComponentManager(definition) as CustomComponentManager<
-        object,
-        unknown
-      >;
+      test('throws a useful error when capabilities not made with buildCapabilities are used on non-internal managers', (assert) => {
+        let definition = setComponentManager(() => {
+          return {
+            capabilities: {},
+          } as any;
+        }, {});
 
-      assert.throws(() => {
-        manager.create({}, {}, {} as any);
-      }, /Custom component managers must have a `capabilities` property /);
-    });
+        let manager = getInternalComponentManager(definition) as CustomComponentManager<
+          object,
+          unknown
+        >;
 
-    test('throws a useful error when capabilities not made with buildCapabilities are used on non-internal managers', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
+        assert.throws(() => {
+          manager.create({}, {}, {} as any);
+        }, /Custom component managers must have a `capabilities` property /u);
+      });
 
-      let definition = setComponentManager(() => {
-        return {
-          capabilities: {},
-        } as any;
-      }, {});
-
-      let manager = getInternalComponentManager(definition) as CustomComponentManager<
-        object,
-        unknown
-      >;
-
-      assert.throws(() => {
-        manager.create({}, {}, {} as any);
-      }, /Custom component managers must have a `capabilities` property /);
-    });
-
-    test('throws an error if used with primitive values', (assert) => {
-      assertPrimitiveUsage(assert, setInternalComponentManager);
-    });
+      test('throws an error if used with primitive values', (assert) => {
+        assertPrimitiveUsage(assert, setInternalComponentManager);
+      });
+    }
   });
 
   module('Helper', () => {
@@ -181,30 +169,30 @@ module('Managers', () => {
 
       let instance = getInternalHelperManager(definition) as CustomHelperManager<object>;
 
-      assert.ok(typeof instance === 'object', 'manager is an internal manager');
-      assert.ok(
-        typeof instance.getHelper({}) === 'function',
+      assert.strictEqual(typeof instance, 'object', 'manager is an internal manager');
+      assert.strictEqual(
+        typeof instance.getHelper({}),
+        'function',
         'manager can generate helper function'
       );
-      assert.equal(instance['factory'], factory, 'manager has correct delegate factory');
+      assert.strictEqual(instance['factory'], factory, 'manager has correct delegate factory');
     });
 
-    if (FEATURE_DEFAULT_HELPER_MANAGER) {
-      test('it determines the default manager', (assert) => {
-        let myTestHelper = () => 0;
-        let instance = getInternalHelperManager(myTestHelper) as CustomHelperManager<object>;
+    test('it determines the default manager', (assert) => {
+      let myTestHelper = () => 0;
+      let instance = getInternalHelperManager(myTestHelper) as CustomHelperManager<object>;
 
-        assert.ok(typeof instance === 'object', 'manager is an internal manager');
-        assert.ok(
-          typeof instance.getHelper({}) === 'function',
-          'manager can generate helper function'
-        );
-        assert.strictEqual(
-          instance['factory']({})?.getDebugName?.(myTestHelper),
-          '(helper function myTestHelper)'
-        );
-      });
-    }
+      assert.strictEqual(typeof instance, 'object', 'manager is an internal manager');
+      assert.strictEqual(
+        typeof instance.getHelper({}),
+        'function',
+        'manager can generate helper function'
+      );
+      assert.strictEqual(
+        instance['factory']({})?.getDebugName?.(myTestHelper),
+        '(helper function myTestHelper)'
+      );
+    });
 
     test('it works with internal helpers', (assert) => {
       let helper = () => {
@@ -214,65 +202,52 @@ module('Managers', () => {
       let definition = setInternalHelperManager(helper, {});
       let instance1 = getInternalHelperManager(definition)!;
 
-      assert.equal(instance1, helper, 'manager is the internal helper');
+      assert.strictEqual(instance1, helper, 'manager is the internal helper');
     });
 
-    test('throws if multiple helper managers associated with the same definition', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
-
-      let definition = setInternalHelperManager(() => {
-        return {} as any;
-      }, {});
-
-      assert.throws(() => {
-        setHelperManager(() => {
+    if (import.meta.env.DEV) {
+      test('throws if multiple helper managers associated with the same definition', (assert) => {
+        let definition = setInternalHelperManager(() => {
           return {} as any;
-        }, definition);
-      }, /Attempted to set the same type of manager multiple times on a value. You can only associate one manager of each type/);
-    });
+        }, {});
 
-    test('throws a useful error when missing capabilities on non-internal managers', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
+        assert.throws(() => {
+          setHelperManager(() => {
+            return {} as any;
+          }, definition);
+        }, /Attempted to set the same type of manager multiple times on a value. You can only associate one manager of each type/u);
+      });
 
-      let definition = setHelperManager(() => {
-        return {} as any;
-      }, {});
+      test('throws a useful error when missing capabilities on non-internal managers', (assert) => {
+        let definition = setHelperManager(() => {
+          return {} as any;
+        }, {});
 
-      let manager = getInternalHelperManager(definition) as InternalHelperManager<object>;
+        let manager = getInternalHelperManager(definition) as InternalHelperManager<object>;
 
-      assert.throws(() => {
-        manager.getDelegateFor({});
-      }, /Custom helper managers must have a `capabilities` property /);
-    });
+        assert.throws(() => {
+          manager.getDelegateFor({});
+        }, /Custom helper managers must have a `capabilities` property /u);
+      });
 
-    test('throws a useful error when capabilities not made with buildCapabilities are used on non-internal managers', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
+      test('throws a useful error when capabilities not made with buildCapabilities are used on non-internal managers', (assert) => {
+        let definition = setHelperManager(() => {
+          return {
+            capabilities: {},
+          } as any;
+        }, {});
 
-      let definition = setHelperManager(() => {
-        return {
-          capabilities: {},
-        } as any;
-      }, {});
+        let manager = getInternalHelperManager(definition) as InternalHelperManager<object>;
 
-      let manager = getInternalHelperManager(definition) as InternalHelperManager<object>;
+        assert.throws(() => {
+          manager.getDelegateFor({});
+        }, /Custom helper managers must have a `capabilities` property /u);
+      });
 
-      assert.throws(() => {
-        manager.getDelegateFor({});
-      }, /Custom helper managers must have a `capabilities` property /);
-    });
-
-    test('throws an error if used with primitive values', (assert) => {
-      assertPrimitiveUsage(assert, setInternalHelperManager);
-    });
+      test('throws an error if used with primitive values', (assert) => {
+        assertPrimitiveUsage(assert, setInternalHelperManager);
+      });
+    }
   });
 
   module('Modifier', () => {
@@ -297,7 +272,11 @@ module('Managers', () => {
       >;
 
       assert.ok(instance instanceof CustomModifierManager, 'internal manager is a custom manager');
-      assert.equal(instance['factory'], factory, 'internal manager has custom manager factory');
+      assert.strictEqual(
+        instance['factory'],
+        factory,
+        'internal manager has custom manager factory'
+      );
     });
 
     test('it works with internal managers', (assert) => {
@@ -333,62 +312,49 @@ module('Managers', () => {
       );
     });
 
-    test('throws if multiple modifier managers associated with the same definition', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
-
-      let definition = setModifierManager(() => {
-        return {} as any;
-      }, {});
-
-      assert.throws(() => {
-        setModifierManager(() => {
+    if (import.meta.env.DEV) {
+      test('throws if multiple modifier managers associated with the same definition', (assert) => {
+        let definition = setModifierManager(() => {
           return {} as any;
-        }, definition);
-      }, /Attempted to set the same type of manager multiple times on a value. You can only associate one manager of each type/);
-    });
+        }, {});
 
-    test('throws a useful error when missing capabilities on non-internal managers', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
+        assert.throws(() => {
+          setModifierManager(() => {
+            return {} as any;
+          }, definition);
+        }, /Attempted to set the same type of manager multiple times on a value. You can only associate one manager of each type/u);
+      });
 
-      let definition = setModifierManager(() => {
-        return {} as any;
-      }, {});
+      test('throws a useful error when missing capabilities on non-internal managers', (assert) => {
+        let definition = setModifierManager(() => {
+          return {} as any;
+        }, {});
 
-      let manager = getInternalModifierManager(definition);
+        let manager = getInternalModifierManager(definition);
 
-      assert.throws(() => {
-        manager.create({}, {} as any, {}, {} as any);
-      }, /Custom modifier managers must have a `capabilities` property /);
-    });
+        assert.throws(() => {
+          manager.create({}, {} as any, {}, {} as any);
+        }, /Custom modifier managers must have a `capabilities` property /u);
+      });
 
-    test('throws a useful error when capabilities not made with buildCapabilities are used on non-internal managers', (assert) => {
-      if (!DEBUG) {
-        assert.expect(0);
-        return;
-      }
+      test('throws a useful error when capabilities not made with buildCapabilities are used on non-internal managers', (assert) => {
+        let definition = setModifierManager(() => {
+          return {
+            capabilities: {},
+          } as any;
+        }, {});
 
-      let definition = setModifierManager(() => {
-        return {
-          capabilities: {},
-        } as any;
-      }, {});
+        let manager = getInternalModifierManager(definition);
 
-      let manager = getInternalModifierManager(definition);
+        assert.throws(() => {
+          manager.create({}, {} as any, {}, {} as any);
+        }, /Custom modifier managers must have a `capabilities` property /u);
+      });
 
-      assert.throws(() => {
-        manager.create({}, {} as any, {}, {} as any);
-      }, /Custom modifier managers must have a `capabilities` property /);
-    });
-
-    test('throws an error if used with primitive values', (assert) => {
-      assertPrimitiveUsage(assert, setModifierManager);
-    });
+      test('throws an error if used with primitive values', (assert) => {
+        assertPrimitiveUsage(assert, setModifierManager);
+      });
+    }
   });
 
   test('Can set different types of managers', (assert) => {
@@ -399,45 +365,45 @@ module('Managers', () => {
     setInternalModifierManager(manager, definition);
     setInternalHelperManager(manager, definition);
 
-    assert.equal(manager, getInternalComponentManager(definition), 'component manager works');
-    assert.equal(manager, getInternalModifierManager(definition), 'modifier manager works');
-    assert.equal(manager, getInternalHelperManager(definition), 'helper manager works');
+    assert.strictEqual(manager, getInternalComponentManager(definition), 'component manager works');
+    assert.strictEqual(manager, getInternalModifierManager(definition), 'modifier manager works');
+    assert.strictEqual(manager, getInternalHelperManager(definition), 'helper manager works');
   });
 });
 
 function assertPrimitiveUsage(assert: Assert, setManager: any) {
-  if (!DEBUG) {
+  if (!import.meta.env.DEV) {
     assert.expect(0);
     return;
   }
 
   assert.throws(() => {
-    setManager(() => ({} as any), null as any);
-  }, /Attempted to set a manager on a non-object value/);
+    setManager(() => ({}) as any, null as any);
+  }, /Attempted to set a manager on a non-object value/u);
 
   assert.throws(() => {
-    setManager(() => ({} as any), undefined as any);
-  }, /Attempted to set a manager on a non-object value/);
+    setManager(() => ({}) as any, undefined as any);
+  }, /Attempted to set a manager on a non-object value/u);
 
   assert.throws(() => {
-    setManager(() => ({} as any), true as any);
-  }, /Attempted to set a manager on a non-object value/);
+    setManager(() => ({}) as any, true as any);
+  }, /Attempted to set a manager on a non-object value/u);
 
   assert.throws(() => {
-    setManager(() => ({} as any), false as any);
-  }, /Attempted to set a manager on a non-object value/);
+    setManager(() => ({}) as any, false as any);
+  }, /Attempted to set a manager on a non-object value/u);
 
   assert.throws(() => {
-    setManager(() => ({} as any), 123 as any);
-  }, /Attempted to set a manager on a non-object value/);
+    setManager(() => ({}) as any, 123 as any);
+  }, /Attempted to set a manager on a non-object value/u);
 
   assert.throws(() => {
-    setManager(() => ({} as any), 'foo' as any);
-  }, /Attempted to set a manager on a non-object value/);
+    setManager(() => ({}) as any, 'foo' as any);
+  }, /Attempted to set a manager on a non-object value/u);
 
   if (typeof Symbol === 'function') {
     assert.throws(() => {
-      setManager(() => ({} as any), Symbol('foo') as any);
-    }, /Attempted to set a manager on a non-object value/);
+      setManager(() => ({}) as any, Symbol('foo') as any);
+    }, /Attempted to set a manager on a non-object value/u);
   }
 }

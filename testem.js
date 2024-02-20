@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
 'use strict';
 
 let isCI = !!process.env.CI;

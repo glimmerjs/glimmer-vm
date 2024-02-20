@@ -1,9 +1,11 @@
-import { Bounds, Cursor, Option } from '@glimmer/interfaces';
-import { SimpleElement, SimpleNode } from '@simple-dom/interface';
+import type { Bounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {
-  constructor(public element: SimpleElement, public nextSibling: Option<SimpleNode>) {}
+  constructor(
+    public element: SimpleElement,
+    public nextSibling: Nullable<SimpleNode>
+  ) {}
 }
 
 export type DestroyableBounds = Bounds;
@@ -28,29 +30,14 @@ export class ConcreteBounds implements Bounds {
   }
 }
 
-export class SingleNodeBounds implements Bounds {
-  constructor(private parentNode: SimpleElement, private node: SimpleNode) {}
-
-  parentElement(): SimpleElement {
-    return this.parentNode;
-  }
-
-  firstNode(): SimpleNode {
-    return this.node;
-  }
-
-  lastNode(): SimpleNode {
-    return this.node;
-  }
-}
-
-export function move(bounds: Bounds, reference: Option<SimpleNode>): Option<SimpleNode> {
+export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
   let current: SimpleNode = first;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     let next = current.nextSibling;
 
@@ -64,13 +51,14 @@ export function move(bounds: Bounds, reference: Option<SimpleNode>): Option<Simp
   }
 }
 
-export function clear(bounds: Bounds): Option<SimpleNode> {
+export function clear(bounds: Bounds): Nullable<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
   let current: SimpleNode = first;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     let next = current.nextSibling;
 

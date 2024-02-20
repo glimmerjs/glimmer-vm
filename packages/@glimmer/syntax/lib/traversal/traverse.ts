@@ -1,15 +1,16 @@
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { deprecate } from '@glimmer/util';
+import { deprecate, unwrap } from '@glimmer/util';
 
-import * as ASTv1 from '../v1/api';
-import visitorKeys, { VisitorKey, VisitorKeys } from '../v1/visitor-keys';
+import type * as ASTv1 from '../v1/api';
+import type { VisitorKey, VisitorKeys } from '../v1/visitor-keys';
+import type { KeyHandler, KeyTraversal, NodeHandler, NodeTraversal, NodeVisitor } from './visitor';
+
+import visitorKeys from '../v1/visitor-keys';
 import {
   cannotRemoveNode,
   cannotReplaceNode,
   cannotReplaceOrRemoveInKeyHandlerYet,
 } from './errors';
 import WalkerPath from './path';
-import { KeyHandler, KeyTraversal, NodeHandler, NodeTraversal, NodeVisitor } from './visitor';
 
 function getEnterFunction<N extends ASTv1.Node>(
   handler: NodeTraversal<N>
@@ -68,11 +69,9 @@ function getNodeHandler<N extends ASTv1.Node>(
 ): NodeTraversal<ASTv1.Node> | undefined {
   if (nodeType === 'Template' || nodeType === 'Block') {
     if (visitor.Program) {
-      if (LOCAL_DEBUG) {
-        deprecate(
-          `The 'Program' visitor node is deprecated. Use 'Template' or 'Block' instead (node was '${nodeType}') `
-        );
-      }
+      deprecate(
+        `The 'Program' visitor node is deprecated. Use 'Template' or 'Block' instead (node was '${nodeType}') `
+      );
 
       return visitor.Program as NodeTraversal<ASTv1.Node>;
     }
@@ -80,7 +79,7 @@ function getNodeHandler<N extends ASTv1.Node>(
 
   let handler = visitor[nodeType];
   if (handler !== undefined) {
-    return (handler as unknown) as NodeTraversal<ASTv1.Node>;
+    return handler as unknown as NodeTraversal<ASTv1.Node>;
   }
   return visitor.All;
 }
@@ -138,7 +137,7 @@ function get<N extends ASTv1.Node>(
   node: N,
   key: VisitorKeys[N['type']] & keyof N
 ): ASTv1.Node | ASTv1.Node[] {
-  return (node[key] as unknown) as ASTv1.Node | ASTv1.Node[];
+  return node[key] as unknown as ASTv1.Node | ASTv1.Node[];
 }
 
 function set<N extends ASTv1.Node, K extends keyof N>(node: N, key: K, value: N[K]): void {
@@ -183,7 +182,7 @@ function visitKey<N extends ASTv1.Node>(
     if (result !== undefined) {
       // TODO: dynamically check the results by having a table of
       // expected node types in value space, not just type space
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       assignKey(node, key, value, result as any);
     }
   }
@@ -202,7 +201,7 @@ function visitArray(
   parentKey: string | null
 ) {
   for (let i = 0; i < array.length; i++) {
-    let node = array[i];
+    let node = unwrap(array[i]);
     let path = new WalkerPath(node, parent, parentKey);
     let result = visitNode(visitor, path);
     if (result !== undefined) {

@@ -1,7 +1,11 @@
-import { Environment } from './environment';
-import { RuntimeHeap, RuntimeConstants, RuntimeOp, ResolutionTimeConstants } from '../program';
-import { RuntimeResolver } from '../serialize';
-import { Owner } from './owner';
+import type {
+  ResolutionTimeConstants,
+  RuntimeConstants,
+  RuntimeHeap,
+  RuntimeOp,
+} from '../program.js';
+import type { RuntimeResolver } from '../serialize.js';
+import type { Environment } from './environment.js';
 
 /**
   The Runtime is the set of static structures that contain the compiled

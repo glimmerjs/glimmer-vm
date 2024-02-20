@@ -1,18 +1,55 @@
 {
   "name": "@glimmer/reference",
-  "version": "0.84.2",
-  "description": "Objects used to track values and their dirtiness in Glimmer",
+  "version": "0.88.1",
   "license": "MIT",
+  "description": "Objects used to track values and their dirtiness in Glimmer",
   "repository": {
     "type": "git",
     "url": "https://github.com/glimmerjs/glimmer-vm.git",
     "directory": "packages/@glimmer/reference"
   },
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "publishConfig": {
+    "access": "public",
+    "types": "dist/dev/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/dev/index.d.ts",
+        "development": {
+          "require": "./dist/dev/index.cjs",
+          "import": "./dist/dev/index.js"
+        },
+        "require": "./dist/dev/index.cjs",
+        "import": "./dist/prod/index.js"
+      }
+    },
+    "main": null,
+    "module": "dist/dev/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "test:lint": "eslint .",
+    "test:publint": "publint",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
+  },
   "dependencies": {
     "@glimmer/env": "^0.1.7",
-    "@glimmer/global-context": "0.84.2",
-    "@glimmer/interfaces": "0.84.2",
-    "@glimmer/util": "0.84.2",
-    "@glimmer/validator": "0.84.2"
+    "@glimmer/global-context": "workspace:^",
+    "@glimmer/interfaces": "workspace:^",
+    "@glimmer/util": "workspace:^",
+    "@glimmer/validator": "workspace:^"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^4.5.1",
+    "typescript": "*"
   }
 }

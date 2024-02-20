@@ -1,10 +1,12 @@
-import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
+import type { ASTv2 } from '@glimmer/syntax';
+import { generateSyntaxError } from '@glimmer/syntax';
+
+import type { NormalizationState } from '../../context';
+import type { KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { NormalizationState } from '../../context';
 import { VISIT_EXPRS } from '../../visitors/expressions';
-import { KeywordDelegate } from '../impl';
 
 function assertIfUnlessInlineKeyword(type: string) {
   return (
@@ -114,9 +116,7 @@ function translateIfUnlessInlineKeyword(type: string) {
   };
 }
 
-export function ifUnlessInlineKeyword(
-  type: string
-): KeywordDelegate<
+export function ifUnlessInlineKeyword(type: string): KeywordDelegate<
   ASTv2.CallExpression | ASTv2.AppendContent,
   {
     condition: ASTv2.ExpressionNode;

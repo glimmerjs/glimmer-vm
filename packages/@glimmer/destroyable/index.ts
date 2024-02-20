@@ -1,7 +1,6 @@
-import { DEBUG } from '@glimmer/env';
-import { Destroyable, Destructor } from '@glimmer/interfaces';
-import { debugToString } from '@glimmer/util';
+import type { Destroyable, Destructor } from '@glimmer/interfaces';
 import { scheduleDestroy, scheduleDestroyed } from '@glimmer/global-context';
+import { debugToString } from '@glimmer/util';
 
 const enum DestroyingState {
   Live = 0,
@@ -41,16 +40,14 @@ function push<T extends object>(collection: OneOrMany<T>, newItem: T): OneOrMany
 
 function iterate<T extends object>(collection: OneOrMany<T>, fn: (item: T) => void) {
   if (Array.isArray(collection)) {
-    for (let i = 0; i < collection.length; i++) {
-      fn(collection[i]);
-    }
+    collection.forEach(fn);
   } else if (collection !== null) {
     fn(collection);
   }
 }
 
 function remove<T extends object>(collection: OneOrMany<T>, item: T, message: string | false) {
-  if (DEBUG) {
+  if (import.meta.env.DEV) {
     let collectionIsItem = collection === item;
     let collectionContainsItem = Array.isArray(collection) && collection.indexOf(item) !== -1;
 
@@ -60,8 +57,8 @@ function remove<T extends object>(collection: OneOrMany<T>, item: T, message: st
   }
 
   if (Array.isArray(collection) && collection.length > 1) {
-    let index = collection!.indexOf(item);
-    collection!.splice(index, 1);
+    let index = collection.indexOf(item);
+    collection.splice(index, 1);
     return collection;
   } else {
     return null;
@@ -80,18 +77,18 @@ function getDestroyableMeta<T extends Destroyable>(destroyable: T): DestroyableM
       state: DestroyingState.Live,
     };
 
-    if (DEBUG) {
+    if (import.meta.env.DEV) {
       meta.source = destroyable as object;
     }
 
     DESTROYABLE_META.set(destroyable, meta);
   }
 
-  return (meta as unknown) as DestroyableMeta<T>;
+  return meta as unknown as DestroyableMeta<T>;
 }
 
 export function associateDestroyableChild<T extends Destroyable>(parent: Destroyable, child: T): T {
-  if (DEBUG && isDestroying(parent)) {
+  if (import.meta.env.DEV && isDestroying(parent)) {
     throw new Error(
       'Attempted to associate a destroyable child with an object that is already destroying or destroyed'
     );
@@ -111,7 +108,7 @@ export function registerDestructor<T extends Destroyable>(
   destructor: Destructor<T>,
   eager = false
 ): Destructor<T> {
-  if (DEBUG && isDestroying(destroyable)) {
+  if (import.meta.env.DEV && isDestroying(destroyable)) {
     throw new Error(
       'Attempted to register a destructor with an object that is already destroying or destroyed'
     );
@@ -132,7 +129,7 @@ export function unregisterDestructor<T extends Destroyable>(
   destructor: Destructor<T>,
   eager = false
 ): void {
-  if (DEBUG && isDestroying(destroyable)) {
+  if (import.meta.env.DEV && isDestroying(destroyable)) {
     throw new Error(
       'Attempted to unregister a destructor with an object that is already destroying or destroyed'
     );
@@ -146,7 +143,8 @@ export function unregisterDestructor<T extends Destroyable>(
   meta[destructorsKey] = remove(
     meta[destructorsKey],
     destructor,
-    DEBUG && 'attempted to remove a destructor that was not registered with the destroyable'
+    import.meta.env.DEV &&
+      'attempted to remove a destructor that was not registered with the destroyable'
   );
 }
 
@@ -179,7 +177,7 @@ function removeChildFromParent(child: Destroyable, parent: Destroyable) {
     parentMeta.children = remove(
       parentMeta.children,
       child,
-      DEBUG &&
+      import.meta.env.DEV &&
         "attempted to remove child from parent, but the parent's children did not contain the child. This is likely a bug with destructors."
     );
   }
@@ -214,7 +212,7 @@ export function isDestroyed(destroyable: Destroyable) {
 export let enableDestroyableTracking: undefined | (() => void);
 export let assertDestroyablesDestroyed: undefined | (() => void);
 
-if (DEBUG) {
+if (import.meta.env.DEV) {
   let isTesting = false;
 
   enableDestroyableTracking = () => {

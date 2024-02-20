@@ -1,16 +1,13 @@
-/* eslint-disable qunit/no-global-module-test */
 /* eslint-disable qunit/no-test-expect-argument */
 
-import {
+import type { BuilderStatement } from '@glimmer/compiler';
+import type {
   SerializedTemplate,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
-import { assign, strip } from '@glimmer/util';
-
 import {
   Builder,
-  BuilderStatement,
   buildStatements,
   c,
   NEWLINE,
@@ -19,12 +16,13 @@ import {
   s,
   unicode,
   WireFormatDebugger,
-} from '..';
+} from '@glimmer/compiler';
+import { assign, strip } from '@glimmer/util';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 
 function compile(content: string): SerializedTemplate {
-  let parsed = (JSON.parse(precompile(content, {})) as unknown) as SerializedTemplateWithLazyBlock;
+  let parsed = JSON.parse(precompile(content, {})) as unknown as SerializedTemplateWithLazyBlock;
   let block = JSON.parse(parsed.block);
 
   return assign({}, parsed, { block });
@@ -57,13 +55,13 @@ const Concat = Builder.Concat;
 
 QUnit.test(
   '@arguments are on regular non-component/regular HTML nodes throws syntax error',
-  function (assert) {
+  (assert) => {
     const template = strip`
     <a @onClick={{action "hi"}}>Link</a>
   `;
     assert.throws(
       () => compile(template),
-      /@onClick is not a valid attribute name. @arguments are only allowed on components, but the tag for this element \(`a`\) is a regular, non-component HTML element/
+      /@onClick is not a valid attribute name. @arguments are only allowed on components, but the tag for this element \(`a`\) is a regular, non-component HTML element/u
     );
   }
 );

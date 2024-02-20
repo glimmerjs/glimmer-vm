@@ -1,22 +1,18 @@
-import { Option } from '@glimmer/interfaces';
-import { assert, assign, expect } from '@glimmer/util';
+import type { Nullable } from '@glimmer/interfaces';
+import { asPresentArray, assert, assign, expect, getLast, unwrap } from '@glimmer/util';
 import {
   EntityParser,
   EventedTokenizer,
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
 
-import { SourcePosition } from './source/location';
-import { Source } from './source/source';
-import { SourceOffset, SourceSpan } from './source/span';
-import * as ASTv1 from './v1/api';
-import * as HBS from './v1/handlebars-ast';
+import type * as src from './source/api';
+import type * as ASTv1 from './v1/api';
+import type * as HBS from './v1/handlebars-ast';
 
-export type ParserNodeBuilder<N extends { loc: SourceSpan }> = Omit<N, 'loc'> & {
-  loc: SourceOffset;
+export type ParserNodeBuilder<N extends { loc: src.SourceSpan }> = Omit<N, 'loc'> & {
+  loc: src.SourceOffset;
 };
-
-export type Element = ASTv1.Template | ASTv1.Block | ASTv1.ElementNode;
 
 export interface Tag<T extends 'StartTag' | 'EndTag'> {
   readonly type: T;
@@ -25,7 +21,7 @@ export interface Tag<T extends 'StartTag' | 'EndTag'> {
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];
   selfClosing: boolean;
-  readonly loc: SourceSpan;
+  readonly loc: src.SourceSpan;
 }
 
 export interface Attribute {
@@ -34,16 +30,16 @@ export interface Attribute {
   parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[];
   isQuoted: boolean;
   isDynamic: boolean;
-  start: SourceOffset;
-  valueSpan: SourceSpan;
+  start: src.SourceOffset;
+  valueSpan: src.SourceSpan;
 }
 
 export abstract class Parser {
-  protected elementStack: Element[] = [];
+  protected elementStack: ASTv1.ParentNode[] = [];
   private lines: string[];
-  readonly source: Source;
-  public currentAttribute: Option<Attribute> = null;
-  public currentNode: Option<
+  readonly source: src.Source;
+  public currentAttribute: Nullable<Attribute> = null;
+  public currentNode: Nullable<
     Readonly<
       | ParserNodeBuilder<ASTv1.CommentStatement>
       | ASTv1.TextNode
@@ -54,28 +50,28 @@ export abstract class Parser {
   public tokenizer: EventedTokenizer;
 
   constructor(
-    source: Source,
+    source: src.Source,
     entityParser = new EntityParser(namedCharRefs),
     mode: 'precompile' | 'codemod' = 'precompile'
   ) {
     this.source = source;
-    this.lines = source.source.split(/(?:\r\n?|\n)/g);
+    this.lines = source.source.split(/\r\n?|\n/u);
     this.tokenizer = new EventedTokenizer(this, entityParser, mode);
   }
 
-  offset(): SourceOffset {
+  offset(): src.SourceOffset {
     let { line, column } = this.tokenizer;
     return this.source.offsetFor(line, column);
   }
 
-  pos({ line, column }: SourcePosition): SourceOffset {
+  pos({ line, column }: src.SourcePosition): src.SourceOffset {
     return this.source.offsetFor(line, column);
   }
 
-  finish<T extends { loc: SourceSpan }>(node: ParserNodeBuilder<T>): T {
-    return (assign({}, node, {
+  finish<T extends { loc: src.SourceSpan }>(node: ParserNodeBuilder<T>): T {
+    return assign({}, node, {
       loc: node.loc.until(this.offset()),
-    } as const) as unknown) as T;
+    } as const) as unknown as T;
 
     // node.loc = node.loc.withEnd(end);
   }
@@ -163,8 +159,8 @@ export abstract class Parser {
     return (this[node.type as T] as (node: HBS.Node<T>) => HBS.Output<T>)(node);
   }
 
-  currentElement(): Element {
-    return this.elementStack[this.elementStack.length - 1];
+  currentElement(): ASTv1.ParentNode {
+    return getLast(asPresentArray(this.elementStack));
   }
 
   sourceForNode(node: HBS.Node, endNode?: { loc: HBS.SourceLocation }): string {
@@ -172,7 +168,7 @@ export abstract class Parser {
     let currentLine = firstLine - 1;
     let firstColumn = node.loc.start.column;
     let string = [];
-    let line;
+    let line: string;
 
     let lastLine: number;
     let lastColumn: number;
@@ -187,7 +183,7 @@ export abstract class Parser {
 
     while (currentLine < lastLine) {
       currentLine++;
-      line = this.lines[currentLine];
+      line = unwrap(this.lines[currentLine]);
 
       if (currentLine === firstLine) {
         if (firstLine === lastLine) {

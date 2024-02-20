@@ -49,31 +49,33 @@
  * the `RuntimeResolver` to do dynamic resolution when necessary.
  */
 
-import { Option } from './core';
-import { ProgramSymbolTable } from './tier1/symbol-table';
-import { ComponentDefinitionState, ComponentInstanceState } from './components';
-import { CompilableProgram, Template, HandleResult } from './template';
-import { CompileTimeCompilationContext } from './program';
-import { Owner, ModifierDefinitionState, HelperDefinitionState } from './runtime';
-import { InternalComponentCapability, InternalComponentManager } from './managers';
+import type {
+  CapabilityMask,
+  ComponentDefinitionState,
+  ComponentInstanceState,
+} from './components.js';
+import type { Nullable } from './core.js';
+import type { InternalComponentManager } from './managers.js';
+import type { HelperDefinitionState, ModifierDefinitionState, Owner } from './runtime.js';
+import type { CompilableProgram, Template } from './template.js';
 
 export interface CompileTimeComponent {
   handle: number;
-  capabilities: InternalComponentCapability;
-  compilable: Option<CompilableProgram>;
+  capabilities: CapabilityMask;
+  compilable: Nullable<CompilableProgram>;
 }
 
 export interface ResolvedComponentDefinition<
   D = ComponentDefinitionState,
   I = ComponentInstanceState,
-  M extends InternalComponentManager<I, D> = InternalComponentManager<I, D>
+  M extends InternalComponentManager<I, D> = InternalComponentManager<I, D>,
 > {
   state: D;
   manager: M;
   template: Template | null;
 }
 
-export const enum ResolverContext {
+export enum ResolverContext {
   Component,
   Modifier,
   Helper,
@@ -81,16 +83,16 @@ export const enum ResolverContext {
 }
 
 export interface CompileTimeResolver<O extends Owner = Owner> {
-  lookupHelper(name: string, owner: O): Option<HelperDefinitionState>;
-  lookupModifier(name: string, owner: O): Option<ModifierDefinitionState>;
-  lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
+  lookupHelper(name: string, owner: O): Nullable<HelperDefinitionState>;
+  lookupModifier(name: string, owner: O): Nullable<ModifierDefinitionState>;
+  lookupComponent(name: string, owner: O): Nullable<ResolvedComponentDefinition>;
 
   // TODO: These are used to lookup keywords that are implemented as helpers/modifiers.
   // We should try to figure out a cleaner way to do this.
-  lookupBuiltInHelper(name: string): Option<HelperDefinitionState>;
-  lookupBuiltInModifier(name: string): Option<ModifierDefinitionState>;
+  lookupBuiltInHelper(name: string): Nullable<HelperDefinitionState>;
+  lookupBuiltInModifier(name: string): Nullable<ModifierDefinitionState>;
 }
 
 export interface RuntimeResolver<O extends Owner = Owner> {
-  lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
+  lookupComponent(name: string, owner: O): Nullable<ResolvedComponentDefinition>;
 }

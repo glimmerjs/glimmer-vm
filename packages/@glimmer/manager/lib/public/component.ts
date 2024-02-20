@@ -1,5 +1,4 @@
-import { DEBUG } from '@glimmer/env';
-import {
+import type {
   Arguments,
   ComponentCapabilities,
   ComponentCapabilitiesVersions,
@@ -12,15 +11,18 @@ import {
   Destroyable,
   InternalComponentCapabilities,
   InternalComponentManager,
-  Option,
+  Nullable,
   Owner,
   VMArguments,
 } from '@glimmer/interfaces';
-import { createConstRef, Reference } from '@glimmer/reference';
+import type { Reference } from '@glimmer/reference';
 import { registerDestructor } from '@glimmer/destroyable';
-import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
+import { createConstRef } from '@glimmer/reference';
+
+import type { ManagerFactory } from './api';
+
 import { argsProxyFor } from '../util/args-proxy';
-import { ManagerFactory } from './index';
+import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
 
 const CAPABILITIES = {
   dynamicLayout: false,
@@ -42,7 +44,7 @@ export function componentCapabilities<Version extends keyof ComponentCapabilitie
   managerAPI: Version,
   options: ComponentCapabilitiesVersions[Version] = {}
 ): ComponentCapabilities {
-  if (DEBUG && managerAPI !== '3.13') {
+  if (import.meta.env.DEV && managerAPI !== '3.13') {
     throw new Error('Invalid component manager compatibility specified');
   }
 
@@ -105,7 +107,8 @@ export function hasDestructors<ComponentInstance>(
   * `getContext()` - returns the object that should be
 */
 export class CustomComponentManager<O extends Owner, ComponentInstance>
-  implements InternalComponentManager<CustomComponentState<ComponentInstance>> {
+  implements InternalComponentManager<CustomComponentState<ComponentInstance>>
+{
   private componentManagerDelegates = new WeakMap<O, ComponentManager<ComponentInstance>>();
 
   constructor(private factory: ManagerFactory<O, ComponentManager<ComponentInstance>>) {}
@@ -118,7 +121,7 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
       let { factory } = this;
       delegate = factory(owner);
 
-      if (DEBUG && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
+      if (import.meta.env.DEV && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
         // TODO: This error message should make sense in both Ember and Glimmer https://github.com/glimmerjs/glimmer-vm/issues/1200
         throw new Error(
           `Custom component managers must have a \`capabilities\` property that is the result of calling the \`capabilities('3.13')\` (imported via \`import { capabilities } from '@ember/component';\`). Received: \`${JSON.stringify(
@@ -143,7 +146,7 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
 
     let component: ComponentInstance = delegate.createComponent(definition, args);
 
-    return new CustomComponentState(component!, delegate, args);
+    return new CustomComponentState(component, delegate, args);
   }
 
   getDebugName(definition: ComponentDefinitionState): string {
@@ -179,7 +182,7 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
     return createConstRef(delegate.getContext(component), 'this');
   }
 
-  getDestroyable(bucket: CustomComponentState<ComponentInstance>): Option<Destroyable> {
+  getDestroyable(bucket: CustomComponentState<ComponentInstance>): Nullable<Destroyable> {
     const { delegate } = bucket;
 
     if (hasDestructors(delegate)) {

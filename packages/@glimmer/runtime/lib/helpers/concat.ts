@@ -1,6 +1,7 @@
-import { CapturedArguments } from '@glimmer/interfaces';
+import type { CapturedArguments } from '@glimmer/interfaces';
 import { createComputeRef } from '@glimmer/reference';
-import { reifyPositional } from '@glimmer/runtime';
+
+import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
 
 const isEmpty = (value: unknown): boolean => {
@@ -34,7 +35,7 @@ const normalizeTextValue = (value: unknown): string => {
   @public
   @method concat
 */
-export default internalHelper(({ positional }: CapturedArguments) => {
+export const concat = internalHelper(({ positional }: CapturedArguments) => {
   return createComputeRef(
     () => reifyPositional(positional).map(normalizeTextValue).join(''),
     null,

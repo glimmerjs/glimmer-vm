@@ -1,41 +1,42 @@
-import { Tag } from './validators';
-import { DEBUG } from '@glimmer/env';
+import type { Tag } from '@glimmer/interfaces';
 import { assert } from '@glimmer/global-context';
+import { asPresentArray, getLast } from '@glimmer/util';
 
-export let beginTrackingTransaction:
-  | undefined
-  | ((debuggingContext?: string | false, deprecate?: boolean) => void);
-export let endTrackingTransaction: undefined | (() => void);
-export let runInTrackingTransaction:
-  | undefined
-  | (<T>(fn: () => T, debuggingContext?: string | false) => T);
+interface DebugTransaction {
+  beginTrackingTransaction?:
+    | undefined
+    | ((debuggingContext?: string | false, deprecate?: boolean) => void);
+  endTrackingTransaction?: undefined | (() => void);
+  runInTrackingTransaction?: undefined | (<T>(fn: () => T, debuggingContext?: string | false) => T);
 
-export let resetTrackingTransaction: undefined | (() => string);
-export let setTrackingTransactionEnv:
-  | undefined
-  | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
+  resetTrackingTransaction?: undefined | (() => string);
+  setTrackingTransactionEnv?:
+    | undefined
+    | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
+  assertTagNotConsumed?:
+    | undefined
+    | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
 
-export let assertTagNotConsumed:
-  | undefined
-  | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
+  markTagAsConsumed?: undefined | ((_tag: Tag) => void);
 
-export let markTagAsConsumed: undefined | ((_tag: Tag) => void);
+  logTrackingStack?: undefined | ((transaction?: Transaction) => string);
+}
 
-export let logTrackingStack: undefined | ((transaction?: Transaction) => string);
+export const debug: DebugTransaction = {};
 
 interface Transaction {
   parent: Transaction | null;
-  debugLabel?: string;
+  debugLabel?: string | undefined;
 }
 
-if (DEBUG) {
+if (import.meta.env.DEV) {
   let CONSUMED_TAGS: WeakMap<Tag, Transaction> | null = null;
 
-  let TRANSACTION_STACK: Transaction[] = [];
+  const TRANSACTION_STACK: Transaction[] = [];
 
   /////////
 
-  let TRANSACTION_ENV = {
+  const TRANSACTION_ENV = {
     debugMessage(obj?: unknown, keyName?: string) {
       let objName;
 
@@ -57,14 +58,14 @@ if (DEBUG) {
     },
   };
 
-  setTrackingTransactionEnv = (env) => Object.assign(TRANSACTION_ENV, env);
+  debug.setTrackingTransactionEnv = (env) => Object.assign(TRANSACTION_ENV, env);
 
-  beginTrackingTransaction = (_debugLabel?: string | false) => {
+  debug.beginTrackingTransaction = (_debugLabel?: string | false) => {
     CONSUMED_TAGS = CONSUMED_TAGS || new WeakMap();
 
     let debugLabel = _debugLabel || undefined;
 
-    let parent = TRANSACTION_STACK[TRANSACTION_STACK.length - 1] || null;
+    let parent = TRANSACTION_STACK[TRANSACTION_STACK.length - 1] ?? null;
 
     TRANSACTION_STACK.push({
       parent,
@@ -72,7 +73,7 @@ if (DEBUG) {
     });
   };
 
-  endTrackingTransaction = () => {
+  debug.endTrackingTransaction = () => {
     if (TRANSACTION_STACK.length === 0) {
       throw new Error('attempted to close a tracking transaction, but one was not open');
     }
@@ -84,14 +85,14 @@ if (DEBUG) {
     }
   };
 
-  resetTrackingTransaction = () => {
+  debug.resetTrackingTransaction = () => {
     let stack = '';
 
     if (TRANSACTION_STACK.length > 0) {
-      stack = logTrackingStack!(TRANSACTION_STACK[TRANSACTION_STACK.length - 1]);
+      stack = debug.logTrackingStack!(TRANSACTION_STACK[TRANSACTION_STACK.length - 1]);
     }
 
-    TRANSACTION_STACK = [];
+    TRANSACTION_STACK.splice(0, TRANSACTION_STACK.length);
     CONSUMED_TAGS = null;
 
     return stack;
@@ -107,8 +108,8 @@ if (DEBUG) {
    *
    * TODO: Only throw an error if the `track` is consumed.
    */
-  runInTrackingTransaction = <T>(fn: () => T, debugLabel?: string | false) => {
-    beginTrackingTransaction!(debugLabel);
+  debug.runInTrackingTransaction = <T>(fn: () => T, debugLabel?: string | false) => {
+    debug.beginTrackingTransaction!(debugLabel);
     let didError = true;
 
     try {
@@ -117,8 +118,14 @@ if (DEBUG) {
       return value;
     } finally {
       if (didError !== true) {
-        endTrackingTransaction!();
+        debug.endTrackingTransaction!();
       }
+
+      // if (id !== TRANSACTION_STACK.length) {
+      //   throw new Error(
+      //     `attempted to close a tracking transaction (${id}), but it was not the last transaction (${TRANSACTION_STACK.length})`
+      //   );
+      // }
     }
   };
 
@@ -142,14 +149,14 @@ if (DEBUG) {
 
     message.push(`\`${String(keyName)}\` was first used:`);
 
-    message.push(logTrackingStack!(transaction));
+    message.push(debug.logTrackingStack!(transaction));
 
     message.push(`Stack trace for the update:`);
 
     return message.join('\n\n');
   };
 
-  logTrackingStack = (transaction?: Transaction) => {
+  debug.logTrackingStack = (transaction?: Transaction) => {
     let trackingStack = [];
     let current: Transaction | null | undefined =
       transaction || TRANSACTION_STACK[TRANSACTION_STACK.length - 1];
@@ -164,30 +171,29 @@ if (DEBUG) {
       current = current.parent;
     }
 
-    // TODO: Use String.prototype.repeat here once we can drop support for IE11
-    return trackingStack.map((label, index) => Array(2 * index + 1).join(' ') + label).join('\n');
+    return trackingStack.map((label, index) => ' '.repeat(2 * index) + label).join('\n');
   };
 
-  markTagAsConsumed = (_tag: Tag) => {
+  debug.markTagAsConsumed = (_tag: Tag) => {
     if (!CONSUMED_TAGS || CONSUMED_TAGS.has(_tag)) return;
 
-    CONSUMED_TAGS.set(_tag, TRANSACTION_STACK[TRANSACTION_STACK.length - 1]);
+    CONSUMED_TAGS.set(_tag, getLast(asPresentArray(TRANSACTION_STACK)));
 
     // We need to mark the tag and all of its subtags as consumed, so we need to
     // cast it and access its internals. In the future this shouldn't be necessary,
     // this is only for computed properties.
-    let tag = _tag as any;
+    let subtag = (_tag as unknown as { subtag: Tag | Tag[] | null }).subtag;
 
-    if (tag.subtag) {
-      markTagAsConsumed!(tag.subtag);
-    }
+    if (!subtag || !debug.markTagAsConsumed) return;
 
-    if (tag.subtags) {
-      tag.subtags.forEach((tag: Tag) => markTagAsConsumed!(tag));
+    if (Array.isArray(subtag)) {
+      subtag.forEach(debug.markTagAsConsumed);
+    } else {
+      debug.markTagAsConsumed(subtag);
     }
   };
 
-  assertTagNotConsumed = <T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => {
+  debug.assertTagNotConsumed = <T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => {
     if (CONSUMED_TAGS === null) return;
 
     let transaction = CONSUMED_TAGS.get(tag);
@@ -200,7 +206,7 @@ if (DEBUG) {
     try {
       assert(false, makeTrackingErrorMessage(transaction, obj, keyName));
     } catch (e) {
-      if (e.stack) {
+      if (hasStack(e)) {
         let updateStackBegin = e.stack.indexOf('Stack trace for the update:');
 
         if (updateStackBegin !== -1) {
@@ -213,4 +219,13 @@ if (DEBUG) {
       throw e;
     }
   };
+}
+
+function hasStack(error: unknown): error is { stack: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'stack' in error &&
+    typeof error.stack === 'string'
+  );
 }

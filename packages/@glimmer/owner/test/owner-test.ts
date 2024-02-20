@@ -1,4 +1,4 @@
-import { getOwner, setOwner } from '..';
+import { getOwner, setOwner } from '@glimmer/owner';
 
 const { module, test } = QUnit;
 
@@ -21,7 +21,7 @@ module('Owner', () => {
 
       setOwner(obj, owner);
 
-      assert.equal(Object.keys(obj).length, 0, 'no enumerable props were added');
+      assert.strictEqual(Object.keys(obj).length, 0, 'no enumerable props were added');
     });
   }
 });

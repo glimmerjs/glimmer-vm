@@ -1,7 +1,11 @@
+import type { MachineRegister } from '@glimmer/vm';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { $fp, $sp, MachineRegister } from '@glimmer/vm';
+import { $fp, $sp } from '@glimmer/vm';
+
+import type { LowLevelRegisters } from './low-level';
+
 import { REGISTERS } from '../symbols';
-import { initializeRegistersWithSP, LowLevelRegisters } from './low-level';
+import { initializeRegistersWithSP } from './low-level';
 
 export interface EvaluationStack {
   [REGISTERS]: LowLevelRegisters;
@@ -27,7 +31,10 @@ export default class EvaluationStackImpl implements EvaluationStack {
   readonly [REGISTERS]: LowLevelRegisters;
 
   // fp -> sp
-  constructor(private stack: unknown[] = [], registers: LowLevelRegisters) {
+  constructor(
+    private stack: unknown[] = [],
+    registers: LowLevelRegisters
+  ) {
     this[REGISTERS] = registers;
 
     if (LOCAL_DEBUG) {

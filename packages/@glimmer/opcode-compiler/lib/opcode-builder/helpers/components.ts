@@ -1,21 +1,22 @@
-import {
+import type {
+  CapabilityMask,
   CompilableProgram,
   CompileTimeComponent,
-  HighLevelBuilderOpcode,
   LayoutWithContext,
-  MachineOp,
   NamedBlocks,
+  Nullable,
   WireFormat,
-  Option,
-  Op,
-  InternalComponentCapability,
 } from '@glimmer/interfaces';
+import type { SavedRegister } from '@glimmer/vm';
 import { hasCapability } from '@glimmer/manager';
-import { $s0, $s1, $sp, SavedRegister } from '@glimmer/vm';
-import { EMPTY_STRING_ARRAY } from '@glimmer/util';
-import { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
+import { $s0, $s1, $sp, InternalComponentCapabilities, MachineOp, Op } from '@glimmer/vm';
+
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+
 import { namedBlocks } from '../../utils';
-import { labelOperand, layoutOperand, symbolTableOperand, isStrictMode } from '../operands';
+import { HighLevelBuilderOpcodes } from '../opcodes';
+import { isStrictMode, labelOperand, layoutOperand, symbolTableOperand } from '../operands';
 import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
@@ -24,7 +25,7 @@ import { CompileArgs, CompilePositional } from './shared';
 export const ATTRS_BLOCK = '&attrs';
 
 interface AnyComponent {
-  elementBlock: Option<WireFormat.SerializedInlineBlock>;
+  elementBlock: Nullable<WireFormat.SerializedInlineBlock>;
   positional: WireFormat.Core.Params;
   named: WireFormat.Core.Hash;
   blocks: NamedBlocks;
@@ -39,7 +40,7 @@ export interface DynamicComponent extends AnyComponent {
 
 // <Component>
 export interface StaticComponent extends AnyComponent {
-  capabilities: InternalComponentCapability;
+  capabilities: CapabilityMask;
   layout: CompilableProgram;
 }
 
@@ -47,7 +48,7 @@ export interface StaticComponent extends AnyComponent {
 export interface Component extends AnyComponent {
   // either we know the capabilities statically or we need to be conservative and assume
   // that the component requires all capabilities
-  capabilities: InternalComponentCapability | true;
+  capabilities: CapabilityMask | true;
 
   // are the arguments supplied as atNames?
   atNames: boolean;
@@ -136,7 +137,7 @@ export function InvokeDynamicComponent(
         atNames,
         blocks,
       });
-      op(HighLevelBuilderOpcode.Label, 'ELSE');
+      op(HighLevelBuilderOpcodes.Label, 'ELSE');
     }
   );
 }
@@ -148,7 +149,7 @@ function InvokeStaticComponent(
   let { symbolTable } = layout;
 
   let bailOut =
-    symbolTable.hasEval || hasCapability(capabilities, InternalComponentCapability.PrepareArgs);
+    symbolTable.hasEval || hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
 
   if (bailOut) {
     InvokeNonStaticComponent(op, {
@@ -193,8 +194,7 @@ function InvokeStaticComponent(
 
   // Followed by the other blocks, if they exist and are referenced in the component.
   // Also store the index of the associated symbol.
-  for (let i = 0; i < blockNames.length; i++) {
-    let name = blockNames[i];
+  for (const name of blockNames) {
     let symbol = symbols.indexOf(`&${name}`);
 
     if (symbol !== -1) {
@@ -206,7 +206,7 @@ function InvokeStaticComponent(
   // Next up we have arguments. If the component has the `createArgs` capability,
   // then it wants access to the arguments in JavaScript. We can't know whether
   // or not an argument is used, so we have to give access to all of them.
-  if (hasCapability(capabilities, InternalComponentCapability.CreateArgs)) {
+  if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
     // First we push positional arguments
     let count = CompilePositional(op, positional);
 
@@ -215,7 +215,7 @@ function InvokeStaticComponent(
     let flags = count << 4;
     flags |= 0b1000;
 
-    let names: string[] = EMPTY_STRING_ARRAY as string[];
+    let names: string[] = EMPTY_STRING_ARRAY;
 
     // Next, if named args exist, push them all. If they have an associated symbol
     // in the invoked component (e.g. they are used within its template), we push
@@ -226,7 +226,7 @@ function InvokeStaticComponent(
       let val = named[1];
 
       for (let i = 0; i < val.length; i++) {
-        let symbol = symbols.indexOf(names[i]);
+        let symbol = symbols.indexOf(unwrap(names[i]));
 
         expr(op, val[i]);
         argSymbols.push(symbol);
@@ -249,7 +249,7 @@ function InvokeStaticComponent(
     let val = named[1];
 
     for (let i = 0; i < val.length; i++) {
-      let name = names[i];
+      let name = unwrap(names[i]);
       let symbol = symbols.indexOf(name);
 
       if (symbol !== -1) {
@@ -262,17 +262,17 @@ function InvokeStaticComponent(
 
   op(Op.BeginComponentTransaction, $s0);
 
-  if (hasCapability(capabilities, InternalComponentCapability.DynamicScope)) {
+  if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
     op(Op.PushDynamicScope);
   }
 
-  if (hasCapability(capabilities, InternalComponentCapability.CreateInstance)) {
+  if (hasCapability(capabilities, InternalComponentCapabilities.createInstance)) {
     op(Op.CreateComponent, (blocks.has('default') as any) | 0, $s0);
   }
 
   op(Op.RegisterComponentDestructor, $s0);
 
-  if (hasCapability(capabilities, InternalComponentCapability.CreateArgs)) {
+  if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
     op(Op.GetComponentSelf, $s0);
   } else {
     op(Op.GetComponentSelf, $s0, argNames);
@@ -287,8 +287,9 @@ function InvokeStaticComponent(
 
   // Going in reverse, now we pop the args/blocks off the stack, starting with
   // arguments, and assign them to their symbols in the new scope.
-  for (let i = argSymbols.length - 1; i >= 0; i--) {
-    let symbol = argSymbols[i];
+  for (const symbol of reverse(argSymbols)) {
+    // for (let i = argSymbols.length - 1; i >= 0; i--) {
+    //   let symbol = argSymbols[i];
 
     if (symbol === -1) {
       // The expression was not bound to a local symbol, it was only pushed to be
@@ -305,9 +306,7 @@ function InvokeStaticComponent(
   }
 
   // Finish up by popping off and assigning blocks
-  for (let i = blockSymbols.length - 1; i >= 0; i--) {
-    let symbol = blockSymbols[i];
-
+  for (const symbol of reverse(blockSymbols)) {
     op(Op.SetBlock, symbol + 1);
   }
 
@@ -319,7 +318,7 @@ function InvokeStaticComponent(
   op(MachineOp.PopFrame);
   op(Op.PopScope);
 
-  if (hasCapability(capabilities, InternalComponentCapability.DynamicScope)) {
+  if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
     op(Op.PopDynamicScope);
   }
 
@@ -334,7 +333,7 @@ export function InvokeNonStaticComponent(
   let bindableBlocks = !!namedBlocks;
   let bindableAtNames =
     capabilities === true ||
-    hasCapability(capabilities, InternalComponentCapability.PrepareArgs) ||
+    hasCapability(capabilities, InternalComponentCapabilities.prepareArgs) ||
     !!(named && named[0].length !== 0);
 
   let blocks = namedBlocks.with('attrs', elementBlock);
@@ -367,7 +366,7 @@ export function WrappedComponent(
   layout: LayoutWithContext,
   attrsBlockNumber: number
 ): void {
-  op(HighLevelBuilderOpcode.StartLabels);
+  op(HighLevelBuilderOpcodes.StartLabels);
   WithSavedRegister(op, $s1, () => {
     op(Op.GetComponentTagName, $s0);
     op(Op.PrimitiveReference);
@@ -380,14 +379,14 @@ export function WrappedComponent(
   op(Op.DidCreateElement, $s0);
   YieldBlock(op, attrsBlockNumber, null);
   op(Op.FlushElement);
-  op(HighLevelBuilderOpcode.Label, 'BODY');
+  op(HighLevelBuilderOpcodes.Label, 'BODY');
   InvokeStaticBlock(op, [layout.block[0], []]);
   op(Op.Fetch, $s1);
   op(Op.JumpUnless, labelOperand('END'));
   op(Op.CloseElement);
-  op(HighLevelBuilderOpcode.Label, 'END');
+  op(HighLevelBuilderOpcodes.Label, 'END');
   op(Op.Load, $s1);
-  op(HighLevelBuilderOpcode.StopLabels);
+  op(HighLevelBuilderOpcodes.StopLabels);
 }
 
 export function invokePreparedComponent(
@@ -395,7 +394,7 @@ export function invokePreparedComponent(
   hasBlock: boolean,
   bindableBlocks: boolean,
   bindableAtNames: boolean,
-  populateLayout: Option<() => void> = null
+  populateLayout: Nullable<() => void> = null
 ): void {
   op(Op.BeginComponentTransaction, $s0);
   op(Op.PushDynamicScope);

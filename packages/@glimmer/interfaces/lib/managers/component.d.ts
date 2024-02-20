@@ -1,5 +1,5 @@
-import { Capabilities } from './capabilities';
-import { Arguments } from '../runtime';
+import type { Arguments } from '../runtime.js';
+import type { Capabilities } from './capabilities.js';
 
 export interface ComponentCapabilitiesVersions {
   '3.4': {

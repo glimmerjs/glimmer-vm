@@ -1,17 +1,16 @@
-import {
-  ExpressionSexpOpcode,
-  HighLevelResolutionOpcode,
-  MachineOp,
-  Op,
-  SexpOpcodes,
-} from '@glimmer/interfaces';
-import { $v0 } from '@glimmer/vm';
+import type { ExpressionSexpOpcode } from '@glimmer/interfaces';
 import { assert, deprecate } from '@glimmer/global-context';
+import { $v0, MachineOp, Op } from '@glimmer/vm';
+import { SexpOpcodes } from '@glimmer/wire-format';
+
+import type { PushExpressionOp } from './compilers';
+
 import { expr } from '../opcode-builder/helpers/expr';
 import { isGetFreeHelper } from '../opcode-builder/helpers/resolution';
 import { SimpleArgs } from '../opcode-builder/helpers/shared';
 import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
-import { Compilers, PushExpressionOp } from './compilers';
+import { HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
+import { Compilers } from './compilers';
 
 export const EXPRESSIONS = new Compilers<PushExpressionOp, ExpressionSexpOpcode>();
 
@@ -25,7 +24,7 @@ EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
 
 EXPRESSIONS.add(SexpOpcodes.Call, (op, [, expression, positional, named]) => {
   if (isGetFreeHelper(expression)) {
-    op(HighLevelResolutionOpcode.ResolveHelper, expression, (handle: number) => {
+    op(HighLevelResolutionOpcodes.Helper, expression, (handle: number) => {
       Call(op, handle, positional, named);
     });
   } else {
@@ -43,15 +42,15 @@ EXPRESSIONS.add(SexpOpcodes.GetSymbol, (op, [, sym, path]) => {
   withPath(op, path);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetTemplateSymbol, (op, [, sym, path]) => {
-  op(HighLevelResolutionOpcode.ResolveTemplateLocal, sym, (handle: number) => {
+EXPRESSIONS.add(SexpOpcodes.GetLexicalSymbol, (op, [, sym, path]) => {
+  op(HighLevelResolutionOpcodes.TemplateLocal, sym, (handle: number) => {
     op(Op.ConstantReference, handle);
     withPath(op, path);
   });
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetStrictFree, (op, [, sym, _path]) => {
-  op(HighLevelResolutionOpcode.ResolveFree, sym, (_handle: unknown) => {
+EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (op, [, sym, _path]) => {
+  op(HighLevelResolutionOpcodes.Free, sym, (_handle: unknown) => {
     // TODO: Implement in strict mode
   });
 });
@@ -67,8 +66,8 @@ EXPRESSIONS.add(SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback, () => 
 EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHeadOrThisFallback, (op, expr) => {
   // <div id={{baz}}>
 
-  op(HighLevelResolutionOpcode.ResolveLocal, expr[1], (_name: string) => {
-    op(HighLevelResolutionOpcode.ResolveOptionalHelper, expr, {
+  op(HighLevelResolutionOpcodes.Local, expr[1], (_name: string) => {
+    op(HighLevelResolutionOpcodes.OptionalHelper, expr, {
       ifHelper: (handle: number) => {
         Call(op, handle, null, null);
       },
@@ -79,8 +78,8 @@ EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHeadOrThisFallback, (op, expr) => {
 EXPRESSIONS.add(SexpOpcodes.GetFreeAsDeprecatedHelperHeadOrThisFallback, (op, expr) => {
   // <Foo @bar={{baz}}>
 
-  op(HighLevelResolutionOpcode.ResolveLocal, expr[1], (_name: string) => {
-    op(HighLevelResolutionOpcode.ResolveOptionalHelper, expr, {
+  op(HighLevelResolutionOpcodes.Local, expr[1], (_name: string) => {
+    op(HighLevelResolutionOpcodes.OptionalHelper, expr, {
       ifHelper: (handle: number, name: string, moduleName: string) => {
         assert(expr[2] && expr[2].length === 1, '[BUG] Missing argument name');
 

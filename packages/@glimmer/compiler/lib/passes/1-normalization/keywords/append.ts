@@ -1,9 +1,10 @@
-import { CurriedType } from '@glimmer/interfaces';
-import { ASTv2, generateSyntaxError, SourceSlice, SourceSpan } from '@glimmer/syntax';
+import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
+import { CurriedTypes } from '@glimmer/vm';
+
+import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { NormalizationState } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
 import { keywords } from './impl';
 import { toAppend } from './utils/call-to-append';
@@ -21,17 +22,15 @@ export const APPEND_KEYWORDS = keywords('Append')
   .kw('if', toAppend(ifUnlessInlineKeyword('if')))
   .kw('unless', toAppend(ifUnlessInlineKeyword('unless')))
   .kw('yield', {
-    assert(
-      node: ASTv2.AppendContent
-    ): Result<{
-      target: SourceSlice;
+    assert(node: ASTv2.AppendContent): Result<{
+      target: src.SourceSlice;
       positional: ASTv2.PositionalArguments;
     }> {
       let { args } = node;
 
       if (args.named.isEmpty()) {
         return Ok({
-          target: SourceSpan.synthetic('default').toSlice(),
+          target: src.SourceSpan.synthetic('default').toSlice(),
           positional: args.positional,
         });
       } else {
@@ -59,7 +58,7 @@ export const APPEND_KEYWORDS = keywords('Append')
         target,
         positional,
       }: {
-        target: SourceSlice;
+        target: src.SourceSlice;
         positional: ASTv2.PositionalArguments;
       }
     ): Result<mir.Statement> {
@@ -99,12 +98,12 @@ export const APPEND_KEYWORDS = keywords('Append')
       node: ASTv2.AppendContent;
       state: NormalizationState;
     }): Result<mir.Statement> {
-      scope.setHasEval();
+      scope.setHasDebugger();
       return Ok(new mir.Debugger({ loc: node.loc, scope }));
     },
   })
   .kw('component', {
-    assert: assertCurryKeyword(CurriedType.Component),
+    assert: assertCurryKeyword(CurriedTypes.Component),
 
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
@@ -125,7 +124,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
   })
   .kw('helper', {
-    assert: assertCurryKeyword(CurriedType.Helper),
+    assert: assertCurryKeyword(CurriedTypes.Helper),
 
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },

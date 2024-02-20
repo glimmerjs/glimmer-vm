@@ -1,36 +1,36 @@
-import { DEBUG } from '@glimmer/env';
-import {
+import type {
   CompileTimeConstants,
   CompileTimeResolver,
   ContainingMetadata,
   Expressions,
   Owner,
+  ResolutionTimeConstants,
   ResolveComponentOp,
   ResolveComponentOrHelperOp,
   ResolveHelperOp,
   ResolveModifierOp,
   ResolveOptionalComponentOrHelperOp,
   ResolveOptionalHelperOp,
-  SexpOpcodes,
-  ResolutionTimeConstants,
+  SexpOpcode,
 } from '@glimmer/interfaces';
-import { assert, debugToString, expect } from '@glimmer/util';
+import { assert, debugToString, expect, unwrap } from '@glimmer/util';
+import { SexpOpcodes } from '@glimmer/wire-format';
 
 function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.TupleExpression {
   return Array.isArray(opcode) && opcode.length === 2;
 }
 
-function makeResolutionTypeVerifier(typeToVerify: SexpOpcodes) {
+function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
   return (
     opcode: Expressions.Expression
-  ): opcode is Expressions.GetFree | Expressions.GetTemplateSymbol => {
+  ): opcode is Expressions.GetFree | Expressions.GetLexicalSymbol => {
     if (!isGetLikeTuple(opcode)) return false;
 
     let type = opcode[0];
 
     return (
-      type === SexpOpcodes.GetStrictFree ||
-      type === SexpOpcodes.GetTemplateSymbol ||
+      type === SexpOpcodes.GetStrictKeyword ||
+      type === SexpOpcodes.GetLexicalSymbol ||
       type === typeToVerify
     );
   };
@@ -68,7 +68,7 @@ interface ResolvedContainingMetadata extends ContainingMetadata {
 }
 
 function assertResolverInvariants(meta: ContainingMetadata): ResolvedContainingMetadata {
-  if (DEBUG) {
+  if (import.meta.env.DEV) {
     if (!meta.upvars) {
       throw new Error(
         'Attempted to resolve a component, helper, or modifier, but no free vars were found'
@@ -82,7 +82,7 @@ function assertResolverInvariants(meta: ContainingMetadata): ResolvedContainingM
     }
   }
 
-  return (meta as unknown) as ResolvedContainingMetadata;
+  return meta as unknown as ResolvedContainingMetadata;
 }
 
 /**
@@ -100,15 +100,15 @@ export function resolveComponent(
 
   let type = expr[0];
 
-  if (DEBUG && expr[0] === SexpOpcodes.GetStrictFree) {
+  if (import.meta.env.DEV && expr[0] === SexpOpcodes.GetStrictKeyword) {
     throw new Error(
       `Attempted to resolve a component in a strict mode template, but that value was not in scope: ${
-        meta.upvars![expr[1]]
+        meta.upvars![expr[1]] ?? '{unknown variable}'
       }`
     );
   }
 
-  if (type === SexpOpcodes.GetTemplateSymbol) {
+  if (type === SexpOpcodes.GetLexicalSymbol) {
     let { scopeValues, owner } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
@@ -123,10 +123,10 @@ export function resolveComponent(
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = upvars[expr[1]];
+    let name = unwrap(upvars[expr[1]]);
     let definition = resolver.lookupComponent(name, owner)!;
 
-    if (DEBUG && (typeof definition !== 'object' || definition === null)) {
+    if (import.meta.env.DEV && (typeof definition !== 'object' || definition === null)) {
       throw new Error(
         `Attempted to resolve \`${name}\`, which was expected to be a component, but nothing was found.`
       );
@@ -150,24 +150,24 @@ export function resolveHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetTemplateSymbol) {
+  if (type === SexpOpcodes.GetLexicalSymbol) {
     let { scopeValues } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
     ];
 
     then(constants.helper(definition as object));
-  } else if (type === SexpOpcodes.GetStrictFree) {
+  } else if (type === SexpOpcodes.GetStrictKeyword) {
     then(
       lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'helper')
     );
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = upvars[expr[1]];
-    let helper = resolver.lookupHelper(name, owner!)!;
+    let name = unwrap(upvars[expr[1]]);
+    let helper = resolver.lookupHelper(name, owner)!;
 
-    if (DEBUG && helper === null) {
+    if (import.meta.env.DEV && helper === null) {
       throw new Error(
         `Attempted to resolve \`${name}\`, which was expected to be a helper, but nothing was found.`
       );
@@ -192,19 +192,19 @@ export function resolveModifier(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetTemplateSymbol) {
+  if (type === SexpOpcodes.GetLexicalSymbol) {
     let { scopeValues } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
     ];
 
     then(constants.modifier(definition as object));
-  } else if (type === SexpOpcodes.GetStrictFree) {
+  } else if (type === SexpOpcodes.GetStrictKeyword) {
     let { upvars } = assertResolverInvariants(meta);
-    let name = upvars[expr[1]];
+    let name = unwrap(upvars[expr[1]]);
     let modifier = resolver.lookupBuiltInModifier(name);
 
-    if (DEBUG && modifier === null) {
+    if (import.meta.env.DEV && modifier === null) {
       throw new Error(
         `Attempted to resolve a modifier in a strict mode template, but it was not in scope: ${name}`
       );
@@ -213,10 +213,10 @@ export function resolveModifier(
     then(constants.modifier(modifier!, name));
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
-    let name = upvars[expr[1]];
+    let name = unwrap(upvars[expr[1]]);
     let modifier = resolver.lookupModifier(name, owner)!;
 
-    if (DEBUG && modifier === null) {
+    if (import.meta.env.DEV && modifier === null) {
       throw new Error(
         `Attempted to resolve \`${name}\`, which was expected to be a modifier, but nothing was found.`
       );
@@ -242,7 +242,7 @@ export function resolveComponentOrHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetTemplateSymbol) {
+  if (type === SexpOpcodes.GetLexicalSymbol) {
     let { scopeValues, owner } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
@@ -261,7 +261,7 @@ export function resolveComponentOrHelper(
 
     let helper = constants.helper(definition as object, null, true);
 
-    if (DEBUG && helper === null) {
+    if (import.meta.env.DEV && helper === null) {
       throw new Error(
         `Attempted to use a value as either a component or helper, but it did not have a component manager or helper manager associated with it. The value was: ${debugToString!(
           definition
@@ -270,7 +270,7 @@ export function resolveComponentOrHelper(
     }
 
     ifHelper(expect(helper, 'BUG: helper must exist'));
-  } else if (type === SexpOpcodes.GetStrictFree) {
+  } else if (type === SexpOpcodes.GetStrictKeyword) {
     ifHelper(
       lookupBuiltInHelper(
         expr as Expressions.GetStrictFree,
@@ -283,7 +283,7 @@ export function resolveComponentOrHelper(
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = upvars[expr[1]];
+    let name = unwrap(upvars[expr[1]]);
     let definition = resolver.lookupComponent(name, owner);
 
     if (definition !== null) {
@@ -291,7 +291,7 @@ export function resolveComponentOrHelper(
     } else {
       let helper = resolver.lookupHelper(name, owner);
 
-      if (DEBUG && helper === null) {
+      if (import.meta.env.DEV && helper === null) {
         throw new Error(
           `Attempted to resolve \`${name}\`, which was expected to be a component or helper, but nothing was found.`
         );
@@ -317,7 +317,7 @@ export function resolveOptionalHelper(
   );
   let { upvars, owner } = assertResolverInvariants(meta);
 
-  let name = upvars[expr[1]];
+  let name = unwrap(upvars[expr[1]]);
   let helper = resolver.lookupHelper(name, owner);
 
   if (helper) {
@@ -341,7 +341,7 @@ export function resolveOptionalComponentOrHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetTemplateSymbol) {
+  if (type === SexpOpcodes.GetLexicalSymbol) {
     let { scopeValues, owner } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
@@ -375,14 +375,14 @@ export function resolveOptionalComponentOrHelper(
     }
 
     ifValue(constants.value(definition));
-  } else if (type === SexpOpcodes.GetStrictFree) {
+  } else if (type === SexpOpcodes.GetStrictKeyword) {
     ifHelper(
       lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'value')
     );
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = upvars[expr[1]];
+    let name = unwrap(upvars[expr[1]]);
     let definition = resolver.lookupComponent(name, owner);
 
     if (definition !== null) {
@@ -407,15 +407,15 @@ function lookupBuiltInHelper(
 ): number {
   let { upvars } = assertResolverInvariants(meta);
 
-  let name = upvars[expr[1]];
+  let name = unwrap(upvars[expr[1]]);
   let helper = resolver.lookupBuiltInHelper(name);
 
-  if (DEBUG && helper === null) {
+  if (import.meta.env.DEV && helper === null) {
     // Keyword helper did not exist, which means that we're attempting to use a
     // value of some kind that is not in scope
     throw new Error(
       `Attempted to resolve a ${type} in a strict mode template, but that value was not in scope: ${
-        meta.upvars![expr[1]]
+        meta.upvars![expr[1]] ?? '{unknown variable}'
       }`
     );
   }

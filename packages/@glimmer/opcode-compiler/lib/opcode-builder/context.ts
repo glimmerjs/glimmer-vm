@@ -1,18 +1,21 @@
-import {
-  CompileTimeResolver,
-  ContainingMetadata,
-  TemplateCompilationContext,
+import type {
   CompileTimeArtifacts,
   CompileTimeCompilationContext,
+  CompileTimeResolver,
+  ContainingMetadata,
+  CreateRuntimeOp,
+  TemplateCompilationContext,
 } from '@glimmer/interfaces';
-import { EncoderImpl } from './encoder';
+
 import { CompileTimeCompilationContextImpl } from '../program-context';
+import { EncoderImpl } from './encoder';
 
 export function programCompilationContext(
   artifacts: CompileTimeArtifacts,
-  resolver: CompileTimeResolver
+  resolver: CompileTimeResolver,
+  createOp: CreateRuntimeOp
 ): CompileTimeCompilationContext {
-  return new CompileTimeCompilationContextImpl(artifacts, resolver);
+  return new CompileTimeCompilationContextImpl(artifacts, resolver, createOp);
 }
 
 export function templateCompilationContext(

@@ -1,6 +1,6 @@
-import { symbolFor, getGlobal } from './lib/utils';
+import { getGlobal } from './lib/utils';
 
-const GLIMMER_VALIDATOR_REGISTRATION = symbolFor('GLIMMER_VALIDATOR_REGISTRATION');
+const GLIMMER_VALIDATOR_REGISTRATION = Symbol('GLIMMER_VALIDATOR_REGISTRATION');
 
 const globalObj = getGlobal();
 
@@ -12,59 +12,50 @@ if (globalObj[GLIMMER_VALIDATOR_REGISTRATION] === true) {
 
 globalObj[GLIMMER_VALIDATOR_REGISTRATION] = true;
 
+export { debug } from './lib/debug';
+export { dirtyTagFor, tagFor, type TagMeta, tagMetaFor } from './lib/meta';
+export { trackedData } from './lib/tracked-data';
+export {
+  beginTrackFrame,
+  beginUntrackFrame,
+  type Cache,
+  consumeTag,
+  createCache,
+  endTrackFrame,
+  endUntrackFrame,
+  getValue,
+  isConst,
+  isTracking,
+  resetTracking,
+  track,
+  untrack,
+} from './lib/tracking';
 export {
   ALLOW_CYCLES,
   bump,
-  CombinatorTag,
   combine,
   COMPUTE,
-  CONSTANT_TAG,
   CONSTANT,
-  ConstantTag,
+  CONSTANT_TAG,
   createTag,
   createUpdatableTag,
-  CurrentTag,
   CURRENT_TAG,
+  CurrentTag,
   DIRTY_TAG as dirtyTag,
-  DirtyableTag,
-  EntityTag,
   INITIAL,
   isConstTag,
-  Revision,
-  Tag,
-  UpdatableTag,
+  type Revision,
   UPDATE_TAG as updateTag,
   validateTag,
   valueForTag,
-  VolatileTag,
-  VOLATILE_TAG,
   VOLATILE,
+  VOLATILE_TAG,
+  VolatileTag,
 } from './lib/validators';
-
-export { dirtyTagFor, tagFor, tagMetaFor, TagMeta } from './lib/meta';
-
-export {
-  beginTrackFrame,
-  endTrackFrame,
-  beginUntrackFrame,
-  endUntrackFrame,
-  resetTracking,
-  consumeTag,
-  isTracking,
-  track,
-  untrack,
-  Cache,
-  createCache,
-  isConst,
-  getValue,
-} from './lib/tracking';
-
-export { trackedData } from './lib/tracked-data';
-
-export {
-  logTrackingStack,
-  setTrackingTransactionEnv,
-  runInTrackingTransaction,
-  beginTrackingTransaction,
-  endTrackingTransaction,
-} from './lib/debug';
+export type {
+  CombinatorTag,
+  ConstantTag,
+  DirtyableTag,
+  Tag,
+  UpdatableTag,
+} from '@glimmer/interfaces';

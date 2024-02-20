@@ -1,43 +1,39 @@
-import { Reference, valueForRef, isConstRef, createComputeRef } from '@glimmer/reference';
-import {
-  Revision,
-  Tag,
-  valueForTag,
-  validateTag,
-  consumeTag,
-  CURRENT_TAG,
-} from '@glimmer/validator';
+import type {
+  CapturedPositionalArguments,
+  Environment,
+  ModifierDefinition,
+  ModifierDefinitionState,
+  ModifierInstance,
+  Nullable,
+  Owner,
+  UpdatingOpcode,
+  UpdatingVM,
+} from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
+import type { Revision, Tag } from '@glimmer/validator';
 import {
   check,
-  CheckString,
   CheckElement,
-  CheckOption,
-  CheckNode,
   CheckMaybe,
+  CheckNode,
+  CheckOption,
+  CheckString,
 } from '@glimmer/debug';
-import {
-  Op,
-  Option,
-  ModifierDefinition,
-  ModifierInstance,
-  Owner,
-  CapturedPositionalArguments,
-  CurriedType,
-  ModifierDefinitionState,
-  Environment,
-  UpdatingVM,
-  UpdatingOpcode,
-} from '@glimmer/interfaces';
-import { $t0 } from '@glimmer/vm';
-import { APPEND_OPCODES } from '../../opcodes';
-import { Assert } from './vm';
-import { DynamicAttribute } from '../../vm/attributes/dynamic';
-import { CheckReference, CheckArguments, CheckOperations } from './-debug-strip';
-import { CONSTANTS } from '../../symbols';
-import { assign, debugToString, expect, isObject } from '@glimmer/util';
-import { CurriedValue, isCurriedType, resolveCurriedValue } from '../../curried-value';
-import { DEBUG } from '@glimmer/env';
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
+import { getInternalModifierManager } from '@glimmer/manager';
+import { createComputeRef, isConstRef, valueForRef } from '@glimmer/reference';
+import { assign, debugToString, expect, isObject } from '@glimmer/util';
+import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
+import { $t0, CurriedTypes, Op } from '@glimmer/vm';
+
+import type { CurriedValue } from '../../curried-value';
+import type { DynamicAttribute } from '../../vm/attributes/dynamic';
+
+import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { APPEND_OPCODES } from '../../opcodes';
+import { CONSTANTS } from '../../symbols';
+import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
+import { Assert } from './vm';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm[CONSTANTS].getValue(text));
@@ -83,7 +79,7 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
-  let modifiers: Option<ModifierInstance[]> = null;
+  let modifiers: Nullable<ModifierInstance[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);
@@ -96,13 +92,12 @@ APPEND_OPCODES.add(Op.FlushElement, (vm) => {
 APPEND_OPCODES.add(Op.CloseElement, (vm) => {
   let modifiers = vm.elements().closeElement();
 
-  if (modifiers) {
+  if (modifiers !== null) {
     modifiers.forEach((modifier) => {
       vm.env.scheduleInstallModifier(modifier);
-      let { manager, state } = modifier;
-      let d = manager.getDestroyable(state);
+      const d = modifier.manager.getDestroyable(modifier.state);
 
-      if (d) {
+      if (d !== null) {
         vm.associateDestroyable(d);
       }
     });
@@ -155,7 +150,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
     return;
   }
 
-  let { stack, [CONSTANTS]: constants } = vm;
+  let { stack } = vm;
   let ref = check(stack.pop(), CheckReference);
   let args = check(stack.pop(), CheckArguments).capture();
   let { constructing } = vm.elements();
@@ -171,7 +166,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
     let hostDefinition: CurriedValue | ModifierDefinitionState;
 
-    if (isCurriedType(value, CurriedType.Modifier)) {
+    if (isCurriedType(value, CurriedTypes.Modifier)) {
       let {
         definition: resolvedDefinition,
         owner: curriedOwner,
@@ -194,23 +189,27 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
       owner = initialOwner;
     }
 
-    let handle = constants.modifier(hostDefinition, null, true);
+    let manager = getInternalModifierManager(hostDefinition, true);
 
-    if (DEBUG && handle === null) {
-      throw new Error(
-        `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${
-          ref.debugLabel
-        }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
-        }\`, which was: ${debugToString!(hostDefinition)}`
-      );
+    if (manager === null) {
+      if (import.meta.env.DEV) {
+        throw new Error(
+          `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${
+            ref.debugLabel
+          }}}\`, and the incorrect definition is the value at the path \`${
+            ref.debugLabel
+          }\`, which was: ${debugToString!(hostDefinition)}`
+        );
+      } else {
+        throw new Error('BUG: modifier manager expected');
+      }
     }
 
-    let definition = constants.getValue<ModifierDefinition>(
-      expect(handle, 'BUG: modifier handle expected')
-    );
-
-    let { manager } = definition;
+    let definition = {
+      resolvedName: null,
+      manager,
+      state: hostDefinition,
+    };
 
     let state = manager.create(
       owner,
@@ -252,7 +251,10 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 export class UpdateModifierOpcode implements UpdatingOpcode {
   private lastUpdated: Revision;
 
-  constructor(private tag: Tag, private modifier: ModifierInstance) {
+  constructor(
+    private tag: Tag,
+    private modifier: ModifierInstance
+  ) {
     this.lastUpdated = valueForTag(tag);
   }
 
@@ -308,7 +310,7 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
         }
 
         this.tag = tag;
-        vm.env.scheduleInstallModifier(newInstance!);
+        vm.env.scheduleInstallModifier(newInstance);
       }
 
       this.instance = newInstance;

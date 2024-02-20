@@ -1,13 +1,12 @@
-import { GlimmerTreeChanges, GlimmerTreeConstruction, Option } from '@glimmer/interfaces';
-import { castToSimple } from '@glimmer/util';
-import {
-  AttrNamespace,
-  ElementNamespace,
-  Namespace,
+import type {
+  GlimmerTreeChanges,
+  Nullable,
   SimpleDocument,
   SimpleElement,
   SimpleNode,
-} from '@simple-dom/interface';
+} from '@glimmer/interfaces';
+import { castToSimple, NS_SVG } from '@glimmer/util';
+
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';
 import { applyTextNodeMergingFix } from '../compat/text-node-merging-fix';
 import { BLACKLIST_TABLE, DOMOperations } from './operations';
@@ -59,53 +58,20 @@ import { BLACKLIST_TABLE, DOMOperations } from './operations';
   'var',
 ].forEach((tag) => (BLACKLIST_TABLE[tag] = 1));
 
-const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;
+const WHITESPACE =
+  /[\t\n\v\f\r \xA0\u{1680}\u{180e}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]/u;
 
-let doc: Option<SimpleDocument> = typeof document === 'undefined' ? null : castToSimple(document);
+const doc: Nullable<SimpleDocument> =
+  typeof document === 'undefined' ? null : castToSimple(document);
 
 export function isWhitespace(string: string) {
   return WHITESPACE.test(string);
 }
 
-export namespace DOM {
-  export class TreeConstruction extends DOMOperations implements GlimmerTreeConstruction {
-    createElementNS(namespace: ElementNamespace, tag: string): SimpleElement {
-      return this.document.createElementNS(namespace, tag);
-    }
-
-    setAttribute(
-      element: SimpleElement,
-      name: string,
-      value: string,
-      namespace: Option<AttrNamespace> = null
-    ) {
-      if (namespace) {
-        element.setAttributeNS(namespace, name, value);
-      } else {
-        element.setAttribute(name, value);
-      }
-    }
-  }
-
-  let appliedTreeConstruction = TreeConstruction;
-  appliedTreeConstruction = applyTextNodeMergingFix(
-    doc,
-    appliedTreeConstruction
-  ) as typeof TreeConstruction;
-  appliedTreeConstruction = applySVGInnerHTMLFix(
-    doc,
-    appliedTreeConstruction,
-    Namespace.SVG
-  ) as typeof TreeConstruction;
-
-  export const DOMTreeConstruction = appliedTreeConstruction;
-  export type DOMTreeConstruction = TreeConstruction;
-}
-
 export class DOMChangesImpl extends DOMOperations implements GlimmerTreeChanges {
-  protected namespace: Option<string>;
+  protected namespace: Nullable<string>;
 
-  constructor(protected document: SimpleDocument) {
+  constructor(protected override document: SimpleDocument) {
     super(document);
     this.namespace = null;
   }
@@ -126,9 +92,7 @@ export class DOMChangesImpl extends DOMOperations implements GlimmerTreeChanges 
 let helper = DOMChangesImpl;
 
 helper = applyTextNodeMergingFix(doc, helper) as typeof DOMChangesImpl;
-helper = applySVGInnerHTMLFix(doc, helper, Namespace.SVG) as typeof DOMChangesImpl;
+helper = applySVGInnerHTMLFix(doc, helper, NS_SVG) as typeof DOMChangesImpl;
 
-export default helper;
-export const DOMTreeConstruction = DOM.DOMTreeConstruction;
-export type DOMTreeConstruction = DOM.DOMTreeConstruction;
-export type DOMNamespace = Namespace;
+export const DOMChanges = helper;
+export { DOMTreeConstruction } from './api';

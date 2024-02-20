@@ -1,45 +1,47 @@
-import { toBool } from '@glimmer/global-context';
-import { CompilableTemplate, Option, Op, UpdatingOpcode } from '@glimmer/interfaces';
+import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
+import type { Revision, Tag } from '@glimmer/validator';
 import {
-  Reference,
-  valueForRef,
-  isConstRef,
-  createPrimitiveRef,
-  UNDEFINED_REFERENCE,
-  NULL_REFERENCE,
-  TRUE_REFERENCE,
-  FALSE_REFERENCE,
-  createComputeRef,
-  createConstRef,
-} from '@glimmer/reference';
-import {
-  CONSTANT_TAG,
-  Revision,
-  Tag,
-  valueForTag,
-  validateTag,
-  INITIAL,
-  beginTrackFrame,
-  endTrackFrame,
-  consumeTag,
-} from '@glimmer/validator';
-import { assert, decodeHandle, decodeImmediate, expect, isHandle } from '@glimmer/util';
-import {
-  CheckNumber,
   check,
-  CheckInstanceof,
-  CheckOption,
   CheckBlockSymbolTable,
   CheckHandle,
+  CheckInstanceof,
+  CheckNumber,
+  CheckOption,
   CheckPrimitive,
 } from '@glimmer/debug';
-import { stackAssert } from './assert';
+import { toBool } from '@glimmer/global-context';
+import {
+  createComputeRef,
+  createConstRef,
+  createPrimitiveRef,
+  FALSE_REFERENCE,
+  isConstRef,
+  NULL_REFERENCE,
+  TRUE_REFERENCE,
+  UNDEFINED_REFERENCE,
+  valueForRef,
+} from '@glimmer/reference';
+import { assert, decodeHandle, decodeImmediate, expect, isHandle, unwrap } from '@glimmer/util';
+import {
+  beginTrackFrame,
+  CONSTANT_TAG,
+  consumeTag,
+  endTrackFrame,
+  INITIAL,
+  validateTag,
+  valueForTag,
+} from '@glimmer/validator';
+import { Op } from '@glimmer/vm';
+
+import type { UpdatingVM } from '../../vm';
+import type { InternalVM } from '../../vm/append';
+
 import { APPEND_OPCODES } from '../../opcodes';
-import { UpdatingVM } from '../../vm';
+import { CONSTANTS } from '../../symbols';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { CheckReference, CheckScope } from './-debug-strip';
-import { CONSTANTS } from '../../symbols';
-import { InternalVM } from '../../vm/append';
+import { stackAssert } from './assert';
 
 APPEND_OPCODES.add(Op.ChildScope, (vm) => vm.pushChildScope());
 
@@ -132,7 +134,7 @@ APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
 
 APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
   let stack = vm.stack;
-  let block = stack.pop<Option<CompilableTemplate> | 0>();
+  let block = stack.pop<Nullable<CompilableTemplate> | 0>();
 
   if (block) {
     stack.push(vm.compile(block));
@@ -174,7 +176,7 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
       invokingScope = invokingScope.child();
 
       for (let i = 0; i < localsCount; i++) {
-        invokingScope.bindSymbol(locals![i], args.at(i));
+        invokingScope.bindSymbol(unwrap(locals[i]), args.at(i));
       }
     }
   }
@@ -261,7 +263,10 @@ export class Assert implements UpdatingOpcode {
 export class AssertFilter<T, U> implements UpdatingOpcode {
   private last: U;
 
-  constructor(private ref: Reference<T>, private filter: (from: T) => U) {
+  constructor(
+    private ref: Reference<T>,
+    private filter: (from: T) => U
+  ) {
     this.last = filter(valueForRef(ref));
   }
 

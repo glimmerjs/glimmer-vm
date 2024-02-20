@@ -1,8 +1,8 @@
-import { getTemplateLocals } from '..';
+import { getTemplateLocals } from '@glimmer/syntax';
 
 QUnit.module('[glimmer-syntax] getTemplateLocals');
 
-QUnit.test('it works', function (assert) {
+QUnit.test('it works', (assert) => {
   let locals = getTemplateLocals(`
     <Component/>
 
@@ -35,6 +35,15 @@ QUnit.test('it works', function (assert) {
 
     <this.dynamicAngleComponent>
     </this.dynamicAngleComponent>
+
+    <ComponentYieldingContextual as |hash|>
+      <InsideHash />
+      <hash.some as |some|>
+        {{inside-another-hash}}
+        <some.other/>
+        {{some.value}}
+      </hash.some>
+    </ComponentYieldingContextual>
   `);
 
   assert.deepEqual(locals, [
@@ -45,10 +54,13 @@ QUnit.test('it works', function (assert) {
     'global-value',
     'some',
     'someOther',
+    'ComponentYieldingContextual',
+    'InsideHash',
+    'inside-another-hash',
   ]);
 });
 
-QUnit.test('it does not include locals', function (assert) {
+QUnit.test('it does not include locals', (assert) => {
   let locals = getTemplateLocals(
     `
       <SomeComponent as |button|>
@@ -64,7 +76,35 @@ QUnit.test('it does not include locals', function (assert) {
   assert.deepEqual(locals, ['SomeComponent']);
 });
 
-QUnit.test('it can include keywords', function (assert) {
+QUnit.test('it excludes object locals', (assert) => {
+  let locals = getTemplateLocals(
+    `
+      <SomeComponent as |b|>
+        <b.button />
+      </SomeComponent>
+    `
+  );
+
+  assert.deepEqual(locals, ['SomeComponent']);
+});
+
+QUnit.test('it excludes object locals from nested blocks', (assert) => {
+  let locals = getTemplateLocals(
+    `
+      <SomeComponent as |some|>
+        <some.foo as |foo|>
+          <foo.bar as |bar|>
+            <bar.baz />
+          </foo.bar>
+        </some.foo>
+      </SomeComponent>
+    `
+  );
+
+  assert.deepEqual(locals, ['SomeComponent']);
+});
+
+QUnit.test('it can include keywords', (assert) => {
   let locals = getTemplateLocals(
     `
       <Component/>
@@ -115,7 +155,7 @@ QUnit.test('it can include keywords', function (assert) {
   ]);
 });
 
-QUnit.test('it can include html elements', function (assert) {
+QUnit.test('it can include html elements', (assert) => {
   let locals = getTemplateLocals(
     `
       <button></button>

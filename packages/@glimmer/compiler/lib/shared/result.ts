@@ -1,6 +1,8 @@
-import { GlimmerSyntaxError } from '@glimmer/syntax';
+import type { GlimmerSyntaxError } from '@glimmer/syntax';
 
-import { AnyOptionalList, OptionalList } from './list';
+import type { AnyOptionalList } from './list';
+
+import { OptionalList } from './list';
 
 abstract class ResultImpl<T> {
   static all<T extends Result<unknown>[]>(...results: T): MapAll<T> {
@@ -92,7 +94,7 @@ class ErrImpl<T> extends ResultImpl<T> {
   }
 
   cast<U>(): Result<U> {
-    return (this as unknown) as Result<U>;
+    return this as unknown as Result<U>;
   }
 }
 
@@ -133,11 +135,11 @@ export type MaybeResult<T> = T | Result<T>;
 export class MapIntoResultArray<T> {
   constructor(private items: T[]) {}
 
-  map<U>(callback: (item: T) => Result<U>): Result<U[]> {
+  map<U>(mapper: (item: T) => Result<U>): Result<U[]> {
     let out = new ResultArray<U>();
 
     for (let item of this.items) {
-      out.add(callback(item));
+      out.add(mapper(item));
     }
 
     return out.toArray();

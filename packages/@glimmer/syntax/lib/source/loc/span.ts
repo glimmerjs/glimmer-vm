@@ -1,26 +1,16 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DEBUG } from '@glimmer/env';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';
 
-import {
-  BROKEN_LOCATION,
-  NON_EXISTENT_LOCATION,
-  SourceLocation,
-  SourcePosition,
-} from '../location';
+import type { SourceLocation, SourcePosition } from '../location';
+import type { Source } from '../source';
+import type { MatchFn } from './match';
+import type { AnyPosition, SourceOffset } from './offset';
+
+import { BROKEN_LOCATION, NON_EXISTENT_LOCATION } from '../location';
 import { SourceSlice } from '../slice';
-import { Source } from '../source';
-import { IsInvisible, match, MatchAny, MatchFn } from './match';
-import {
-  AnyPosition,
-  BROKEN,
-  CharPosition,
-  HbsPosition,
-  InvisiblePosition,
-  OffsetKind,
-  SourceOffset,
-} from './offset';
+import { OffsetKind } from './kinds';
+import { IsInvisible, match, MatchAny } from './match';
+import { BROKEN, CharPosition, HbsPosition, InvisiblePosition } from './offset';
 
 /**
  * All spans have these details in common.
@@ -125,14 +115,14 @@ export class SourceSpan implements SourceLocation {
   }
 
   static forHbsLoc(source: Source, loc: SourceLocation): SourceSpan {
-    let start = new HbsPosition(source, loc.start);
-    let end = new HbsPosition(source, loc.end);
+    const start = new HbsPosition(source, loc.start);
+    const end = new HbsPosition(source, loc.end);
     return new HbsSpan(source, { start, end }, loc).wrap();
   }
 
   static forCharPositions(source: Source, startPos: number, endPos: number): SourceSpan {
-    let start = new CharPosition(source, startPos);
-    let end = new CharPosition(source, endPos);
+    const start = new CharPosition(source, startPos);
+    const end = new CharPosition(source, endPos);
 
     return new CharPositionSpan(source, { start, end }).wrap();
   }
@@ -161,7 +151,7 @@ export class SourceSpan implements SourceLocation {
   }
 
   get loc(): SourceLocation {
-    let span = this.data.toHbsSpan();
+    const span = this.data.toHbsSpan();
     return span === null ? BROKEN_LOCATION : span.toHbsLoc();
   }
 
@@ -214,9 +204,9 @@ export class SourceSpan implements SourceLocation {
    * string.
    */
   toSlice(expected?: string): SourceSlice {
-    let chars = this.data.asString();
+    const chars = this.data.asString();
 
-    if (DEBUG) {
+    if (import.meta.env.DEV) {
       if (expected !== undefined && chars !== expected) {
         // eslint-disable-next-line no-console
         console.warn(
@@ -353,8 +343,8 @@ class CharPositionSpan implements SpanData {
     let locPosSpan = this._locPosSpan;
 
     if (locPosSpan === null) {
-      let start = this.charPositions.start.toHbsPos();
-      let end = this.charPositions.end.toHbsPos();
+      const start = this.charPositions.start.toHbsPos();
+      const end = this.charPositions.end.toHbsPos();
 
       if (start === null || end === null) {
         locPosSpan = this._locPosSpan = BROKEN;
@@ -370,7 +360,7 @@ class CharPositionSpan implements SpanData {
   }
 
   serialize(): SerializedSourceSpan {
-    let {
+    const {
       start: { charPos: start },
       end: { charPos: end },
     } = this.charPositions;
@@ -404,7 +394,7 @@ export class HbsSpan implements SpanData {
   }
 
   serialize(): SerializedConcreteSourceSpan {
-    let charPos = this.toCharPosSpan();
+    const charPos = this.toCharPosSpan();
     return charPos === null ? OffsetKind.Broken : charPos.wrap().serialize();
   }
 
@@ -438,7 +428,7 @@ export class HbsSpan implements SpanData {
   }
 
   asString(): string {
-    let span = this.toCharPosSpan();
+    const span = this.toCharPosSpan();
     return span === null ? '' : span.asString();
   }
 
@@ -469,8 +459,8 @@ export class HbsSpan implements SpanData {
     let charPosSpan = this._charPosSpan;
 
     if (charPosSpan === null) {
-      let start = this.hbsPositions.start.toCharPos();
-      let end = this.hbsPositions.end.toCharPos();
+      const start = this.hbsPositions.start.toCharPos();
+      const end = this.hbsPositions.end.toCharPos();
 
       if (start && end) {
         charPosSpan = this._charPosSpan = new CharPositionSpan(this.source, {
@@ -565,7 +555,7 @@ export const span: MatchFn<SourceSpan> = match((m) =>
       }).wrap()
     )
     .when(OffsetKind.CharPosition, OffsetKind.HbsPosition, (left, right) => {
-      let rightCharPos = right.toCharPos();
+      const rightCharPos = right.toCharPos();
 
       if (rightCharPos === null) {
         return new InvisibleSpan(OffsetKind.Broken, BROKEN_LOCATION).wrap();
@@ -574,7 +564,7 @@ export const span: MatchFn<SourceSpan> = match((m) =>
       }
     })
     .when(OffsetKind.HbsPosition, OffsetKind.CharPosition, (left, right) => {
-      let leftCharPos = left.toCharPos();
+      const leftCharPos = left.toCharPos();
 
       if (leftCharPos === null) {
         return new InvisibleSpan(OffsetKind.Broken, BROKEN_LOCATION).wrap();

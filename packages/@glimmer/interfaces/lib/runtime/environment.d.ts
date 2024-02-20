@@ -1,11 +1,15 @@
-import { SimpleDocument } from '@simple-dom/interface';
-import { ComponentDefinitionState, ComponentInstance, ComponentInstanceState } from '../components';
-import { Option } from '../core';
-import { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
-import { DebugRenderTree } from './debug-render-tree';
-import { Owner } from './owner';
-import { ModifierInstance } from './modifier';
-import { WithCreateInstance } from '../..';
+import type { SimpleDocument } from '@simple-dom/interface';
+
+import type {
+  ComponentDefinitionState,
+  ComponentInstance,
+  ComponentInstanceState,
+} from '../components.js';
+import type { Nullable } from '../core.js';
+import type { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes.js';
+import type { WithCreateInstance } from '../managers.js';
+import type { DebugRenderTree } from './debug-render-tree.js';
+import type { ModifierInstance } from './modifier.js';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;
@@ -13,7 +17,7 @@ export interface EnvironmentOptions {
   updateOperations?: GlimmerTreeChanges;
 }
 
-export interface Transaction {}
+export type Transaction = object;
 
 declare const TransactionSymbol: unique symbol;
 export type TransactionSymbol = typeof TransactionSymbol;
@@ -25,7 +29,7 @@ export type ComponentInstanceWithCreate = ComponentInstance<
 >;
 
 export interface Environment {
-  [TransactionSymbol]: Option<Transaction>;
+  [TransactionSymbol]: Nullable<Transaction>;
 
   didCreate(component: ComponentInstanceWithCreate): void;
   didUpdate(component: ComponentInstanceWithCreate): void;
@@ -40,5 +44,5 @@ export interface Environment {
   getAppendOperations(): GlimmerTreeConstruction;
 
   isInteractive: boolean;
-  debugRenderTree?: DebugRenderTree;
+  debugRenderTree?: DebugRenderTree | undefined;
 }

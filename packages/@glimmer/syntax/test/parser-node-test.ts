@@ -1,53 +1,60 @@
-import { preprocess as parse, builders as b, ASTv1 } from '..';
-import { Dict } from '@glimmer/interfaces';
+import type { Dict } from '@glimmer/interfaces';
+import type { ASTv1 } from '@glimmer/syntax';
+import { builders as b, preprocess as parse } from '@glimmer/syntax';
+import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 
 import { astEqual } from './support';
-import { syntaxErrorFor } from '../../integration-tests';
 
-const test = QUnit.test;
+const { test, skip } = QUnit;
 
 QUnit.module('[glimmer-syntax] Parser - AST');
 
-test('a simple piece of content', function () {
+test('a simple piece of content', () => {
   let t = 'some content';
   astEqual(t, b.program([b.text('some content')]));
 });
 
-test('self-closed element', function () {
+test('self-closed element', () => {
   let t = '<g />';
   astEqual(t, b.program([element('g/')]));
 });
 
-test('elements can have empty attributes', function () {
+test('elements can have empty attributes', () => {
   let t = '<img id="">';
   astEqual(t, b.program([element('img', ['attrs', ['id', '']])]));
 });
 
-test('disallowed quote in element space is rejected', function (assert) {
+test('disallowed quote in element space is rejected', (assert) => {
   let t = '<img foo="bar"" >';
-  assert.throws(() => {
-    parse(t, { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('" is not a valid character within attribute names', '', 'test-module', 1, 14));
+  assert.throws(
+    () => {
+      parse(t, { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('" is not a valid character within attribute names', '', 'test-module', 1, 14)
+  );
 });
 
-test('disallowed equals sign in element space is rejected', function (assert) {
+test('disallowed equals sign in element space is rejected', (assert) => {
   let t = '<img =foo >';
-  assert.throws(() => {
-    parse(t, { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('attribute name cannot start with equals sign', '', 'test-module', 1, 5));
+  assert.throws(
+    () => {
+      parse(t, { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('attribute name cannot start with equals sign', '', 'test-module', 1, 5)
+  );
 });
 
-test('svg content', function () {
+test('svg content', () => {
   let t = '<svg></svg>';
   astEqual(t, b.program([element('svg')]));
 });
 
-test('html content with html content inline', function () {
+test('html content with html content inline', () => {
   let t = '<div><p></p></div>';
   astEqual(t, b.program([element('div', ['body', element('p')])]));
 });
 
-test('html content with svg content inline', function () {
+test('html content with svg content inline', () => {
   let t = '<div><svg></svg></div>';
   astEqual(t, b.program([element('div', ['body', element('svg')])]));
 });
@@ -62,14 +69,15 @@ function buildIntegrationPointTest(integrationPoint: string) {
     );
   };
 }
-for (let i = 0, length = integrationPoints.length; i < length; i++) {
+
+for (const integrationPoint of integrationPoints) {
   test(
-    'svg content with html content inline for ' + integrationPoints[i],
-    buildIntegrationPointTest(integrationPoints[i])
+    'svg content with html content inline for ' + integrationPoint,
+    buildIntegrationPointTest(integrationPoint)
   );
 }
 
-test('svg title with html content', function () {
+test('svg title with html content', () => {
   let t = '<svg><title><div></div></title></svg>';
   astEqual(
     t,
@@ -77,7 +85,7 @@ test('svg title with html content', function () {
   );
 });
 
-test('a piece of content with HTML', function () {
+test('a piece of content with HTML', () => {
   let t = 'some <div>content</div> done';
   astEqual(
     t,
@@ -85,7 +93,7 @@ test('a piece of content with HTML', function () {
   );
 });
 
-test('a piece of Handlebars with HTML', function () {
+test('a piece of Handlebars with HTML', () => {
   let t = 'some <div>{{content}}</div> done';
   astEqual(
     t,
@@ -97,7 +105,7 @@ test('a piece of Handlebars with HTML', function () {
   );
 });
 
-test('Handlebars embedded in an attribute (quoted)', function () {
+test('Handlebars embedded in an attribute (quoted)', () => {
   let t = 'some <div class="{{foo}}">content</div> done';
   astEqual(
     t,
@@ -113,7 +121,7 @@ test('Handlebars embedded in an attribute (quoted)', function () {
   );
 });
 
-test('Handlebars embedded in an attribute (unquoted)', function () {
+test('Handlebars embedded in an attribute (unquoted)', () => {
   let t = 'some <div class={{foo}}>content</div> done';
   astEqual(
     t,
@@ -125,14 +133,14 @@ test('Handlebars embedded in an attribute (unquoted)', function () {
   );
 });
 
-test('Handlebars embedded in an attribute of a self-closing tag (unqouted)', function () {
+test('Handlebars embedded in an attribute of a self-closing tag (unqouted)', () => {
   let t = '<input value={{foo}}/>';
 
   let el = element('input/', ['attrs', ['value', b.mustache(b.path('foo'))]]);
   astEqual(t, b.program([el]));
 });
 
-test('Handlebars embedded in an attribute (sexprs)', function () {
+test('Handlebars embedded in an attribute (sexprs)', () => {
   let t = 'some <div class="{{foo (foo "abc")}}">content</div> done';
   astEqual(
     t,
@@ -154,7 +162,7 @@ test('Handlebars embedded in an attribute (sexprs)', function () {
   );
 });
 
-test('Handlebars embedded in an attribute with other content surrounding it', function () {
+test('Handlebars embedded in an attribute with other content surrounding it', () => {
   let t = 'some <a href="http://{{link}}/">content</a> done';
   astEqual(
     t,
@@ -170,7 +178,7 @@ test('Handlebars embedded in an attribute with other content surrounding it', fu
   );
 });
 
-test('A more complete embedding example', function () {
+test('A more complete embedding example', () => {
   let t =
     "{{embed}} {{some 'content'}} " +
     "<div class='{{foo}} {{bind-class isEnabled truthy='enabled'}}'>{{ content }}</div>" +
@@ -207,7 +215,7 @@ test('A more complete embedding example', function () {
   );
 });
 
-test('Simple embedded block helpers', function () {
+test('Simple embedded block helpers', () => {
   let t = '{{#if foo}}<div>{{content}}</div>{{/if}}';
   astEqual(
     t,
@@ -222,7 +230,26 @@ test('Simple embedded block helpers', function () {
   );
 });
 
-test('Involved block helper', function () {
+test('block params', (assert) => {
+  let t = '<Foo as |bar baz qux|></Foo>{{#Foo as |bar baz qux|}}{{/Foo}}';
+  let element = b.element('Foo', {
+    blockParams: ['bar', 'baz', 'qux'],
+  });
+  let mustache = b.block(b.path('Foo'), [], b.hash(), b.blockItself([], ['bar', 'baz', 'qux']));
+  astEqual(t, b.program([element, mustache]));
+  assert.strictEqual(element.blockParamNodes.length, 3);
+  assert.strictEqual(mustache.program.blockParamNodes.length, 3);
+  assert.deepEqual(
+    element.blockParamNodes.map((b) => b.value),
+    ['bar', 'baz', 'qux']
+  );
+  assert.deepEqual(
+    mustache.program.blockParamNodes.map((b) => b.value),
+    ['bar', 'baz', 'qux']
+  );
+});
+
+test('Involved block helper', () => {
   let t =
     '<p>hi</p> content {{#testing shouldRender}}<p>Appears!</p>{{/testing}} more <em>content</em> here';
   astEqual(
@@ -243,7 +270,7 @@ test('Involved block helper', function () {
   );
 });
 
-test('Element modifiers', function () {
+test('Element modifiers', () => {
   let t = "<p {{action 'boom'}} class='bar'>Some content</p>";
   astEqual(
     t,
@@ -258,32 +285,43 @@ test('Element modifiers', function () {
   );
 });
 
-test('Tokenizer: MustacheStatement encountered in beforeAttributeName state', function () {
+test('Element paths', (assert) => {
+  let t = "<bar.x.y class='bar'></bar.x.y>";
+  const elem = element('bar.x.y', ['attrs', ['class', 'bar']]);
+  astEqual(t, b.program([elem]));
+  assert.strictEqual(elem.parts.length, 3);
+  assert.deepEqual(
+    elem.parts.map((p) => p.value),
+    ['bar', 'x', 'y']
+  );
+});
+
+test('Tokenizer: MustacheStatement encountered in beforeAttributeName state', () => {
   let t = '<input {{bar}}>';
   astEqual(t, b.program([element('input', ['modifiers', 'bar'])]));
 });
 
-test('Tokenizer: MustacheStatement encountered in attributeName state', function () {
+test('Tokenizer: MustacheStatement encountered in attributeName state', () => {
   let t = '<input foo{{bar}}>';
   astEqual(t, b.program([element('input', ['attrs', ['foo', '']], ['modifiers', ['bar']])]));
 });
 
-test('Tokenizer: MustacheStatement encountered in afterAttributeName state', function () {
+test('Tokenizer: MustacheStatement encountered in afterAttributeName state', () => {
   let t = '<input foo {{bar}}>';
   astEqual(t, b.program([element('input', ['attrs', ['foo', '']], ['modifiers', 'bar'])]));
 });
 
-test('Tokenizer: MustacheStatement encountered in afterAttributeValue state', function () {
+test('Tokenizer: MustacheStatement encountered in afterAttributeValue state', () => {
   let t = '<input foo=1 {{bar}}>';
   astEqual(t, b.program([element('input', ['attrs', ['foo', '1']], ['modifiers', ['bar']])]));
 });
 
-test('Tokenizer: MustacheStatement encountered in afterAttributeValueQuoted state', function () {
+test('Tokenizer: MustacheStatement encountered in afterAttributeValueQuoted state', () => {
   let t = "<input foo='1'{{bar}}>";
   astEqual(t, b.program([element('input', ['attrs', ['foo', '1']], ['modifiers', 'bar'])]));
 });
 
-test('Stripping - mustaches', function () {
+test('Stripping - mustaches', () => {
   let t = 'foo {{~content}} bar';
   astEqual(
     t,
@@ -311,7 +349,7 @@ test('Stripping - mustaches', function () {
   );
 });
 
-test('Stripping - blocks', function () {
+test('Stripping - blocks', () => {
   let t = 'foo {{~#wat}}{{/wat}} bar';
   astEqual(
     t,
@@ -346,7 +384,7 @@ test('Stripping - blocks', function () {
   );
 });
 
-test('Stripping - programs', function () {
+test('Stripping - programs', () => {
   let t = '{{#wat~}} foo {{else}}{{/wat}}';
   astEqual(
     t,
@@ -416,7 +454,7 @@ test('Stripping - programs', function () {
   );
 });
 
-test('Stripping - removes unnecessary text nodes', function () {
+test('Stripping - removes unnecessary text nodes', () => {
   let t = '{{#each~}}\n  <li> foo </li>\n{{~/each}}';
 
   astEqual(
@@ -437,7 +475,7 @@ test('Stripping - removes unnecessary text nodes', function () {
   );
 });
 
-test('Whitespace control - linebreaks after blocks removed by default', function () {
+test('Whitespace control - linebreaks after blocks removed by default', () => {
   let t = '{{#each}}\n  <li> foo </li>\n{{/each}}';
 
   astEqual(
@@ -454,7 +492,7 @@ test('Whitespace control - linebreaks after blocks removed by default', function
   );
 });
 
-test('Whitespace control - preserve all whitespace if config is set', function () {
+test('Whitespace control - preserve all whitespace if config is set', () => {
   let t = '{{#each}}\n  <li> foo </li>\n{{/each}}';
 
   astEqual(
@@ -476,29 +514,34 @@ test('Whitespace control - preserve all whitespace if config is set', function (
 });
 
 // TODO: Make these throw an error.
-//test("Awkward mustache in unquoted attribute value", function() {
-//  let t = "<div class=a{{foo}}></div>";
-//  astEqual(t, b.program([
-//    element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')])])) ])
-//  ]));
-//
-//  t = "<div class=a{{foo}}b></div>";
-//  astEqual(t, b.program([
-//    element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')]), b.string("b")])) ])
-//  ]));
-//
-//  t = "<div class={{foo}}b></div>";
-//  astEqual(t, b.program([
-//    element('div', [ b.attr('class', concat([b.sexpr([b.path('foo')]), b.string("b")])) ])
-//  ]));
-//});
+skip('Awkward mustache in unquoted attribute value', () => {
+  let t = '<div class=a{{foo}}></div>';
+  astEqual(
+    t,
+    b.program([element('div', ['attrs', ['class', b.concat([b.text('a'), b.mustache('foo')])]])])
+  );
 
-test('an HTML comment', function () {
+  t = '<div class=a{{foo}}b></div>';
+  astEqual(
+    t,
+    b.program([
+      element('div', ['attrs', ['class', b.concat([b.text('a'), b.mustache('foo'), b.text('b')])]]),
+    ])
+  );
+
+  t = '<div class={{foo}}b></div>';
+  astEqual(
+    t,
+    b.program([element('div', ['attrs', ['class', b.concat([b.mustache('foo'), b.text('b')])]])])
+  );
+});
+
+test('an HTML comment', () => {
   let t = 'before <!-- some comment --> after';
   astEqual(t, b.program([b.text('before '), b.comment(' some comment '), b.text(' after')]));
 });
 
-test('a Handlebars comment inside an HTML comment', function () {
+test('a Handlebars comment inside an HTML comment', () => {
   let t = 'before <!-- some {{! nested thing }} comment --> after';
   astEqual(
     t,
@@ -510,7 +553,7 @@ test('a Handlebars comment inside an HTML comment', function () {
   );
 });
 
-test('a Handlebars comment', function () {
+test('a Handlebars comment', () => {
   let t = 'before {{! some comment }} after';
   astEqual(
     t,
@@ -518,7 +561,7 @@ test('a Handlebars comment', function () {
   );
 });
 
-test('a Handlebars comment in proper element space', function () {
+test('a Handlebars comment in proper element space', () => {
   let t = 'before <div {{! some comment }} data-foo="bar" {{! other comment }}></div> after';
   astEqual(
     t,
@@ -534,7 +577,7 @@ test('a Handlebars comment in proper element space', function () {
   );
 });
 
-test('a Handlebars comment after a valueless attribute', function () {
+test('a Handlebars comment after a valueless attribute', () => {
   let t = '<input foo {{! comment }}>';
   astEqual(
     t,
@@ -544,85 +587,142 @@ test('a Handlebars comment after a valueless attribute', function () {
   );
 });
 
-test('a Handlebars comment in invalid element space', function (assert) {
-  assert.throws(() => {
-    parse('\nbefore <div \n  a{{! some comment }} data-foo="bar"></div> after', {
-      meta: { moduleName: 'test-module' },
-    });
-  }, syntaxErrorFor('Using a Handlebars comment when in the `attributeName` state is not supported', '{{! some comment }}', 'test-module', 3, 3));
+test('a Handlebars comment in invalid element space', (assert) => {
+  assert.throws(
+    () => {
+      parse('\nbefore <div \n  a{{! some comment }} data-foo="bar"></div> after', {
+        meta: { moduleName: 'test-module' },
+      });
+    },
+    syntaxErrorFor(
+      'Using a Handlebars comment when in the `attributeName` state is not supported',
+      '{{! some comment }}',
+      'test-module',
+      3,
+      3
+    )
+  );
 
-  assert.throws(() => {
-    parse('\nbefore <div \n  a={{! some comment }} data-foo="bar"></div> after', {
-      meta: { moduleName: 'test-module' },
-    });
-  }, syntaxErrorFor('Using a Handlebars comment when in the `beforeAttributeValue` state is not supported', '{{! some comment }}', 'test-module', 3, 4));
+  assert.throws(
+    () => {
+      parse('\nbefore <div \n  a={{! some comment }} data-foo="bar"></div> after', {
+        meta: { moduleName: 'test-module' },
+      });
+    },
+    syntaxErrorFor(
+      'Using a Handlebars comment when in the `beforeAttributeValue` state is not supported',
+      '{{! some comment }}',
+      'test-module',
+      3,
+      4
+    )
+  );
 
-  assert.throws(() => {
-    parse('\nbefore <div \n  a="{{! some comment }}" data-foo="bar"></div> after', {
-      meta: { moduleName: 'test-module' },
-    });
-  }, syntaxErrorFor('Using a Handlebars comment when in the `attributeValueDoubleQuoted` state is not supported', '{{! some comment }}', 'test-module', 3, 5));
+  assert.throws(
+    () => {
+      parse('\nbefore <div \n  a="{{! some comment }}" data-foo="bar"></div> after', {
+        meta: { moduleName: 'test-module' },
+      });
+    },
+    syntaxErrorFor(
+      'Using a Handlebars comment when in the `attributeValueDoubleQuoted` state is not supported',
+      '{{! some comment }}',
+      'test-module',
+      3,
+      5
+    )
+  );
 });
 
-test('allow {{null}} to be passed as helper name', function () {
+test('allow {{null}} to be passed as helper name', () => {
   let ast = parse('{{null}}');
 
   astEqual(ast, b.program([b.mustache(b.null())]));
 });
 
-test('allow {{null}} to be passed as a param', function () {
+test('allow {{null}} to be passed as a param', () => {
   let ast = parse('{{foo null}}');
 
   astEqual(ast, b.program([b.mustache(b.path('foo'), [b.null()])]));
 });
 
-test('allow {{undefined}} to be passed as helper name', function () {
+test('allow {{undefined}} to be passed as helper name', () => {
   let ast = parse('{{undefined}}');
 
   astEqual(ast, b.program([b.mustache(b.undefined())]));
 });
 
-test('allow {{undefined}} to be passed as a param', function () {
+test('allow {{undefined}} to be passed as a param', () => {
   let ast = parse('{{foo undefined}}');
 
   astEqual(ast, b.program([b.mustache(b.path('foo'), [b.undefined()])]));
 });
 
-test('Handlebars partial should error', function (assert) {
-  assert.throws(() => {
-    parse('{{> foo}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('Handlebars partials are not supported', '{{> foo}}', 'test-module', 1, 0));
+test('Handlebars partial should error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{> foo}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('Handlebars partials are not supported', '{{> foo}}', 'test-module', 1, 0)
+  );
 });
 
-test('Handlebars partial block should error', function (assert) {
-  assert.throws(() => {
-    parse('{{#> foo}}{{/foo}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('Handlebars partial blocks are not supported', '{{#> foo}}{{/foo}}', 'test-module', 1, 0));
+test('Handlebars partial block should error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{#> foo}}{{/foo}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      'Handlebars partial blocks are not supported',
+      '{{#> foo}}{{/foo}}',
+      'test-module',
+      1,
+      0
+    )
+  );
 });
 
-test('Handlebars decorator should error', function (assert) {
-  assert.throws(() => {
-    parse('{{* foo}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('Handlebars decorators are not supported', '{{* foo}}', 'test-module', 1, 0));
+test('Handlebars decorator should error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{* foo}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('Handlebars decorators are not supported', '{{* foo}}', 'test-module', 1, 0)
+  );
 });
 
-test('Handlebars decorator block should error', function (assert) {
-  assert.throws(() => {
-    parse('{{#* foo}}{{/foo}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('Handlebars decorator blocks are not supported', '{{#* foo}}{{/foo}}', 'test-module', 1, 0));
+test('Handlebars decorator block should error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{#* foo}}{{/foo}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      'Handlebars decorator blocks are not supported',
+      '{{#* foo}}{{/foo}}',
+      'test-module',
+      1,
+      0
+    )
+  );
 });
 
-test('disallowed mustaches in the tagName space', function (assert) {
-  assert.throws(() => {
-    parse('<{{"asdf"}}></{{"asdf"}}>', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{"asdf"}}', 'test-module', 1, 1));
+test('disallowed mustaches in the tagName space', (assert) => {
+  assert.throws(
+    () => {
+      parse('<{{"asdf"}}></{{"asdf"}}>', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{"asdf"}}', 'test-module', 1, 1)
+  );
 
-  assert.throws(() => {
-    parse('<input{{bar}}>', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{bar}}', 'test-module', 1, 6));
+  assert.throws(
+    () => {
+      parse('<input{{bar}}>', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{bar}}', 'test-module', 1, 6)
+  );
 });
 
-test('mustache immediately followed by self closing tag does not error', function () {
+test('mustache immediately followed by self closing tag does not error', () => {
   let ast = parse('<FooBar data-foo={{blah}}/>');
   let el = element('FooBar/', ['attrs', ['data-foo', b.mustache('blah')]]);
   astEqual(ast, b.program([el]));
@@ -655,40 +755,94 @@ test('named blocks', () => {
   astEqual(ast, b.program([el]));
 });
 
-test('path expression with "dangling dot" throws error', function (assert) {
-  assert.throws(() => {
-    parse('{{if foo. bar baz}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor("'.' is not a supported path in Glimmer; check for a path with a trailing '.'", '.', 'test-module', 1, 8));
+test('path expression with "dangling dot" throws error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{if foo. bar baz}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      "'.' is not a supported path in Glimmer; check for a path with a trailing '.'",
+      '.',
+      'test-module',
+      1,
+      8
+    )
+  );
 });
 
-test('string literal as path throws error', function (assert) {
-  assert.throws(() => {
-    parse('{{("foo-baz")}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`StringLiteral "foo-baz" cannot be called as a sub-expression, replace ("foo-baz") with "foo-baz"`, '"foo-baz"', 'test-module', 1, 3));
+test('string literal as path throws error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{("foo-baz")}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      `StringLiteral "foo-baz" cannot be called as a sub-expression, replace ("foo-baz") with "foo-baz"`,
+      '"foo-baz"',
+      'test-module',
+      1,
+      3
+    )
+  );
 });
 
-test('boolean literal as path throws error', function (assert) {
-  assert.throws(() => {
-    parse('{{(true)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`BooleanLiteral "true" cannot be called as a sub-expression, replace (true) with true`, 'true', 'test-module', 1, 3));
+test('boolean literal as path throws error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{(true)}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      `BooleanLiteral "true" cannot be called as a sub-expression, replace (true) with true`,
+      'true',
+      'test-module',
+      1,
+      3
+    )
+  );
 });
 
-test('undefined literal as path throws error', function (assert) {
-  assert.throws(() => {
-    parse('{{(undefined)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`UndefinedLiteral "undefined" cannot be called as a sub-expression, replace (undefined) with undefined`, 'undefined', 'test-module', 1, 3));
+test('undefined literal as path throws error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{(undefined)}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      `UndefinedLiteral "undefined" cannot be called as a sub-expression, replace (undefined) with undefined`,
+      'undefined',
+      'test-module',
+      1,
+      3
+    )
+  );
 });
 
-test('null literal as path throws error', function (assert) {
-  assert.throws(() => {
-    parse('{{(null)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`NullLiteral "null" cannot be called as a sub-expression, replace (null) with null`, 'null', 'test-module', 1, 3));
+test('null literal as path throws error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{(null)}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      `NullLiteral "null" cannot be called as a sub-expression, replace (null) with null`,
+      'null',
+      'test-module',
+      1,
+      3
+    )
+  );
 });
 
-test('number literal as path throws error', function (assert) {
-  assert.throws(() => {
-    parse('{{(42)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`NumberLiteral "42" cannot be called as a sub-expression, replace (42) with 42`, '42', 'test-module', 1, 3));
+test('number literal as path throws error', (assert) => {
+  assert.throws(
+    () => {
+      parse('{{(42)}}', { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor(
+      `NumberLiteral "42" cannot be called as a sub-expression, replace (42) with 42`,
+      '42',
+      'test-module',
+      1,
+      3
+    )
+  );
 });
 
 export function strip(strings: TemplateStringsArray, ...args: string[]) {
@@ -767,10 +921,27 @@ export function element(tag: TagDescriptor, ...options: ElementParts[]): ASTv1.E
 
   return {
     type: 'ElementNode',
-    tag: tag || '',
+    tag: tag,
+    nameNode: {
+      type: 'ElementNameNode',
+      value: tag,
+    } as ASTv1.ElementNameNode,
+    startTag: {
+      type: 'ElementStartNode',
+      value: tag,
+    } as ASTv1.ElementStartNode,
+    endTag: {
+      type: 'ElementEndNode',
+      value: selfClosing ? '' : tag,
+    } as ASTv1.ElementEndNode,
+    parts: tag
+      .split('.')
+      .map((t) => ({ type: 'ElementPartNode', value: t }) as ASTv1.ElementPartNode),
     selfClosing: selfClosing,
     attributes: attrs || [],
     blockParams: blockParams || [],
+    blockParamNodes:
+      blockParams?.map((b) => ({ type: 'BlockParam', value: b }) as ASTv1.BlockParam) || [],
     modifiers: modifiers || [],
     comments: (comments as ASTv1.MustacheCommentStatement[]) || [],
     children: children || [],
@@ -848,7 +1019,7 @@ export function normalizeModifier(sexp: ModifierSexp): ASTv1.ElementModifierStat
 
   _process: {
     if (isParamsSexp(next)) {
-      params = next as ASTv1.Expression[];
+      params = next;
     } else {
       break _process;
     }
@@ -856,7 +1027,7 @@ export function normalizeModifier(sexp: ModifierSexp): ASTv1.ElementModifierStat
     next = parts.shift();
 
     if (isHashSexp(next)) {
-      hash = normalizeHash(next as Dict<ASTv1.Expression>);
+      hash = normalizeHash(next);
     } else {
       break _process;
     }
@@ -887,11 +1058,7 @@ export function normalizeHash(
   hash: Dict<ASTv1.Expression>,
   loc?: ASTv1.SourceLocation
 ): ASTv1.Hash {
-  let pairs: ASTv1.HashPair[] = [];
-
-  Object.keys(hash).forEach((key) => {
-    pairs.push(b.pair(key, hash[key]));
-  });
+  let pairs = Object.entries(hash).map(([key, value]) => b.pair(key, value));
 
   return b.hash(pairs, loc);
 }

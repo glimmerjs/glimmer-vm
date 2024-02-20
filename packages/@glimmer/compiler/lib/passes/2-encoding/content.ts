@@ -1,11 +1,23 @@
-import { SexpOpcodes, WellKnownAttrName, WireFormat } from '@glimmer/interfaces';
+import type {
+  AttrOpcode,
+  ComponentAttrOpcode,
+  DynamicAttrOpcode,
+  StaticAttrOpcode,
+  StaticComponentAttrOpcode,
+  TrustingComponentAttrOpcode,
+  TrustingDynamicAttrOpcode,
+  WellKnownAttrName,
+  WireFormat,
+} from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
+import { SexpOpcodes } from '@glimmer/wire-format';
 
-import { OptionalList } from '../../shared/list';
+import type { OptionalList } from '../../shared/list';
+import type * as mir from './mir';
+
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
-import * as mir from './mir';
 
 class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   constructor(private statements: readonly S[]) {}
@@ -43,7 +55,7 @@ export class ContentEncoder {
   private visitContent(stmt: mir.Statement): WireFormat.Statement | WireStatements {
     switch (stmt.type) {
       case 'Debugger':
-        return [SexpOpcodes.Debugger, stmt.scope.getEvalInfo()];
+        return [SexpOpcodes.Debugger, stmt.scope.getDebugInfo()];
       case 'AppendComment':
         return this.AppendComment(stmt);
       case 'AppendTextNode':
@@ -249,7 +261,7 @@ function staticAttr({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs 
 export type DynamicAttrArgs = [
   name: string | WellKnownAttrName,
   value: WireFormat.Expression,
-  namespace?: string
+  namespace?: string,
 ];
 
 function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {
@@ -262,10 +274,8 @@ function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrAr
   return out;
 }
 
-function staticAttrOp(kind: {
-  component: boolean;
-}): SexpOpcodes.StaticAttr | SexpOpcodes.StaticComponentAttr;
-function staticAttrOp(kind: { component: boolean }): WireFormat.AttrOp {
+function staticAttrOp(kind: { component: boolean }): StaticAttrOpcode | StaticComponentAttrOpcode;
+function staticAttrOp(kind: { component: boolean }): AttrOpcode {
   if (kind.component) {
     return SexpOpcodes.StaticComponentAttr;
   } else {
@@ -276,10 +286,10 @@ function staticAttrOp(kind: { component: boolean }): WireFormat.AttrOp {
 function dynamicAttrOp(
   kind: mir.AttrKind
 ):
-  | SexpOpcodes.TrustingComponentAttr
-  | SexpOpcodes.TrustingDynamicAttr
-  | SexpOpcodes.ComponentAttr
-  | SexpOpcodes.DynamicAttr {
+  | TrustingComponentAttrOpcode
+  | TrustingDynamicAttrOpcode
+  | ComponentAttrOpcode
+  | DynamicAttrOpcode {
   if (kind.component) {
     return kind.trusting ? SexpOpcodes.TrustingComponentAttr : SexpOpcodes.ComponentAttr;
   } else {

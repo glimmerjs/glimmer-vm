@@ -1,7 +1,7 @@
-import {
+import type {
   CompilableProgram,
   LayoutWithContext,
-  Option,
+  Nullable,
   Owner,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
@@ -10,6 +10,7 @@ import {
   TemplateOk,
 } from '@glimmer/interfaces';
 import { assign } from '@glimmer/util';
+
 import { compilable } from './compilable-template';
 import { WrappedBuilder } from './wrapped-component';
 
@@ -103,8 +104,8 @@ export default function templateFactory({
 class TemplateImpl implements TemplateWithIdAndReferrer {
   readonly result = 'ok';
 
-  private layout: Option<CompilableProgram> = null;
-  private wrappedLayout: Option<CompilableProgram> = null;
+  private layout: Nullable<CompilableProgram> = null;
+  private wrappedLayout: Nullable<CompilableProgram> = null;
 
   constructor(private parsedLayout: LayoutWithContext) {}
 

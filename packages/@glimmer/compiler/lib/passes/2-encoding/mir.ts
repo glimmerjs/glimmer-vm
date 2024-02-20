@@ -1,14 +1,14 @@
-import { CurriedType, PresentArray } from '@glimmer/interfaces';
-import {
+import type { CurriedType, PresentArray } from '@glimmer/interfaces';
+import type {
   ASTv2,
   BlockSymbolTable,
-  node,
   ProgramSymbolTable,
   SourceSlice,
   SymbolTable,
 } from '@glimmer/syntax';
+import { node } from '@glimmer/syntax';
 
-import { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
+import type { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 
 export class Template extends node('Template').fields<{
   scope: ProgramSymbolTable;
@@ -110,14 +110,14 @@ export class StaticAttr extends node('StaticAttr').fields<{
   kind: { component: boolean };
   name: SourceSlice;
   value: SourceSlice;
-  namespace?: string;
+  namespace?: string | undefined;
 }>() {}
 
 export class DynamicAttr extends node('DynamicAttr').fields<{
   kind: AttrKind;
   name: SourceSlice;
   value: ExpressionNode;
-  namespace?: string;
+  namespace?: string | undefined;
 }>() {}
 
 export class SimpleElement extends node('SimpleElement').fields<{

@@ -1,13 +1,17 @@
+import { unwrap } from '@glimmer/util';
+import { MachineOp, Op } from '@glimmer/vm';
+
+import type { PushStatementOp } from '../../syntax/compilers';
+
+import { HighLevelBuilderOpcodes } from '../opcodes';
 import { labelOperand } from '../operands';
-import { Op, MachineOp, HighLevelBuilderOpcode } from '@glimmer/interfaces';
-import { PushStatementOp } from '../../syntax/compilers';
 
 export type When = (match: number, callback: () => void) => void;
 
 export function SwitchCases(
   op: PushStatementOp,
   bootstrap: () => void,
-  callback: (when: When) => void
+  matcher: (when: When) => void
 ): void {
   // Setup the switch DSL
   let clauses: Array<{ match: number; label: string; callback: () => void }> = [];
@@ -19,12 +23,12 @@ export function SwitchCases(
   }
 
   // Call the callback
-  callback(when);
+  matcher(when);
 
   // Emit the opcodes for the switch
   op(Op.Enter, 1);
   bootstrap();
-  op(HighLevelBuilderOpcode.StartLabels);
+  op(HighLevelBuilderOpcodes.StartLabels);
 
   // First, emit the jump opcodes. We don't need a jump for the last
   // opcode, since it bleeds directly into its clause.
@@ -35,9 +39,9 @@ export function SwitchCases(
   // Enumerate the clauses in reverse order. Earlier matches will
   // require fewer checks.
   for (let i = clauses.length - 1; i >= 0; i--) {
-    let clause = clauses[i];
+    let clause = unwrap(clauses[i]);
 
-    op(HighLevelBuilderOpcode.Label, clause.label);
+    op(HighLevelBuilderOpcodes.Label, clause.label);
     op(Op.Pop, 1);
     clause.callback();
 
@@ -48,8 +52,8 @@ export function SwitchCases(
     }
   }
 
-  op(HighLevelBuilderOpcode.Label, 'END');
-  op(HighLevelBuilderOpcode.StopLabels);
+  op(HighLevelBuilderOpcodes.Label, 'END');
+  op(HighLevelBuilderOpcodes.StopLabels);
   op(Op.Exit);
 }
 
@@ -118,7 +122,7 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // Start a new label frame, to give END and RETURN
   // a unique meaning.
 
-  op(HighLevelBuilderOpcode.StartLabels);
+  op(HighLevelBuilderOpcodes.StartLabels);
   op(MachineOp.PushFrame);
 
   // If the body invokes a block, its return will return to
@@ -150,7 +154,7 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // All execution paths in the body should run the FINALLY once
   // they are done. It is executed both during initial execution
   // and during updating execution.
-  op(HighLevelBuilderOpcode.Label, 'FINALLY');
+  op(HighLevelBuilderOpcodes.Label, 'FINALLY');
 
   // Finalize the DOM.
   op(Op.Exit);
@@ -162,9 +166,9 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
 
   // Cleanup code for the block. Runs on initial execution
   // but not on updating.
-  op(HighLevelBuilderOpcode.Label, 'ENDINITIAL');
+  op(HighLevelBuilderOpcodes.Label, 'ENDINITIAL');
   op(MachineOp.PopFrame);
-  op(HighLevelBuilderOpcode.StopLabels);
+  op(HighLevelBuilderOpcodes.StopLabels);
 }
 
 /**
@@ -197,7 +201,7 @@ export function ReplayableIf(
     // the cleanup code. In the updating VM, it exits the updating
     // routine.
     op(MachineOp.Jump, labelOperand('FINALLY'));
-    op(HighLevelBuilderOpcode.Label, 'ELSE');
+    op(HighLevelBuilderOpcodes.Label, 'ELSE');
 
     // If the conditional is false, and code associatied ith the
     // false branch was provided, execute it. If there was no code

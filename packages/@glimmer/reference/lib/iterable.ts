@@ -1,9 +1,11 @@
+import type { Dict, Nullable } from '@glimmer/interfaces';
 import { getPath, toIterator } from '@glimmer/global-context';
-import { Option, Dict } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
-import { DEBUG } from '@glimmer/env';
-import { createTag, consumeTag, dirtyTag } from '@glimmer/validator';
-import { Reference, ReferenceEnvironment, valueForRef, createComputeRef } from './reference';
+import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
+
+import type { Reference, ReferenceEnvironment } from './reference';
+
+import { createComputeRef, valueForRef } from './reference';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -13,7 +15,7 @@ export interface IterationItem<T, U> {
 
 export interface AbstractIterator<T, U, V extends IterationItem<T, U>> {
   isEmpty(): boolean;
-  next(): Option<V>;
+  next(): Nullable<V>;
 }
 
 export type OpaqueIterationItem = IterationItem<unknown, unknown>;
@@ -26,7 +28,7 @@ export interface IteratorDelegate {
 
 export interface IteratorReferenceEnvironment extends ReferenceEnvironment {
   getPath(obj: unknown, path: string): unknown;
-  toIterator(obj: unknown): Option<IteratorDelegate>;
+  toIterator(obj: unknown): Nullable<IteratorDelegate>;
 }
 
 type KeyFor = (item: unknown, index: unknown) => unknown;
@@ -46,7 +48,7 @@ const IDENTITY: KeyFor = (item) => {
 };
 
 function keyForPath(path: string): KeyFor {
-  if (DEBUG && path[0] === '@') {
+  if (import.meta.env.DEV && path[0] === '@') {
     throw new Error(`invalid keypath: '${path}', valid keys: @index, @identity, or a path`);
   }
   return uniqueKeyFor((item) => getPath(item as object, path));
@@ -87,7 +89,7 @@ class WeakMapWithPrimitives<T> {
 
   set(key: unknown, value: T) {
     if (isObject(key)) {
-      this.weakMap.set(key as object, value);
+      this.weakMap.set(key, value);
     } else {
       this.primitiveMap.set(key, value);
     }
@@ -95,7 +97,7 @@ class WeakMapWithPrimitives<T> {
 
   get(key: unknown): T | undefined {
     if (isObject(key)) {
-      return this.weakMap.get(key as object);
+      return this.weakMap.get(key);
     } else {
       return this.primitiveMap.get(key);
     }
@@ -193,7 +195,10 @@ export function createIteratorItemRef(_value: unknown) {
 }
 
 class IteratorWrapper implements OpaqueIterator {
-  constructor(private inner: IteratorDelegate, private keyFor: KeyFor) {}
+  constructor(
+    private inner: IteratorDelegate,
+    private keyFor: KeyFor
+  ) {}
 
   isEmpty() {
     return this.inner.isEmpty();
@@ -214,7 +219,10 @@ class ArrayIterator implements OpaqueIterator {
   private current: { kind: 'empty' } | { kind: 'first'; value: unknown } | { kind: 'progress' };
   private pos = 0;
 
-  constructor(private iterator: unknown[] | readonly unknown[], private keyFor: KeyFor) {
+  constructor(
+    private iterator: unknown[] | readonly unknown[],
+    private keyFor: KeyFor
+  ) {
     if (iterator.length === 0) {
       this.current = { kind: 'empty' };
     } else {
@@ -226,7 +234,7 @@ class ArrayIterator implements OpaqueIterator {
     return this.current.kind === 'empty';
   }
 
-  next(): Option<IterationItem<unknown, number>> {
+  next(): Nullable<IterationItem<unknown, number>> {
     let value: unknown;
 
     let current = this.current;

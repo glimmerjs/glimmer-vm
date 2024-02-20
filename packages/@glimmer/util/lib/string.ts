@@ -1,7 +1,9 @@
+import { enumerate } from './array-utils';
+import { getFirst, getLast, isPresentArray } from './present';
+
 export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   let out = '';
-  for (let i = 0; i < strings.length; i++) {
-    let string = strings[i];
+  for (const [i, string] of enumerate(strings)) {
     let dynamic = args[i] !== undefined ? String(args[i]) : '';
 
     out += `${string}${dynamic}`;
@@ -9,18 +11,18 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
 
   let lines = out.split('\n');
 
-  while (lines.length && lines[0].match(/^\s*$/)) {
+  while (isPresentArray(lines) && /^\s*$/u.test(getFirst(lines))) {
     lines.shift();
   }
 
-  while (lines.length && lines[lines.length - 1].match(/^\s*$/)) {
+  while (isPresentArray(lines) && /^\s*$/u.test(getLast(lines))) {
     lines.pop();
   }
 
   let min = Infinity;
 
   for (let line of lines) {
-    let leading = line.match(/^\s*/)![0].length;
+    let leading = /^\s*/u.exec(line)![0].length;
 
     min = Math.min(min, leading);
   }

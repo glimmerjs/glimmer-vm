@@ -1,24 +1,22 @@
-import { module, test } from './-utils';
-
-import { DEBUG } from '@glimmer/env';
-
 import {
-  consumeTag,
-  createTag,
   beginTrackFrame,
-  endTrackFrame,
+  consumeTag,
+  createCache,
+  createTag,
+  debug,
   dirtyTag,
+  endTrackFrame,
+  getValue,
+  isConst,
   isTracking,
-  runInTrackingTransaction,
   track,
   trackedData,
   untrack,
   validateTag,
   valueForTag,
-  createCache,
-  isConst,
-  getValue,
-} from '..';
+} from '@glimmer/validator';
+
+import { module, test } from './-utils';
 
 module('@glimmer/validator: tracking', () => {
   module('track', () => {
@@ -109,24 +107,32 @@ module('@glimmer/validator: tracking', () => {
       assert.notOk(isTracking());
 
       track(() => {
+        assert.step('track');
         assert.ok(isTracking());
 
         untrack(() => {
+          assert.step('untrack');
           assert.notOk(isTracking());
         });
       });
+
+      assert.verifySteps(['track', 'untrack']);
     });
 
     test('nested tracks work', (assert) => {
       assert.notOk(isTracking());
 
       track(() => {
+        assert.step('track');
         assert.ok(isTracking());
 
         untrack(() => {
+          assert.step('untrack');
           assert.notOk(isTracking());
         });
       });
+
+      assert.verifySteps(['track', 'untrack']);
     });
 
     test('nested tracks and untracks work', (assert) => {
@@ -134,11 +140,14 @@ module('@glimmer/validator: tracking', () => {
         track(() => {
           untrack(() => {
             track(() => {
+              assert.step('supernested');
               assert.ok(isTracking(), 'tracking');
             });
           });
         });
       });
+
+      assert.verifySteps(['supernested']);
     });
   });
 
@@ -255,7 +264,7 @@ module('@glimmer/validator: tracking', () => {
     test('asserts if track frame was ended without one existing', (assert) => {
       assert.throws(
         () => endTrackFrame(),
-        /attempted to close a tracking frame, but one was not open/
+        /attempted to close a tracking frame, but one was not open/u
       );
     });
   });
@@ -273,16 +282,16 @@ module('@glimmer/validator: tracking', () => {
         return ++count;
       });
 
-      assert.equal(getValue(cache), 1, 'called correctly the first time');
-      assert.equal(getValue(cache), 1, 'memoized result returned second time');
+      assert.strictEqual(getValue(cache), 1, 'called correctly the first time');
+      assert.strictEqual(getValue(cache), 1, 'memoized result returned second time');
 
       dirtyTag(tag1);
-      assert.equal(getValue(cache), 2, 'cache busted when tag1 dirtied');
-      assert.equal(getValue(cache), 2, 'memoized result returned when nothing dirtied');
+      assert.strictEqual(getValue(cache), 2, 'cache busted when tag1 dirtied');
+      assert.strictEqual(getValue(cache), 2, 'memoized result returned when nothing dirtied');
 
       dirtyTag(tag2);
-      assert.equal(getValue(cache), 3, 'cache busted when tag2 dirtied');
-      assert.equal(getValue(cache), 3, 'memoized result returned when nothing dirtied');
+      assert.strictEqual(getValue(cache), 3, 'cache busted when tag2 dirtied');
+      assert.strictEqual(getValue(cache), 3, 'memoized result returned when nothing dirtied');
     });
 
     test('it ignores tags consumed within an untrack frame', (assert) => {
@@ -298,15 +307,15 @@ module('@glimmer/validator: tracking', () => {
         return ++count;
       });
 
-      assert.equal(getValue(cache), 1, 'called correctly the first time');
-      assert.equal(getValue(cache), 1, 'memoized result returned second time');
+      assert.strictEqual(getValue(cache), 1, 'called correctly the first time');
+      assert.strictEqual(getValue(cache), 1, 'memoized result returned second time');
 
       dirtyTag(tag1);
-      assert.equal(getValue(cache), 2, 'cache busted when tag1 dirtied');
-      assert.equal(getValue(cache), 2, 'memoized result returned when nothing dirtied');
+      assert.strictEqual(getValue(cache), 2, 'cache busted when tag1 dirtied');
+      assert.strictEqual(getValue(cache), 2, 'memoized result returned when nothing dirtied');
 
       dirtyTag(tag2);
-      assert.equal(getValue(cache), 2, 'cache not busted when tag2 dirtied');
+      assert.strictEqual(getValue(cache), 2, 'cache not busted when tag2 dirtied');
     });
 
     test('nested memoizations work, and automatically propogate', (assert) => {
@@ -351,18 +360,21 @@ module('@glimmer/validator: tracking', () => {
     });
 
     test('isTracking works within a memoized function and untrack frame', (assert) => {
-      assert.expect(3);
       assert.notOk(isTracking());
 
       let cache = createCache(() => {
+        assert.step('cache called');
         assert.ok(isTracking());
 
         untrack(() => {
+          assert.step('untrack');
           assert.notOk(isTracking());
         });
       });
 
       getValue(cache);
+
+      assert.verifySteps(['cache called', 'untrack']);
     });
 
     test('isConst allows users to check if a memoized function is constant', (assert) => {
@@ -383,36 +395,36 @@ module('@glimmer/validator: tracking', () => {
       assert.notOk(isConst(nonConstCache), 'non-constant cache returns false');
     });
 
-    if (DEBUG) {
-      test('createCache throws an error in DEBUG mode if users to use with a non-function', (assert) => {
+    if (import.meta.env.DEV) {
+      test('createCache throws an error in import.meta.env.DEV mode if users to use with a non-function', (assert) => {
         assert.throws(
           () => createCache(123 as any),
-          /Error: createCache\(\) must be passed a function as its first parameter. Called with: 123/
+          /Error: createCache\(\) must be passed a function as its first parameter. Called with: 123/u
         );
       });
 
-      test('getValue throws an error in DEBUG mode if users to use with a non-cache', (assert) => {
+      test('getValue throws an error in import.meta.env.DEV mode if users to use with a non-cache', (assert) => {
         assert.throws(
           () => getValue(123 as any),
-          /Error: getValue\(\) can only be used on an instance of a cache created with createCache\(\). Called with: 123/
+          /Error: getValue\(\) can only be used on an instance of a cache created with createCache\(\). Called with: 123/u
         );
       });
 
-      test('isConst throws an error in DEBUG mode if users attempt to check a function before it has been called', (assert) => {
+      test('isConst throws an error in import.meta.env.DEV mode if users attempt to check a function before it has been called', (assert) => {
         let cache = createCache(() => {
           // do nothing;
         });
 
         assert.throws(
           () => isConst(cache),
-          /Error: isConst\(\) can only be used on a cache once getValue\(\) has been called at least once/
+          /Error: isConst\(\) can only be used on a cache once getValue\(\) has been called at least once/u
         );
       });
 
-      test('isConst throws an error in DEBUG mode if users attempt to use with a non-cache', (assert) => {
+      test('isConst throws an error in import.meta.env.DEV mode if users attempt to use with a non-cache', (assert) => {
         assert.throws(
           () => isConst(123 as any),
-          /Error: isConst\(\) can only be used on an instance of a cache created with createCache\(\). Called with: 123/
+          /Error: isConst\(\) can only be used on an instance of a cache created with createCache\(\). Called with: 123/u
         );
       });
     }
@@ -429,8 +441,8 @@ module('@glimmer/validator: tracking', () => {
       let foo = new Foo();
 
       setter(foo, 456);
-      assert.equal(getter(foo), 456, 'value is set correctly');
-      assert.equal(foo.foo, 123, 'value is not set on the actual object');
+      assert.strictEqual(getter(foo), 456, 'value is set correctly');
+      assert.strictEqual(foo.foo, 123, 'value is not set on the actual object');
     });
 
     test('it can receive an initializer', (assert) => {
@@ -445,8 +457,8 @@ module('@glimmer/validator: tracking', () => {
 
       let foo = new Foo();
 
-      assert.equal(getter(foo), 456, 'value is initialized correctly');
-      assert.equal(foo.foo, 123, 'value is not set on the actual object');
+      assert.strictEqual(getter(foo), 456, 'value is initialized correctly');
+      assert.strictEqual(foo.foo, 123, 'value is not set on the actual object');
     });
 
     test('it tracks changes to the storage cell', (assert) => {
@@ -461,7 +473,7 @@ module('@glimmer/validator: tracking', () => {
 
       let foo = new Foo();
       let tag = track(() => {
-        assert.equal(getter(foo), 456, 'value is set correctly');
+        assert.strictEqual(getter(foo), 456, 'value is set correctly');
       });
 
       let snapshot = valueForTag(tag);
@@ -470,7 +482,7 @@ module('@glimmer/validator: tracking', () => {
       assert.notOk(validateTag(tag, snapshot));
     });
 
-    if (DEBUG) {
+    if (import.meta.env.DEV) {
       test('it errors when attempting to update a value already consumed in the same transaction', (assert) => {
         class Foo {
           foo = 123;
@@ -484,37 +496,37 @@ module('@glimmer/validator: tracking', () => {
         let foo = new Foo();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               getter(foo);
               setter(foo, 789);
             });
           });
-        }, /You attempted to update `foo` on `\(an instance of/);
+        }, /You attempted to update `foo` on `\(an instance of/u);
       });
     }
   });
 
-  if (DEBUG) {
+  if (import.meta.env.DEV) {
     module('debug', () => {
       test('it errors when attempting to update a value that has already been consumed in the same transaction', (assert) => {
         let tag = createTag();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               consumeTag(tag);
               dirtyTag(tag);
             });
           });
-        }, /Error: You attempted to update `\(an unknown tag\)`/);
+        }, /Error: You attempted to update `\(an unknown tag\)`/u);
       });
 
       test('it throws errors across track frames within the same debug transaction', (assert) => {
         let tag = createTag();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               consumeTag(tag);
             });
@@ -523,14 +535,14 @@ module('@glimmer/validator: tracking', () => {
               dirtyTag(tag);
             });
           });
-        }, /Error: You attempted to update `\(an unknown tag\)`/);
+        }, /Error: You attempted to update `\(an unknown tag\)`/u);
       });
 
       test('it ignores untrack for consumption', (assert) => {
         assert.expect(0);
         let tag = createTag();
 
-        runInTrackingTransaction!(() => {
+        debug.runInTrackingTransaction!(() => {
           untrack(() => {
             consumeTag(tag);
           });
@@ -545,7 +557,7 @@ module('@glimmer/validator: tracking', () => {
         let tag = createTag();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               consumeTag(tag);
             });
@@ -554,7 +566,7 @@ module('@glimmer/validator: tracking', () => {
               dirtyTag(tag);
             });
           });
-        }, /Error: You attempted to update `\(an unknown tag\)`/);
+        }, /Error: You attempted to update `\(an unknown tag\)`/u);
       });
     });
   }

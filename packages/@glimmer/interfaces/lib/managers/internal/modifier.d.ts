@@ -1,15 +1,14 @@
-import { GlimmerTreeChanges } from '../../dom/changes';
-// eslint-disable-next-line node/no-extraneous-import
-import { UpdatableTag } from '@glimmer/validator';
-import { SimpleElement } from '@simple-dom/interface';
-import { Owner } from '../../runtime';
-import { Destroyable } from '../../core';
-import { ModifierDefinitionState, ModifierInstanceState } from '../../runtime/modifier';
-import { CapturedArguments } from '../../runtime/arguments';
+import type { SimpleElement } from '@simple-dom/interface';
+
+import type { Destroyable } from '../../core.js';
+import type { Owner } from '../../runtime.js';
+import type { CapturedArguments } from '../../runtime/arguments.js';
+import type { ModifierDefinitionState, ModifierInstanceState } from '../../runtime/modifier.js';
+import type { UpdatableTag } from '../../tags.js';
 
 export interface InternalModifierManager<
   TModifierInstanceState = ModifierInstanceState,
-  TModifierDefinitionState extends ModifierDefinitionState = ModifierDefinitionState
+  TModifierDefinitionState extends ModifierDefinitionState = ModifierDefinitionState,
 > {
   // Create is meant to only produce the state bucket
   create(

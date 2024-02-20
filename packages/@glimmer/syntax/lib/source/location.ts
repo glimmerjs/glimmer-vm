@@ -1,7 +1,7 @@
-import { PresentArray } from '@glimmer/interfaces';
-import { isPresent } from '@glimmer/util';
+import type { PresentArray } from '@glimmer/interfaces';
+import { isPresentArray } from '@glimmer/util';
 
-import { SourceSpan } from './span';
+import type { SourceSpan } from './span';
 
 export interface SourceLocation {
   start: SourcePosition;
@@ -56,7 +56,7 @@ export type LocatedWithOptionalPositions = { loc?: SourceLocation };
 export function isLocatedWithPositionsArray(
   location: LocatedWithOptionalPositions[]
 ): location is PresentArray<LocatedWithPositions> {
-  return isPresent(location) && location.every(isLocatedWithPositions);
+  return isPresentArray(location) && location.every(isLocatedWithPositions);
 }
 
 export function isLocatedWithPositions(

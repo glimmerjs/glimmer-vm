@@ -1,10 +1,16 @@
-import {
+import type {
+  Nullable,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
   TemplateJavascript,
 } from '@glimmer/interfaces';
+import type {
+  PrecompileOptions,
+  PrecompileOptionsWithLexicalScope,
+  TemplateIdFn,
+} from '@glimmer/syntax';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { normalize, PrecompileOptions, Source, TemplateIdFn } from '@glimmer/syntax';
+import { normalize, src } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 import pass0 from './passes/1-normalization/index';
@@ -14,24 +20,24 @@ declare function require(id: 'crypto'): Crypto;
 declare function require(id: string): unknown;
 
 interface Crypto {
-  createHash(
-    alg: 'sha1'
-  ): {
+  createHash(alg: 'sha1'): {
     update(src: string, encoding: 'utf8'): void;
     digest(encoding: 'base64'): string;
   };
 }
 
 export const defaultId: TemplateIdFn = (() => {
-  let req: typeof require | undefined =
-    typeof module === 'object' && typeof module.require === 'function' ? module.require : require;
+  const req: typeof require | undefined =
+    typeof module === 'object' && typeof module.require === 'function'
+      ? module.require
+      : globalThis.require;
 
   if (req) {
     try {
       const crypto = req('crypto');
 
-      let idFn: TemplateIdFn = (src) => {
-        let hash = crypto.createHash('sha1');
+      const idFn: TemplateIdFn = (src) => {
+        const hash = crypto.createHash('sha1');
         hash.update(src, 'utf8');
         // trim to 6 bytes of data (2^48 - 1)
         return hash.digest('base64').substring(0, 8);
@@ -40,7 +46,9 @@ export const defaultId: TemplateIdFn = (() => {
       idFn('test');
 
       return idFn;
-    } catch (e) {}
+    } catch {
+      // do nothing
+    }
   }
 
   return function idFn() {
@@ -67,12 +75,12 @@ const defaultOptions: PrecompileOptions = {
  * @return {string} a template javascript string
  */
 export function precompileJSON(
-  string: string,
-  options: PrecompileOptions = defaultOptions
+  string: Nullable<string>,
+  options: PrecompileOptions | PrecompileOptionsWithLexicalScope = defaultOptions
 ): [block: SerializedTemplateBlock, usedLocals: string[]] {
-  let source = new Source(string, options.meta?.moduleName);
-  let [ast, locals] = normalize(source, options);
-  let block = pass0(source, ast, options.strictMode ?? false).mapOk((pass2In) => {
+  const source = new src.Source(string ?? '', options.meta?.moduleName);
+  const [ast, locals] = normalize(source, { lexicalScope: () => false, ...options });
+  const block = pass0(source, ast, options.strictMode ?? false).mapOk((pass2In) => {
     return pass2(pass2In);
   });
 
@@ -107,20 +115,20 @@ const SCOPE_PLACEHOLDER = '796d24e6-2450-4fb0-8cdf-b65638b5ef70';
  */
 export function precompile(
   source: string,
-  options: PrecompileOptions = defaultOptions
+  options: PrecompileOptions | PrecompileOptionsWithLexicalScope = defaultOptions
 ): TemplateJavascript {
-  let [block, usedLocals] = precompileJSON(source, options);
+  const [block, usedLocals] = precompileJSON(source, options);
 
-  let moduleName = options.meta?.moduleName;
-  let idFn = options.id || defaultId;
-  let blockJSON = JSON.stringify(block);
-  let templateJSONObject: SerializedTemplateWithLazyBlock = {
+  const moduleName = options.meta?.moduleName;
+  const idFn = options.id || defaultId;
+  const blockJSON = JSON.stringify(block);
+  const templateJSONObject: SerializedTemplateWithLazyBlock = {
     id: idFn(JSON.stringify(options.meta) + blockJSON),
     block: blockJSON,
     moduleName: moduleName ?? '(unknown template module)',
     // lying to the type checker here because we're going to
     // replace it just below, after stringification
-    scope: (SCOPE_PLACEHOLDER as unknown) as null,
+    scope: SCOPE_PLACEHOLDER as unknown as null,
     isStrictMode: options.strictMode ?? false,
   };
 
@@ -132,7 +140,7 @@ export function precompile(
   let stringified = JSON.stringify(templateJSONObject);
 
   if (usedLocals.length > 0) {
-    let scopeFn = `()=>[${usedLocals.join(',')}]`;
+    const scopeFn = `()=>[${usedLocals.join(',')}]`;
 
     stringified = stringified.replace(`"${SCOPE_PLACEHOLDER}"`, scopeFn);
   }
@@ -140,4 +148,4 @@ export function precompile(
   return stringified;
 }
 
-export { PrecompileOptions };
+export type { PrecompileOptions };

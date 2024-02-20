@@ -1,22 +1,29 @@
-import {
+import type {
+  AttrNamespace,
   Dict,
   Expressions,
-  GetContextualFreeOp,
-  Option,
+  GetContextualFreeOpcode,
+  Nullable,
   PresentArray,
-  SexpOpcodes,
-  VariableResolutionContext,
   WireFormat,
 } from '@glimmer/interfaces';
-import { assert, assertNever, dict, exhausted, expect, isPresent, values } from '@glimmer/util';
-import { AttrNamespace, Namespace } from '@simple-dom/interface';
-
 import {
-  Builder,
+  assert,
+  assertNever,
+  dict,
+  exhausted,
+  expect,
+  isPresentArray,
+  NS_XLINK,
+  NS_XML,
+  NS_XMLNS,
+  values,
+} from '@glimmer/util';
+import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
+
+import type {
   BuilderComment,
   BuilderStatement,
-  ExpressionKind,
-  HeadKind,
   NormalizedAngleInvocation,
   NormalizedAttrs,
   NormalizedBlock,
@@ -29,12 +36,16 @@ import {
   NormalizedParams,
   NormalizedPath,
   NormalizedStatement,
-  normalizeStatement,
   Variable,
-  VariableKind,
 } from './builder-interface';
 
-import Op = WireFormat.SexpOpcodes;
+import {
+  Builder,
+  ExpressionKind,
+  HeadKind,
+  normalizeStatement,
+  VariableKind,
+} from './builder-interface';
 
 interface Symbols {
   top: ProgramSymbols;
@@ -102,7 +113,10 @@ export class ProgramSymbols implements Symbols {
 class LocalSymbols implements Symbols {
   private locals: Dict<number> = dict();
 
-  constructor(private parent: Symbols, locals: string[]) {
+  constructor(
+    private parent: Symbols,
+    locals: string[]
+  ) {
     for (let local of locals) {
       this.locals[local] = parent.top.symbol(local);
     }
@@ -130,7 +144,7 @@ class LocalSymbols implements Symbols {
 
   local(name: string): number {
     if (name in this.locals) {
-      return this.locals[name];
+      return this.locals[name] as number;
     } else {
       return this.parent.local(name);
     }
@@ -226,7 +240,7 @@ export function buildStatement(
 
     case HeadKind.Call: {
       let { head: path, params, hash, trusted } = normalized;
-      let builtParams: Option<WireFormat.Core.Params> = params
+      let builtParams: Nullable<WireFormat.Core.Params> = params
         ? buildParams(params, symbols)
         : null;
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
@@ -317,19 +331,26 @@ function buildKeyword(
   let params = buildParams(normalized.params, symbols);
   let childSymbols = symbols.child(normalized.blockParams || []);
 
-  let block = buildBlock(normalized.blocks.default, childSymbols, childSymbols.paramSymbols);
-  let inverse = normalized.blocks.else ? buildBlock(normalized.blocks.else, symbols, []) : null;
+  let block = buildBlock(
+    normalized.blocks['default'] as NormalizedBlock,
+    childSymbols,
+    childSymbols.paramSymbols
+  );
+  let inverse = normalized.blocks['else']
+    ? buildBlock(normalized.blocks['else'], symbols, [])
+    : null;
 
   switch (name) {
     case 'with':
       return [Op.With, expect(params, 'with requires params')[0], block, inverse];
     case 'if':
       return [Op.If, expect(params, 'if requires params')[0], block, inverse];
-    case 'each':
+    case 'each': {
       let keyExpr = normalized.hash ? normalized.hash['key'] : null;
       let key = keyExpr ? buildExpression(keyExpr, 'Strict', symbols) : null;
-
       return [Op.Each, expect(params, 'if requires params')[0], key, block, inverse];
+    }
+
     default:
       throw new Error('unimplemented keyword');
   }
@@ -362,7 +383,7 @@ function buildElement(
   return out;
 }
 
-function hasSplat(attrs: Option<NormalizedAttrs>): boolean {
+function hasSplat(attrs: Nullable<NormalizedAttrs>): boolean {
   if (attrs === null) return false;
 
   return Object.keys(attrs).some((a) => attrs[a] === HeadKind.Splat);
@@ -387,7 +408,7 @@ export function buildAngleInvocation(
   return [
     Op.Component,
     buildExpression(head, VariableResolutionContext.ResolveAsComponentHead, symbols),
-    isPresent(paramList) ? paramList : null,
+    isPresentArray(paramList) ? paramList : null,
     args,
     [['default'], [[blockList, []]]],
   ];
@@ -401,9 +422,7 @@ export function buildElementParams(
   let keys: string[] = [];
   let values: WireFormat.Expression[] = [];
 
-  Object.keys(attrs).forEach((key) => {
-    let value = attrs[key];
-
+  for (const [key, value] of Object.entries(attrs)) {
     if (value === HeadKind.Splat) {
       params.push([Op.AttrSplat, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
@@ -420,17 +439,17 @@ export function buildElementParams(
         )
       );
     }
-  });
-
-  return { params, args: isPresent(keys) && isPresent(values) ? [keys, values] : null };
-}
-
-export function extractNamespace(name: string): Option<AttrNamespace> {
-  if (name === 'xmlns') {
-    return Namespace.XMLNS;
   }
 
-  let match = /^([^:]*):([^:]*)$/.exec(name);
+  return { params, args: isPresentArray(keys) && isPresentArray(values) ? [keys, values] : null };
+}
+
+export function extractNamespace(name: string): Nullable<AttrNamespace> {
+  if (name === 'xmlns') {
+    return NS_XMLNS;
+  }
+
+  let match = /^([^:]*):([^:]*)$/u.exec(name);
 
   if (match === null) {
     return null;
@@ -440,11 +459,11 @@ export function extractNamespace(name: string): Option<AttrNamespace> {
 
   switch (namespace) {
     case 'xlink':
-      return Namespace.XLink;
+      return NS_XLINK;
     case 'xml':
-      return Namespace.XML;
+      return NS_XML;
     case 'xmlns':
-      return Namespace.XMLNS;
+      return NS_XMLNS;
   }
 
   return null;
@@ -453,7 +472,7 @@ export function extractNamespace(name: string): Option<AttrNamespace> {
 export function buildAttributeValue(
   name: string,
   value: NormalizedExpression,
-  namespace: Option<AttrNamespace>,
+  namespace: Nullable<AttrNamespace>,
   symbols: Symbols
 ): WireFormat.Attribute[] {
   switch (value.type) {
@@ -618,21 +637,21 @@ export function buildVar(
   switch (head.kind) {
     case VariableKind.Free:
       if (context === 'Strict') {
-        op = SexpOpcodes.GetStrictFree;
+        op = Op.GetStrictKeyword;
       } else if (context === 'AppendBare') {
-        op = SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback;
+        op = Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
       } else if (context === 'AppendInvoke') {
-        op = SexpOpcodes.GetFreeAsComponentOrHelperHead;
+        op = Op.GetFreeAsComponentOrHelperHead;
       } else if (context === 'TrustedAppendBare') {
-        op = SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
+        op = Op.GetFreeAsHelperHeadOrThisFallback;
       } else if (context === 'TrustedAppendInvoke') {
-        op = SexpOpcodes.GetFreeAsHelperHead;
+        op = Op.GetFreeAsHelperHead;
       } else if (context === 'AttrValueBare') {
-        op = SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
+        op = Op.GetFreeAsHelperHeadOrThisFallback;
       } else if (context === 'AttrValueInvoke') {
-        op = SexpOpcodes.GetFreeAsHelperHead;
+        op = Op.GetFreeAsHelperHead;
       } else if (context === 'SubExpression') {
-        op = SexpOpcodes.GetFreeAsHelperHead;
+        op = Op.GetFreeAsHelperHead;
       } else {
         op = expressionContextOp(context);
       }
@@ -669,10 +688,10 @@ function getSymbolForVar(
   }
 }
 
-export function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOp {
+export function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOpcode {
   switch (context) {
     case VariableResolutionContext.Strict:
-      return Op.GetStrictFree;
+      return Op.GetStrictKeyword;
     case VariableResolutionContext.AmbiguousAppend:
       return Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
     case VariableResolutionContext.AmbiguousAppendInvoke:
@@ -691,10 +710,10 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
 }
 
 export function buildParams(
-  exprs: Option<NormalizedParams>,
+  exprs: Nullable<NormalizedParams>,
   symbols: Symbols
-): Option<WireFormat.Core.Params> {
-  if (exprs === null || !isPresent(exprs)) return null;
+): Nullable<WireFormat.Core.Params> {
+  if (exprs === null || !isPresentArray(exprs)) return null;
 
   return exprs.map((e) => buildExpression(e, 'Strict', symbols)) as WireFormat.Core.ConcatParams;
 }
@@ -706,38 +725,38 @@ export function buildConcat(
   return exprs.map((e) => buildExpression(e, 'AttrValue', symbols)) as WireFormat.Core.ConcatParams;
 }
 
-export function buildHash(exprs: Option<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
+export function buildHash(exprs: Nullable<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
   if (exprs === null) return null;
 
   let out: [string[], WireFormat.Expression[]] = [[], []];
 
-  Object.keys(exprs).forEach((key) => {
+  for (const [key, value] of Object.entries(exprs)) {
     out[0].push(key);
-    out[1].push(buildExpression(exprs[key], 'Strict', symbols));
-  });
+    out[1].push(buildExpression(value, 'Strict', symbols));
+  }
 
   return out as WireFormat.Core.Hash;
 }
 
 export function buildBlocks(
   blocks: NormalizedBlocks,
-  blockParams: Option<string[]>,
+  blockParams: Nullable<string[]>,
   parent: Symbols
 ): WireFormat.Core.Blocks {
   let keys: string[] = [];
   let values: WireFormat.SerializedInlineBlock[] = [];
 
-  Object.keys(blocks).forEach((name) => {
+  for (const [name, block] of Object.entries(blocks)) {
     keys.push(name);
 
     if (name === 'default') {
       let symbols = parent.child(blockParams || []);
 
-      values.push(buildBlock(blocks[name], symbols, symbols.paramSymbols));
+      values.push(buildBlock(block, symbols, symbols.paramSymbols));
     } else {
-      values.push(buildBlock(blocks[name], parent, []));
+      values.push(buildBlock(block, parent, []));
     }
-  });
+  }
 
   return [keys, values];
 }

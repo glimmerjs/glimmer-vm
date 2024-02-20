@@ -1,11 +1,10 @@
-import { Environment } from './environment';
-// eslint-disable-next-line node/no-extraneous-import
-import { Reference } from '@glimmer/reference';
-import { Destroyable } from '../core';
-import { DynamicScope } from './scope';
-import { Owner } from './owner';
-import { GlimmerTreeChanges } from '../dom/changes';
-import { ExceptionHandler } from './render';
+import type { Destroyable } from '../core.js';
+import type { GlimmerTreeChanges } from '../dom/changes.js';
+import type { Reference } from '../references.js';
+import type { Environment } from './environment.js';
+import type { Owner } from './owner.js';
+import type { ExceptionHandler } from './render.js';
+import type { DynamicScope } from './scope.js';
 /**
  * This is used in the Glimmer Embedding API. In particular, embeddings
  * provide helpers through the `CompileTimeLookup` interface, and the

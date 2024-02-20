@@ -1,9 +1,11 @@
-import { MachineOp, Op, Option, WireFormat } from '@glimmer/interfaces';
-import { $fp } from '@glimmer/vm';
-import { PushPrimitive } from './vm';
+import type { Nullable, WireFormat } from '@glimmer/interfaces';
+import { $fp, MachineOp, Op } from '@glimmer/vm';
+
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+
 import { blockOperand, symbolTableOperand } from '../operands';
 import { SimpleArgs } from './shared';
-import { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import { PushPrimitive } from './vm';
 
 /**
  * Yield to a block located at a particular symbol location.
@@ -14,7 +16,7 @@ import { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 export function YieldBlock(
   op: PushStatementOp,
   to: number,
-  positional: Option<WireFormat.Core.Params>
+  positional: Nullable<WireFormat.Core.Params>
 ): void {
   SimpleArgs(op, positional, null, true);
   op(Op.GetBlock, to);
@@ -33,7 +35,7 @@ export function YieldBlock(
  */
 export function PushYieldableBlock(
   op: PushStatementOp,
-  block: Option<WireFormat.SerializedInlineBlock>
+  block: Nullable<WireFormat.SerializedInlineBlock>
 ): void {
   PushSymbolTable(op, block && block[1]);
   op(Op.PushBlockScope);
@@ -109,7 +111,7 @@ export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | nul
 
 export function PushCompilable(
   op: PushExpressionOp,
-  _block: Option<WireFormat.SerializedInlineBlock>
+  _block: Nullable<WireFormat.SerializedInlineBlock>
 ): void {
   if (_block === null) {
     PushPrimitive(op, null);

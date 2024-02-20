@@ -1,9 +1,11 @@
-import { CurriedType } from '@glimmer/interfaces';
-import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
+import type { ASTv2 } from '@glimmer/syntax';
+import { generateSyntaxError } from '@glimmer/syntax';
+import { CurriedTypes } from '@glimmer/vm';
+
+import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { NormalizationState } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
 import { VISIT_STMTS } from '../visitors/statements';
 import { keywords } from './impl';
@@ -11,9 +13,7 @@ import { assertCurryKeyword } from './utils/curry';
 
 export const BLOCK_KEYWORDS = keywords('Block')
   .kw('in-element', {
-    assert(
-      node: ASTv2.InvokeBlock
-    ): Result<{
+    assert(node: ASTv2.InvokeBlock): Result<{
       insertBefore: ASTv2.ExpressionNode | null;
       destination: ASTv2.ExpressionNode;
     }> {
@@ -90,9 +90,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('if', {
-    assert(
-      node: ASTv2.InvokeBlock
-    ): Result<{
+    assert(node: ASTv2.InvokeBlock): Result<{
       condition: ASTv2.ExpressionNode;
     }> {
       let { args } = node;
@@ -154,9 +152,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('unless', {
-    assert(
-      node: ASTv2.InvokeBlock
-    ): Result<{
+    assert(node: ASTv2.InvokeBlock): Result<{
       condition: ASTv2.ExpressionNode;
     }> {
       let { args } = node;
@@ -218,9 +214,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('each', {
-    assert(
-      node: ASTv2.InvokeBlock
-    ): Result<{
+    assert(node: ASTv2.InvokeBlock): Result<{
       value: ASTv2.ExpressionNode;
       key: ASTv2.ExpressionNode | null;
     }> {
@@ -288,9 +282,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('with', {
-    assert(
-      node: ASTv2.InvokeBlock
-    ): Result<{
+    assert(node: ASTv2.InvokeBlock): Result<{
       value: ASTv2.ExpressionNode;
     }> {
       let { args } = node;
@@ -352,9 +344,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('let', {
-    assert(
-      node: ASTv2.InvokeBlock
-    ): Result<{
+    assert(node: ASTv2.InvokeBlock): Result<{
       positional: ASTv2.PositionalArguments;
     }> {
       let { args } = node;
@@ -408,9 +398,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('-with-dynamic-vars', {
-    assert(
-      node: ASTv2.InvokeBlock
-    ): Result<{
+    assert(node: ASTv2.InvokeBlock): Result<{
       named: ASTv2.NamedArguments;
     }> {
       return Ok({ named: node.args.named });
@@ -436,7 +424,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('component', {
-    assert: assertCurryKeyword(CurriedType.Component),
+    assert: assertCurryKeyword(CurriedTypes.Component),
 
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },

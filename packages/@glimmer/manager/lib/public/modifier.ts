@@ -1,5 +1,4 @@
-import { DEBUG } from '@glimmer/env';
-import {
+import type {
   Arguments,
   CapturedArguments,
   InternalModifierManager,
@@ -7,21 +6,24 @@ import {
   ModifierCapabilitiesVersions,
   ModifierManager,
   Owner,
+  SimpleElement,
+  UpdatableTag,
 } from '@glimmer/interfaces';
 import { registerDestructor } from '@glimmer/destroyable';
 import { valueForRef } from '@glimmer/reference';
 import { castToBrowser, dict } from '@glimmer/util';
-import { createUpdatableTag, untrack, UpdatableTag } from '@glimmer/validator';
-import { SimpleElement } from '@simple-dom/interface';
-import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
+import { createUpdatableTag, untrack } from '@glimmer/validator';
+
+import type { ManagerFactory } from '.';
+
 import { argsProxyFor } from '../util/args-proxy';
-import { ManagerFactory } from '.';
+import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
 
 export function modifierCapabilities<Version extends keyof ModifierCapabilitiesVersions>(
   managerAPI: Version,
   optionalFeatures: ModifierCapabilitiesVersions[Version] = {}
 ): ModifierCapabilities {
-  if (DEBUG && managerAPI !== '3.22') {
+  if (import.meta.env.DEV && managerAPI !== '3.22') {
     throw new Error('Invalid modifier manager compatibility specified');
   }
 
@@ -64,7 +66,8 @@ export interface CustomModifierState<ModifierInstance> {
   * `destroyModifier()` - invoked when the modifier is about to be destroyed
 */
 export class CustomModifierManager<O extends Owner, ModifierInstance>
-  implements InternalModifierManager<CustomModifierState<ModifierInstance>> {
+  implements InternalModifierManager<CustomModifierState<ModifierInstance>>
+{
   private componentManagerDelegates = new WeakMap<O, ModifierManager<ModifierInstance>>();
 
   constructor(private factory: ManagerFactory<O, ModifierManager<ModifierInstance>>) {}
@@ -77,7 +80,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
       let { factory } = this;
       delegate = factory(owner);
 
-      if (DEBUG && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
+      if (import.meta.env.DEV && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
         // TODO: This error message should make sense in both Ember and Glimmer https://github.com/glimmerjs/glimmer-vm/issues/1200
         throw new Error(
           `Custom modifier managers must have a \`capabilities\` property that is the result of calling the \`capabilities('3.22')\` (imported via \`import { capabilities } from '@ember/modifier';\`). Received: \`${JSON.stringify(
@@ -106,10 +109,10 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
       element,
       delegate,
       args,
-      modifier: instance!,
+      modifier: instance,
     };
 
-    if (DEBUG) {
+    if (import.meta.env.DEV) {
       state.debugName = typeof definition === 'function' ? definition.name : definition.toString();
     }
 
@@ -151,14 +154,14 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
   }
 }
 
-export function reifyArgs({
-  named,
-  positional,
-}: CapturedArguments): { named: Record<string, unknown>; positional: unknown[] } {
+export function reifyArgs({ named, positional }: CapturedArguments): {
+  named: Record<string, unknown>;
+  positional: unknown[];
+} {
   let reifiedNamed = dict();
 
-  for (let key in named) {
-    reifiedNamed[key] = valueForRef(named[key]);
+  for (const [key, value] of Object.entries(named)) {
+    reifiedNamed[key] = valueForRef(value);
   }
 
   let reifiedPositional = positional.map(valueForRef);

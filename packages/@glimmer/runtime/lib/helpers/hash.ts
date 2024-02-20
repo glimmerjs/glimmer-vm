@@ -1,14 +1,14 @@
-import { CapturedArguments, Dict } from '@glimmer/interfaces';
-import { createComputeRef, Reference } from '@glimmer/reference';
-import { reifyNamed } from '@glimmer/runtime';
+import type { CapturedArguments, Dict } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
 import { deprecate } from '@glimmer/global-context';
-import { HAS_NATIVE_PROXY } from '@glimmer/util';
+import { createComputeRef } from '@glimmer/reference';
+
+import { reifyNamed } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
-import { DEBUG } from '@glimmer/env';
 
 let wrapHashProxy: (hash: Record<string, unknown>) => Record<string, unknown>;
 
-if (DEBUG) {
+if (import.meta.env.DEV) {
   wrapHashProxy = (hash: Record<string, unknown>) => {
     return new Proxy(hash, {
       set(target, key, value) {
@@ -64,32 +64,30 @@ if (DEBUG) {
    @return {Object} Hash
    @public
  */
-export default internalHelper(
-  ({ named }: CapturedArguments): Reference<Dict<unknown>> => {
-    let ref = createComputeRef(
-      () => {
-        let hash = reifyNamed(named);
+export const hash = internalHelper(({ named }: CapturedArguments): Reference<Dict<unknown>> => {
+  let ref = createComputeRef(
+    () => {
+      let hash = reifyNamed(named);
 
-        if (DEBUG && HAS_NATIVE_PROXY) {
-          hash = wrapHashProxy(hash);
-        }
+      if (import.meta.env.DEV) {
+        hash = wrapHashProxy(hash);
+      }
 
-        return hash;
-      },
-      null,
-      'hash'
-    );
+      return hash;
+    },
+    null,
+    'hash'
+  );
 
-    // Setup the children so that templates can bypass getting the value of
-    // the reference and treat children lazily
-    let children = new Map();
+  // Setup the children so that templates can bypass getting the value of
+  // the reference and treat children lazily
+  let children = new Map();
 
-    for (let name in named) {
-      children.set(name, named[name]);
-    }
-
-    ref.children = children;
-
-    return ref;
+  for (let name in named) {
+    children.set(name, named[name]);
   }
-);
+
+  ref.children = children;
+
+  return ref;
+});

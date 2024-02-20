@@ -1,14 +1,20 @@
-import { CapturedArguments, CurriedType, Owner } from '@glimmer/interfaces';
-import { symbol, _WeakSet } from '@glimmer/util';
-import { Reference } from '@glimmer/reference';
+import type {
+  CapturedArguments,
+  CurriedComponent,
+  CurriedHelper,
+  CurriedModifier,
+  CurriedType,
+  Owner,
+} from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
 
-const TYPE: unique symbol = symbol('TYPE');
-const INNER: unique symbol = symbol('INNER');
-const OWNER: unique symbol = symbol('OWNER');
-const ARGS: unique symbol = symbol('ARGS');
-const RESOLVED: unique symbol = symbol('RESOLVED');
+const TYPE: unique symbol = Symbol('TYPE');
+const INNER: unique symbol = Symbol('INNER');
+const OWNER: unique symbol = Symbol('OWNER');
+const ARGS: unique symbol = Symbol('ARGS');
+const RESOLVED: unique symbol = Symbol('RESOLVED');
 
-const CURRIED_VALUES = new _WeakSet();
+const CURRIED_VALUES = new WeakSet();
 
 export function isCurriedValue(value: unknown): value is CurriedValue<CurriedType> {
   return CURRIED_VALUES.has(value as object);
@@ -54,10 +60,10 @@ interface ResolvedCurriedValue<T> {
 }
 
 export function resolveCurriedValue(
-  curriedValue: CurriedValue<CurriedType.Component>
+  curriedValue: CurriedValue<CurriedComponent>
 ): ResolvedCurriedValue<object | string>;
 export function resolveCurriedValue(
-  curriedValue: CurriedValue<CurriedType.Helper> | CurriedValue<CurriedType.Modifier>
+  curriedValue: CurriedValue<CurriedHelper> | CurriedValue<CurriedModifier>
 ): ResolvedCurriedValue<object>;
 export function resolveCurriedValue(
   curriedValue: CurriedValue<CurriedType>
@@ -67,6 +73,7 @@ export function resolveCurriedValue(
   let named: Record<string, Reference>[] | undefined;
   let definition, owner, resolved;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     let { [ARGS]: curriedArgs, [INNER]: inner } = currentWrapper;
 

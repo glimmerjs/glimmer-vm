@@ -1,37 +1,41 @@
+import type { Checker } from '@glimmer/debug';
+import type {
+  CapabilityMask,
+  CapturedArguments,
+  CompilableBlock,
+  CompilableProgram,
+  ComponentDefinition,
+  ComponentInstance,
+  ElementOperations,
+  Helper,
+  InternalComponentManager,
+  Invocation,
+  Nullable,
+  Scope,
+  ScopeBlock,
+} from '@glimmer/interfaces';
+import type { OpaqueIterator, Reference } from '@glimmer/reference';
+import type { Tag } from '@glimmer/validator';
 import {
+  CheckArray,
   CheckBlockSymbolTable,
-  Checker,
+  CheckDict,
   CheckFunction,
   CheckHandle,
   CheckInstanceof,
   CheckInterface,
   CheckNumber,
-  CheckProgramSymbolTable,
-  CheckUnknown,
-  wrap,
+  CheckObject,
   CheckOption,
   CheckOr,
-  CheckArray,
-  CheckDict,
-  CheckObject,
+  CheckProgramSymbolTable,
   CheckString,
+  CheckUnknown,
+  wrap,
 } from '@glimmer/debug';
-import {
-  CompilableBlock,
-  ComponentDefinition,
-  InternalComponentManager,
-  ElementOperations,
-  Invocation,
-  Scope,
-  Helper,
-  CapturedArguments,
-  Option,
-  ScopeBlock,
-  CompilableProgram,
-  ComponentInstance,
-} from '@glimmer/interfaces';
-import { Reference, REFERENCE, OpaqueIterator, UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { Tag, COMPUTE } from '@glimmer/validator';
+import { REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { COMPUTE } from '@glimmer/validator';
+
 import { PartialScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { ComponentElementOperations } from './component';
@@ -40,12 +44,12 @@ export const CheckTag: Checker<Tag> = CheckInterface({
   [COMPUTE]: CheckFunction,
 });
 
-export const CheckOperations: Checker<Option<ComponentElementOperations>> = wrap(() =>
+export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wrap(() =>
   CheckOption(CheckInstanceof(ComponentElementOperations))
 );
 
 class ReferenceChecker {
-  type!: Reference;
+  declare type: Reference;
 
   validate(value: unknown): value is Reference {
     return typeof value === 'object' && value !== null && REFERENCE in value;
@@ -70,7 +74,7 @@ export const CheckArguments: Checker<VMArgumentsImpl> = wrap(() =>
 export const CheckHelper: Checker<Helper> = CheckFunction as Checker<Helper>;
 
 export class UndefinedReferenceChecker implements Checker<Reference> {
-  type!: Reference;
+  declare type: Reference;
 
   validate(value: unknown): value is Reference {
     return value === UNDEFINED_REFERENCE;
@@ -93,6 +97,8 @@ export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(PartialScop
 export const CheckComponentManager: Checker<InternalComponentManager<unknown>> = CheckInterface({
   getCapabilities: CheckFunction,
 });
+
+export const CheckCapabilities: Checker<CapabilityMask> = CheckNumber as Checker<CapabilityMask>;
 
 export const CheckComponentInstance: Checker<ComponentInstance> = CheckInterface({
   definition: CheckUnknown,
@@ -140,6 +146,6 @@ export const CheckComponentDefinition: Checker<ComponentDefinition> = CheckInter
   handle: CheckNumber,
   state: CheckOr(CheckObject, CheckFunction),
   manager: CheckComponentManager,
-  capabilities: CheckNumber,
+  capabilities: CheckCapabilities,
   compilable: CheckCompilableProgram,
 });

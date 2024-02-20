@@ -1,14 +1,10 @@
-import { DEBUG } from '@glimmer/env';
-import { CapturedArguments } from '@glimmer/interfaces';
-import {
-  createComputeRef,
-  isInvokableRef,
-  Reference,
-  updateRef,
-  valueForRef,
-} from '@glimmer/reference';
-import { reifyPositional } from '@glimmer/runtime';
+import type { CapturedArguments } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/reference';
+import { check } from '@glimmer/debug';
+import { createComputeRef, isInvokableRef, updateRef, valueForRef } from '@glimmer/reference';
 import { buildUntouchableThis } from '@glimmer/util';
+
+import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
 
 const context = buildUntouchableThis('`fn` helper');
@@ -77,17 +73,15 @@ const context = buildUntouchableThis('`fn` helper');
   @method fn
   @public
 */
-export default internalHelper(({ positional }: CapturedArguments) => {
-  let callbackRef = positional[0];
-
-  if (DEBUG) assertCallbackIsFn(callbackRef);
+export const fn = internalHelper(({ positional }: CapturedArguments) => {
+  let callbackRef = check(positional[0], assertCallbackIsFn);
 
   return createComputeRef(
     () => {
       return (...invocationArgs: unknown[]) => {
         let [fn, ...args] = reifyPositional(positional);
 
-        if (DEBUG) assertCallbackIsFn(callbackRef);
+        if (import.meta.env.DEV) assertCallbackIsFn(callbackRef);
 
         if (isInvokableRef(callbackRef)) {
           let value = args.length > 0 ? args[0] : invocationArgs[0];
@@ -102,7 +96,7 @@ export default internalHelper(({ positional }: CapturedArguments) => {
   );
 });
 
-function assertCallbackIsFn(callbackRef: Reference) {
+function assertCallbackIsFn(callbackRef: Reference | undefined): asserts callbackRef is Reference {
   if (
     !(
       callbackRef &&

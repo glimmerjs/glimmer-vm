@@ -1,17 +1,15 @@
-import {
+import type {
   CompileTimeConstants,
+  ComponentDefinition,
   ComponentDefinitionState,
   ConstantPool,
-  InternalComponentCapability,
-  ComponentDefinition,
+  HelperDefinitionState,
+  ModifierDefinitionState,
   ResolutionTimeConstants,
   ResolvedComponentDefinition,
   RuntimeConstants,
-  ModifierDefinitionState,
-  HelperDefinitionState,
   Template,
 } from '@glimmer/interfaces';
-import { assert, constants, expect, unwrapTemplate } from '@glimmer/util';
 import {
   capabilityFlagsFrom,
   getComponentTemplate,
@@ -21,6 +19,9 @@ import {
   managerHasCapability,
 } from '@glimmer/manager';
 import { templateFactory } from '@glimmer/opcode-compiler';
+import { assert, constants, enumerate, expect, unwrapTemplate } from '@glimmer/util';
+import { InternalComponentCapabilities } from '@glimmer/vm';
+
 import { DEFAULT_TEMPLATE } from './util/default-template';
 
 const WELL_KNOWN_EMPTY_ARRAY: unknown = Object.freeze([]);
@@ -78,11 +79,10 @@ export class RuntimeConstantsImpl implements RuntimeConstants {
   }
 
   getArray<T>(value: number): T[] {
-    let handles = this.getValue(value) as number[];
+    let handles = this.getValue<number[]>(value);
     let reified: T[] = new Array(handles.length);
 
-    for (let i = 0; i < handles.length; i++) {
-      let n = handles[i];
+    for (const [i, n] of enumerate(handles)) {
       reified[i] = this.getValue(n);
     }
 
@@ -92,7 +92,8 @@ export class RuntimeConstantsImpl implements RuntimeConstants {
 
 export class ConstantsImpl
   extends CompileTimeConstantImpl
-  implements RuntimeConstants, ResolutionTimeConstants {
+  implements RuntimeConstants, ResolutionTimeConstants
+{
   protected reifiedArrs: { [key: number]: unknown[] } = {
     [WELL_KNOWN_EMPTY_ARRAY_POSITION]: WELL_KNOWN_EMPTY_ARRAY as unknown[],
   };
@@ -221,7 +222,9 @@ export class ConstantsImpl
       let compilable = null;
       let template;
 
-      if (!managerHasCapability(manager, capabilities, InternalComponentCapability.DynamicLayout)) {
+      if (
+        !managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicLayout)
+      ) {
         template = templateFactory?.(owner) ?? this.defaultTemplate;
       } else {
         template = templateFactory?.(owner);
@@ -233,7 +236,7 @@ export class ConstantsImpl
         compilable = managerHasCapability(
           manager,
           capabilities,
-          InternalComponentCapability.Wrapped
+          InternalComponentCapabilities.wrapped
         )
           ? template.asWrappedLayout()
           : template.asLayout();
@@ -248,7 +251,7 @@ export class ConstantsImpl
         compilable,
       };
 
-      definition!.handle = this.value(definition);
+      definition.handle = this.value(definition);
       this.componentDefinitionCache.set(definitionState, definition);
       this.componentDefinitionCount++;
     }
@@ -268,7 +271,9 @@ export class ConstantsImpl
 
       let compilable = null;
 
-      if (!managerHasCapability(manager, capabilities, InternalComponentCapability.DynamicLayout)) {
+      if (
+        !managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicLayout)
+      ) {
         template = template ?? this.defaultTemplate;
       }
 
@@ -278,7 +283,7 @@ export class ConstantsImpl
         compilable = managerHasCapability(
           manager,
           capabilities,
-          InternalComponentCapability.Wrapped
+          InternalComponentCapabilities.wrapped
         )
           ? template.asWrappedLayout()
           : template.asLayout();
@@ -293,7 +298,7 @@ export class ConstantsImpl
         compilable,
       };
 
-      definition!.handle = this.value(definition);
+      definition.handle = this.value(definition);
       this.componentDefinitionCache.set(resolvedDefinition, definition);
       this.componentDefinitionCount++;
     }
@@ -315,8 +320,8 @@ export class ConstantsImpl
       let names: number[] = this.getValue(index);
       reified = new Array(names.length);
 
-      for (let i = 0; i < names.length; i++) {
-        reified[i] = this.getValue(names[i]);
+      for (const [i, name] of enumerate(names)) {
+        reified[i] = this.getValue(name);
       }
 
       reifiedArrs[index] = reified;

@@ -1,19 +1,25 @@
-import { Option, Recast } from '@glimmer/interfaces';
-import { TokenizerState } from 'simple-html-tokenizer';
+import type { Nullable, Recast } from '@glimmer/interfaces';
+import type { TokenizerState } from 'simple-html-tokenizer';
+import { getLast, isPresentArray, unwrap } from '@glimmer/util';
 
-import { Parser, ParserNodeBuilder, Tag } from '../parser';
+import type { ParserNodeBuilder, Tag } from '../parser';
+import type * as ASTv1 from '../v1/api';
+import type * as HBS from '../v1/handlebars-ast';
+
+import { Parser } from '../parser';
 import { NON_EXISTENT_LOCATION } from '../source/location';
 import { generateSyntaxError } from '../syntax-error';
-import { appendChild, isHBSLiteral, printLiteral } from '../utils';
-import * as ASTv1 from '../v1/api';
-import * as HBS from '../v1/handlebars-ast';
+import { appendChild, isHBSLiteral, parseProgramBlockParamsLocs, printLiteral } from '../utils';
 import { PathExpressionImplV1 } from '../v1/legacy-interop';
 import b from '../v1/parser-builders';
 
+const BEFORE_ATTRIBUTE_NAME = 'beforeAttributeName' as TokenizerState;
+const ATTRIBUTE_VALUE_UNQUOTED = 'attributeValueUnquoted' as TokenizerState;
+
 export abstract class HandlebarsNodeVisitors extends Parser {
-  abstract appendToCommentData(s: string): void;
-  abstract beginAttributeValue(quoted: boolean): void;
-  abstract finishAttributeValue(): void;
+  abstract override appendToCommentData(s: string): void;
+  abstract override beginAttributeValue(quoted: boolean): void;
+  abstract override finishAttributeValue(): void;
 
   private get isTopLevel() {
     return this.elementStack.length === 0;
@@ -23,7 +29,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   Program(program: HBS.Program): ASTv1.Template;
   Program(program: HBS.Program): ASTv1.Template | ASTv1.Block;
   Program(program: HBS.Program): ASTv1.Block | ASTv1.Template {
-    let body: ASTv1.Statement[] = [];
+    const body: ASTv1.Statement[] = [];
     let node;
 
     if (this.isTopLevel) {
@@ -51,13 +57,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     }
 
     for (i = 0; i < l; i++) {
-      this.acceptNode(program.body[i]);
+      this.acceptNode(unwrap(program.body[i]));
     }
 
     // Ensure that that the element stack is balanced properly.
-    let poppedNode = this.elementStack.pop();
+    const poppedNode = this.elementStack.pop();
     if (poppedNode !== node) {
-      let elementNode = poppedNode as ASTv1.ElementNode;
+      const elementNode = poppedNode as ASTv1.ElementNode;
 
       throw generateSyntaxError(`Unclosed element \`${elementNode.tag}\``, elementNode.loc);
     }
@@ -66,22 +72,19 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   BlockStatement(block: HBS.BlockStatement): ASTv1.BlockStatement | void {
-    if (this.tokenizer.state === TokenizerState.comment) {
+    if (this.tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(block));
       return;
     }
 
-    if (
-      this.tokenizer.state !== TokenizerState.data &&
-      this.tokenizer.state !== TokenizerState.beforeData
-    ) {
+    if (this.tokenizer.state !== 'data' && this.tokenizer.state !== 'beforeData') {
       throw generateSyntaxError(
         'A block may only be used inside an HTML element or another block.',
         this.source.spanFor(block.loc)
       );
     }
 
-    let { path, params, hash } = acceptCallNodes(this, block);
+    const { path, params, hash } = acceptCallNodes(this, block);
 
     // These are bugs in Handlebars upstream
     if (!block.program.loc) {
@@ -92,10 +95,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       block.inverse.loc = NON_EXISTENT_LOCATION;
     }
 
-    let program = this.Program(block.program);
-    let inverse = block.inverse ? this.Program(block.inverse) : null;
+    const program = this.Program(block.program);
+    const inverse = block.inverse ? this.Program(block.inverse) : null;
 
-    let node = b.block({
+    const node = b.block({
       path,
       params,
       hash,
@@ -106,14 +109,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       inverseStrip: block.inverseStrip,
       closeStrip: block.closeStrip,
     });
+    parseProgramBlockParamsLocs(this.source, node);
 
-    let parentProgram = this.currentElement();
+    const parentProgram = this.currentElement();
 
     appendChild(parentProgram, node);
   }
 
   MustacheStatement(rawMustache: HBS.MustacheStatement): ASTv1.MustacheStatement | void {
-    let { tokenizer } = this;
+    const { tokenizer } = this;
 
     if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawMustache));
@@ -121,7 +125,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     }
 
     let mustache: ASTv1.MustacheStatement;
-    let { escaped, loc, strip } = rawMustache;
+    const { escaped, loc, strip } = rawMustache;
 
     if (isHBSLiteral(rawMustache.path)) {
       mustache = b.mustache({
@@ -133,7 +137,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         strip,
       });
     } else {
-      let { path, params, hash } = acceptCallNodes(
+      const { path, params, hash } = acceptCallNodes(
         this,
         rawMustache as HBS.MustacheStatement & {
           path: HBS.PathExpression | HBS.SubExpression;
@@ -151,34 +155,34 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     switch (tokenizer.state) {
       // Tag helpers
-      case TokenizerState.tagOpen:
-      case TokenizerState.tagName:
+      case 'tagOpen':
+      case 'tagName':
         throw generateSyntaxError(`Cannot use mustaches in an elements tagname`, mustache.loc);
 
-      case TokenizerState.beforeAttributeName:
+      case 'beforeAttributeName':
         addElementModifier(this.currentStartTag, mustache);
         break;
-      case TokenizerState.attributeName:
-      case TokenizerState.afterAttributeName:
+      case 'attributeName':
+      case 'afterAttributeName':
         this.beginAttributeValue(false);
         this.finishAttributeValue();
         addElementModifier(this.currentStartTag, mustache);
-        tokenizer.transitionTo(TokenizerState.beforeAttributeName);
+        tokenizer.transitionTo(BEFORE_ATTRIBUTE_NAME);
         break;
-      case TokenizerState.afterAttributeValueQuoted:
+      case 'afterAttributeValueQuoted':
         addElementModifier(this.currentStartTag, mustache);
-        tokenizer.transitionTo(TokenizerState.beforeAttributeName);
+        tokenizer.transitionTo(BEFORE_ATTRIBUTE_NAME);
         break;
 
       // Attribute values
-      case TokenizerState.beforeAttributeValue:
+      case 'beforeAttributeValue':
         this.beginAttributeValue(false);
         this.appendDynamicAttributeValuePart(mustache);
-        tokenizer.transitionTo(TokenizerState.attributeValueUnquoted);
+        tokenizer.transitionTo(ATTRIBUTE_VALUE_UNQUOTED);
         break;
-      case TokenizerState.attributeValueDoubleQuoted:
-      case TokenizerState.attributeValueSingleQuoted:
-      case TokenizerState.attributeValueUnquoted:
+      case 'attributeValueDoubleQuoted':
+      case 'attributeValueSingleQuoted':
+      case 'attributeValueUnquoted':
         this.appendDynamicAttributeValuePart(mustache);
         break;
 
@@ -193,14 +197,14 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
   appendDynamicAttributeValuePart(part: ASTv1.MustacheStatement): void {
     this.finalizeTextPart();
-    let attr = this.currentAttr;
+    const attr = this.currentAttr;
     attr.isDynamic = true;
     attr.parts.push(part);
   }
 
   finalizeTextPart(): void {
-    let attr = this.currentAttr;
-    let text = attr.currentPart;
+    const attr = this.currentAttr;
+    const text = attr.currentPart;
     if (text !== null) {
       this.currentAttr.parts.push(text);
       this.startTextPart();
@@ -218,25 +222,25 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     this.tokenizer.flushData();
   }
 
-  CommentStatement(rawComment: HBS.CommentStatement): Option<ASTv1.MustacheCommentStatement> {
-    let { tokenizer } = this;
+  CommentStatement(rawComment: HBS.CommentStatement): Nullable<ASTv1.MustacheCommentStatement> {
+    const { tokenizer } = this;
 
-    if (tokenizer.state === TokenizerState.comment) {
+    if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawComment));
       return null;
     }
 
-    let { value, loc } = rawComment;
-    let comment = b.mustacheComment(value, this.source.spanFor(loc));
+    const { value, loc } = rawComment;
+    const comment = b.mustacheComment(value, this.source.spanFor(loc));
 
     switch (tokenizer.state) {
-      case TokenizerState.beforeAttributeName:
-      case TokenizerState.afterAttributeName:
+      case 'beforeAttributeName':
+      case 'afterAttributeName':
         this.currentStartTag.comments.push(comment);
         break;
 
-      case TokenizerState.beforeData:
-      case TokenizerState.data:
+      case 'beforeData':
+      case 'data':
         appendChild(this.currentElement(), comment);
         break;
 
@@ -279,12 +283,12 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   SubExpression(sexpr: HBS.SubExpression): ASTv1.SubExpression {
-    let { path, params, hash } = acceptCallNodes(this, sexpr);
+    const { path, params, hash } = acceptCallNodes(this, sexpr);
     return b.sexpr({ path, params, hash, loc: this.source.spanFor(sexpr.loc) });
   }
 
   PathExpression(path: HBS.PathExpression): ASTv1.PathExpression {
-    let { original } = path;
+    const { original } = path;
     let parts: string[];
 
     if (original.indexOf('/') !== -1) {
@@ -328,7 +332,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // escaping – such as `{{foo.["bar.baz"]}}` would mean lookup a property
     // named literally "bar.baz" on `this.foo`). By convention, we use `null`
     // for this purpose.
-    if (original.match(/^this(\..+)?$/)) {
+    if (/^this(?:\..+)?$/u.test(original)) {
       thisHead = true;
     }
 
@@ -342,7 +346,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         },
       };
     } else if (path.data) {
-      let head = parts.shift();
+      const head = parts.shift();
 
       if (head === undefined) {
         throw generateSyntaxError(
@@ -360,7 +364,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         },
       };
     } else {
-      let head = parts.shift();
+      const head = parts.shift();
 
       if (head === undefined) {
         throw generateSyntaxError(
@@ -383,18 +387,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   Hash(hash: HBS.Hash): ASTv1.Hash {
-    let pairs: ASTv1.HashPair[] = [];
-
-    for (let i = 0; i < hash.pairs.length; i++) {
-      let pair = hash.pairs[i];
-      pairs.push(
-        b.pair({
-          key: pair.key,
-          value: this.acceptNode(pair.value),
-          loc: this.source.spanFor(pair.loc),
-        })
-      );
-    }
+    const pairs = hash.pairs.map((pair) =>
+      b.pair({
+        key: pair.key,
+        value: this.acceptNode(pair.value),
+        loc: this.source.spanFor(pair.loc),
+      })
+    );
 
     return b.hash(pairs, this.source.spanFor(hash.loc));
   }
@@ -432,13 +431,13 @@ function calculateRightStrippedOffsets(original: string, value: string) {
 
   // otherwise, return the number of newlines prior to
   // `value`
-  let difference = original.split(value)[0];
-  let lines = difference.split(/\n/);
-  let lineCount = lines.length - 1;
+  const [difference] = original.split(value) as [string];
+  const lines = difference.split(/\n/u);
+  const lineCount = lines.length - 1;
 
   return {
     lines: lineCount,
-    columns: lines[lineCount].length,
+    columns: unwrap(lines[lineCount]).length,
   };
 }
 
@@ -446,7 +445,7 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
   let line = content.loc.start.line;
   let column = content.loc.start.column;
 
-  let offsets = calculateRightStrippedOffsets(
+  const offsets = calculateRightStrippedOffsets(
     content.original as Recast<HBS.StripFlags, string>,
     content.value
   );
@@ -482,7 +481,7 @@ function acceptCallNodes(
   hash: ASTv1.Hash;
 } {
   if (node.path.type.endsWith('Literal')) {
-    const path = (node.path as unknown) as
+    const path = node.path as unknown as
       | HBS.StringLiteral
       | HBS.UndefinedLiteral
       | HBS.NullLiteral
@@ -509,17 +508,19 @@ function acceptCallNodes(
     );
   }
 
-  let path =
+  const path =
     node.path.type === 'PathExpression'
       ? compiler.PathExpression(node.path)
-      : compiler.SubExpression((node.path as unknown) as HBS.SubExpression);
-  let params = node.params ? node.params.map((e) => compiler.acceptNode<ASTv1.Expression>(e)) : [];
+      : compiler.SubExpression(node.path as unknown as HBS.SubExpression);
+  const params = node.params
+    ? node.params.map((e) => compiler.acceptNode<ASTv1.Expression>(e))
+    : [];
 
   // if there is no hash, position it as a collapsed node immediately after the last param (or the
   // path, if there are also no params)
-  let end = params.length > 0 ? params[params.length - 1].loc : path.loc;
+  const end = isPresentArray(params) ? getLast(params).loc : path.loc;
 
-  let hash = node.hash
+  const hash = node.hash
     ? compiler.Hash(node.hash)
     : ({
         type: 'Hash',
@@ -534,15 +535,15 @@ function addElementModifier(
   element: ParserNodeBuilder<Tag<'StartTag'>>,
   mustache: ASTv1.MustacheStatement
 ) {
-  let { path, params, hash, loc } = mustache;
+  const { path, params, hash, loc } = mustache;
 
   if (isHBSLiteral(path)) {
-    let modifier = `{{${printLiteral(path)}}}`;
-    let tag = `<${element.name} ... ${modifier} ...`;
+    const modifier = `{{${printLiteral(path)}}}`;
+    const tag = `<${element.name} ... ${modifier} ...`;
 
     throw generateSyntaxError(`In ${tag}, ${modifier} is not a valid modifier`, mustache.loc);
   }
 
-  let modifier = b.elementModifier({ path, params, hash, loc });
+  const modifier = b.elementModifier({ path, params, hash, loc });
   element.modifiers.push(modifier);
 }

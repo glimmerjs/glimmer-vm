@@ -1,5 +1,6 @@
-import { preprocess as parse, AST } from '..';
-import { SourceLocation } from '../lib/v1/api';
+import type { AST, src } from '@glimmer/syntax';
+import { preprocess as parse } from '@glimmer/syntax';
+import { guardArray } from '@glimmer-workspace/test-utils';
 
 QUnit.module('[glimmer-syntax] Parser - Location Info');
 
@@ -12,7 +13,7 @@ function assertNodeType<T extends keyof AST.Nodes>(
     result: nodeType === type,
     actual: nodeType,
     expected: type,
-    message: `expected node type to be ${node} but was ${nodeType}`,
+    message: `expected node type to be ${type} but was ${String(nodeType)}`,
   });
   return nodeType === type;
 }
@@ -27,7 +28,7 @@ function locEqual(
   endColumn: number,
   message = JSON.stringify(node)
 ) {
-  let expected: SourceLocation = {
+  let expected: src.SourceLocation = {
     start: { line: startLine, column: startColumn },
     end: { line: endLine, column: endColumn },
   };
@@ -53,7 +54,7 @@ test('programs', () => {
   }
 });
 
-test('blocks', function () {
+test('blocks', () => {
   let ast = parse(`
   {{#if foo}}
     {{#if bar}}
@@ -76,7 +77,7 @@ test('blocks', function () {
   locEqual(nestedInverse as AST.Node, 5, 16, 7, 2);
 });
 
-test('mustache', function () {
+test('mustache', () => {
   let ast = parse(`
     {{foo}}
     {{#if foo}}
@@ -96,7 +97,7 @@ test('mustache', function () {
   }
 });
 
-test('element modifier', function () {
+test('element modifier', () => {
   let ast = parse(`
     <div {{bind-attr
       foo
@@ -109,7 +110,7 @@ test('element modifier', function () {
   }
 });
 
-test('html elements', function () {
+test('html elements', () => {
   let ast = parse(`
     <section>
       <br>
@@ -129,6 +130,29 @@ test('html elements', function () {
       let [, hr] = div.children;
 
       locEqual(hr, 5, 8, 5, 14, 'hr element');
+    }
+  }
+});
+
+test('html elements with paths', () => {
+  let ast = parse(`
+    <Foo as |bar|>
+      <bar.x.y class='bar'/>
+      <bar.x.y class='bar'></bar.x.y>
+    </Foo>
+  `);
+
+  let [, foo] = ast.body;
+  locEqual(foo, 2, 4, 5, 10, 'Foo element');
+  if (assertNodeType(foo, 'ElementNode')) {
+    locEqual(foo.startTag, 2, 4, 2, 18, 'Foo start tag');
+    locEqual(foo.nameNode, 2, 5, 2, 8, 'Foo name node');
+    locEqual(foo.endTag, 5, 4, 5, 10, 'Foo end tag');
+    let [, barSelfClosed] = foo.children;
+    if (assertNodeType(barSelfClosed, 'ElementNode')) {
+      locEqual(barSelfClosed.parts[0], 3, 7, 3, 10, 'bar.x.y bar part');
+      locEqual(barSelfClosed.parts[1], 3, 11, 3, 12, 'bar.x.y x part');
+      locEqual(barSelfClosed.parts[2], 3, 13, 3, 14, 'bar.x.y y part');
     }
   }
 });
@@ -155,12 +179,14 @@ test('html elements with nested blocks', (assert) => {
     if (assertNodeType(ifBlock, 'BlockStatement')) {
       let inverseBlock = ifBlock.inverse;
       locEqual(inverseBlock, 5, 24, 7, 6, 'inverse block');
+      assert.step('inverse block');
       assert.ok(inverseBlock, 'has inverse block');
       if (inverseBlock) {
         let [nestedIfBlock] = inverseBlock.body;
         locEqual(nestedIfBlock, 5, 6, 9, 6, 'nested if block');
         if (assertNodeType(nestedIfBlock, 'BlockStatement')) {
           let nestedIfInverseBlock = nestedIfBlock.inverse;
+          assert.step('nested inverse block');
           assert.ok(nestedIfInverseBlock, 'has nested inverse block');
           if (nestedIfInverseBlock) {
             locEqual(nestedIfInverseBlock, 7, 14, 9, 6, 'nested inverse block');
@@ -169,9 +195,11 @@ test('html elements with nested blocks', (assert) => {
       }
     }
   }
+
+  assert.verifySteps(['inverse block', 'nested inverse block']);
 });
 
-test('block + newline + element ', function () {
+test('block + newline + element ', () => {
   let ast = parse(`
     {{#if stuff}}
     {{/if}}
@@ -184,7 +212,7 @@ test('block + newline + element ', function () {
   locEqual(p, 4, 4, 4, 14, 'p element');
 });
 
-test('mustache + newline + element ', function () {
+test('mustache + newline + element ', () => {
   let ast = parse(`
     {{foo}}
     <p>Hi!</p>
@@ -196,7 +224,7 @@ test('mustache + newline + element ', function () {
   locEqual(p, 3, 4, 3, 14, 'p element');
 });
 
-test('blocks with nested html elements', function () {
+test('blocks with nested html elements', () => {
   let ast = parse(`
     {{#foo-bar}}<div>Foo</div>{{/foo-bar}} <p>Hi!</p>
   `);
@@ -211,7 +239,7 @@ test('blocks with nested html elements', function () {
   locEqual(p, 2, 43, 2, 53, 'p element');
 });
 
-test('html elements after mustache', function () {
+test('html elements after mustache', () => {
   let ast = parse(`
     {{foo-bar}} <p>Hi!</p>
   `);
@@ -222,7 +250,7 @@ test('html elements after mustache', function () {
   locEqual(p, 2, 16, 2, 26, 'div element');
 });
 
-test('text', function () {
+test('text', () => {
   let ast = parse(`
     foo!
     <div>blah</div>
@@ -237,7 +265,7 @@ test('text', function () {
   }
 });
 
-test('comment', function () {
+test('comment', () => {
   let ast = parse(`
     <div><!-- blah blah blah blah -->
       <!-- derp herky --><div></div>
@@ -254,7 +282,7 @@ test('comment', function () {
   }
 });
 
-test('handlebars comment', function () {
+test('handlebars comment', () => {
   let ast = parse(`
     <div>{{!-- blah blah blah blah --}}
       {{!-- derp herky --}}<div></div>
@@ -276,7 +304,7 @@ test('handlebars comment', function () {
   }
 });
 
-test('element attribute', function () {
+test('element attribute', () => {
   let ast = parse(`
     <div data-foo="blah"
       data-derp="lolol"
@@ -290,7 +318,10 @@ data-barf="herpy"
 
   let [, div] = ast.body;
   if (assertNodeType(div, 'ElementNode')) {
-    let [dataFoo, dataDerp, dataBarf, dataQux, dataSomethingBoolean, dataHurky] = div.attributes;
+    let [dataFoo, dataDerp, dataBarf, dataQux, dataSomethingBoolean, dataHurky] = guardArray(
+      { attributes: div.attributes },
+      { min: 6 }
+    );
 
     locEqual(dataFoo, 2, 9, 2, 24, 'data-foo');
     locEqual(dataDerp, 3, 6, 3, 23, 'data-derp');
@@ -306,19 +337,45 @@ data-barf="herpy"
   }
 });
 
-test('element dynamic attribute', function () {
+test('element block params', () => {
+  let ast = parse(`<Foo as |ab cd efg|></Foo>`);
+
+  let [Foo] = ast.body;
+  if (assertNodeType(Foo, 'ElementNode')) {
+    let [ab, cd, efg] = guardArray({ blockParamNodes: Foo.blockParamNodes }, { min: 3 });
+    locEqual(ab, 1, 9, 1, 11);
+    locEqual(cd, 1, 12, 1, 14);
+    locEqual(efg, 1, 15, 1, 18);
+  }
+});
+
+test('mustache block params', () => {
+  let ast = parse(`{{#Foo as |ab cd efg|}}{{/Foo}}`);
+  `
+{{#Foo as |ab cd efg|}}{{/Foo}}`;
+
+  let [Foo] = ast.body;
+  if (assertNodeType(Foo, 'BlockStatement')) {
+    let [ab, cd, efg] = guardArray({ blockParamNodes: Foo.program.blockParamNodes }, { min: 3 });
+    locEqual(ab, 1, 11, 1, 13);
+    locEqual(cd, 1, 14, 1, 16);
+    locEqual(efg, 1, 17, 1, 20);
+  }
+});
+
+test('element dynamic attribute', () => {
   let ast = parse(`<img src={{blah}}>`);
 
   let [img] = ast.body;
   if (assertNodeType(img, 'ElementNode')) {
-    let [src] = img.attributes;
+    let [src] = guardArray({ attributes: img.attributes }, { min: 1 });
     locEqual(src, 1, 5, 1, 17);
     let { value } = src;
     locEqual(value, 1, 9, 1, 17);
   }
 });
 
-test('concat statement', function () {
+test('concat statement', () => {
   let ast = parse(`
     <div data-foo="{{if foo
         "active"
@@ -336,7 +393,10 @@ foo"
 
   let [, div] = ast.body;
   if (assertNodeType(div, 'ElementNode')) {
-    let [dataFoo, dataBar, dataDerp, dataQux] = div.attributes;
+    let [dataFoo, dataBar, dataDerp, dataQux] = guardArray(
+      { attributes: div.attributes },
+      { min: 4 }
+    );
     let dataFooValue = dataFoo.value;
     let dataBarValue = dataBar.value;
     let dataDerpValue = dataDerp.value;
@@ -370,7 +430,7 @@ foo"
   }
 });
 
-test('char references', function () {
+test('char references', () => {
   let ast = parse(`
     &gt;<div>&lt;<p>
       Hi, danmcclain &excl;</p>
@@ -392,7 +452,7 @@ test('char references', function () {
   }
 });
 
-test('whitespace control - trailing', function () {
+test('whitespace control - trailing', () => {
   let ast = parse(`
   {{#if foo~}}
     <div></div>
@@ -409,7 +469,7 @@ test('whitespace control - trailing', function () {
   }
 });
 
-test("whitespace control - 'else if' trailing", function () {
+test("whitespace control - 'else if' trailing", () => {
   let ast = parse(`
   {{#if foo}}
     {{bar}}
@@ -431,7 +491,7 @@ test("whitespace control - 'else if' trailing", function () {
   }
 });
 
-test('whitespace control - leading', function () {
+test('whitespace control - leading', () => {
   let ast = parse(`
   {{~#if foo}}
     <div></div>

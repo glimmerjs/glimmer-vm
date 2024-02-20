@@ -1,10 +1,11 @@
-import { ASTv2, maybeLoc, SourceSpan } from '@glimmer/syntax';
+import { ASTv2, maybeLoc, src } from '@glimmer/syntax';
+
+import type { NormalizationState } from '../../context';
 
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
-import { NormalizationState } from '../../context';
 import { MODIFIER_KEYWORDS } from '../../keywords';
 import { assertIsValidModifier, isHelperInvocation } from '../../utils/is-node';
 import { convertPathToCallIfKeyword, VISIT_EXPRS } from '../expressions';
@@ -133,7 +134,7 @@ export class ClassifiedElement {
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
       args: new mir.NamedArguments({
-        loc: maybeLoc(args, SourceSpan.NON_EXISTENT),
+        loc: maybeLoc(args, src.SourceSpan.NON_EXISTENT),
         entries: OptionalList(args),
       }),
     }));
@@ -149,7 +150,7 @@ export class ClassifiedElement {
       let elementParams = [...attrs, ...modifiers];
 
       let params = new mir.ElementParameters({
-        loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
+        loc: maybeLoc(elementParams, src.SourceSpan.NON_EXISTENT),
         body: OptionalList(elementParams),
       });
 

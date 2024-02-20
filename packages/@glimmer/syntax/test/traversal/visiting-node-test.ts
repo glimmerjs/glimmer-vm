@@ -1,8 +1,13 @@
-import { preprocess as parse, traverse, AST, WalkerPath } from '../..';
+import type { Optional, OptionalArray } from '@glimmer/interfaces';
+import type { AST, WalkerPath } from '@glimmer/syntax';
+import { preprocess as parse, traverse } from '@glimmer/syntax';
 
 const { test } = QUnit;
 
-function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.BaseNode]>) {
+function traversalEqual(
+  node: AST.Node,
+  expectedTraversal: Array<[string, AST.BaseNode | undefined]>
+) {
   let actualTraversal: Array<[string, AST.BaseNode]> = [];
 
   traverse(node, {
@@ -18,13 +23,13 @@ function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Ba
 
   QUnit.assert.deepEqual(
     actualTraversal.map((a) => `${a[0]} ${a[1].type}`),
-    expectedTraversal.map((a) => `${a[0]} ${a[1].type}`)
+    expectedTraversal.map((a) => `${a[0]} ${a[1]?.type}`)
   );
 
   let nodesEqual = true;
 
   for (let i = 0; i < actualTraversal.length; i++) {
-    if (actualTraversal[i][1] !== expectedTraversal[i][1]) {
+    if (actualTraversal[i]?.[1] !== expectedTraversal[i]?.[1]) {
       nodesEqual = false;
       break;
     }
@@ -35,39 +40,39 @@ function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Ba
 
 QUnit.module('[glimmer-syntax] Traversal - visiting');
 
-test('Elements and attributes', function () {
+test('Elements and attributes', () => {
   let ast = parse(
     `<div id="id" class="large {{this.classes}}" value={{this.value}}><b></b><b></b></div>`
   );
   let el = ast.body[0] as AST.ElementNode;
-  let concat = el.attributes[1].value as AST.ConcatStatement;
-  let concatMustache = concat.parts[1] as AST.MustacheStatement;
-  let attrMustache = el.attributes[2].value as AST.MustacheStatement;
+  let concat = el.attributes[1]?.value;
+  let concatMustache = getParts(concat)?.[1];
+  let attrMustache = el.attributes[2]?.value;
   traversalEqual(ast, [
     ['enter', ast],
     ['enter', el],
     ['enter', el.attributes[0]],
-    ['enter', el.attributes[0].value],
-    ['exit', el.attributes[0].value],
+    ['enter', el.attributes[0]?.value],
+    ['exit', el.attributes[0]?.value],
     ['exit', el.attributes[0]],
     ['enter', el.attributes[1]],
     ['enter', concat],
-    ['enter', concat.parts[0]],
-    ['exit', concat.parts[0]],
+    ['enter', getFirstPart(concat)],
+    ['exit', getFirstPart(concat)],
     ['enter', concatMustache],
-    ['enter', concatMustache.path],
-    ['exit', concatMustache.path],
-    ['enter', concatMustache.hash],
-    ['exit', concatMustache.hash],
+    ['enter', getPath(concatMustache)],
+    ['exit', getPath(concatMustache)],
+    ['enter', getHash(concatMustache)],
+    ['exit', getHash(concatMustache)],
     ['exit', concatMustache],
     ['exit', concat],
     ['exit', el.attributes[1]],
     ['enter', el.attributes[2]],
     ['enter', attrMustache],
-    ['enter', attrMustache.path],
-    ['exit', attrMustache.path],
-    ['enter', attrMustache.hash],
-    ['exit', attrMustache.hash],
+    ['enter', getPath(attrMustache)],
+    ['exit', getPath(attrMustache)],
+    ['enter', getHash(attrMustache)],
+    ['exit', getHash(attrMustache)],
     ['exit', attrMustache],
     ['exit', el.attributes[2]],
     ['enter', el.children[0]],
@@ -79,42 +84,42 @@ test('Elements and attributes', function () {
   ]);
 });
 
-test('Element modifiers', function () {
+test('Element modifiers', () => {
   let ast = parse(`<div {{modifier}}{{modifier param1 param2 key1=value key2=value}}></div>`);
   let el = ast.body[0] as AST.ElementNode;
   traversalEqual(ast, [
     ['enter', ast],
     ['enter', el],
     ['enter', el.modifiers[0]],
-    ['enter', el.modifiers[0].path],
-    ['exit', el.modifiers[0].path],
-    ['enter', el.modifiers[0].hash],
-    ['exit', el.modifiers[0].hash],
+    ['enter', el.modifiers[0]?.path],
+    ['exit', el.modifiers[0]?.path],
+    ['enter', el.modifiers[0]?.hash],
+    ['exit', el.modifiers[0]?.hash],
     ['exit', el.modifiers[0]],
     ['enter', el.modifiers[1]],
-    ['enter', el.modifiers[1].path],
-    ['exit', el.modifiers[1].path],
-    ['enter', el.modifiers[1].params[0]],
-    ['exit', el.modifiers[1].params[0]],
-    ['enter', el.modifiers[1].params[1]],
-    ['exit', el.modifiers[1].params[1]],
-    ['enter', el.modifiers[1].hash],
-    ['enter', el.modifiers[1].hash.pairs[0]],
-    ['enter', el.modifiers[1].hash.pairs[0].value],
-    ['exit', el.modifiers[1].hash.pairs[0].value],
-    ['exit', el.modifiers[1].hash.pairs[0]],
-    ['enter', el.modifiers[1].hash.pairs[1]],
-    ['enter', el.modifiers[1].hash.pairs[1].value],
-    ['exit', el.modifiers[1].hash.pairs[1].value],
-    ['exit', el.modifiers[1].hash.pairs[1]],
-    ['exit', el.modifiers[1].hash],
+    ['enter', el.modifiers[1]?.path],
+    ['exit', el.modifiers[1]?.path],
+    ['enter', el.modifiers[1]?.params[0]],
+    ['exit', el.modifiers[1]?.params[0]],
+    ['enter', el.modifiers[1]?.params[1]],
+    ['exit', el.modifiers[1]?.params[1]],
+    ['enter', el.modifiers[1]?.hash],
+    ['enter', el.modifiers[1]?.hash.pairs[0]],
+    ['enter', el.modifiers[1]?.hash.pairs[0]?.value],
+    ['exit', el.modifiers[1]?.hash.pairs[0]?.value],
+    ['exit', el.modifiers[1]?.hash.pairs[0]],
+    ['enter', el.modifiers[1]?.hash.pairs[1]],
+    ['enter', el.modifiers[1]?.hash.pairs[1]?.value],
+    ['exit', el.modifiers[1]?.hash.pairs[1]?.value],
+    ['exit', el.modifiers[1]?.hash.pairs[1]],
+    ['exit', el.modifiers[1]?.hash],
     ['exit', el.modifiers[1]],
     ['exit', el],
     ['exit', ast],
   ]);
 });
 
-test('Blocks', function () {
+test('Blocks', () => {
   let ast = parse(
     `{{#block}}{{/block}}` +
       `{{#block param1 param2 key1=value key2=value}}<b></b><b></b>{{/block}}`
@@ -142,12 +147,12 @@ test('Blocks', function () {
     ['exit', block2.params[1]],
     ['enter', block2.hash],
     ['enter', block2.hash.pairs[0]],
-    ['enter', block2.hash.pairs[0].value],
-    ['exit', block2.hash.pairs[0].value],
+    ['enter', block2.hash.pairs[0]?.value],
+    ['exit', block2.hash.pairs[0]?.value],
     ['exit', block2.hash.pairs[0]],
     ['enter', block2.hash.pairs[1]],
-    ['enter', block2.hash.pairs[1].value],
-    ['exit', block2.hash.pairs[1].value],
+    ['enter', block2.hash.pairs[1]?.value],
+    ['exit', block2.hash.pairs[1]?.value],
     ['exit', block2.hash.pairs[1]],
     ['exit', block2.hash],
     ['enter', block2.program],
@@ -161,7 +166,7 @@ test('Blocks', function () {
   ]);
 });
 
-test('Mustaches', function () {
+test('Mustaches', () => {
   let ast = parse(`{{mustache}}` + `{{mustache param1 param2 key1=value key2=value}}`);
 
   let must1 = ast.body[0] as AST.MustacheStatement;
@@ -184,12 +189,12 @@ test('Mustaches', function () {
     ['exit', must2.params[1]],
     ['enter', must2.hash],
     ['enter', must2.hash.pairs[0]],
-    ['enter', must2.hash.pairs[0].value],
-    ['exit', must2.hash.pairs[0].value],
+    ['enter', must2.hash.pairs[0]?.value],
+    ['exit', must2.hash.pairs[0]?.value],
     ['exit', must2.hash.pairs[0]],
     ['enter', must2.hash.pairs[1]],
-    ['enter', must2.hash.pairs[1].value],
-    ['exit', must2.hash.pairs[1].value],
+    ['enter', must2.hash.pairs[1]?.value],
+    ['exit', must2.hash.pairs[1]?.value],
     ['exit', must2.hash.pairs[1]],
     ['exit', must2.hash],
     ['exit', must2],
@@ -197,7 +202,7 @@ test('Mustaches', function () {
   ]);
 });
 
-test('Nested helpers', function () {
+test('Nested helpers', () => {
   let ast = parse(`{{helper
     (helper param1 param2 key1=value key2=value)
     key1=(helper param)
@@ -206,9 +211,9 @@ test('Nested helpers', function () {
 
   let must = ast.body[0] as AST.MustacheStatement;
   let sexp = must.params[0] as AST.SubExpression;
-  let nestedSexp1 = must.hash.pairs[0].value as AST.SubExpression;
-  let nestedSexp2 = must.hash.pairs[1].value as AST.SubExpression;
-  let deeplyNestedSexp = nestedSexp2.hash.pairs[0].value as AST.SubExpression;
+  let nestedSexp1 = must.hash.pairs[0]?.value;
+  let nestedSexp2 = must.hash.pairs[1]?.value;
+  let deeplyNestedSexp = getHash(nestedSexp2)?.pairs[0]?.value;
   traversalEqual(ast, [
     ['enter', ast],
     ['enter', must],
@@ -223,42 +228,42 @@ test('Nested helpers', function () {
     ['exit', sexp.params[1]],
     ['enter', sexp.hash],
     ['enter', sexp.hash.pairs[0]],
-    ['enter', sexp.hash.pairs[0].value],
-    ['exit', sexp.hash.pairs[0].value],
+    ['enter', sexp.hash.pairs[0]?.value],
+    ['exit', sexp.hash.pairs[0]?.value],
     ['exit', sexp.hash.pairs[0]],
     ['enter', sexp.hash.pairs[1]],
-    ['enter', sexp.hash.pairs[1].value],
-    ['exit', sexp.hash.pairs[1].value],
+    ['enter', sexp.hash.pairs[1]?.value],
+    ['exit', sexp.hash.pairs[1]?.value],
     ['exit', sexp.hash.pairs[1]],
     ['exit', sexp.hash],
     ['exit', sexp],
     ['enter', must.hash],
     ['enter', must.hash.pairs[0]],
     ['enter', nestedSexp1],
-    ['enter', nestedSexp1.path],
-    ['exit', nestedSexp1.path],
-    ['enter', nestedSexp1.params[0]],
-    ['exit', nestedSexp1.params[0]],
-    ['enter', nestedSexp1.hash],
-    ['exit', nestedSexp1.hash],
+    ['enter', getPath(nestedSexp1)],
+    ['exit', getPath(nestedSexp1)],
+    ['enter', getParams(nestedSexp1)?.[0]],
+    ['exit', getParams(nestedSexp1)?.[0]],
+    ['enter', getHash(nestedSexp1)],
+    ['exit', getHash(nestedSexp1)],
     ['exit', nestedSexp1],
     ['exit', must.hash.pairs[0]],
     ['enter', must.hash.pairs[1]],
     ['enter', nestedSexp2],
-    ['enter', nestedSexp2.path],
-    ['exit', nestedSexp2.path],
-    ['enter', nestedSexp2.hash],
-    ['enter', nestedSexp2.hash.pairs[0]],
+    ['enter', getPath(nestedSexp2)],
+    ['exit', getPath(nestedSexp2)],
+    ['enter', getHash(nestedSexp2)],
+    ['enter', getHash(nestedSexp2)?.pairs[0]],
     ['enter', deeplyNestedSexp],
-    ['enter', deeplyNestedSexp.path],
-    ['exit', deeplyNestedSexp.path],
-    ['enter', deeplyNestedSexp.params[0]],
-    ['exit', deeplyNestedSexp.params[0]],
-    ['enter', deeplyNestedSexp.hash],
-    ['exit', deeplyNestedSexp.hash],
+    ['enter', getPath(deeplyNestedSexp)],
+    ['exit', getPath(deeplyNestedSexp)],
+    ['enter', getParams(deeplyNestedSexp)?.[0]],
+    ['exit', getParams(deeplyNestedSexp)?.[0]],
+    ['enter', getHash(deeplyNestedSexp)],
+    ['exit', getHash(deeplyNestedSexp)],
     ['exit', deeplyNestedSexp],
-    ['exit', nestedSexp2.hash.pairs[0]],
-    ['exit', nestedSexp2.hash],
+    ['exit', getHash(nestedSexp2)?.pairs[0]],
+    ['exit', getHash(nestedSexp2)],
     ['exit', nestedSexp2],
     ['exit', must.hash.pairs[1]],
     ['exit', must.hash],
@@ -267,7 +272,7 @@ test('Nested helpers', function () {
   ]);
 });
 
-test('Comments', function () {
+test('Comments', () => {
   let ast = parse(
     `<!-- HTML comment -->{{!-- Handlebars comment --}}<div {{! Other Comment }}></div>`
   );
@@ -288,14 +293,13 @@ test('Comments', function () {
 
 QUnit.module('[glimmer-syntax] Traversal - visiting - paths');
 
-test('Basics', function (assert) {
-  assert.expect(3);
-
+test('Basics', (assert) => {
   let ast = parse(`{{#if foo}}<div>bar</div>{{/if}}`);
 
   traverse(ast, {
     TextNode(node, path) {
-      assert.equal(node.chars, 'bar');
+      assert.step('TextNode');
+      assert.strictEqual(node.chars, 'bar');
       assert.strictEqual(path.node, node);
       assert.deepEqual(describeFullPath(path), [
         { nodeType: 'Template', key: 'body' },
@@ -306,16 +310,17 @@ test('Basics', function (assert) {
       ]);
     },
   });
+
+  assert.verifySteps(['TextNode']);
 });
 
-test('Helper', function (assert) {
-  assert.expect(2);
-
+test('Helper', (assert) => {
   let ast = parse(`{{#foo (bar this.blah)}}{{/foo}}`);
 
   traverse(ast, {
     PathExpression(node, path) {
       if (node.original === 'this.blah') {
+        assert.step('PathExpression this.blah');
         assert.deepEqual(describeFullPath(path), [
           { nodeType: 'Template', key: 'body' },
           { nodeType: 'BlockStatement', key: 'params' },
@@ -327,18 +332,18 @@ test('Helper', function (assert) {
       }
     },
   });
+
+  assert.verifySteps(['PathExpression this.blah']);
 });
 
-test('Modifier', function (assert) {
-  let hasSymbol = typeof Symbol !== 'undefined';
-
-  assert.expect(hasSymbol ? 3 : 2);
-
+test('Modifier', (assert) => {
   let ast = parse(`<div {{foo}}></div>`);
 
   traverse(ast, {
     PathExpression(node, path) {
       if (node.original === 'foo') {
+        assert.step('PathExpression foo');
+
         assert.deepEqual(describeFullPath(path), [
           { nodeType: 'Template', key: 'body' },
           { nodeType: 'ElementNode', key: 'modifiers' },
@@ -346,17 +351,17 @@ test('Modifier', function (assert) {
           { nodeType: 'PathExpression', key: null },
         ]);
 
-        if (hasSymbol) {
-          assert.deepEqual(
-            Array.from(path.parents()).map((it) => (it as WalkerPath<AST.Node>).node.type),
-            ['ElementModifierStatement', 'ElementNode', 'Template']
-          );
-        }
+        assert.deepEqual(
+          Array.from(path.parents()).map((it) => (it as WalkerPath<AST.Node>).node.type),
+          ['ElementModifierStatement', 'ElementNode', 'Template']
+        );
 
         assert.strictEqual((path.parent!.node as AST.ElementModifierStatement).path, node);
       }
     },
   });
+
+  assert.verifySteps(['PathExpression foo']);
 });
 
 function describeFullPath(
@@ -371,4 +376,48 @@ function describeFullPath(
   }
 
   return description;
+}
+
+function getFirstPart(value: AST.AttrValue | undefined): Optional<AST.AttrPart> {
+  let parts = getParts(value);
+
+  if (parts === undefined) return undefined;
+
+  return parts[0];
+}
+
+function getParts(value: AST.AttrValue | undefined): OptionalArray<AST.AttrPart> {
+  if (value === undefined) return undefined;
+
+  switch (value.type) {
+    case 'ConcatStatement':
+      return value.parts;
+    case 'MustacheStatement':
+    case 'TextNode':
+      return [value];
+  }
+}
+
+function getPath(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST.Expression> {
+  if (part === undefined) return undefined;
+
+  if ('path' in part) {
+    return part.path;
+  }
+}
+
+function getParams(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST.Expression[]> {
+  if (part === undefined) return undefined;
+
+  if ('params' in part) {
+    return part.params;
+  }
+}
+
+function getHash(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST.Hash> {
+  if (part === undefined) return undefined;
+
+  if ('hash' in part) {
+    return part.hash;
+  }
 }

@@ -1,10 +1,47 @@
 {
   "name": "@glimmer/owner",
-  "version": "0.84.2",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/owner",
-  "description": "Implementation for the owner in Glimmer apps",
+  "version": "0.88.1",
   "license": "MIT",
+  "description": "Implementation for the owner in Glimmer apps",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/owner",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "publishConfig": {
+    "access": "public",
+    "types": "dist/dev/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/dev/index.d.ts",
+        "development": {
+          "require": "./dist/dev/index.cjs",
+          "import": "./dist/dev/index.js"
+        },
+        "require": "./dist/dev/index.cjs",
+        "import": "./dist/prod/index.js"
+      }
+    },
+    "main": null,
+    "module": "dist/dev/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "test:lint": "eslint .",
+    "test:publint": "publint",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
+  },
   "dependencies": {
-    "@glimmer/util": "0.84.2"
+    "@glimmer/util": "workspace:^"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^4.5.1",
+    "typescript": "*"
   }
 }

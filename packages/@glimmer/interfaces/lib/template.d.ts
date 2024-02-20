@@ -1,10 +1,11 @@
-import { Operand, SerializedTemplateBlock, SerializedInlineBlock, BlockOperand } from './compile';
-import { EncoderError } from './compile/encoder';
-import { Option } from './core';
-import { InternalComponentCapabilities } from './managers/internal/component';
-import { ConstantPool, SerializedHeap, CompileTimeCompilationContext } from './program';
-import { Owner } from './runtime';
-import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './tier1/symbol-table';
+import type { PresentArray } from './array.js';
+import type { EncoderError } from './compile/encoder.js';
+import type { Operand, SerializedInlineBlock, SerializedTemplateBlock } from './compile/index.js';
+import type { Nullable } from './core.js';
+import type { InternalComponentCapabilities } from './managers/internal/component.js';
+import type { CompileTimeCompilationContext, ConstantPool, SerializedHeap } from './program.js';
+import type { Owner } from './runtime.js';
+import type { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './tier1/symbol-table.js';
 
 export interface CompilableProgram extends CompilableTemplate<ProgramSymbolTable> {
   moduleName: string;
@@ -73,28 +74,28 @@ export type CompilerBuffer = Array<Operand>;
 export interface ResolvedLayout {
   handle: number;
   capabilities: InternalComponentCapabilities;
-  compilable: Option<CompilableProgram>;
+  compilable: Nullable<CompilableProgram>;
 }
 
 export type OkHandle = number;
 export interface ErrHandle {
   handle: number;
-  errors: EncoderError[];
+  errors: PresentArray<EncoderError>;
 }
 
 export type HandleResult = OkHandle | ErrHandle;
 
 export interface NamedBlocks {
-  get(name: string): Option<SerializedInlineBlock>;
+  get(name: string): Nullable<SerializedInlineBlock>;
   has(name: string): boolean;
-  with(name: string, block: Option<SerializedInlineBlock>): NamedBlocks;
+  with(name: string, block: Nullable<SerializedInlineBlock>): NamedBlocks;
   hasAny: boolean;
   names: string[];
 }
 
 export interface ContainingMetadata {
-  evalSymbols: Option<string[]>;
-  upvars: Option<string[]>;
+  evalSymbols: Nullable<string[]>;
+  upvars: Nullable<string[]>;
   scopeValues: unknown[] | null;
   isStrictMode: boolean;
   moduleName: string;

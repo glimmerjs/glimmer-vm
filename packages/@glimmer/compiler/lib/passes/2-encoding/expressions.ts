@@ -1,8 +1,9 @@
-import { PresentArray, SexpOpcodes, WireFormat } from '@glimmer/interfaces';
-import { ASTv2 } from '@glimmer/syntax';
-import { assertPresent, isPresent, mapPresent } from '@glimmer/util';
+import type { PresentArray, WireFormat } from '@glimmer/interfaces';
+import type { ASTv2 } from '@glimmer/syntax';
+import { assertPresentArray, isPresentArray, mapPresentArray } from '@glimmer/util';
+import { SexpOpcodes } from '@glimmer/wire-format';
 
-import * as mir from './mir';
+import type * as mir from './mir';
 
 export type HashPair = [string, WireFormat.Expression];
 
@@ -83,8 +84,8 @@ export class ExpressionEncoder {
     symbol,
   }: ASTv2.LocalVarReference):
     | WireFormat.Expressions.GetSymbol
-    | WireFormat.Expressions.GetTemplateSymbol {
-    return [isTemplateLocal ? SexpOpcodes.GetTemplateSymbol : SexpOpcodes.GetSymbol, symbol];
+    | WireFormat.Expressions.GetLexicalSymbol {
+    return [isTemplateLocal ? SexpOpcodes.GetLexicalSymbol : SexpOpcodes.GetSymbol, symbol];
   }
 
   GetWithResolver({ symbol }: mir.GetWithResolver): WireFormat.Expressions.GetContextualFree {
@@ -113,7 +114,7 @@ export class ExpressionEncoder {
   }
 
   Tail({ members }: mir.Tail): PresentArray<string> {
-    return mapPresent(members, (member) => member.chars);
+    return mapPresentArray(members, (member) => member.chars);
   }
 
   Args({ positional, named }: mir.Args): WireFormat.Core.Args {
@@ -131,7 +132,7 @@ export class ExpressionEncoder {
   NamedArguments({ entries: pairs }: mir.NamedArguments): WireFormat.Core.Hash {
     let list = pairs.toArray();
 
-    if (isPresent(list)) {
+    if (isPresentArray(list)) {
       let names: string[] = [];
       let values: WireFormat.Expression[] = [];
 
@@ -141,8 +142,8 @@ export class ExpressionEncoder {
         values.push(value);
       }
 
-      assertPresent(names);
-      assertPresent(values);
+      assertPresentArray(names);
+      assertPresentArray(values);
 
       return [names, values];
     } else {

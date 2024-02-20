@@ -1,6 +1,7 @@
-import { preprocess as parse, traverse, AST } from '../..';
+import type { AST } from '@glimmer/syntax';
+import { preprocess as parse, traverse } from '@glimmer/syntax';
 
-function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Node]>) {
+function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Node | undefined]>) {
   let actualTraversal: Array<[string, AST.BaseNode]> = [];
 
   traverse(node, {
@@ -26,13 +27,13 @@ function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.No
 
   QUnit.assert.deepEqual(
     actualTraversal.map((a) => `${a[0]} ${a[1].type}`),
-    expectedTraversal.map((a) => `${a[0]} ${a[1].type}`)
+    expectedTraversal.map((a) => `${a[0]} ${a[1]?.type ?? 'undefined'}`)
   );
 
   let nodesEqual = true;
 
   for (let i = 0; i < actualTraversal.length; i++) {
-    if (actualTraversal[i][1] !== expectedTraversal[i][1]) {
+    if (actualTraversal[i]?.[1] !== expectedTraversal[i]?.[1]) {
       nodesEqual = false;
       break;
     }
@@ -43,10 +44,10 @@ function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.No
 
 QUnit.module('[glimmer-syntax] Traversal - visiting keys');
 
-QUnit.test('Blocks', function () {
+QUnit.test('Blocks', () => {
   let ast = parse(`{{#block param1 param2 key1=value key2=value}}<b></b><b></b>{{/block}}`);
   let block = ast.body[0] as AST.BlockStatement;
-  let program = block.program as AST.Block;
+  let program = block.program;
   traversalEqual(ast, [
     ['enter', ast],
     ['enter:body', ast],
@@ -66,14 +67,14 @@ QUnit.test('Blocks', function () {
     ['enter:pairs', block.hash],
     ['enter', block.hash.pairs[0]],
     ['enter:value', block.hash.pairs[0]],
-    ['enter', block.hash.pairs[0].value],
-    ['exit', block.hash.pairs[0].value],
+    ['enter', block.hash.pairs[0]?.value],
+    ['exit', block.hash.pairs[0]?.value],
     ['exit:value', block.hash.pairs[0]],
     ['exit', block.hash.pairs[0]],
     ['enter', block.hash.pairs[1]],
     ['enter:value', block.hash.pairs[1]],
-    ['enter', block.hash.pairs[1].value],
-    ['exit', block.hash.pairs[1].value],
+    ['enter', block.hash.pairs[1]?.value],
+    ['exit', block.hash.pairs[1]?.value],
     ['exit:value', block.hash.pairs[1]],
     ['exit', block.hash.pairs[1]],
     ['exit:pairs', block.hash],

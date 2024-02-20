@@ -1,5 +1,7 @@
+import type { Maybe, SimpleDocument, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+
+import { DOCUMENT_NODE, ELEMENT_NODE } from './dom-utils';
 import { unreachable } from './platform-utils';
-import { NodeType, SimpleDocument, SimpleElement, SimpleNode } from '@simple-dom/interface';
 
 interface GenericElementTags {
   HTML: HTMLElement;
@@ -24,10 +26,10 @@ type SugaryNodeCheck<K extends BrowserTag = BrowserTag> = NodeCheck<BrowserTags[
 type NodeForSugaryCheck<S extends SugaryNodeCheck<BrowserTag>> = S extends NodeCheck<infer N>
   ? N
   : S extends keyof BrowserTags
-  ? BrowserTags[S]
-  : S extends (keyof BrowserTags)[]
-  ? BrowserTags[S[number]]
-  : never;
+    ? BrowserTags[S]
+    : S extends (keyof BrowserTags)[]
+      ? BrowserTags[S[number]]
+      : never;
 
 type BrowserNode = Element | Document | DocumentFragment | Text | Comment | Node;
 
@@ -39,8 +41,8 @@ export function castToSimple(
 ) {
   if (isDocument(node)) {
     return node as SimpleDocument;
-  } else if (isElement(node)) {
-    return node as SimpleElement;
+  } else if (isSimpleElement(node)) {
+    return node;
   } else {
     return node as SimpleNode;
   }
@@ -86,45 +88,52 @@ export function castToBrowser<S extends SugaryNodeCheck>(
     );
   }
 
-  return checkNode<S>(node, sugaryCheck!);
+  return checkBrowserNode<S>(node, sugaryCheck!);
 }
 
 function checkError(from: string, check: SugaryNodeCheck): Error {
-  return new Error(`cannot cast a ${from} into ${check}`);
+  return new Error(`cannot cast a ${from} into ${String(check)}`);
 }
 
 function isDocument(node: Node | SimpleNode | SimpleDocument): node is Document | SimpleDocument {
-  return node.nodeType === NodeType.DOCUMENT_NODE;
+  return node.nodeType === DOCUMENT_NODE;
 }
 
-function isElement(node: Node | SimpleNode | SimpleElement): node is Element | SimpleElement {
-  return node.nodeType === NodeType.ELEMENT_NODE;
+export function isSimpleElement(node: Maybe<SimpleNode | Node>): node is SimpleElement {
+  return node?.nodeType === ELEMENT_NODE;
 }
 
-export function checkNode<S extends SugaryNodeCheck>(
-  node: Node | null,
+export function isElement(node: Maybe<Node | SimpleNode>): node is Element {
+  return node?.nodeType === ELEMENT_NODE && node instanceof Element;
+}
+
+export function checkBrowserNode<S extends SugaryNodeCheck>(
+  node: Node | SimpleNode | null,
   check: S
 ): NodeForSugaryCheck<S> {
   let isMatch = false;
 
   if (node !== null) {
     if (typeof check === 'string') {
-      isMatch = stringCheckNode(node, check as BrowserTag);
+      isMatch = stringCheckNode(node, check);
     } else if (Array.isArray(check)) {
-      isMatch = check.some((c) => stringCheckNode(node, c as BrowserTag));
+      isMatch = check.some((c) => stringCheckNode(node, c));
     } else {
       throw unreachable();
     }
   }
 
-  if (isMatch) {
+  if (isMatch && node instanceof Node) {
     return node as NodeForSugaryCheck<S>;
   } else {
-    throw checkError(`SimpleElement(${node})`, check);
+    throw checkError(`SimpleElement(${node?.constructor?.name ?? 'null'})`, check);
   }
 }
 
-function stringCheckNode<S extends BrowserTag>(node: Node, check: S): node is BrowserTags[S] {
+function stringCheckNode<S extends BrowserTag>(
+  node: Node | SimpleNode,
+  check: S
+): node is BrowserTags[S] {
   switch (check) {
     case 'NODE':
       return true;

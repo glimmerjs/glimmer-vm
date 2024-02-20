@@ -1,14 +1,22 @@
-import { SourceSpan } from '../source/span';
-import { PathExpression, PathHead } from './nodes-v1';
+import { asPresentArray, assertPresentArray, getFirst } from '@glimmer/util';
+
+import type { SourceSpan } from '../source/span';
+import type { PathExpression, PathHead } from './nodes-v1';
+
 import b from './public-builders';
 
 export class PathExpressionImplV1 implements PathExpression {
-  type: 'PathExpression' = 'PathExpression';
+  type = 'PathExpression' as const;
   public parts: string[];
   public this = false;
   public data = false;
 
-  constructor(public original: string, head: PathHead, tail: string[], public loc: SourceSpan) {
+  constructor(
+    public original: string,
+    head: PathHead,
+    tail: string[],
+    public loc: SourceSpan
+  ) {
     let parts = tail.slice();
 
     if (head.type === 'ThisHead') {
@@ -36,9 +44,10 @@ export class PathExpressionImplV1 implements PathExpression {
     if (this.this) {
       firstPart = 'this';
     } else if (this.data) {
-      firstPart = `@${this.parts[0]}`;
+      firstPart = `@${getFirst(asPresentArray(this.parts))}`;
     } else {
-      firstPart = this.parts[0];
+      assertPresentArray(this.parts);
+      firstPart = getFirst(this.parts);
     }
 
     let firstPartLoc = this.loc.collapse('start').sliceStartChars({

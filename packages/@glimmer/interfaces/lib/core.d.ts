@@ -1,11 +1,10 @@
-export type Present = {} | void;
-export type Option<T> = T | null;
-export type Maybe<T> = Option<T> | undefined | void;
-export type FIXME<T, S extends string> = T;
+export type Present<T> = Exclude<T, null | undefined>;
+export type Nullable<T> = T | null;
+export type Optional<T> = T | undefined;
+export type Maybe<T> = Nullable<T> | Optional<T>;
+export type FIXME<T, _S extends string> = T;
 
-export interface Dict<T = unknown> {
-  [key: string]: T;
-}
+export type Dict<T = unknown> = Record<string, T>;
 
 export type DictValue<D extends Dict> = D extends Dict<infer V> ? V : never;
 

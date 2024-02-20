@@ -1,34 +1,36 @@
-import {
-  Option,
-  LayoutWithContext,
-  ContainingMetadata,
-  SerializedInlineBlock,
-  WireFormat,
-  SymbolTable,
-  CompilableTemplate,
-  Statement,
-  CompileTimeCompilationContext,
+import type {
+  BlockSymbolTable,
+  BuilderOp,
   CompilableBlock,
   CompilableProgram,
+  CompilableTemplate,
+  CompileTimeCompilationContext,
+  ContainingMetadata,
   HandleResult,
-  BlockSymbolTable,
-  SerializedBlock,
-  BuilderOp,
   HighLevelOp,
+  LayoutWithContext,
+  Nullable,
+  SerializedBlock,
+  SerializedInlineBlock,
+  Statement,
+  SymbolTable,
+  WireFormat,
 } from '@glimmer/interfaces';
-import { meta } from './opcode-builder/helpers/shared';
-import { EMPTY_ARRAY } from '@glimmer/util';
-import { templateCompilationContext } from './opcode-builder/context';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { EMPTY_ARRAY } from '@glimmer/util';
+
+import type { HighLevelStatementOp } from './syntax/compilers';
+
 import { debugCompiler } from './compiler';
-import { STATEMENTS } from './syntax/statements';
-import { HighLevelStatementOp } from './syntax/compilers';
+import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
+import { meta } from './opcode-builder/helpers/shared';
+import { STATEMENTS } from './syntax/statements';
 
 export const PLACEHOLDER_HANDLE = -1;
 
 class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplate<S> {
-  compiled: Option<HandleResult> = null;
+  compiled: Nullable<HandleResult> = null;
 
   constructor(
     readonly statements: WireFormat.Statement[],
@@ -62,7 +64,7 @@ function maybeCompile(
   compilable: CompilableTemplateImpl<SymbolTable>,
   context: CompileTimeCompilationContext
 ): HandleResult {
-  if (compilable.compiled !== null) return compilable.compiled!;
+  if (compilable.compiled !== null) return compilable.compiled;
 
   compilable.compiled = PLACEHOLDER_HANDLE;
 
@@ -91,8 +93,8 @@ export function compileStatements(
     encodeOp(encoder, constants, resolver, meta, op as BuilderOp | HighLevelOp);
   }
 
-  for (let i = 0; i < statements.length; i++) {
-    sCompiler.compile(pushOp, statements[i]);
+  for (const statement of statements) {
+    sCompiler.compile(pushOp, statement);
   }
 
   let handle = context.encoder.commit(meta.size);

@@ -1,15 +1,16 @@
-import {
-  SimpleElement,
-  SimpleDocument,
-  Namespace,
-  SimpleNode,
-  InsertPosition,
-  SimpleText,
+import type {
+  Bounds,
+  Dict,
+  Nullable,
   SimpleComment,
-} from '@simple-dom/interface';
-import { Dict, Option, Bounds } from '@glimmer/interfaces';
+  SimpleDocument,
+  SimpleElement,
+  SimpleNode,
+  SimpleText,
+} from '@glimmer/interfaces';
+import { expect, INSERT_BEFORE_BEGIN, INSERT_BEFORE_END, NS_SVG } from '@glimmer/util';
+
 import { ConcreteBounds } from '../bounds';
-import { expect } from '@glimmer/util';
 
 // http://www.w3.org/TR/html/syntax.html#html-integration-point
 const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
@@ -24,7 +25,7 @@ const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 export const BLACKLIST_TABLE = Object.create(null);
 
 export class DOMOperations {
-  protected uselessElement!: SimpleElement; // Set by this.setupUselessElement() in constructor
+  protected declare uselessElement: SimpleElement; // Set by this.setupUselessElement() in constructor
 
   constructor(protected document: SimpleDocument) {
     this.setupUselessElement();
@@ -40,7 +41,7 @@ export class DOMOperations {
     let isElementInSVGNamespace: boolean, isHTMLIntegrationPoint: boolean;
 
     if (context) {
-      isElementInSVGNamespace = context.namespaceURI === Namespace.SVG || tag === 'svg';
+      isElementInSVGNamespace = context.namespaceURI === NS_SVG || tag === 'svg';
       isHTMLIntegrationPoint = !!(SVG_INTEGRATION_POINTS as Dict<number>)[context.tagName];
     } else {
       isElementInSVGNamespace = tag === 'svg';
@@ -55,28 +56,28 @@ export class DOMOperations {
         throw new Error(`Cannot create a ${tag} inside an SVG context`);
       }
 
-      return this.document.createElementNS(Namespace.SVG, tag);
+      return this.document.createElementNS(NS_SVG, tag);
     } else {
       return this.document.createElement(tag);
     }
   }
 
-  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Option<SimpleNode>) {
+  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Nullable<SimpleNode>) {
     parent.insertBefore(node, reference);
   }
 
-  insertHTMLBefore(parent: SimpleElement, nextSibling: Option<SimpleNode>, html: string): Bounds {
+  insertHTMLBefore(parent: SimpleElement, nextSibling: Nullable<SimpleNode>, html: string): Bounds {
     if (html === '') {
-      let comment = this.createComment('');
+      const comment = this.createComment('');
       parent.insertBefore(comment, nextSibling);
       return new ConcreteBounds(parent, comment, comment);
     }
 
-    let prev = nextSibling ? nextSibling.previousSibling : parent.lastChild;
+    const prev = nextSibling ? nextSibling.previousSibling : parent.lastChild;
     let last: SimpleNode;
 
     if (nextSibling === null) {
-      parent.insertAdjacentHTML(InsertPosition.beforeend, html);
+      parent.insertAdjacentHTML(INSERT_BEFORE_END, html);
       last = expect(parent.lastChild, 'bug in insertAdjacentHTML?');
     } else if (nextSibling instanceof HTMLElement) {
       nextSibling.insertAdjacentHTML('beforebegin', html);
@@ -87,15 +88,15 @@ export class DOMOperations {
       //
       // This also protects Edge, IE and Firefox w/o the inspector open
       // from merging adjacent text nodes. See ./compat/text-node-merging-fix.ts
-      let { uselessElement } = this;
+      const { uselessElement } = this;
 
       parent.insertBefore(uselessElement, nextSibling);
-      uselessElement.insertAdjacentHTML(InsertPosition.beforebegin, html);
+      uselessElement.insertAdjacentHTML(INSERT_BEFORE_BEGIN, html);
       last = expect(uselessElement.previousSibling, 'bug in insertAdjacentHTML?');
       parent.removeChild(uselessElement);
     }
 
-    let first = expect(prev ? prev.nextSibling : parent.firstChild, 'bug in insertAdjacentHTML?');
+    const first = expect(prev ? prev.nextSibling : parent.firstChild, 'bug in insertAdjacentHTML?');
     return new ConcreteBounds(parent, first, last);
   }
 
@@ -111,14 +112,14 @@ export class DOMOperations {
 export function moveNodesBefore(
   source: SimpleNode,
   target: SimpleElement,
-  nextSibling: Option<SimpleNode>
+  nextSibling: Nullable<SimpleNode>
 ): Bounds {
-  let first = expect(source.firstChild, 'source is empty');
+  const first = expect(source.firstChild, 'source is empty');
   let last: SimpleNode = first;
-  let current: Option<SimpleNode> = first;
+  let current: Nullable<SimpleNode> = first;
 
   while (current) {
-    let next: Option<SimpleNode> = current.nextSibling;
+    const next: Nullable<SimpleNode> = current.nextSibling;
 
     target.insertBefore(current, nextSibling);
 

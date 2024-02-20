@@ -3,107 +3,126 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
       - next
       - 'release-*'
       - 'v*'
   pull_request: {}
   schedule:
-    - cron:  '0 3 * * *' # daily, at 3am
+    - cron: '0 3 * * *' # daily, at 3am
+
+env:
+  TURBO_API: http://127.0.0.1:9080
+  TURBO_TOKEN: this-is-not-a-secret
+  TURBO_TEAM: myself
 
 jobs:
+  install_dependencies:
+    name: 'Setup'
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - uses: wyvox/action@v1
+        with:
+          node-version: 20.1.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm turbo build
+
   lint:
     name: Linting
     runs-on: ubuntu-latest
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: volta-cli/action@v1
-
-      - name: install dependencies
-        run: yarn install --frozen-lockfile
-
-      - run: yarn lint
+      - uses: wyvox/action@v1
+        with:
+          node-version: 20.1.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm lint
 
   test-chrome:
     name: Chrome
     runs-on: ubuntu-latest
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: volta-cli/action@v1
+      - name: install puppeteer libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yq libgbm1 gconf-service libasound2 libatk1.0-0 libc6 \
+            libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 \
+            libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 \
+            libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
+            libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 \
+            libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release \
+            xdg-utils wget libcairo2
+      - uses: wyvox/action@v1
+        with:
+          node-version: 20.1.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm test
 
-      - name: install dependencies
-        run: yarn install --frozen-lockfile
+  # test-browserstack:
+  #   name: Browserstack
+  #   runs-on: ubuntu-latest
+  #   needs: ['install_dependencies']
+  #   timeout-minutes: 20
 
-      - run: yarn test
+  #   env:
+  #     BROWSERSTACK_USERNAME: glimmervm1
+  #     BROWSERSTACK_ACCESS_KEY: 7DFjbGLxYRsXWmc8tzeh
 
-  test-node:
-    name: Node
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: wyvox/action-setup-pnpm@v2
+  #     - run: pnpm browserstack:connect
+  #     - run: pnpm test:browserstack
+  #     - run: pnpm browserstack:results
+  #     - run: pnpm browserstack:disconnect
 
-    steps:
-      - uses: actions/checkout@v2
-      - uses: volta-cli/action@v1
+  # test-browserstack:
+  #   name: Browserstack
+  #   runs-on: ubuntu-latest
+  #   needs: ['install_dependencies']
+  #   timeout-minutes: 20
 
-      - name: install dependencies
-        run: yarn install --frozen-lockfile
+  #   env:
+  #     BROWSERSTACK_USERNAME: glimmervm1
+  #     BROWSERSTACK_ACCESS_KEY: 7DFjbGLxYRsXWmc8tzeh
 
-      - run: yarn ember build
-      - run: yarn test:node
-      - run: yarn test:babel-plugins
-
-  test-browserstack:
-    name: Browserstack
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    env:
-      BROWSERSTACK_USERNAME: glimmervm1
-      BROWSERSTACK_ACCESS_KEY: 7DFjbGLxYRsXWmc8tzeh
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: volta-cli/action@v1
-
-      - name: install dependencies
-        run: yarn install --frozen-lockfile
-
-      - run: yarn browserstack:connect
-      - run: yarn test:browserstack
-      - run: yarn browserstack:results
-      - run: yarn browserstack:disconnect
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: wyvox/action-setup-pnpm@v2
+  #     - run: pnpm browserstack:connect
+  #     - run: pnpm test:browserstack
+  #     - run: pnpm browserstack:results
+  #     - run: pnpm browserstack:disconnect
 
   test-types:
     name: Types
     runs-on: ubuntu-latest
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: volta-cli/action@v1
-
-      - name: install dependencies
-        run: yarn install --frozen-lockfile
-
-      - run: yarn build
-      - run: yarn test:types
+      - uses: wyvox/action@v1
+        with:
+          node-version: 20.1.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm turbo test:types
 
   floating-dependencies:
     name: Floating Dependencies
     runs-on: ubuntu-latest
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: volta-cli/action@v1
+      - uses: wyvox/action@v1
         with:
-          node-version: 12.x
-
-      - name: install dependencies
-        run: yarn install --no-lockfile
-
-      - run: yarn test
+          pnpm-args: '--no-lockfile'
+          node-version: 20.1.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm test

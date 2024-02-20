@@ -1,24 +1,27 @@
-import {
-  DynamicScope,
-  Environment,
-  RenderResult,
-  RichIteratorResult,
-  TemplateIterator,
-  RuntimeContext,
-  ElementBuilder,
+import type {
   CompilableProgram,
   CompileTimeCompilationContext,
   ComponentDefinitionState,
+  DynamicScope,
+  ElementBuilder,
+  Environment,
   Owner,
+  RenderResult,
+  RichIteratorResult,
+  RuntimeContext,
+  TemplateIterator,
 } from '@glimmer/interfaces';
-import { childRefFor, createConstRef, Reference } from '@glimmer/reference';
+import type { Reference } from '@glimmer/reference';
+import { childRefFor, createConstRef } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
-import { ARGS, CONSTANTS } from './symbols';
-import VM, { InternalVM } from './vm/append';
-import { DynamicScopeImpl } from './scope';
+import { debug } from '@glimmer/validator';
+
+import type { InternalVM } from './vm/append';
+
 import { inTransaction } from './environment';
-import { DEBUG } from '@glimmer/env';
-import { runInTrackingTransaction } from '@glimmer/validator';
+import { DynamicScopeImpl } from './scope';
+import { ARGS, CONSTANTS } from './symbols';
+import { VM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
   constructor(private vm: InternalVM) {}
@@ -27,8 +30,8 @@ class TemplateIteratorImpl implements TemplateIterator {
   }
 
   sync(): RenderResult {
-    if (DEBUG) {
-      return runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
+    if (import.meta.env.DEV) {
+      return debug.runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
     } else {
       return this.vm.execute();
     }
@@ -74,7 +77,7 @@ function renderInvocation(
 ): TemplateIterator {
   // Get a list of tuples of argument names and references, like
   // [['title', reference], ['name', reference]]
-  const argList = Object.keys(args).map((key) => [key, args[key]]);
+  const argList = Object.keys(args).map((key) => [key, args[key]] as const);
 
   const blockNames = ['main', 'else', 'attrs'];
   // Prefix argument names with `@` symbol
@@ -135,8 +138,11 @@ export function renderComponent(
 function recordToReference(record: Record<string, unknown>): Record<string, Reference> {
   const root = createConstRef(record, 'args');
 
-  return Object.keys(record).reduce((acc, key) => {
-    acc[key] = childRefFor(root, key);
-    return acc;
-  }, {} as Record<string, Reference>);
+  return Object.keys(record).reduce(
+    (acc, key) => {
+      acc[key] = childRefFor(root, key);
+      return acc;
+    },
+    {} as Record<string, Reference>
+  );
 }

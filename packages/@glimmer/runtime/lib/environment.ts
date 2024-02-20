@@ -1,27 +1,25 @@
-import { DEBUG } from '@glimmer/env';
-import {
+import type {
+  ComponentInstanceWithCreate,
   Environment,
   EnvironmentOptions,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
-  Transaction,
-  TransactionSymbol,
+  ModifierInstance,
+  Nullable,
+  RuntimeArtifacts,
   RuntimeContext,
   RuntimeResolver,
-  Option,
-  RuntimeArtifacts,
-  ComponentInstanceWithCreate,
-  ModifierInstance,
-  InternalModifierManager,
-  ModifierInstanceState,
+  Transaction,
+  TransactionSymbol,
 } from '@glimmer/interfaces';
-import { assert, expect, symbol } from '@glimmer/util';
-import { track, updateTag } from '@glimmer/validator';
-import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
 import { RuntimeProgramImpl } from '@glimmer/program';
-import DebugRenderTree from './debug-render-tree';
+import { assert, expect } from '@glimmer/util';
+import { track, updateTag } from '@glimmer/validator';
 
-export const TRANSACTION: TransactionSymbol = symbol('TRANSACTION');
+import DebugRenderTree from './debug-render-tree';
+import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
+
+export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
 
 class TransactionImpl implements Transaction {
   public scheduledInstallModifiers: ModifierInstance[] = [];
@@ -48,36 +46,25 @@ class TransactionImpl implements Transaction {
   commit() {
     let { createdComponents, updatedComponents } = this;
 
-    for (let i = 0; i < createdComponents.length; i++) {
-      let { manager, state } = createdComponents[i];
+    for (const { manager, state } of createdComponents) {
       manager.didCreate(state);
     }
 
-    for (let i = 0; i < updatedComponents.length; i++) {
-      let { manager, state } = updatedComponents[i];
+    for (const { manager, state } of updatedComponents) {
       manager.didUpdate(state);
     }
 
     let { scheduledInstallModifiers, scheduledUpdateModifiers } = this;
 
-    // Prevent a transpilation issue we guard against in Ember, the
-    // throw-if-closure-required issue
-    let manager: InternalModifierManager, state: ModifierInstanceState;
-
-    for (let i = 0; i < scheduledInstallModifiers.length; i++) {
-      let modifier = scheduledInstallModifiers[i];
-      manager = modifier.manager;
-      state = modifier.state;
-
+    for (const { manager, state, definition } of scheduledInstallModifiers) {
       let modifierTag = manager.getTag(state);
 
       if (modifierTag !== null) {
         let tag = track(
-          // eslint-disable-next-line no-loop-func
           () => manager.install(state),
-          DEBUG &&
+          import.meta.env.DEV &&
             `- While rendering:\n  (instance of a \`${
-              modifier.definition.resolvedName || manager.getDebugName(modifier.definition.state)
+              definition.resolvedName || manager.getDebugName(definition.state)
             }\` modifier)`
         );
         updateTag(modifierTag, tag);
@@ -86,20 +73,15 @@ class TransactionImpl implements Transaction {
       }
     }
 
-    for (let i = 0; i < scheduledUpdateModifiers.length; i++) {
-      let modifier = scheduledUpdateModifiers[i];
-      manager = modifier.manager;
-      state = modifier.state;
-
+    for (const { manager, state, definition } of scheduledUpdateModifiers) {
       let modifierTag = manager.getTag(state);
 
       if (modifierTag !== null) {
         let tag = track(
-          // eslint-disable-next-line no-loop-func
           () => manager.update(state),
-          DEBUG &&
+          import.meta.env.DEV &&
             `- While rendering:\n  (instance of a \`${
-              modifier.definition.resolvedName || manager.getDebugName(modifier.definition.state)
+              definition.resolvedName || manager.getDebugName(definition.state)
             }\` modifier)`
         );
         updateTag(modifierTag, tag);
@@ -111,24 +93,29 @@ class TransactionImpl implements Transaction {
 }
 
 export class EnvironmentImpl implements Environment {
-  [TRANSACTION]: Option<TransactionImpl> = null;
+  [TRANSACTION]: Nullable<TransactionImpl> = null;
 
-  protected appendOperations!: GlimmerTreeConstruction;
-  protected updateOperations?: GlimmerTreeChanges;
+  protected declare appendOperations: GlimmerTreeConstruction;
+  protected updateOperations?: GlimmerTreeChanges | undefined;
 
   // Delegate methods and values
-  public isInteractive = this.delegate.isInteractive;
+  public isInteractive: boolean;
 
-  debugRenderTree = this.delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
+  debugRenderTree: DebugRenderTree<object> | undefined;
 
-  constructor(options: EnvironmentOptions, private delegate: EnvironmentDelegate) {
+  constructor(
+    options: EnvironmentOptions,
+    private delegate: EnvironmentDelegate
+  ) {
+    this.isInteractive = delegate.isInteractive;
+    this.debugRenderTree = this.delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
     if (options.appendOperations) {
       this.appendOperations = options.appendOperations;
       this.updateOperations = options.updateOperations;
     } else if (options.document) {
       this.appendOperations = new DOMTreeConstruction(options.document);
       this.updateOperations = new DOMChangesImpl(options.document);
-    } else if (DEBUG) {
+    } else if (import.meta.env.DEV) {
       throw new Error('you must pass document or appendOperations to a new runtime');
     }
   }
@@ -221,16 +208,16 @@ export function runtimeContext(
   };
 }
 
-export function inTransaction(env: Environment, cb: () => void): void {
+export function inTransaction(env: Environment, block: () => void): void {
   if (!env[TRANSACTION]) {
     env.begin();
     try {
-      cb();
+      block();
     } finally {
       env.commit();
     }
   } else {
-    cb();
+    block();
   }
 }
 

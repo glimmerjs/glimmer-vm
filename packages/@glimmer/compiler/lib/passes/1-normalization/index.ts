@@ -1,8 +1,9 @@
+import type { ASTv2, src } from '@glimmer/syntax';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { ASTv2, Source } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
-import { Result } from '../../shared/result';
+import type { Result } from '../../shared/result';
+
 import * as mir from '../2-encoding/mir';
 import { NormalizationState } from './context';
 import { VISIT_STMTS } from './visitors/statements';
@@ -46,7 +47,7 @@ import { VISIT_STMTS } from './visitors/statements';
  * ```
  */
 export default function normalize(
-  source: Source,
+  source: src.Source,
   root: ASTv2.Template,
   isStrict: boolean
 ): Result<mir.Template> {

@@ -1,20 +1,34 @@
-import * as ASTv1 from '../v1/api';
+import type * as ASTv1 from '../v1/api';
+
 import { escapeAttrValue, escapeText, sortByLoc } from './util';
 
-export const voidMap: {
-  [tagName: string]: boolean;
-} = Object.create(null);
+export const voidMap = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'command',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'keygen',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
+]);
 
-let voidTagNames =
-  'area base br col command embed hr img input keygen link meta param source track wbr';
-voidTagNames.split(' ').forEach((tagName) => {
-  voidMap[tagName] = true;
-});
+export function getVoidTags() {
+  return [...voidMap];
+}
 
-const NON_WHITESPACE = /\S/;
+const NON_WHITESPACE = /^\S/u;
 
 export interface PrinterOptions {
-  entityEncoding: 'transformed' | 'raw';
+  entityEncoding: ASTv1.EntityEncodingState;
 
   /**
    * Used to override the mechanism of printing a given AST.Node.
@@ -41,8 +55,8 @@ export interface PrinterOptions {
  * Examples when false:
  *  - Link (component)
  */
-function isVoidTag(tag: string): boolean {
-  return voidMap[tag.toLowerCase()] && tag[0].toLowerCase() === tag[0];
+export function isVoidTag(tag: string): boolean {
+  return voidMap.has(tag.toLowerCase()) && tag[0]?.toLowerCase() === tag[0];
 }
 
 export default class Printer {
@@ -66,7 +80,7 @@ export default class Printer {
     if (this.options.override !== undefined) {
       let result = this.options.override(node, this.options);
       if (typeof result === 'string') {
-        if (ensureLeadingWhitespace && result !== '' && NON_WHITESPACE.test(result[0])) {
+        if (ensureLeadingWhitespace && NON_WHITESPACE.test(result)) {
           result = ` ${result}`;
         }
 

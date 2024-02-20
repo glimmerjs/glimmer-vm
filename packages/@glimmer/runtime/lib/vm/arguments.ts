@@ -1,6 +1,4 @@
-import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
-import { DEBUG } from '@glimmer/env';
-import {
+import type {
   BlockArguments,
   BlockSymbolTable,
   BlockValue,
@@ -11,24 +9,24 @@ import {
   CompilableBlock,
   Dict,
   NamedArguments,
-  Option,
+  Nullable,
   PositionalArguments,
   Scope,
   ScopeBlock,
   VMArguments,
 } from '@glimmer/interfaces';
-import {
-  createDebugAliasRef,
-  Reference,
-  UNDEFINED_REFERENCE,
-  valueForRef,
-} from '@glimmer/reference';
-import { dict, emptyArray, EMPTY_STRING_ARRAY } from '@glimmer/util';
-import { CONSTANT_TAG, Tag } from '@glimmer/validator';
+import type { Reference } from '@glimmer/reference';
+import type { Tag } from '@glimmer/validator';
+import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
+import { createDebugAliasRef, UNDEFINED_REFERENCE, valueForRef } from '@glimmer/reference';
+import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
+import { CONSTANT_TAG } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
+
+import type { EvaluationStack } from './stack';
+
 import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
 import { REGISTERS } from '../symbols';
-import { EvaluationStack } from './stack';
 
 /*
   The calling convention is:
@@ -39,7 +37,7 @@ import { EvaluationStack } from './stack';
 */
 
 export class VMArgumentsImpl implements VMArguments {
-  private stack: Option<EvaluationStack> = null;
+  private stack: Nullable<EvaluationStack> = null;
   public positional = new PositionalArgumentsImpl();
   public named = new NamedArgumentsImpl();
   public blocks = new BlockArgumentsImpl();
@@ -139,7 +137,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
 
   private stack: EvaluationStack = null as any;
 
-  private _references: Option<readonly Reference[]> = null;
+  private _references: Nullable<readonly Reference[]> = null;
 
   empty(stack: EvaluationStack, base: number) {
     this.stack = stack;
@@ -208,12 +206,12 @@ export class NamedArgumentsImpl implements NamedArguments {
   public base = 0;
   public length = 0;
 
-  private stack!: EvaluationStack;
+  private declare stack: EvaluationStack;
 
-  private _references: Option<readonly Reference[]> = null;
+  private _references: Nullable<readonly Reference[]> = null;
 
-  private _names: Option<readonly string[]> = EMPTY_STRING_ARRAY;
-  private _atNames: Option<readonly string[]> = EMPTY_STRING_ARRAY;
+  private _names: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
+  private _atNames: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
 
   empty(stack: EvaluationStack, base: number) {
     this.stack = stack;
@@ -260,7 +258,7 @@ export class NamedArgumentsImpl implements NamedArguments {
       names = this._names = this._atNames!.map(this.toSyntheticName);
     }
 
-    return names!;
+    return names;
   }
 
   get atNames(): readonly string[] {
@@ -270,7 +268,7 @@ export class NamedArgumentsImpl implements NamedArguments {
       atNames = this._atNames = this._names!.map(this.toAtName);
     }
 
-    return atNames!;
+    return atNames;
   }
 
   has(name: string): boolean {
@@ -290,7 +288,7 @@ export class NamedArgumentsImpl implements NamedArguments {
 
     let ref = stack.get<Reference>(idx, base);
 
-    if (DEBUG) {
+    if (import.meta.env.DEV) {
       return createDebugAliasRef!(atNames ? name : `@${name}`, ref);
     } else {
       return ref;
@@ -301,13 +299,11 @@ export class NamedArgumentsImpl implements NamedArguments {
     let { names, references } = this;
     let map = dict<Reference>();
 
-    for (let i = 0; i < names.length; i++) {
-      let name = names[i];
-
-      if (DEBUG) {
-        map[name] = createDebugAliasRef!(`@${name}`, references[i]);
+    for (const [i, name] of enumerate(names)) {
+      if (import.meta.env.DEV) {
+        map[name] = createDebugAliasRef!(`@${name}`, unwrap(references[i]));
       } else {
-        map[name] = references[i];
+        map[name] = unwrap(references[i]);
       }
     }
 
@@ -321,8 +317,7 @@ export class NamedArgumentsImpl implements NamedArguments {
       let { names, length, stack } = this;
       let newNames = names.slice();
 
-      for (let i = 0; i < keys.length; i++) {
-        let name = keys[i];
+      for (const name of keys) {
         let idx = newNames.indexOf(name);
 
         if (idx === -1) {
@@ -365,11 +360,11 @@ function toSymbolName(name: string): string {
 const EMPTY_BLOCK_VALUES = emptyArray<BlockValue>();
 
 export class BlockArgumentsImpl implements BlockArguments {
-  private stack!: EvaluationStack;
-  private internalValues: Option<readonly BlockValue[]> = null;
-  private _symbolNames: Option<readonly string[]> = null;
+  private declare stack: EvaluationStack;
+  private internalValues: Nullable<readonly BlockValue[]> = null;
+  private _symbolNames: Nullable<readonly string[]> = null;
 
-  public internalTag: Option<Tag> = null;
+  public internalTag: Nullable<Tag> = null;
   public names: readonly string[] = EMPTY_STRING_ARRAY;
 
   public length = 0;
@@ -414,11 +409,11 @@ export class BlockArgumentsImpl implements BlockArguments {
   }
 
   has(name: string): boolean {
-    return this.names!.indexOf(name) !== -1;
+    return this.names.indexOf(name) !== -1;
   }
 
-  get(name: string): Option<ScopeBlock> {
-    let idx = this.names!.indexOf(name);
+  get(name: string): Nullable<ScopeBlock> {
+    let idx = this.names.indexOf(name);
 
     if (idx === -1) {
       return null;
@@ -454,7 +449,10 @@ export class BlockArgumentsImpl implements BlockArguments {
 class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   public length: number;
 
-  constructor(public names: readonly string[], public values: readonly Option<BlockValue>[]) {
+  constructor(
+    public names: readonly string[],
+    public values: readonly Nullable<BlockValue>[]
+  ) {
     this.length = names.length;
   }
 
@@ -462,7 +460,7 @@ class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
     return this.names.indexOf(name) !== -1;
   }
 
-  get(name: string): Option<ScopeBlock> {
+  get(name: string): Nullable<ScopeBlock> {
     let idx = this.names.indexOf(name);
 
     if (idx === -1) return null;
@@ -485,8 +483,8 @@ export function createCapturedArgs(named: Dict<Reference>, positional: Reference
 export function reifyNamed(named: CapturedNamedArguments) {
   let reified = dict();
 
-  for (let key in named) {
-    reified[key] = valueForRef(named[key]);
+  for (const [key, value] of Object.entries(named)) {
+    reified[key] = valueForRef(value);
   }
 
   return reified;

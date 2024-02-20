@@ -1,16 +1,16 @@
-import { DEBUG } from '@glimmer/env';
-import {
+import type {
   Bounds,
   CapturedRenderNode,
   DebugRenderTree,
-  Option,
+  Nullable,
   RenderNode,
 } from '@glimmer/interfaces';
-import { expect, assign, Stack } from '@glimmer/util';
+import { assign, expect, Stack } from '@glimmer/util';
+
 import { reifyArgs } from './vm/arguments';
 
 interface InternalRenderNode<T extends object> extends RenderNode {
-  bounds: Option<Bounds>;
+  bounds: Nullable<Bounds>;
   refs: Set<Ref<T>>;
   parent?: InternalRenderNode<T>;
 }
@@ -19,18 +19,18 @@ let GUID = 0;
 
 export class Ref<T extends object> {
   readonly id: number = GUID++;
-  private value: Option<T>;
+  private value: Nullable<T>;
 
   constructor(value: T) {
     this.value = value;
   }
 
-  get(): Option<T> {
+  get(): Nullable<T> {
     return this.value;
   }
 
   release(): void {
-    if (DEBUG && this.value === null) {
+    if (import.meta.env.DEV && this.value === null) {
       throw new Error('BUG: double release?');
     }
 
@@ -53,7 +53,8 @@ export class Ref<T extends object> {
 }
 
 export default class DebugRenderTreeImpl<TBucket extends object>
-  implements DebugRenderTree<TBucket> {
+  implements DebugRenderTree<TBucket>
+{
   private stack = new Stack<TBucket>();
 
   private refs = new WeakMap<TBucket, Ref<TBucket>>();
@@ -79,7 +80,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   didRender(state: TBucket, bounds: Bounds): void {
-    if (DEBUG && this.stack.current !== state) {
+    if (import.meta.env.DEV && this.stack.current !== state) {
       throw new Error(`BUG: expecting ${this.stack.current}, got ${state}`);
     }
 
@@ -128,7 +129,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   private exit(): void {
-    if (DEBUG && this.stack.size === 0) {
+    if (import.meta.env.DEV && this.stack.size === 0) {
       throw new Error('BUG: unbalanced pop');
     }
 
@@ -140,7 +141,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   private appendChild(node: InternalRenderNode<TBucket>, state: TBucket): void {
-    if (DEBUG && this.refs.has(state)) {
+    if (import.meta.env.DEV && this.refs.has(state)) {
       throw new Error('BUG: child already appended');
     }
 
@@ -183,7 +184,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
     return { id, type, name, args: reifyArgs(args), instance, template, bounds, children };
   }
 
-  private captureTemplate({ template }: InternalRenderNode<TBucket>): Option<string> {
+  private captureTemplate({ template }: InternalRenderNode<TBucket>): Nullable<string> {
     return template || null;
   }
 

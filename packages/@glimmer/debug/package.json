@@ -1,16 +1,49 @@
 {
   "name": "@glimmer/debug",
-  "version": "0.84.2",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/debug",
-  "private": true,
+  "version": "0.88.1",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/debug",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    "types": "./index.ts",
+    "development": "./index.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "types": "dist/dev/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/dev/index.d.ts",
+        "development": {
+          "import": "./dist/dev/index.js"
+        }
+      }
+    },
+    "main": null,
+    "module": "dist/dev/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "test:lint": "eslint .",
+    "test:publint": "publint",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
+  },
   "dependencies": {
-    "@glimmer/interfaces": "0.84.2",
-    "@glimmer/util": "0.84.2",
-    "@glimmer/vm": "0.84.2",
-    "@simple-dom/interface": "^1.4.0"
+    "@glimmer/interfaces": "workspace:^",
+    "@glimmer/util": "workspace:^",
+    "@glimmer/vm": "workspace:^"
   },
   "devDependencies": {
-    "@types/qunit": "^2.9.0",
-    "toml": "^3.0.0"
+    "@glimmer-workspace/build-support": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^4.5.1",
+    "toml": "^3.0.0",
+    "typescript": "*"
   }
 }

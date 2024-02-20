@@ -1,4 +1,7 @@
-import { Dict, Option, Stack } from '@glimmer/interfaces';
+import type { Dict, Nullable, Stack } from '@glimmer/interfaces';
+
+import { unwrap } from './platform-utils';
+import { getLast } from './present';
 
 export function dict<T = unknown>(): Dict<T> {
   return Object.create(null);
@@ -14,7 +17,7 @@ export function isObject<T>(u: T): u is object & T {
 
 export class StackImpl<T> implements Stack<T> {
   private stack: T[];
-  public current: Option<T> = null;
+  public current: Nullable<T> = null;
 
   constructor(values: T[] = []) {
     this.stack = values;
@@ -29,17 +32,16 @@ export class StackImpl<T> implements Stack<T> {
     this.stack.push(item);
   }
 
-  pop(): Option<T> {
+  pop(): Nullable<T> {
     let item = this.stack.pop();
-    let len = this.stack.length;
-    this.current = len === 0 ? null : this.stack[len - 1];
+    this.current = getLast(this.stack) ?? null;
 
     return item === undefined ? null : item;
   }
 
-  nth(from: number): Option<T> {
+  nth(from: number): Nullable<T> {
     let len = this.stack.length;
-    return len < from ? null : this.stack[len - from];
+    return len < from ? null : unwrap(this.stack[len - from]);
   }
 
   isEmpty(): boolean {

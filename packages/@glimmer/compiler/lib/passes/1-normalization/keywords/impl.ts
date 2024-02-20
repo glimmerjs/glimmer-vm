@@ -1,14 +1,11 @@
-import {
-  ASTv2,
-  generateSyntaxError,
-  isKeyword,
-  KEYWORDS_TYPES,
-  KeywordType,
-} from '@glimmer/syntax';
+import type { ASTv2, KeywordType } from '@glimmer/syntax';
+import { generateSyntaxError, isKeyword, KEYWORDS_TYPES } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/util';
 
-import { Err, Result } from '../../../shared/result';
-import { NormalizationState } from '../context';
+import type { Result } from '../../../shared/result';
+import type { NormalizationState } from '../context';
+
+import { Err } from '../../../shared/result';
 
 export interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
   assert(options: Match, state: NormalizationState): Result<V>;
@@ -27,7 +24,7 @@ class KeywordImpl<
   K extends KeywordType,
   S extends string = string,
   Param = unknown,
-  Out = unknown
+  Out = unknown,
 > {
   protected types: Set<KeywordCandidates[K]['type']>;
 
@@ -135,7 +132,7 @@ export type KeywordNode =
 export function keyword<
   K extends KeywordType,
   D extends KeywordDelegate<KeywordMatches[K], unknown, Out>,
-  Out = unknown
+  Out = unknown,
 >(keyword: string, type: K, delegate: D): Keyword<K, Out> {
   return new KeywordImpl(keyword, type, delegate as KeywordDelegate<KeywordMatch, unknown, Out>);
 }
@@ -144,8 +141,8 @@ export type PossibleKeyword = KeywordNode;
 type OutFor<K extends Keyword | BlockKeyword> = K extends BlockKeyword<infer Out>
   ? Out
   : K extends Keyword<KeywordType, infer Out>
-  ? Out
-  : never;
+    ? Out
+    : never;
 
 function getCalleeExpression(
   node: KeywordNode | ASTv2.ExpressionNode
@@ -167,7 +164,8 @@ function getCalleeExpression(
 }
 
 export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = never>
-  implements Keyword<K, OutFor<KeywordList>> {
+  implements Keyword<K, OutFor<KeywordList>>
+{
   _keywords: Keyword[] = [];
   _type: K;
 
@@ -198,12 +196,12 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
     let path = getCalleeExpression(node);
 
     if (path && path.type === 'Path' && path.ref.type === 'Free' && isKeyword(path.ref.name)) {
-      let { name } = path.ref;
+      let { name } = path.ref as { name: keyof typeof KEYWORDS_TYPES };
 
       let usedType = this._type;
-      let validTypes = KEYWORDS_TYPES[name];
+      let validTypes: readonly KeywordType[] = KEYWORDS_TYPES[name];
 
-      if (validTypes.indexOf(usedType) === -1) {
+      if (!validTypes.includes(usedType)) {
         return Err(
           generateSyntaxError(
             `The \`${name}\` keyword was used incorrectly. It was used as ${
@@ -229,7 +227,7 @@ const typesToReadableName = {
   Modifier: 'a modifier',
 };
 
-function generateTypesMessage(name: string, types: KeywordType[]): string {
+function generateTypesMessage(name: string, types: readonly KeywordType[]): string {
   return types
     .map((type) => {
       switch (type) {

@@ -1,37 +1,38 @@
-import {
-  Dict,
-  Environment,
-  Option,
-  ElementBuilder,
-  AttributeOperation,
+import type {
   AttributeCursor,
+  AttributeOperation,
+  AttrNamespace,
+  Dict,
+  ElementBuilder,
+  Environment,
+  Nullable,
+  SimpleElement,
 } from '@glimmer/interfaces';
 import { warnIfStyleNotTrusted } from '@glimmer/global-context';
-import { AttrNamespace, Namespace, SimpleElement } from '@simple-dom/interface';
+import { castToBrowser, NS_SVG } from '@glimmer/util';
+
 import { normalizeStringValue } from '../../dom/normalize';
 import { normalizeProperty } from '../../dom/props';
 import { requiresSanitization, sanitizeAttributeValue } from '../../dom/sanitized-values';
-import { DEBUG } from '@glimmer/env';
-import { castToBrowser } from '@glimmer/util';
 
 export function dynamicAttribute(
   element: SimpleElement,
   attr: string,
-  namespace: Option<AttrNamespace>,
+  namespace: Nullable<AttrNamespace>,
   isTrusting = false
 ): DynamicAttribute {
-  let { tagName, namespaceURI } = element;
-  let attribute = { element, name: attr, namespace };
+  const { tagName, namespaceURI } = element;
+  const attribute = { element, name: attr, namespace };
 
-  if (DEBUG && attr === 'style' && !isTrusting) {
+  if (import.meta.env.DEV && attr === 'style' && !isTrusting) {
     return new DebugStyleAttributeManager(attribute);
   }
 
-  if (namespaceURI === Namespace.SVG) {
+  if (namespaceURI === NS_SVG) {
     return buildDynamicAttribute(tagName, attr, attribute);
   }
 
-  let { type, normalized } = normalizeProperty(element, attr);
+  const { type, normalized } = normalizeProperty(element, attr);
 
   if (type === 'attr') {
     return buildDynamicAttribute(tagName, normalized, attribute);
@@ -81,17 +82,17 @@ export abstract class DynamicAttribute implements AttributeOperation {
 
 export class SimpleDynamicAttribute extends DynamicAttribute {
   set(dom: ElementBuilder, value: unknown, _env: Environment): void {
-    let normalizedValue = normalizeValue(value);
+    const normalizedValue = normalizeValue(value);
 
     if (normalizedValue !== null) {
-      let { name, namespace } = this.attribute;
+      const { name, namespace } = this.attribute;
       dom.__setAttribute(name, normalizedValue, namespace);
     }
   }
 
   update(value: unknown, _env: Environment): void {
-    let normalizedValue = normalizeValue(value);
-    let { element, name } = this.attribute;
+    const normalizedValue = normalizeValue(value);
+    const { element, name } = this.attribute;
 
     if (normalizedValue === null) {
       element.removeAttribute(name);
@@ -102,7 +103,10 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
 }
 
 export class DefaultDynamicProperty extends DynamicAttribute {
-  constructor(private normalizedName: string, attribute: AttributeCursor) {
+  constructor(
+    private normalizedName: string,
+    attribute: AttributeCursor
+  ) {
     super(attribute);
   }
 
@@ -115,7 +119,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
   }
 
   update(value: unknown, _env: Environment): void {
-    let { element } = this.attribute;
+    const { element } = this.attribute;
 
     if (this.value !== value) {
       (element as any)[this.normalizedName] = this.value = value;
@@ -129,7 +133,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
   protected removeAttribute() {
     // TODO this sucks but to preserve properties first and to meet current
     // semantics we must do this.
-    let { element, namespace } = this.attribute;
+    const { element, namespace } = this.attribute;
 
     if (namespace) {
       element.removeAttributeNS(namespace, this.normalizedName);
@@ -140,42 +144,42 @@ export class DefaultDynamicProperty extends DynamicAttribute {
 }
 
 export class SafeDynamicProperty extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: unknown, env: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
+  override set(dom: ElementBuilder, value: unknown, env: Environment): void {
+    const { element, name } = this.attribute;
+    const sanitized = sanitizeAttributeValue(element, name, value);
     super.set(dom, sanitized, env);
   }
 
-  update(value: unknown, env: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
+  override update(value: unknown, env: Environment): void {
+    const { element, name } = this.attribute;
+    const sanitized = sanitizeAttributeValue(element, name, value);
     super.update(sanitized, env);
   }
 }
 
 export class SafeDynamicAttribute extends SimpleDynamicAttribute {
-  set(dom: ElementBuilder, value: unknown, env: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
+  override set(dom: ElementBuilder, value: unknown, env: Environment): void {
+    const { element, name } = this.attribute;
+    const sanitized = sanitizeAttributeValue(element, name, value);
     super.set(dom, sanitized, env);
   }
 
-  update(value: unknown, env: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
+  override update(value: unknown, env: Environment): void {
+    const { element, name } = this.attribute;
+    const sanitized = sanitizeAttributeValue(element, name, value);
     super.update(sanitized, env);
   }
 }
 
 export class InputValueDynamicAttribute extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: unknown) {
+  override set(dom: ElementBuilder, value: unknown) {
     dom.__setProperty('value', normalizeStringValue(value));
   }
 
-  update(value: unknown) {
-    let input = castToBrowser(this.attribute.element, ['input', 'textarea']);
-    let currentValue = input.value;
-    let normalizedValue = normalizeStringValue(value);
+  override update(value: unknown) {
+    const input = castToBrowser(this.attribute.element, ['input', 'textarea']);
+    const currentValue = input.value;
+    const normalizedValue = normalizeStringValue(value);
     if (currentValue !== normalizedValue) {
       input.value = normalizedValue;
     }
@@ -183,14 +187,14 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
 }
 
 export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: unknown): void {
+  override set(dom: ElementBuilder, value: unknown): void {
     if (value !== null && value !== undefined && value !== false) {
       dom.__setProperty('selected', true);
     }
   }
 
-  update(value: unknown): void {
-    let option = castToBrowser(this.attribute.element, 'option');
+  override update(value: unknown): void {
+    const option = castToBrowser(this.attribute.element, 'option');
 
     if (value) {
       option.selected = true;
@@ -208,7 +212,7 @@ function isUserInputValue(tagName: string, attribute: string) {
   return (tagName === 'INPUT' || tagName === 'TEXTAREA') && attribute === 'value';
 }
 
-function normalizeValue(value: unknown): Option<string> {
+function normalizeValue(value: unknown): Nullable<string> {
   if (
     value === false ||
     value === undefined ||
@@ -232,14 +236,14 @@ let DebugStyleAttributeManager: {
   new (attribute: AttributeCursor): AttributeOperation;
 };
 
-if (DEBUG) {
+if (import.meta.env.DEV) {
   DebugStyleAttributeManager = class extends SimpleDynamicAttribute {
-    set(dom: ElementBuilder, value: unknown, env: Environment): void {
+    override set(dom: ElementBuilder, value: unknown, env: Environment): void {
       warnIfStyleNotTrusted(value);
 
       super.set(dom, value, env);
     }
-    update(value: unknown, env: Environment): void {
+    override update(value: unknown, env: Environment): void {
       warnIfStyleNotTrusted(value);
 
       super.update(value, env);

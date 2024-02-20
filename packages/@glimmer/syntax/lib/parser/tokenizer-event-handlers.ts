@@ -1,20 +1,20 @@
-import { Option } from '@glimmer/interfaces';
-import { assertPresent, assign } from '@glimmer/util';
+import type { Nullable } from '@glimmer/interfaces';
+import { assertPresentArray, assign, getFirst, getLast, isPresentArray } from '@glimmer/util';
 import { parse, parseWithoutProcessing } from '@handlebars/parser';
 import { EntityParser } from 'simple-html-tokenizer';
 
+import type { Tag } from '../parser';
+import type { NodeVisitor } from '../traversal/visitor';
+import type * as ASTv1 from '../v1/api';
+import type * as HBS from '../v1/handlebars-ast';
+
 import print from '../generation/print';
 import { voidMap } from '../generation/printer';
-import { Tag } from '../parser';
-import { Source } from '../source/source';
-import { SourceOffset, SourceSpan } from '../source/span';
+import * as src from '../source/api';
 import { generateSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
-import { NodeVisitor } from '../traversal/visitor';
 import Walker from '../traversal/walker';
-import { appendChild, parseElementBlockParams } from '../utils';
-import * as ASTv1 from '../v1/api';
-import * as HBS from '../v1/handlebars-ast';
+import { appendChild, parseElementBlockParams, parseElementPartLocs } from '../utils';
 import b from '../v1/parser-builders';
 import publicBuilder from '../v1/public-builders';
 import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
@@ -107,7 +107,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         );
       }
 
-      if (voidMap[tag.name] || tag.selfClosing) {
+      if (voidMap.has(tag.name) || tag.selfClosing) {
         this.finishEndTag(true);
       }
     } else if (tag.type === 'EndTag') {
@@ -116,9 +116,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishStartTag(): void {
-    let { name, attributes: attrs, modifiers, comments, selfClosing, loc } = this.finish(
-      this.currentStartTag
-    );
+    let {
+      name,
+      attributes: attrs,
+      modifiers,
+      comments,
+      selfClosing,
+      loc,
+    } = this.finish(this.currentStartTag);
 
     let element = b.element({
       tag: name,
@@ -130,6 +135,21 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       blockParams: [],
       loc,
     });
+    element.startTag = {
+      type: 'ElementStartNode',
+      value: name,
+      loc: loc,
+    };
+    element.nameNode = {
+      type: 'ElementNameNode',
+      value: name,
+      loc: loc
+        .withStart(this.source.offsetFor(loc.startPosition.line, loc.startPosition.column + 1))
+        .withEnd(
+          this.source.offsetFor(loc.startPosition.line, loc.startPosition.column + 1 + name.length)
+        ),
+    };
+    parseElementPartLocs(this.source, element);
     this.elementStack.push(element);
   }
 
@@ -137,9 +157,15 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let tag = this.finish(this.currentTag);
 
     let element = this.elementStack.pop() as ASTv1.ElementNode;
-    let parent = this.currentElement();
+
+    element.endTag = {
+      type: 'ElementEndNode',
+      loc: tag.loc,
+      value: element.selfClosing ? '' : tag.name,
+    };
 
     this.validateEndTag(tag, element, isVoid);
+    let parent = this.currentElement();
 
     element.loc = element.loc.withEnd(this.offset());
     parseElementBlockParams(element);
@@ -195,7 +221,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       current.loc = current.loc.withEnd(this.offset());
     } else {
       // initially assume the text node is a single char
-      let loc: SourceOffset = this.offset();
+      let loc: src.SourceOffset = this.offset();
 
       // the tokenizer line/column have already been advanced, correct location info
       if (char === '\n') {
@@ -237,21 +263,19 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   assembleConcatenatedValue(
     parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[]
   ): ASTv1.ConcatStatement {
-    for (let i = 0; i < parts.length; i++) {
-      let part: ASTv1.BaseNode = parts[i];
-
+    for (const part of parts) {
       if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
         throw generateSyntaxError(
-          'Unsupported node in quoted attribute value: ' + part['type'],
-          part.loc
+          `Unsupported node in quoted attribute value: ${part['type'] as string}`,
+          (part as ASTv1.BaseNode).loc
         );
       }
     }
 
-    assertPresent(parts, `the concatenation parts of an element should not be empty`);
+    assertPresentArray(parts, `the concatenation parts of an element should not be empty`);
 
-    let first = parts[0];
-    let last = parts[parts.length - 1];
+    let first = getFirst(parts);
+    let last = getLast(parts);
 
     return b.concat(parts, this.source.spanFor(first.loc).extend(this.source.spanFor(last.loc)));
   }
@@ -261,41 +285,39 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     element: ASTv1.ElementNode,
     selfClosing: boolean
   ): void {
-    let error;
-
-    if (voidMap[tag.name] && !selfClosing) {
+    if (voidMap.has(tag.name) && !selfClosing) {
       // EngTag is also called by StartTag for void and self-closing tags (i.e.
       // <input> or <br />, so we need to check for that here. Otherwise, we would
       // throw an error for those cases.
-      error = `<${tag.name}> elements do not need end tags. You should remove it`;
+      throw generateSyntaxError(
+        `<${tag.name}> elements do not need end tags. You should remove it`,
+        tag.loc
+      );
     } else if (element.tag === undefined) {
-      error = `Closing tag </${tag.name}> without an open tag`;
+      throw generateSyntaxError(`Closing tag </${tag.name}> without an open tag`, tag.loc);
     } else if (element.tag !== tag.name) {
-      error = `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`;
-    }
-
-    if (error) {
-      throw generateSyntaxError(error, tag.loc);
+      throw generateSyntaxError(
+        `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`,
+        tag.loc
+      );
     }
   }
 
   assembleAttributeValue(
-    parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[],
+    parts: ASTv1.AttrPart[],
     isQuoted: boolean,
     isDynamic: boolean,
-    span: SourceSpan
-  ): ASTv1.ConcatStatement | ASTv1.MustacheStatement | ASTv1.TextNode {
+    span: src.SourceSpan
+  ): ASTv1.AttrValue {
     if (isDynamic) {
       if (isQuoted) {
         return this.assembleConcatenatedValue(parts);
       } else {
-        if (
-          parts.length === 1 ||
-          (parts.length === 2 &&
-            parts[1].type === 'TextNode' &&
-            (parts[1] as ASTv1.TextNode).chars === '/')
-        ) {
-          return parts[0];
+        assertPresentArray(parts);
+
+        const [head, a] = parts;
+        if (a === undefined || (a.type === 'TextNode' && a.chars === '/')) {
+          return head;
         } else {
           throw generateSyntaxError(
             `An unquoted attribute value must be a string or a mustache, ` +
@@ -305,8 +327,10 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           );
         }
       }
+    } else if (isPresentArray(parts)) {
+      return parts[0];
     } else {
-      return parts.length > 0 ? parts[0] : b.text({ chars: '', loc: span });
+      return b.text({ chars: '', loc: span });
     }
   }
 }
@@ -335,12 +359,16 @@ interface HandlebarsParseOptions {
 }
 
 export interface TemplateIdFn {
-  (src: string): Option<string>;
+  (src: string): Nullable<string>;
 }
 
 export interface PrecompileOptions extends PreprocessOptions {
   id?: TemplateIdFn;
-  customizeComponentName?(input: string): string;
+  customizeComponentName?: ((input: string) => string) | undefined;
+}
+
+export interface PrecompileOptionsWithLexicalScope extends PrecompileOptions {
+  lexicalScope: (variable: string) => boolean;
 }
 
 export interface PreprocessOptions {
@@ -353,7 +381,7 @@ export interface PreprocessOptions {
     ast?: ASTPluginBuilder[];
   };
   parseOptions?: HandlebarsParseOptions;
-  customizeComponentName?(input: string): string;
+  customizeComponentName?: ((input: string) => string) | undefined;
 
   /**
     Useful for specifying a group of options together.
@@ -387,28 +415,28 @@ class CodemodEntityParser extends EntityParser {
     super({});
   }
 
-  parse(): string | undefined {
+  override parse(): string | undefined {
     return undefined;
   }
 }
 
 export function preprocess(
-  input: string | Source | HBS.Program,
+  input: string | src.Source | HBS.Program,
   options: PreprocessOptions = {}
 ): ASTv1.Template {
   let mode = options.mode || 'precompile';
 
-  let source: Source;
+  let source: src.Source;
   let ast: HBS.Program;
   if (typeof input === 'string') {
-    source = new Source(input, options.meta?.moduleName);
+    source = new src.Source(input, options.meta?.moduleName);
 
     if (mode === 'codemod') {
       ast = parseWithoutProcessing(input, options.parseOptions) as HBS.Program;
     } else {
       ast = parse(input, options.parseOptions) as HBS.Program;
     }
-  } else if (input instanceof Source) {
+  } else if (input instanceof src.Source) {
     source = input;
 
     if (mode === 'codemod') {
@@ -417,7 +445,7 @@ export function preprocess(
       ast = parse(input.source, options.parseOptions) as HBS.Program;
     }
   } else {
-    source = new Source('', options.meta?.moduleName);
+    source = new src.Source('', options.meta?.moduleName);
     ast = input;
   }
 
@@ -426,7 +454,7 @@ export function preprocess(
     entityParser = new CodemodEntityParser();
   }
 
-  let offsets = SourceSpan.forCharPositions(source, 0, source.source.length);
+  let offsets = src.SourceSpan.forCharPositions(source, 0, source.source.length);
   ast.loc = {
     source: '(program)',
     start: offsets.startPosition,
@@ -440,8 +468,7 @@ export function preprocess(
   }
 
   if (options && options.plugins && options.plugins.ast) {
-    for (let i = 0, l = options.plugins.ast.length; i < l; i++) {
-      let transform = options.plugins.ast[i];
+    for (const transform of options.plugins.ast) {
       let env: ASTPluginEnvironment = assign({}, options, { syntax }, { plugins: undefined });
 
       let pluginResult = transform(env);

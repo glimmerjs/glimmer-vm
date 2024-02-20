@@ -1,8 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 import type { PresentArray } from '@glimmer/interfaces';
+import { getFirst, getLast, isPresentArray } from '@glimmer/util';
 
-import { LocatedWithOptionalSpan, LocatedWithSpan } from './location';
-import { SourceOffset, SourceSpan } from './span';
+import type { LocatedWithOptionalSpan, LocatedWithSpan } from './location';
+import type { SourceOffset } from './span';
+
+import { SourceSpan } from './span';
 
 export type HasSpan = SourceSpan | LocatedWithSpan | PresentArray<LocatedWithSpan>;
 export type MaybeHasSpan = SourceSpan | LocatedWithOptionalSpan | LocatedWithOptionalSpan[] | null;
@@ -27,13 +29,12 @@ export class SpanList {
   }
 
   getRangeOffset(fallback: SourceSpan): SourceSpan {
-    if (this._span.length === 0) {
-      return fallback;
-    } else {
-      let first = this._span[0];
-      let last = this._span[this._span.length - 1];
-
+    if (isPresentArray(this._span)) {
+      let first = getFirst(this._span);
+      let last = getLast(this._span);
       return first.extend(last);
+    } else {
+      return fallback;
     }
   }
 }
@@ -42,9 +43,8 @@ export type HasSourceSpan = { loc: SourceSpan } | SourceSpan | [HasSourceSpan, .
 
 export function loc(span: HasSourceSpan): SourceSpan {
   if (Array.isArray(span)) {
-    let first = span[0];
-    let last = span[span.length - 1];
-
+    let first = getFirst(span);
+    let last = getLast(span);
     return loc(first).extend(loc(last));
   } else if (span instanceof SourceSpan) {
     return span;

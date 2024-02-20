@@ -1,18 +1,17 @@
-import { $s0 } from '@glimmer/vm';
-
-import { invokePreparedComponent, InvokeBareComponent } from './components';
-import { StdLib } from '../stdlib';
-import { encodeOp, EncoderImpl } from '../encoder';
-import {
-  ContentType,
-  Op,
-  CompileTimeCompilationContext,
-  HighLevelOp,
+import type {
   BuilderOp,
-  MachineOp,
+  CompileTimeCompilationContext,
+  ContainingMetadata,
+  HighLevelOp,
 } from '@glimmer/interfaces';
+import { $s0, ContentType, MachineOp, Op } from '@glimmer/vm';
+
+import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
+
+import { encodeOp, EncoderImpl } from '../encoder';
+import { StdLib } from '../stdlib';
+import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';
-import { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
 import { CallDynamic } from './vm';
 
 export function main(op: PushStatementOp): void {
@@ -109,7 +108,7 @@ export function compileStd(context: CompileTimeCompilationContext): StdLib {
   );
 }
 
-const STDLIB_META = {
+export const STDLIB_META: ContainingMetadata = {
   evalSymbols: null,
   upvars: null,
   moduleName: 'stdlib',
@@ -123,7 +122,7 @@ const STDLIB_META = {
 
 function build(
   program: CompileTimeCompilationContext,
-  callback: (op: PushStatementOp) => void
+  builder: (op: PushStatementOp) => void
 ): number {
   let { constants, heap, resolver } = program;
   let encoder = new EncoderImpl(heap, STDLIB_META);
@@ -132,7 +131,7 @@ function build(
     encodeOp(encoder, constants, resolver, STDLIB_META, op as BuilderOp | HighLevelOp);
   }
 
-  callback(pushOp);
+  builder(pushOp);
 
   let result = encoder.commit(0);
 

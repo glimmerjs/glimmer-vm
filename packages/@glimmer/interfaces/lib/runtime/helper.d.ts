@@ -1,8 +1,7 @@
-// eslint-disable-next-line node/no-extraneous-import
-import { Reference } from '@glimmer/reference';
-import { CapturedArguments } from './arguments';
-import { Owner } from './owner';
-import { DynamicScope } from './scope';
+import type { Reference } from '../references.js';
+import type { CapturedArguments } from './arguments.js';
+import type { Owner } from './owner.js';
+import type { DynamicScope } from './scope.js';
 
 export type HelperDefinitionState = object;
 
