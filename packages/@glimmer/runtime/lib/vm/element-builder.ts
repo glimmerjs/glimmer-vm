@@ -302,7 +302,7 @@ export class NewElementBuilder implements ElementBuilder {
     }
   }
 
-  __appendHTML(html: string| TrustedHTML): Bounds {
+  __appendHTML(html: string | TrustedHTML): Bounds {
     return this.dom.insertHTMLBefore(this.element, this.nextSibling, html);
   }
 

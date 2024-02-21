@@ -8,6 +8,7 @@ import type {
   SimpleNode,
   SimpleText,
 } from '@glimmer/interfaces';
+import type { TrustedHTML } from 'trusted-types/lib';
 import { expect, INSERT_BEFORE_BEGIN, INSERT_BEFORE_END, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds } from '../bounds';
@@ -66,7 +67,11 @@ export class DOMOperations {
     parent.insertBefore(node, reference);
   }
 
-  insertHTMLBefore(parent: SimpleElement, nextSibling: Nullable<SimpleNode>, html: string): Bounds {
+  insertHTMLBefore(
+    parent: SimpleElement,
+    nextSibling: Nullable<SimpleNode>,
+    html: string | TrustedHTML
+  ): Bounds {
     if (html === '') {
       const comment = this.createComment('');
       parent.insertBefore(comment, nextSibling);
@@ -77,10 +82,10 @@ export class DOMOperations {
     let last: SimpleNode;
 
     if (nextSibling === null) {
-      parent.insertAdjacentHTML(INSERT_BEFORE_END, html);
+      parent.insertAdjacentHTML(INSERT_BEFORE_END, html as string);
       last = expect(parent.lastChild, 'bug in insertAdjacentHTML?');
     } else if (nextSibling instanceof HTMLElement) {
-      nextSibling.insertAdjacentHTML('beforebegin', html);
+      nextSibling.insertAdjacentHTML('beforebegin', html as string);
       last = expect(nextSibling.previousSibling, 'bug in insertAdjacentHTML?');
     } else {
       // Non-element nodes do not support insertAdjacentHTML, so add an
@@ -91,7 +96,7 @@ export class DOMOperations {
       const { uselessElement } = this;
 
       parent.insertBefore(uselessElement, nextSibling);
-      uselessElement.insertAdjacentHTML(INSERT_BEFORE_BEGIN, html);
+      uselessElement.insertAdjacentHTML(INSERT_BEFORE_BEGIN, html as string);
       last = expect(uselessElement.previousSibling, 'bug in insertAdjacentHTML?');
       parent.removeChild(uselessElement);
     }

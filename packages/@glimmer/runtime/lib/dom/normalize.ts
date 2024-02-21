@@ -1,5 +1,5 @@
 import type { Dict, SimpleDocumentFragment, SimpleNode } from '@glimmer/interfaces';
-import type { TrustedHTML,TrustedTypesWindow } from 'trusted-types/lib';
+import type { TrustedHTML, TrustedTypesWindow } from 'trusted-types/lib';
 
 export interface SafeString {
   toHTML(): string;
