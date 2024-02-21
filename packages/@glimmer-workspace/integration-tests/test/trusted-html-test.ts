@@ -40,6 +40,10 @@ export class TrustedHTMLTests extends RenderTest {
       return policy?.createHTML(html);
     });
 
+    // To keep rendering behavior consistent with SafeString
+    // trustedHTML is not encoded or decoded in attribute value context.
+    // It is set as string, that means result value can contain HTML enitites.
+    // TrustedHTML value must not escape from HTML attribute value context to prevent XSS.
     this.render('<a title="{{trustedHTML}}">{{trustedHTML}}</a>');
     this.assertHTML('<a title="<b>test\'&quot;&amp;quot;</b>"><b>test\'""</b></a>');
     this.assertStableRerender();
