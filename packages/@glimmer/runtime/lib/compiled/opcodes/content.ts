@@ -11,7 +11,7 @@ import { isObject } from '@glimmer/util';
 import { ContentType, CurriedType, Op } from '@glimmer/vm';
 
 import { isCurriedType } from '../../curried-value';
-import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
+import { isEmpty, isFragment, isNode, isSafeString, isTrustedHTML, shouldCoerce } from '../../dom/normalize';
 import { APPEND_OPCODES } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
 import { CheckReference } from './-debug-strip';
@@ -32,6 +32,8 @@ function toContentType(value: unknown) {
     return ContentType.Helper;
   } else if (isSafeString(value)) {
     return ContentType.SafeString;
+  } else if (isTrustedHTML(value)) {
+    return ContentType.TrustedHTML;
   } else if (isFragment(value)) {
     return ContentType.Fragment;
   } else if (isNode(value)) {
@@ -87,7 +89,7 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
-  let value = isEmpty(rawValue) ? '' : String(rawValue);
+  let value = isEmpty(rawValue) ? '' : isTrustedHTML(rawValue) ? rawValue as string : String(rawValue);
 
   vm.elements().appendDynamicHTML(value);
 });
