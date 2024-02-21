@@ -1,5 +1,5 @@
 import type { Dict, SimpleDocumentFragment, SimpleNode } from '@glimmer/interfaces';
-import type { TrustedTypesWindow } from 'trusted-types/lib';
+import type { TrustedHTML,TrustedTypesWindow } from 'trusted-types/lib';
 
 export interface SafeString {
   toHTML(): string;
@@ -52,7 +52,7 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export function isTrustedHTML(value: unknown): boolean {
+export function isTrustedHTML(value: unknown): value is TrustedHTML {
   return isHTML ? isHTML(value) : false;
 }
 

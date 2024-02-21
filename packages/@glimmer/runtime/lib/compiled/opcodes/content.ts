@@ -99,7 +99,7 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
   let value = isEmpty(rawValue)
     ? ''
     : isTrustedHTML(rawValue)
-      ? (rawValue as string)
+      ? (rawValue)
       : String(rawValue);
 
   vm.elements().appendDynamicHTML(value);
