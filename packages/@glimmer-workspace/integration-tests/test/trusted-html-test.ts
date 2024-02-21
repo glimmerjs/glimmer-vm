@@ -27,7 +27,7 @@ export class TrustedHTMLTests extends RenderTest {
     });
 
     this.render('<div>{{trustedHTML}}</div>');
-    this.assertHTML('<div><b>test\'""</b></div');
+    this.assertHTML('<div><b>test\'""</b></div>');
     this.assertStableRerender();
   }
 
