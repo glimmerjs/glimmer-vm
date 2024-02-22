@@ -5,7 +5,13 @@
     "code": "@glimmer/vm/lib/generated/opcodes.ts",
     "debug": "@glimmer/debug/lib/generated/op-list.ts"
   },
-  "machine": ["PushFrame", "PopFrame", "Jump", "ReturnTo", "UnwindTypeFrame"],
+  "machine": [
+    "PushFrame",
+    "PopFrame",
+    "Jump",
+    "ReturnTo",
+    "UnwindTypeFrame"
+  ],
   "syscall": [
     "PushBegin",
     "Begin",
@@ -44,6 +50,7 @@
     "Comment",
     "AppendHTML",
     "AppendSafeHTML",
+    "AppendTrustedHTML",
     "AppendDocumentFragment",
     "AppendNode",
     "AppendText",
