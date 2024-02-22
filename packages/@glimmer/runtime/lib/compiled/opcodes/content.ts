@@ -96,7 +96,11 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
-  let value = isEmpty(rawValue) ? '' : isTrustedHTML(rawValue) ? rawValue : String(rawValue);
+  let value = isEmpty(rawValue)
+    ? ''
+    : isTrustedHTML(rawValue)
+      ? (rawValue as unknown as string)
+      : String(rawValue);
 
   vm.elements().appendDynamicHTML(value);
 });

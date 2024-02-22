@@ -1,5 +1,3 @@
-import type { TrustedHTML } from 'trusted-types/lib';
-
 import type { Maybe, Nullable } from '../core.js';
 import type { ElementOperations, Environment, ModifierInstance } from '../runtime.js';
 import type { Stack } from '../stack.js';
@@ -47,7 +45,7 @@ export interface DOMStack {
   appendText(string: string): SimpleText;
   appendComment(string: string): SimpleComment;
 
-  appendDynamicHTML(value: string | TrustedHTML): void;
+  appendDynamicHTML(value: string): void;
   appendDynamicText(value: string): SimpleText;
   appendDynamicFragment(value: SimpleDocumentFragment): void;
   appendDynamicNode(value: SimpleNode): void;

@@ -1,5 +1,3 @@
-import type { TrustedHTML } from 'trusted-types/lib';
-
 import type { Nullable } from '../core.js';
 import type { Bounds } from './bounds.js';
 import type { Namespace, SimpleComment, SimpleElement, SimpleNode, SimpleText } from './simple.js';
@@ -7,11 +5,7 @@ import type { Namespace, SimpleComment, SimpleElement, SimpleNode, SimpleText } 
 export interface GlimmerDOMOperations {
   createElement(tag: string, context?: SimpleElement): SimpleElement;
   insertBefore(parent: SimpleElement, node: SimpleNode, reference: Nullable<SimpleNode>): void;
-  insertHTMLBefore(
-    parent: SimpleElement,
-    nextSibling: Nullable<SimpleNode>,
-    html: string | TrustedHTML
-  ): Bounds;
+  insertHTMLBefore(parent: SimpleElement, nextSibling: Nullable<SimpleNode>, html: string): Bounds;
   createTextNode(text: string): SimpleText;
   createComment(data: string): SimpleComment;
 }

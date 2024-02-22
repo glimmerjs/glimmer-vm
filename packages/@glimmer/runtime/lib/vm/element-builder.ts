@@ -19,7 +19,6 @@ import type {
   SimpleText,
   UpdatableBlock,
 } from '@glimmer/interfaces';
-import type { TrustedHTML } from 'trusted-types/lib';
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import { assert, expect, Stack } from '@glimmer/util';
 
@@ -302,7 +301,7 @@ export class NewElementBuilder implements ElementBuilder {
     }
   }
 
-  __appendHTML(html: string | TrustedHTML): Bounds {
+  __appendHTML(html: string): Bounds {
     return this.dom.insertHTMLBefore(this.element, this.nextSibling, html);
   }
 
