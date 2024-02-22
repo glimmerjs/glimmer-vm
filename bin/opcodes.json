@@ -50,7 +50,6 @@
     "Comment",
     "AppendHTML",
     "AppendSafeHTML",
-    "AppendTrustedHTML",
     "AppendDocumentFragment",
     "AppendNode",
     "AppendText",
