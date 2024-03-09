@@ -87,7 +87,7 @@ APPEND_OPCODES.add(Op.PushRemoteElement, (vm) => {
       name: 'in-element',
       args,
       instance: {
-        _parentElement: vm.elements().element
+        _parentElement: vm.elements().element,
       },
     });
 
