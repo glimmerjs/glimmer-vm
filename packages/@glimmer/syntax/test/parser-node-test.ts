@@ -409,7 +409,7 @@ test('element with block params', () => {
 });
 
 test('element with block params edge case: extra spaces', () => {
-  let t = `<Foo as |bar bat baz|>{{bar}} {{bat}} {{baz}}</Foo>`;
+  let t = `<Foo as | bar bat baz |>{{bar}} {{bat}} {{baz}}</Foo>`;
 
   astEqual(
     t,
