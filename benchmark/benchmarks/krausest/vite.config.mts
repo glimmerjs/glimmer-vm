@@ -8,7 +8,11 @@ import { fileURLToPath } from 'node:url';
 const self = import.meta.url;
 
 const currentPath = path.dirname(fileURLToPath(self));
-const packagesPath = path.resolve(currentPath, '..', '..', './../packages');
+/**
+ * Only run this vite config via pnpm benchmark:setup at the
+ * monorepo root
+ */
+const packagesPath = path.resolve(currentPath, '..', '..', './../');
 
 const packagePath = (name: string) => {
   return path.join(packagesPath, name, 'dist/prod/index.js');
@@ -21,6 +25,7 @@ export default defineConfig({
       '@glimmer-workspace/benchmark-env': '@glimmer-workspace/benchmark-env/index.ts',
       '@glimmer/debug': packagePath('@glimmer/debug'),
       '@glimmer/runtime': packagePath('@glimmer/runtime'),
+      '@glimmer/util': packagePath('@glimmer/util'),
       '@/components': path.join(currentPath, 'lib', 'components'),
       '@/utils': path.join(currentPath, 'lib', 'utils'),
     },

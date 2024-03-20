@@ -237,6 +237,9 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:^
         version: link:../../../packages/@glimmer/interfaces
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:../../../packages/@glimmer/util
       '@simple-dom/document':
         specifier: ^1.4.0
         version: 1.4.0
