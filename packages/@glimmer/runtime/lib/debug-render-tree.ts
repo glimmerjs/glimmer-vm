@@ -177,7 +177,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
 
   private captureNode(id: string, state: TBucket): CapturedRenderNode {
     let node = this.nodeFor(state);
-    let { type, name, args, instance, refs } = node;
+    let { type, name, args, instance, refs, meta=null } = node;
     let template = this.captureTemplate(node);
     let bounds = this.captureBounds(node);
     let children = this.captureRefs(refs);
