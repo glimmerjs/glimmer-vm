@@ -27,7 +27,7 @@ export default class StrictModeValidationPass {
     return new this(template).validate();
   }
 
-  private constructor(private template: mir.Template) { }
+  private constructor(private template: mir.Template) {}
 
   validate(): Result<mir.Template> {
     return this.Statements(this.template.body).mapOk(() => this.template);
