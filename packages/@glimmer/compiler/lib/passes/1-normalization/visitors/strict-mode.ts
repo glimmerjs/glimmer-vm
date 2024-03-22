@@ -1,6 +1,6 @@
 import type { HasSourceSpan } from '@glimmer/syntax';
 import { generateSyntaxError, loc } from '@glimmer/syntax';
-import { CurriedTypes } from '@glimmer/vm/index';
+import { CurriedTypes } from '@glimmer/vm';
 
 import type { Result } from '../../../shared/result';
 import type * as mir from '../../2-encoding/mir';
@@ -27,7 +27,7 @@ export default class StrictModeValidationPass {
     return new this(template).validate();
   }
 
-  private constructor(private template: mir.Template) {}
+  private constructor(private template: mir.Template) { }
 
   validate(): Result<mir.Template> {
     return this.Statements(this.template.body).mapOk(() => this.template);
