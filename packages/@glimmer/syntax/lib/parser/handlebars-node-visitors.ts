@@ -223,7 +223,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if ('original' in rawMustache.path && rawMustache.path.original === '...attributes') {
       throw generateSyntaxError(
         'Illegal use of ...attributes',
-        this.source.spanFor(rawMustache.path.loc)
+        this.source.spanFor(rawMustache.loc)
       );
     }
 

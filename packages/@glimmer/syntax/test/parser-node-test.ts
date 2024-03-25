@@ -127,7 +127,7 @@ test('attributes are not allowed as values', (assert) => {
     () => {
       parse(t, { meta: { moduleName: 'test-module' } });
     },
-    syntaxErrorFor('Illegal use of ...attributes', '...attributes', 'test-module', 1, 2)
+    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 0)
   );
 });
 
@@ -137,7 +137,7 @@ test('attributes are not allowed as modifiers', (assert) => {
     () => {
       parse(t, { meta: { moduleName: 'test-module' } });
     },
-    syntaxErrorFor('Illegal use of ...attributes', '...attributes', 'test-module', 1, 7)
+    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 5)
   );
 });
 
@@ -147,7 +147,7 @@ test('attributes are not allowed as attribute values', (assert) => {
     () => {
       parse(t, { meta: { moduleName: 'test-module' } });
     },
-    syntaxErrorFor('Illegal use of ...attributes', '...attributes', 'test-module', 1, 13)
+    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 11)
   );
 });
 
