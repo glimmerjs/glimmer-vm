@@ -91,7 +91,6 @@
     "GetComponentSelf",
     "GetComponentTagName",
     "GetComponentLayout",
-    "SetupForEval",
     "PopulateLayout",
     "InvokeComponentLayout",
     "BeginComponentTransaction",

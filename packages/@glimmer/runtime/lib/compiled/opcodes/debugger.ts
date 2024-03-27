@@ -52,16 +52,13 @@ class ScopeInspector {
     let { scope, locals } = this;
     let parts = path.split('.');
     let [head, ...tail] = path.split('.') as [string, ...string[]];
-
-    let evalScope = scope.getEvalScope()!;
     let ref: Reference;
 
     if (head === 'this') {
       ref = scope.getSelf();
     } else if (locals[head]) {
       ref = unwrap(locals[head]);
-    } else if (head.indexOf('@') === 0 && evalScope[head]) {
-      ref = evalScope[head] as Reference;
+      // FIXME restore get("@foo") functionality
     } else {
       ref = this.scope.getSelf();
       tail = parts;

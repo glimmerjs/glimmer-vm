@@ -96,15 +96,12 @@ export type VmPutComponentOperations = 89;
 export type VmGetComponentSelf = 90;
 export type VmGetComponentTagName = 91;
 export type VmGetComponentLayout = 92;
-export type VmBindEvalScope = 93;
-export type VmSetupForEval = 94;
 export type VmPopulateLayout = 95;
 export type VmInvokeComponentLayout = 96;
 export type VmBeginComponentTransaction = 97;
 export type VmCommitComponentTransaction = 98;
 export type VmDidCreateElement = 99;
 export type VmDidRenderLayout = 100;
-export type VmResolveMaybeLocal = 102;
 export type VmDebugger = 103;
 export type VmSize = 104;
 export type VmStaticComponentAttr = 105;
@@ -194,15 +191,12 @@ export type VmOp =
   | VmGetComponentSelf
   | VmGetComponentTagName
   | VmGetComponentLayout
-  | VmBindEvalScope
-  | VmSetupForEval
   | VmPopulateLayout
   | VmInvokeComponentLayout
   | VmBeginComponentTransaction
   | VmCommitComponentTransaction
   | VmDidCreateElement
   | VmDidRenderLayout
-  | VmResolveMaybeLocal
   | VmDebugger
   | VmSize
   | VmStaticComponentAttr
