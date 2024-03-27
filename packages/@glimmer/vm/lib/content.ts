@@ -7,4 +7,5 @@ export const ContentType = {
   Fragment: 5,
   Node: 6,
   Other: 8,
+  TrustedHTML: 9,
 } as const;
