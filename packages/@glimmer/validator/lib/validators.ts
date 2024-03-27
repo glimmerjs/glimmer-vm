@@ -90,7 +90,7 @@ function allowsCycles(tag: Tag): boolean {
   }
 }
 
-class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
+export class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
   static combine(this: void, tags: Tag[]): Tag {
     switch (tags.length) {
       case 0:
