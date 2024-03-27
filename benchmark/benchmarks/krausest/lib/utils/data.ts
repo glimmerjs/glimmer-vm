@@ -1,22 +1,6 @@
-import { createCell } from '@glimmer-workspace/benchmark-env';
-
-export class Item {
-  /** @type {number} */
-  id;
-
-  /** @type {string} */
-  _label = createCell(this, 'label', '');
-
-  constructor(id: number, label: string) {
-    this.id = id;
-    this.label = label;
-  }
-  get label() {
-    return this._label.get();
-  }
-  set label(value: string) {
-    this._label.set(value);
-  }
+export interface Item {
+  id: number;
+  label: string;
 }
 
 function _random(max: number) {
@@ -82,17 +66,19 @@ export function buildData(count = 1000) {
       'keyboard',
     ],
     data = [];
-  for (let i = 0; i < count; i++)
-    data.push(
-      new Item(
-        rowId++,
-        adjectives[_random(adjectives.length)] +
-          ' ' +
-          colours[_random(colours.length)] +
-          ' ' +
-          nouns[_random(nouns.length)]
-      )
-    );
+  for (let i = 0; i < count; i++) {
+    const label =
+      adjectives[_random(adjectives.length)] +
+      ' ' +
+      colours[_random(colours.length)] +
+      ' ' +
+      nouns[_random(nouns.length)];
+
+    data.push({
+      id: rowId++,
+      label,
+    });
+  }
   return data;
 }
 
