@@ -373,6 +373,20 @@ test(
   ['<svg>', [['<linearGradient>', { id: s`gradient` }]]]
 );
 
+for (let svgElement of ['animate', 'animateMotion', 'animateTransform', 'circle', 'clipPath',
+  'defs', 'desc', 'ellipse', 'feBend', 'feColorMatrix', 'feComponentTransfer', 'feComposite', 'feConvolveMatrix',
+  'feDiffuseLighting', 'feDisplacementMap', 'feDistantLight', 'feDropShadow', 'feFlood', 'feFuncA', 'feFuncB',
+  'feFuncG', 'feFuncR', 'feGaussianBlur', 'feImage', 'feMerge', 'feMergeNode', 'feMorphology', 'feOffset', 'fePointLight',
+  'feSpecularLighting', 'feTile', 'feTurbulence', 'filter', 'foreignObject', 'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata',
+  'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'set', 'stop', 'switch', 'symbol', 'text', 'textPath',
+  'title', 'tspan', 'use', 'view']) {
+  test(
+    `${svgElement} is valid`,
+    `<svg><${svgElement}></${svgElement}></svg>`,
+    ['<svg>', [[`<${svgElement}>`]]]
+  );
+}
+
 test('curlies separated by content whitespace', `{{a}} {{b}}`, '^a', s` `, '^b');
 
 test('curlies right next to each other', `<div>{{a}}{{b}}{{c}}wat{{d}}</div>`, [
