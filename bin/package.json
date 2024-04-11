@@ -17,7 +17,7 @@
     "js-yaml": "^4.1.0",
     "mkdirp": "^3.0.1",
     "puppeteer-chromium-resolver": "^20.0.0",
-    "tar": "^6.2.0"
+    "tar": "^6.2.1"
   },
   "devDependencies": {
     "eslint": "^8.54.0",
