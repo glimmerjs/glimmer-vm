@@ -125,8 +125,8 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     }
   }
 
-  getDebugInstance({ modifier }: CustomModifierState<ModifierInstance>) {
-    return modifier;
+  getDebugInstance({ modifier, delegate }: CustomModifierState<ModifierInstance>) {
+    return modifier || delegate;
   }
 
   getTag({ tag }: CustomModifierState<ModifierInstance>) {
