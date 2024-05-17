@@ -82,6 +82,10 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     this.builder = new Builder();
   }
 
+  get log() {
+    return this.options.log;
+  }
+
   get strict(): boolean {
     return this.options.strictMode || false;
   }
@@ -368,7 +372,7 @@ class StatementNormalizer {
         let loc = this.block.loc(node.loc);
         return new ASTv2.HtmlComment({
           loc,
-          text: loc.slice({ skipStart: 4, skipEnd: 3 }).toSlice(node.value),
+          text: loc.slice({ skipStart: 4, skipEnd: 3 }).toSlice(this.block.log, node.value),
         });
       }
 
@@ -392,7 +396,7 @@ class StatementNormalizer {
 
     return new ASTv2.GlimmerComment({
       loc,
-      text: textLoc.toSlice(node.value),
+      text: textLoc.toSlice(this.block.log, node.value),
     });
   }
 
@@ -548,11 +552,14 @@ class ElementNormalizer {
     if (path === 'ElementHead') {
       if (tag[0] === ':') {
         return children.assertNamedBlock(
-          tagOffsets.slice({ skipStart: 1 }).toSlice(tag.slice(1)),
+          tagOffsets.slice({ skipStart: 1 }).toSlice(this.ctx.log, tag.slice(1)),
           child.table
         );
       } else {
-        return children.assertElement(tagOffsets.toSlice(tag), element.blockParams.length > 0);
+        return children.assertElement(
+          tagOffsets.toSlice(this.ctx.log, tag),
+          element.blockParams.length > 0
+        );
       }
     }
 
@@ -670,7 +677,7 @@ class ElementNormalizer {
     }
 
     let offsets = this.ctx.loc(m.loc);
-    let nameSlice = offsets.sliceStartChars({ chars: m.name.length }).toSlice(m.name);
+    let nameSlice = offsets.sliceStartChars({ chars: m.name.length }).toSlice(this.ctx.log, m.name);
     let value = this.attrValue(m.value);
 
     return this.ctx.builder.attr(
@@ -725,7 +732,9 @@ class ElementNormalizer {
     this.checkArgCall(arg);
 
     let offsets = this.ctx.loc(arg.loc);
-    let nameSlice = offsets.sliceStartChars({ chars: arg.name.length }).toSlice(arg.name);
+    let nameSlice = offsets
+      .sliceStartChars({ chars: arg.name.length })
+      .toSlice(this.ctx.log, arg.name);
     let value = this.attrValue(arg.value);
 
     return this.ctx.builder.arg(

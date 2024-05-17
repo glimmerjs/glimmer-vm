@@ -203,13 +203,14 @@ export class SourceSpan implements SourceLocation {
    * that the byte offsets represented by this `SourceSpan` actually correspond to the expected
    * string.
    */
-  toSlice(expected?: string): SourceSlice {
+  toSlice(log: { warn?: (msg: string) => void } | undefined, expected?: string): SourceSlice {
     const chars = this.data.asString();
+    // eslint-disable-next-line no-console
+    const warn = log?.warn ?? console.warn;
 
     if (import.meta.env.DEV) {
       if (expected !== undefined && chars !== expected) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        warn(
           `unexpectedly found ${JSON.stringify(
             chars
           )} when slicing source, but expected ${JSON.stringify(expected)}`

@@ -21,6 +21,20 @@ module('[glimmer-syntax] AST Builders', () => {
 
   module(`synthetic locations`, () => {
     module(`for attributes`, () => {
+      test('work correctly', () => {
+        let test = new TestOptions((b) => ({
+          AttrNode: (node) => {
+            if (node.name.startsWith('@')) {
+              return node;
+            } else {
+              return b.attr(`@${node.name}`, node.value);
+            }
+          },
+        }));
+        test.normalize(`<Component name="Godfrey" />`);
+        test.expectLogs([]);
+      });
+
       //   test(`don't emit warnings`, () => {
       //     let test = new TestOptions((b) => ({
       //       AttrNode: (node) => b.attr.name
