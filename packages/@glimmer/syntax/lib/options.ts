@@ -36,7 +36,7 @@ export interface TemplateIdFn {
   (src: string): Nullable<string>;
 }
 
-export interface PrecompileOptions extends PreprocessOptions {
+export interface  PrecompileOptions extends PreprocessOptions {
   id?: TemplateIdFn;
 
   /**

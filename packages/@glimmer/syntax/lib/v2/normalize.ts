@@ -1,10 +1,7 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { asPresentArray, assert, assign, isPresentArray } from '@glimmer/util';
 
-import type {
-  PrecompileOptions,
-  PrecompileOptionsWithLexicalScope,
-} from '../parser/tokenizer-event-handlers';
+import type { PrecompileOptions, PrecompileOptionsWithLexicalScope } from '../options';
 import type { SourceLocation } from '../source/location';
 import type { Source } from '../source/source';
 import type { SourceSpan } from '../source/span';

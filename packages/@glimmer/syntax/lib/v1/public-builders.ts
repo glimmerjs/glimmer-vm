@@ -260,10 +260,12 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions = {}): AS
 }
 
 function buildAttr(name: string, value: ASTv1.AttrValue, loc?: SourceLocation): ASTv1.AttrNode {
+  let span = buildLoc(loc || null);
+
   return b.attr({
-    name: name,
+    name: b.attrName({ name, loc: span.sliceStartChars({ chars: name.length }) }),
     value: value,
-    loc: buildLoc(loc || null),
+    loc: span,
   });
 }
 

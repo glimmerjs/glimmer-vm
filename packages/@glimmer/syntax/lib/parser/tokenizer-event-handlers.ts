@@ -302,10 +302,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       );
     }
 
+    let attrName = b.attrName({ name, loc: start.until(start.move(name.length)) });
     let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, start.until(tokenizerPos));
     value.loc = valueSpan.withEnd(tokenizerPos);
 
-    let attribute = b.attr({ name, value, loc: start.until(tokenizerPos) });
+    let attribute = b.attr({ name: attrName, value, loc: start.until(tokenizerPos) });
 
     this.currentStartTag.attributes.push(attribute);
   }

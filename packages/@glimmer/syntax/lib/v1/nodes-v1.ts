@@ -10,6 +10,11 @@ export interface BaseNode {
   loc: src.SourceSpan;
 }
 
+export interface BaseSubNode {
+  type: SubNodeType;
+  loc: src.SourceSpan;
+}
+
 export interface CommonProgram extends BaseNode {
   body: Statement[];
 }
@@ -137,9 +142,16 @@ export type StatementName =
   | 'TextNode'
   | 'ElementNode';
 
+export interface AttrName extends BaseSubNode {
+  type: 'AttrName';
+  name: string;
+}
+
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
   name: string;
+
+  attrName: AttrName;
   value: AttrValue;
 }
 
@@ -165,13 +177,13 @@ export interface SubExpression extends BaseNode {
   hash: Hash;
 }
 
-export interface ThisHead {
+export interface ThisHead extends BaseSubNode {
   type: 'ThisHead';
   original: 'this';
   loc: src.SourceSpan;
 }
 
-export interface AtHead {
+export interface AtHead extends BaseSubNode {
   type: 'AtHead';
   name: string;
   loc: src.SourceSpan;
@@ -182,7 +194,7 @@ export interface AtHead {
   original: string;
 }
 
-export interface VarHead {
+export interface VarHead extends BaseSubNode {
   type: 'VarHead';
   name: string;
   loc: src.SourceSpan;
@@ -207,7 +219,7 @@ export interface PathExpression extends MinimalPathExpression {
   head: PathHead;
   tail: string[];
   /**
-   * @deprecated use `head` and `tail` instead
+   * @deprecaated use `head` and `tail` instead
    */
   parts: readonly string[];
   /**
@@ -346,6 +358,8 @@ export type SubNodes = {
   ThisHead: ThisHead;
   AtHead: AtHead;
   VarHead: VarHead;
+
+  AttrName: AttrName;
 };
 
 export type SubNodeType = keyof SubNodes;

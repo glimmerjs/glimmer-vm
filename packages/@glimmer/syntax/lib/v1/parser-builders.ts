@@ -251,18 +251,27 @@ class Builders {
     };
   }
 
+  attrName({ name, loc }: { name: string; loc: SourceSpan }): ASTv1.AttrName {
+    return {
+      type: 'AttrName',
+      name,
+      loc,
+    };
+  }
+
   attr({
     name,
     value,
     loc,
   }: {
-    name: string;
+    name: ASTv1.AttrName;
     value: ASTv1.AttrNode['value'];
     loc: SourceSpan;
   }): ASTv1.AttrNode {
     return {
       type: 'AttrNode',
-      name: name,
+      name: name.name,
+      attrName: name,
       value: value,
       loc,
     };
