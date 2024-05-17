@@ -256,6 +256,7 @@ export class Package {
    * @property {boolean} [ esm ] enabled by default
    * @property {boolean} [ cjs ] enabled by default until eslint-plugin-ember and ember-source no longer need it
    *
+   * @param {Formats} [formats]
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
   config(formats = {}) {

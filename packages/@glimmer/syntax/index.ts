@@ -3,17 +3,18 @@ export { getVoidTags, isVoidTag } from './lib/generation/printer';
 export { sortByLoc } from './lib/generation/util';
 export { getTemplateLocals } from './lib/get-template-locals';
 export { isKeyword, KEYWORDS_TYPES, type KeywordType } from './lib/keywords';
-export type { PreprocessOptions } from './lib/parser/tokenizer-event-handlers';
-export {
-  type ASTPlugin,
-  type ASTPluginBuilder,
-  type ASTPluginEnvironment,
-  type PrecompileOptions,
-  type PrecompileOptionsWithLexicalScope,
-  preprocess,
-  type Syntax,
-  type TemplateIdFn,
-} from './lib/parser/tokenizer-event-handlers';
+export type {
+  ASTPlugin,
+  ASTPluginBuilder,
+  ASTPluginEnvironment,
+  Builders,
+  PrecompileOptions,
+  PrecompileOptionsWithLexicalScope,
+  PreprocessOptions,
+  Syntax,
+  TemplateIdFn,
+} from './lib/options';
+export { preprocess } from './lib/parser/tokenizer-event-handlers';
 export * as src from './lib/source/api';
 export { SourceSlice } from './lib/source/slice';
 export {

@@ -17,7 +17,7 @@
     // Environment Configuration
     "experimentalDecorators": true,
     "target": "es2020",
-    "module": "ESNext",
+    "module": "esnext",
     "moduleResolution": "bundler",
 
     // Enhance Strictness
