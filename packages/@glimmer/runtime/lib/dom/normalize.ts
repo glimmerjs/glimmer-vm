@@ -1,4 +1,5 @@
 import type { Dict, SimpleDocumentFragment, SimpleNode } from '@glimmer/interfaces';
+import type { TrustedHTML, TrustedTypesWindow } from 'trusted-types/lib';
 
 export interface SafeString {
   toHTML(): string;
@@ -41,6 +42,18 @@ export function shouldCoerce(
 
 export function isEmpty(value: unknown): boolean {
   return value === null || value === undefined || typeof (value as Dict).toString !== 'function';
+}
+
+let isHTML: ((value: unknown) => boolean) | undefined;
+if (typeof window !== 'undefined') {
+  let trustedTypes = (window as unknown as TrustedTypesWindow).trustedTypes;
+  if (trustedTypes?.isHTML) {
+    isHTML = trustedTypes?.isHTML.bind(trustedTypes);
+  }
+}
+
+export function isTrustedHTML(value: unknown): value is TrustedHTML {
+  return isHTML ? isHTML(value) : false;
 }
 
 export function isSafeString(value: unknown): value is SafeString {
