@@ -121,6 +121,36 @@ test('a piece of Handlebars with HTML', () => {
   );
 });
 
+test('attributes are not allowed as values', (assert) => {
+  let t = '{{...attributes}}';
+  assert.throws(
+    () => {
+      parse(t, { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 0)
+  );
+});
+
+test('attributes are not allowed as modifiers', (assert) => {
+  let t = '<div {{...attributes}}></div>';
+  assert.throws(
+    () => {
+      parse(t, { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 5)
+  );
+});
+
+test('attributes are not allowed as attribute values', (assert) => {
+  let t = '<div class={{...attributes}}></div>';
+  assert.throws(
+    () => {
+      parse(t, { meta: { moduleName: 'test-module' } });
+    },
+    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 11)
+  );
+});
+
 test('Handlebars embedded in an attribute (quoted)', () => {
   let t = 'some <div class="{{foo}}">content</div> done';
   astEqual(
@@ -286,6 +316,25 @@ test('block with block params', () => {
   );
 });
 
+test('block with block params edge case: extra spaces', () => {
+  let t = `{{#foo as | bar bat baz |}}{{bar}} {{bat}} {{baz}}{{/foo}}`;
+
+  astEqual(
+    t,
+    b.template([
+      b.block(
+        b.path('foo'),
+        null,
+        null,
+        b.blockItself(
+          [b.mustache('bar'), b.text(' '), b.mustache('bat'), b.text(' '), b.mustache('baz')],
+          ['bar', 'bat', 'baz']
+        )
+      ),
+    ])
+  );
+});
+
 test('block with block params edge case: multiline', () => {
   let t = `{{#foo as
 |bar bat
@@ -346,6 +395,21 @@ test('block with block params edge case: block-params like content', () => {
 
 test('element with block params', () => {
   let t = `<Foo as |bar bat baz|>{{bar}} {{bat}} {{baz}}</Foo>`;
+
+  astEqual(
+    t,
+    b.template([
+      element(
+        'Foo',
+        ['as', b.var('bar'), b.var('bat'), b.var('baz')],
+        ['body', b.mustache('bar'), b.text(' '), b.mustache('bat'), b.text(' '), b.mustache('baz')]
+      ),
+    ])
+  );
+});
+
+test('element with block params edge case: extra spaces', () => {
+  let t = `<Foo as | bar bat baz |>{{bar}} {{bat}} {{baz}}</Foo>`;
 
   astEqual(
     t,

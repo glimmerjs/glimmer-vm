@@ -9,7 +9,6 @@ import type {
   SerializedBlock,
   SerializedCallExpression,
   SerializedContentNode,
-  SerializedDeprecatedCallExpression,
   SerializedElementModifier,
   SerializedExpressionNode,
   SerializedFreeVarReference,
@@ -36,6 +35,15 @@ import type {
 import { SourceSlice } from '../../source/slice';
 
 export class RefSerializer {
+  keyword(keyword: ASTv2.KeywordExpression): SerializedFreeVarReference {
+    return {
+      type: 'Free',
+      loc: keyword.loc.serialize(),
+      resolution: 'Strict',
+      name: keyword.name,
+    };
+  }
+
   arg(ref: ASTv2.ArgReference): SerializedArgReference {
     return {
       type: 'Arg',
@@ -80,6 +88,15 @@ export class ExprSerializer {
     };
   }
 
+  keyword(keyword: ASTv2.KeywordExpression): SerializedPathExpression {
+    return {
+      type: 'Path',
+      loc: keyword.loc.serialize(),
+      ref: REF.keyword(keyword),
+      tail: [],
+    };
+  }
+
   path(path: ASTv2.PathExpression): SerializedPathExpression {
     return {
       type: 'Path',
@@ -95,14 +112,6 @@ export class ExprSerializer {
       loc: call.loc.serialize(),
       callee: visit.expr(call.callee),
       args: ARGS.args(call.args),
-    };
-  }
-
-  deprecatedCall(call: ASTv2.DeprecatedCallExpression): SerializedDeprecatedCallExpression {
-    return {
-      type: 'DeprecatedCall',
-      loc: call.loc.serialize(),
-      callee: REF.free(call.callee),
     };
   }
 
@@ -277,12 +286,12 @@ const visit = {
     switch (expr.type) {
       case 'Literal':
         return EXPR.literal(expr);
+      case 'Keyword':
+        return EXPR.keyword(expr);
       case 'Path':
         return EXPR.path(expr);
       case 'Call':
         return EXPR.call(expr);
-      case 'DeprecatedCall':
-        return EXPR.deprecatedCall(expr);
       case 'Interpolate':
         return EXPR.interpolate(expr);
     }

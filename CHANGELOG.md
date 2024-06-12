@@ -18,6 +18,76 @@
 
 
 
+
+
+
+
+
+
+## v0.92.0 (2024-04-08)
+
+#### :rocket: Enhancement
+* `@glimmer-workspace/integration-tests`, `@glimmer/compiler`, `@glimmer/interfaces`, `@glimmer/syntax`
+  * [#1585](https://github.com/glimmerjs/glimmer-vm/pull/1585) Introduce `keywords` option for `precompile` ([@chancancode](https://github.com/chancancode))
+
+#### Committers: 1
+- Godfrey Chan ([@chancancode](https://github.com/chancancode))
+
+## v0.91.2 (2024-04-05)
+
+#### :bug: Bug Fix
+* `@glimmer/syntax`
+  * [#1577](https://github.com/glimmerjs/glimmer-vm/pull/1577) fix extra spaces in block params ([@patricklx](https://github.com/patricklx))
+
+#### Committers: 1
+- Patrick Pircher ([@patricklx](https://github.com/patricklx))
+
+## v0.91.1 (2024-03-28)
+
+#### :bug: Bug Fix
+* `@glimmer/syntax`
+  * [#1583](https://github.com/glimmerjs/glimmer-vm/pull/1583) [BUGFIX] Ensure legacy path.parts matches existing semantics ([@chancancode](https://github.com/chancancode))
+
+#### Committers: 1
+- Godfrey Chan ([@chancancode](https://github.com/chancancode))
+
+## v0.91.0 (2024-03-25)
+
+#### :rocket: Enhancement
+* `@glimmer/syntax`
+  * [#1582](https://github.com/glimmerjs/glimmer-vm/pull/1582) Prevent use of ...attributes in invalid places ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.90.1 (2024-03-22)
+
+#### :bug: Bug Fix
+* `@glimmer/compiler`, `@glimmer/syntax`
+  * [#1581](https://github.com/glimmerjs/glimmer-vm/pull/1581) Remove index imports as they are not defined by package.json#exports ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## v0.90.0 (2024-03-22)
+
+#### :boom: Breaking Change
+* `@glimmer-workspace/integration-tests`, `@glimmer/runtime`
+  * [#1580](https://github.com/glimmerjs/glimmer-vm/pull/1580) Remove deprecation for setting hash properties (from years ago) ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :rocket: Enhancement
+* `@glimmer-workspace/integration-tests`, `@glimmer/runtime`
+  * [#1580](https://github.com/glimmerjs/glimmer-vm/pull/1580) Remove deprecation for setting hash properties (from years ago) ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :bug: Bug Fix
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/program`, `@glimmer/syntax`, `@glimmer/vm`
+  * [#1579](https://github.com/glimmerjs/glimmer-vm/pull/1579) Add missing licenses ([@andreyfel](https://github.com/andreyfel))
+
+#### Committers: 3
+- Andrey Fel ([@andreyfel](https://github.com/andreyfel))
+- Godfrey Chan ([@chancancode](https://github.com/chancancode))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## v0.89.0 (2024-03-09)
 
 #### :rocket: Enhancement

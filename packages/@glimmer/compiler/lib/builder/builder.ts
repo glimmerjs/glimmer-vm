@@ -247,8 +247,8 @@ export function buildStatement(
       let builtExpr: WireFormat.Expression = buildCallHead(
         path,
         trusted
-          ? VariableResolutionContext.AmbiguousInvoke
-          : VariableResolutionContext.AmbiguousAppendInvoke,
+          ? VariableResolutionContext.ResolveAsHelperHead
+          : VariableResolutionContext.ResolveAsComponentOrHelperHead,
         symbols
       );
 
@@ -632,22 +632,22 @@ export function buildVar(
   symbols: Symbols,
   path?: PresentArray<string>
 ): Expressions.GetPath | Expressions.GetVar {
-  let op: Expressions.GetVar[0] = Op.GetSymbol;
+  let op: Expressions.GetPath[0] | Expressions.GetVar[0] = Op.GetSymbol;
   let sym: number;
   switch (head.kind) {
     case VariableKind.Free:
       if (context === 'Strict') {
         op = Op.GetStrictKeyword;
       } else if (context === 'AppendBare') {
-        op = Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
+        op = Op.GetFreeAsComponentOrHelperHead;
       } else if (context === 'AppendInvoke') {
         op = Op.GetFreeAsComponentOrHelperHead;
       } else if (context === 'TrustedAppendBare') {
-        op = Op.GetFreeAsHelperHeadOrThisFallback;
+        op = Op.GetFreeAsHelperHead;
       } else if (context === 'TrustedAppendInvoke') {
         op = Op.GetFreeAsHelperHead;
       } else if (context === 'AttrValueBare') {
-        op = Op.GetFreeAsHelperHeadOrThisFallback;
+        op = Op.GetFreeAsHelperHead;
       } else if (context === 'AttrValueInvoke') {
         op = Op.GetFreeAsHelperHead;
       } else if (context === 'SubExpression') {
@@ -665,6 +665,7 @@ export function buildVar(
   if (path === undefined || path.length === 0) {
     return [op, sym];
   } else {
+    assert(op !== Op.GetStrictKeyword, '[BUG] keyword with a path');
     return [op, sym, path];
   }
 }
@@ -692,13 +693,9 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
   switch (context) {
     case VariableResolutionContext.Strict:
       return Op.GetStrictKeyword;
-    case VariableResolutionContext.AmbiguousAppend:
-      return Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
-    case VariableResolutionContext.AmbiguousAppendInvoke:
+    case VariableResolutionContext.ResolveAsComponentOrHelperHead:
       return Op.GetFreeAsComponentOrHelperHead;
-    case VariableResolutionContext.AmbiguousInvoke:
-      return Op.GetFreeAsHelperHeadOrThisFallback;
-    case VariableResolutionContext.ResolveAsCallHead:
+    case VariableResolutionContext.ResolveAsHelperHead:
       return Op.GetFreeAsHelperHead;
     case VariableResolutionContext.ResolveAsModifierHead:
       return Op.GetFreeAsModifierHead;

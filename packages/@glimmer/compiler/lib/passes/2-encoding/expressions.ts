@@ -1,6 +1,6 @@
 import type { PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
-import { assertPresentArray, isPresentArray, mapPresentArray } from '@glimmer/util';
+import { assert, assertPresentArray, isPresentArray, mapPresentArray } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type * as mir from './mir';
@@ -14,10 +14,10 @@ export class ExpressionEncoder {
         return undefined;
       case 'Literal':
         return this.Literal(expr);
+      case 'Keyword':
+        return this.Keyword(expr);
       case 'CallExpression':
         return this.CallExpression(expr);
-      case 'DeprecatedCallExpression':
-        return this.DeprecatedCallExpression(expr);
       case 'PathExpression':
         return this.PathExpression(expr);
       case 'Arg':
@@ -88,13 +88,13 @@ export class ExpressionEncoder {
     return [isTemplateLocal ? SexpOpcodes.GetLexicalSymbol : SexpOpcodes.GetSymbol, symbol];
   }
 
-  GetWithResolver({ symbol }: mir.GetWithResolver): WireFormat.Expressions.GetContextualFree {
-    return [SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback, symbol];
+  Keyword({ symbol }: ASTv2.KeywordExpression): WireFormat.Expressions.GetStrictFree {
+    return [SexpOpcodes.GetStrictKeyword, symbol];
   }
 
   PathExpression({ head, tail }: mir.PathExpression): WireFormat.Expressions.GetPath {
     let getOp = EXPR.expr(head) as WireFormat.Expressions.GetVar;
-
+    assert(getOp[0] !== SexpOpcodes.GetStrictKeyword, '[BUG] keyword in a PathExpression');
     return [...getOp, EXPR.Tail(tail)];
   }
 
@@ -104,13 +104,6 @@ export class ExpressionEncoder {
 
   CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.Helper {
     return [SexpOpcodes.Call, EXPR.expr(callee), ...EXPR.Args(args)];
-  }
-
-  DeprecatedCallExpression({
-    arg,
-    callee,
-  }: mir.DeprecatedCallExpression): WireFormat.Expressions.GetPathFreeAsDeprecatedHelperHeadOrThisFallback {
-    return [SexpOpcodes.GetFreeAsDeprecatedHelperHeadOrThisFallback, callee.symbol, [arg.chars]];
   }
 
   Tail({ members }: mir.Tail): PresentArray<string> {

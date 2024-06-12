@@ -9,7 +9,7 @@ import { SpanList } from '../source/span-list';
 import * as ASTv2 from './api';
 
 export interface CallParts {
-  callee: ASTv2.ExpressionNode;
+  callee: ASTv2.CalleeNode;
   args: ASTv2.Args;
 }
 
@@ -148,6 +148,14 @@ export class Builder {
     });
   }
 
+  keyword(name: string, symbol: number, loc: SourceSpan): ASTv2.KeywordExpression {
+    return new ASTv2.KeywordExpression({
+      loc,
+      name,
+      symbol,
+    });
+  }
+
   self(loc: SourceSpan): ASTv2.VariableReference {
     return new ASTv2.ThisReference({
       loc,
@@ -218,18 +226,6 @@ export class Builder {
       loc,
       callee: parts.callee,
       args: parts.args,
-    });
-  }
-
-  deprecatedCall(
-    arg: SourceSlice,
-    callee: ASTv2.FreeVarReference,
-    loc: SourceSpan
-  ): ASTv2.DeprecatedCallExpression {
-    return new ASTv2.DeprecatedCallExpression({
-      loc,
-      arg,
-      callee,
     });
   }
 

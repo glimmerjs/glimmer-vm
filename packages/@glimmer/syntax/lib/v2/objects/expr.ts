@@ -1,7 +1,7 @@
 import type { PresentArray } from '@glimmer/interfaces';
 
 import type { CallFields } from './base';
-import type { FreeVarReference, VariableReference } from './refs';
+import type { VariableReference } from './refs';
 
 import { SourceSlice } from '../../source/slice';
 import { node } from './node';
@@ -72,6 +72,17 @@ export class PathExpression extends node('Path').fields<{
 }>() {}
 
 /**
+ * Corresponds to a known strict-mode keyword. It behaves similarly to a
+ * PathExpression with a FreeVarReference, but implies StrictResolution and
+ * is guaranteed to not have a tail, since `{{outlet.foo}}` would have been
+ * illegal.
+ */
+export class KeywordExpression extends node('Keyword').fields<{
+  name: string;
+  symbol: number;
+}>() {}
+
+/**
  * Corresponds to a parenthesized call expression.
  *
  * ```hbs
@@ -82,24 +93,6 @@ export class PathExpression extends node('Path').fields<{
  * ```
  */
 export class CallExpression extends node('Call').fields<CallFields>() {}
-
-/**
- * Corresponds to a possible deprecated helper call. Must be:
- *
- * 1. A free variable (not this.foo, not @foo, not local).
- * 2. Argument-less.
- * 3. In a component invocation's named argument position.
- * 4. Not parenthesized (not @bar={{(helper)}}).
- * 5. Not interpolated (not @bar="{{helper}}").
- *
- * ```hbs
- * <Foo @bar={{helper}} />
- * ```
- */
-export class DeprecatedCallExpression extends node('DeprecatedCall').fields<{
-  arg: SourceSlice;
-  callee: FreeVarReference;
-}>() {}
 
 /**
  * Corresponds to an interpolation in attribute value position.
@@ -115,6 +108,6 @@ export class InterpolateExpression extends node('Interpolate').fields<{
 export type ExpressionNode =
   | LiteralExpression
   | PathExpression
+  | KeywordExpression
   | CallExpression
-  | DeprecatedCallExpression
   | InterpolateExpression;
