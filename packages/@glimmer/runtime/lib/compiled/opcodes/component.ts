@@ -803,15 +803,6 @@ APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
   vm.pushRootScope(table.symbols.length + 1, owner);
 });
 
-APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
-
-  if (state.table.hasEval) {
-    let lookup = (state.lookup = dict<ScopeSlot>());
-    vm.scope().bindEvalScope(lookup);
-  }
-});
-
 APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
   let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
   let scope = vm.scope();

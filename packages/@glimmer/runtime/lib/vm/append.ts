@@ -7,7 +7,6 @@ import type {
   Environment,
   Nullable,
   Owner,
-  PartialScope,
   RenderResult,
   ResolutionTimeConstants,
   RichIteratorResult,
@@ -41,7 +40,7 @@ import {
   JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES } from '../opcodes';
-import { PartialScopeImpl } from '../scope';
+import { ScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import { LowLevelVM } from './low-level';
@@ -96,7 +95,7 @@ export interface InternalVM {
   enterItem(item: OpaqueIterationItem): ListItemOpcode;
   registerItem(item: ListItemOpcode): void;
 
-  pushRootScope(size: number, owner: Owner): PartialScope;
+  pushRootScope(size: number, owner: Owner): Scope;
   pushChildScope(): void;
   popScope(): void;
   pushScope(scope: Scope): void;
@@ -303,7 +302,7 @@ export class VM implements PublicVM, InternalVM {
     context: CompileTimeCompilationContext,
     { handle, self, dynamicScope, treeBuilder, numSymbols, owner }: InitOptions
   ) {
-    let scope = PartialScopeImpl.root(self, numSymbols, owner);
+    let scope = ScopeImpl.root(self, numSymbols, owner);
     let state = vmState(runtime.program.heap.getaddr(handle), scope, dynamicScope);
     let vm = initVM(context)(runtime, state, treeBuilder);
     vm.pushUpdating();
@@ -319,7 +318,7 @@ export class VM implements PublicVM, InternalVM {
       runtime,
       vmState(
         runtime.program.heap.getaddr(handle),
-        PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
+        ScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
         dynamicScope
       ),
       treeBuilder
@@ -500,8 +499,8 @@ export class VM implements PublicVM, InternalVM {
     return child;
   }
 
-  pushRootScope(size: number, owner: Owner): PartialScope {
-    let scope = PartialScopeImpl.sized(size, owner);
+  pushRootScope(size: number, owner: Owner): Scope {
+    let scope = ScopeImpl.sized(size, owner);
     this[STACKS].scope.push(scope);
     return scope;
   }
