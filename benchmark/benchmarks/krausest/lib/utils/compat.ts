@@ -28,7 +28,7 @@ export function emitDomClickEvent(selector: ButtonSelectors) {
 
 export function waitForIdle() {
   return new Promise((resolve) => {
-    requestIdleCallback(resolve);
+    requestAnimationFrame(resolve);
   });
 }
 
