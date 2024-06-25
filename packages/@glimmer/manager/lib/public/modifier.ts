@@ -119,6 +119,9 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
 
   getDebugName(definition: object) {
     if (typeof definition === 'function') {
+      if (definition.toString !== Function.toString) {
+        return definition.toString();
+      }
       return definition.name || '<unknown>';
     } else {
       return definition.toString() || '<unknown>';
