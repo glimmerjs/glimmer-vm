@@ -122,14 +122,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     if (typeof delegate.getDebugName === 'function') {
       return delegate.getDebugName(definition);
     }
-    if (typeof definition === 'function') {
-      if (definition.toString !== Function.toString) {
-        return definition.toString();
-      }
-      return definition.name || '<unknown>';
-    } else {
-      return definition.toString() || '<unknown>';
-    }
+    return definition.name || '<unknown>';
   }
 
   getDebugInstance(owner: O, state: CustomModifierState<ModifierInstance>) {
