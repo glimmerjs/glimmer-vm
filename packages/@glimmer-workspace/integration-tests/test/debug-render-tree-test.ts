@@ -340,10 +340,6 @@ class DebugRenderTreeTest extends RenderTest {
       didInsertElement() {}
       didUpdate() {}
       willDestroyElement() {}
-
-      getDebugName() {
-        return 'did-insert';
-      }
     }
 
     this.registerModifier('did-insert', DidInsertModifier);
