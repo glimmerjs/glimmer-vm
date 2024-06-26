@@ -22,7 +22,7 @@ export interface InternalModifierManager<
   // the modifier's update hooks need to be called (if at all).
   getTag(modifier: TModifierInstanceState): UpdatableTag | null;
 
-  getDebugName(Modifier: TModifierDefinitionState): string;
+  getDebugName(Modifier: TModifierDefinitionState, definition: object): string;
   getDebugInstance(Modifier: TModifierInstanceState): unknown;
 
   // At initial render, the modifier gets a chance to install itself on the

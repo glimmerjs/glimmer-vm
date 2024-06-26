@@ -504,8 +504,8 @@ export class ComponentElementOperations implements ElementOperations {
       }
 
       let { element, constructing } = vm.elements();
-      let name = manager.getDebugName(vm.owner(), definition.state);
-      let instance = manager.getDebugInstance(vm.owner(), state);
+      let name = manager.getDebugName(state, definition.state);
+      let instance = manager.getDebugInstance(state);
 
       assert(constructing, `Expected a constructing element in addModifier`);
 
