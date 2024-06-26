@@ -130,7 +130,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     if (typeof delegate.getDebugInstance === 'function') {
       return delegate.getDebugInstance(state);
     }
-    return state.modifier;
+    return state.modifier || delegate;
   }
 
   getTag({ tag }: CustomModifierState<ModifierInstance>) {
