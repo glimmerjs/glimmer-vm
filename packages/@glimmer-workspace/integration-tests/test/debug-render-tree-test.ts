@@ -342,7 +342,7 @@ class DebugRenderTreeTest extends RenderTest {
       willDestroyElement() {}
 
       getDebugName() {
-        return 'did-insert'
+        return 'did-insert';
       }
     }
 
