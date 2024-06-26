@@ -117,16 +117,16 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     return state;
   }
 
-  getDebugName(owner: O, definition: object) {
-    let delegate = this.getDelegateFor(owner);
+  getDebugName(state: CustomModifierState<ModifierInstance>, definition: object) {
+    let delegate = state.delegate;
     if (typeof delegate.getDebugName === 'function') {
       return delegate.getDebugName(definition);
     }
-    return definition.name || '<unknown>';
+    return (definition as any).name || '<unknown>';
   }
 
-  getDebugInstance(owner: O, state: CustomModifierState<ModifierInstance>) {
-    let delegate = this.getDelegateFor(owner);
+  getDebugInstance(state: CustomModifierState<ModifierInstance>) {
+    let delegate = state.delegate;
     if (typeof delegate.getDebugInstance === 'function') {
       return delegate.getDebugInstance(state);
     }
