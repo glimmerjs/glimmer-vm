@@ -194,7 +194,8 @@ function InvokeStaticComponent(
 
   // Followed by the other blocks, if they exist and are referenced in the component.
   // Also store the index of the associated symbol.
-  for (const name of blockNames) {
+  for (let i = 0; i < blockNames.length; i++) {
+    let name = blockNames[i];
     let symbol = symbols.indexOf(`&${name}`);
 
     if (symbol !== -1) {
@@ -226,7 +227,7 @@ function InvokeStaticComponent(
       let val = named[1];
 
       for (let i = 0; i < val.length; i++) {
-        let symbol = symbols.indexOf(unwrap(names[i]));
+        let symbol = symbols.indexOf(names[i]);
 
         expr(op, val[i]);
         argSymbols.push(symbol);
@@ -249,7 +250,7 @@ function InvokeStaticComponent(
     let val = named[1];
 
     for (let i = 0; i < val.length; i++) {
-      let name = unwrap(names[i]);
+      let name = names[i];
       let symbol = symbols.indexOf(name);
 
       if (symbol !== -1) {
@@ -287,9 +288,8 @@ function InvokeStaticComponent(
 
   // Going in reverse, now we pop the args/blocks off the stack, starting with
   // arguments, and assign them to their symbols in the new scope.
-  for (const symbol of reverse(argSymbols)) {
-    // for (let i = argSymbols.length - 1; i >= 0; i--) {
-    //   let symbol = argSymbols[i];
+  for (let i = argSymbols.length - 1; i >= 0; i--) {
+    let symbol = argSymbols[i];
 
     if (symbol === -1) {
       // The expression was not bound to a local symbol, it was only pushed to be
@@ -306,7 +306,9 @@ function InvokeStaticComponent(
   }
 
   // Finish up by popping off and assigning blocks
-  for (const symbol of reverse(blockSymbols)) {
+  for (let i = blockSymbols.length - 1; i >= 0; i--) {
+    let symbol = blockSymbols[i];
+
     op(Op.SetBlock, symbol + 1);
   }
 

@@ -169,7 +169,7 @@ export class AppendOpcodes {
   }
 
   evaluate(vm: VM, opcode: RuntimeOp, type: number) {
-    let operation = unwrap(this.evaluateOpcode[type]);
+    let operation = this.evaluateOpcode[type];
 
     if (operation.syscall) {
       assert(

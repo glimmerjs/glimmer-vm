@@ -542,7 +542,8 @@ function isSameNodeType(candidate: SimpleElement, tag: string) {
 }
 
 function findByName(array: SimpleAttr[], name: string): SimpleAttr | undefined {
-  for (const attr of array) {
+  for (let i = 0; i < array.length; i++) {
+    let attr = array[i];
     if (attr.name === name) return attr;
   }
 

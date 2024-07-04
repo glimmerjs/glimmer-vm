@@ -253,8 +253,8 @@ export function childRefFor(_parentRef: Reference, path: string): Reference {
 export function childRefFromParts(root: Reference, parts: string[]): Reference {
   let reference = root;
 
-  for (const part of parts) {
-    reference = childRefFor(reference, part);
+  for (let i = 0; i < parts.length; i++) {
+    reference = childRefFor(reference, parts[i]);
   }
 
   return reference;

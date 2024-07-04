@@ -26,7 +26,7 @@ class TrackedDict<T> {
 
   get(key: string): T {
     consumeTag(this.tag);
-    return unwrap(this.data[key]);
+    return this.data[key];
   }
 
   set(key: string, value: T) {

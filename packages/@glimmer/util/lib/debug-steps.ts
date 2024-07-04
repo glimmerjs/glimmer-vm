@@ -31,10 +31,8 @@ if (LOCAL_DEBUG) {
   logStep = (type: string, step: unknown) => {
     if (LOGGED_STEPS === null) return;
 
-    let steps = LOGGED_STEPS[type];
-    if (!steps) steps = LOGGED_STEPS[type] = [];
-
-    steps.push(step);
+    LOGGED_STEPS[type] = LOGGED_STEPS[type] || [];
+    LOGGED_STEPS[type].push(step);
   };
 
   verifySteps = (

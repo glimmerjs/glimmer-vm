@@ -24,7 +24,7 @@ export class DynamicScopeImpl implements DynamicScope {
   }
 
   get(key: string): Reference {
-    return unwrap(this.bucket[key]);
+    return this.bucket[key];
   }
 
   set(key: string, reference: Reference): Reference {

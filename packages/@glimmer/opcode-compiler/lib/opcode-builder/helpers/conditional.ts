@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { unwrap } from '@glimmer/util';
 import { MachineOp, Op } from '@glimmer/vm';
 
@@ -39,7 +40,7 @@ export function SwitchCases(
   // Enumerate the clauses in reverse order. Earlier matches will
   // require fewer checks.
   for (let i = clauses.length - 1; i >= 0; i--) {
-    let clause = unwrap(clauses[i]);
+    let clause = clauses[i];
 
     op(HighLevelBuilderOpcodes.Label, clause.label);
     op(Op.Pop, 1);

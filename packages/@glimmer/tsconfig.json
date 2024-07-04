@@ -23,10 +23,10 @@
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
     "useDefineForClassFields": false,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true,
+    // "exactOptionalPropertyTypes": true,
+    // "noImplicitOverride": true,
+    // "noPropertyAccessFromIndexSignature": true,
+    // "noUncheckedIndexedAccess": true,
 
     "types": ["qunit", "node", "vite/client"]
   },

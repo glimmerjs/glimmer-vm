@@ -34,14 +34,15 @@ export class StackImpl<T> implements Stack<T> {
 
   pop(): Nullable<T> {
     let item = this.stack.pop();
-    this.current = getLast(this.stack) ?? null;
+    let len = this.stack.length;
+    this.current = len === 0 ? null : this.stack[len - 1];
 
     return item === undefined ? null : item;
   }
 
   nth(from: number): Nullable<T> {
     let len = this.stack.length;
-    return len < from ? null : unwrap(this.stack[len - from]);
+    return len < from ? null : this.stack[len - from];
   }
 
   isEmpty(): boolean {

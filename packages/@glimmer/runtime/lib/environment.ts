@@ -47,11 +47,13 @@ class TransactionImpl implements Transaction {
   commit() {
     let { createdComponents, updatedComponents } = this;
 
-    for (const { manager, state } of createdComponents) {
+    for (let i = 0; i < createdComponents.length; i++) {
+      let { manager, state } = createdComponents[i];
       manager.didCreate(state);
     }
 
-    for (const { manager, state } of updatedComponents) {
+    for (let i = 0; i < updatedComponents.length; i++) {
+      let { manager, state } = updatedComponents[i];
       manager.didUpdate(state);
     }
 

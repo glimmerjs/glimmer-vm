@@ -606,7 +606,8 @@ export class VM implements PublicVM, InternalVM {
   bindDynamicScope(names: string[]) {
     let scope = this.dynamicScope();
 
-    for (const name of reverse(names)) {
+    for (let i = names.length - 1; i >= 0; i--) {
+      let name = names[i];
       scope.set(name, this.stack.pop<Reference<unknown>>());
     }
   }

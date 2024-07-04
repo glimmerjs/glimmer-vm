@@ -1,7 +1,11 @@
 export let assign = Object.assign;
 
 export function values<T>(obj: { [s: string]: T }): T[] {
-  return Object.values(obj);
+  const vals = [];
+  for (const key in obj) {
+    vals.push(obj[key]);
+  }
+  return vals;
 }
 
 export type ObjectEntry<D extends object> = { [P in keyof D]: [P, D[P]] }[keyof D];

@@ -74,7 +74,9 @@ const context = buildUntouchableThis('`fn` helper');
   @public
 */
 export const fn = internalHelper(({ positional }: CapturedArguments) => {
-  let callbackRef = check(positional[0], assertCallbackIsFn);
+  let callbackRef = positional[0];
+
+  if (import.meta.env.DEV) assertCallbackIsFn(callbackRef);
 
   return createComputeRef(
     () => {

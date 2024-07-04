@@ -93,8 +93,8 @@ export function compileStatements(
     encodeOp(encoder, constants, resolver, meta, op as BuilderOp | HighLevelOp);
   }
 
-  for (const statement of statements) {
-    sCompiler.compile(pushOp, statement);
+  for (let i = 0; i < statements.length; i++) {
+    sCompiler.compile(pushOp, statements[i]);
   }
 
   let handle = context.encoder.commit(meta.size);

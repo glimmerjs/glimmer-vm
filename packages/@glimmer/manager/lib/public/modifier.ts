@@ -164,8 +164,8 @@ export function reifyArgs({ named, positional }: CapturedArguments): {
 } {
   let reifiedNamed = dict();
 
-  for (const [key, value] of Object.entries(named)) {
-    reifiedNamed[key] = valueForRef(value);
+  for (let key in named) {
+    reifiedNamed[key] = valueForRef(named[key]);
   }
 
   let reifiedPositional = positional.map(valueForRef);

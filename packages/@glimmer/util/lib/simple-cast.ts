@@ -100,11 +100,11 @@ function isDocument(node: Node | SimpleNode | SimpleDocument): node is Document 
 }
 
 export function isSimpleElement(node: Maybe<SimpleNode | Node>): node is SimpleElement {
-  return node?.nodeType === ELEMENT_NODE;
+  return node.nodeType === ELEMENT_NODE;
 }
 
 export function isElement(node: Maybe<Node | SimpleNode>): node is Element {
-  return node?.nodeType === ELEMENT_NODE && node instanceof Element;
+  return node.nodeType === ELEMENT_NODE;
 }
 
 export function checkBrowserNode<S extends SugaryNodeCheck>(

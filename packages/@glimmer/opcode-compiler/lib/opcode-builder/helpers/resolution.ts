@@ -108,7 +108,7 @@ export function resolveComponent(
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = unwrap(upvars[expr[1]]);
+    let name = upvars[expr[1]];
     let definition = resolver.lookupComponent(name, owner)!;
 
     if (import.meta.env.DEV && (typeof definition !== 'object' || definition === null)) {
@@ -151,7 +151,7 @@ export function resolveHelper(
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = unwrap(upvars[expr[1]]);
+    let name = upvars[expr[1]];
     let helper = resolver.lookupHelper(name, owner)!;
 
     if (import.meta.env.DEV && helper === null) {
@@ -190,7 +190,7 @@ export function resolveModifier(
     then(constants.modifier(definition as object));
   } else if (type === SexpOpcodes.GetStrictKeyword) {
     let { upvars } = assertResolverInvariants(meta);
-    let name = unwrap(upvars[expr[1]]);
+    let name = upvars[expr[1]];
     let modifier = resolver.lookupBuiltInModifier(name);
 
     if (import.meta.env.DEV && modifier === null) {
@@ -204,7 +204,7 @@ export function resolveModifier(
     then(constants.modifier(modifier!, name));
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
-    let name = unwrap(upvars[expr[1]]);
+    let name = upvars[expr[1]];
     let modifier = resolver.lookupModifier(name, owner)!;
 
     if (import.meta.env.DEV && modifier === null) {
@@ -278,7 +278,7 @@ export function resolveComponentOrHelper(
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = unwrap(upvars[expr[1]]);
+    let name = upvars[expr[1]];
     let definition = resolver.lookupComponent(name, owner);
 
     if (definition !== null) {
@@ -356,7 +356,7 @@ export function resolveOptionalComponentOrHelper(
   } else {
     let { upvars, owner } = assertResolverInvariants(meta);
 
-    let name = unwrap(upvars[expr[1]]);
+    let name = upvars[expr[1]];
     let definition = resolver.lookupComponent(name, owner);
 
     if (definition !== null) {
@@ -381,7 +381,7 @@ function lookupBuiltInHelper(
 ): number {
   let { upvars } = assertResolverInvariants(meta);
 
-  let name = unwrap(upvars[expr[1]]);
+  let name = upvars[expr[1]];
   let helper = resolver.lookupBuiltInHelper(name);
 
   if (import.meta.env.DEV && helper === null) {

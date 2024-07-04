@@ -176,7 +176,7 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
       invokingScope = invokingScope.child();
 
       for (let i = 0; i < localsCount; i++) {
-        invokingScope.bindSymbol(unwrap(locals[i]), args.at(i));
+        invokingScope.bindSymbol(locals![i], args.at(i));
       }
     }
   }

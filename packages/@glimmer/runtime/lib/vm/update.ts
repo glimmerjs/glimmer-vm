@@ -329,7 +329,9 @@ export class ListBlockOpcode extends BlockOpcode {
       }
     }
 
-    for (const opcode of children) {
+    for (let i = 0; i < children.length; i++) {
+      let opcode = children[i];
+
       if (opcode.retained === false) {
         this.deleteItem(opcode);
       } else {

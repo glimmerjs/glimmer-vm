@@ -82,7 +82,8 @@ export class RuntimeConstantsImpl implements RuntimeConstants {
     let handles = this.getValue<number[]>(value);
     let reified: T[] = new Array(handles.length);
 
-    for (const [i, n] of enumerate(handles)) {
+    for (let i = 0; i < handles.length; i++) {
+      let n = handles[i];
       reified[i] = this.getValue(n);
     }
 
@@ -320,8 +321,8 @@ export class ConstantsImpl
       let names: number[] = this.getValue(index);
       reified = new Array(names.length);
 
-      for (const [i, name] of enumerate(names)) {
-        reified[i] = this.getValue(name);
+      for (let i = 0; i < names.length; i++) {
+        reified[i] = this.getValue(names[i]);
       }
 
       reifiedArrs[index] = reified;

@@ -53,9 +53,9 @@ export class Labels {
 
   patch(heap: CompileTimeHeap): void {
     let { targets, labels } = this;
-
-    for (const { at, target } of targets) {
-      let address = labels[target]! - at;
+    for (let i = 0; i < targets.length; i++) {
+      let { at, target } = targets[i];
+      let address = labels[target] - at;
 
       assert(heap.getbyaddr(at) === -1, 'Expected heap to contain a placeholder, but it did not');
 

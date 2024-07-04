@@ -29,8 +29,8 @@ export function CompileArgs(
   atNames: boolean
 ): void {
   let blockNames: string[] = blocks.names;
-  for (const name of blockNames) {
-    PushYieldableBlock(op, blocks.get(name));
+  for (let i = 0; i < blockNames.length; i++) {
+    PushYieldableBlock(op, blocks.get(blockNames[i]));
   }
 
   let count = CompilePositional(op, positional);

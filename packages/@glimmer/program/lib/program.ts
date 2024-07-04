@@ -39,11 +39,12 @@ export class RuntimeHeapImpl implements RuntimeHeap {
   // may move it. However, it is legal to use this address
   // multiple times between compactions.
   getaddr(handle: number): number {
-    return unwrap(this.table[handle]);
+    return this.table[handle];
   }
 
   getbyaddr(address: number): number {
-    return expect(this.heap[address], 'Access memory out of bounds of the heap');
+    assert(this.heap[address] !== undefined, 'Access memory out of bounds of the heap');
+    return this.heap[address];
   }
 
   sizeof(handle: number): number {
@@ -113,7 +114,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   }
 
   getbyaddr(address: number): number {
-    return unwrap(this.heap[address]);
+    return this.heap[address];
   }
 
   setbyaddr(address: number, value: number) {
@@ -143,7 +144,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   // may move it. However, it is legal to use this address
   // multiple times between compactions.
   getaddr(handle: number): number {
-    return unwrap(this.handleTable[handle]);
+    return this.handleTable[handle];
   }
 
   sizeof(handle: number): number {
@@ -166,8 +167,8 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     let { handleTable, handleState, heap } = this;
 
     for (let i = 0; i < length; i++) {
-      let offset = unwrap(handleTable[i]);
-      let size = unwrap(handleTable[i + 1]) - unwrap(offset);
+      let offset = handleTable[i];
+      let size = handleTable[i + 1] - offset;
       let state = handleState[i];
 
       if (state === TableSlotState.Purged) {
@@ -180,7 +181,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
         compactedSize += size;
       } else if (state === TableSlotState.Allocated) {
         for (let j = offset; j <= i + size; j++) {
-          heap[j - compactedSize] = unwrap(heap[j]);
+          heap[j - compactedSize] = heap[j];
         }
 
         handleTable[i] = offset - compactedSize;
@@ -229,7 +230,7 @@ function slice(arr: Int32Array, start: number, end: number): Int32Array {
   let ret = new Int32Array(end);
 
   for (; start < end; start++) {
-    ret[start] = unwrap(arr[start]);
+    ret[start] = arr[start];
   }
 
   return ret;
@@ -237,7 +238,7 @@ function slice(arr: Int32Array, start: number, end: number): Int32Array {
 
 function sizeof(table: number[], handle: number) {
   if (LOCAL_DEBUG) {
-    return unwrap(table[handle + 1]) - unwrap(table[handle]);
+    return table[handle + 1] - table[handle];
   } else {
     return -1;
   }

@@ -336,7 +336,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
     let names = Object.keys(named);
 
     for (let i = 0; i < names.length; i++) {
-      stack.push(named[unwrap(names[i])]);
+      stack.push(named[names[i]]);
     }
 
     args.setup(stack, names, blockNames, positionalCount, false);
@@ -542,7 +542,7 @@ export class ComponentElementOperations implements ElementOperations {
         continue;
       }
 
-      let attr = unwrap(this.attributes[name]);
+      let attr = this.attributes[name];
       if (name === 'class') {
         setDeferredAttr(vm, 'class', mergeClasses(this.classes), attr.namespace, attr.trusting);
       } else {
@@ -563,7 +563,7 @@ function mergeClasses(classes: (string | Reference)[]): string | Reference<unkno
     return '';
   }
   if (classes.length === 1) {
-    return unwrap(classes[0]);
+    return classes[0];
   }
   if (allStringClasses(classes)) {
     return classes.join(' ');
@@ -820,8 +820,8 @@ APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
   let callerNames = args.named.atNames;
 
   for (let i = callerNames.length - 1; i >= 0; i--) {
-    let atName = unwrap(callerNames[i]);
-    let symbol = state.table.symbols.indexOf(atName);
+    let atName = callerNames[i];
+    let symbol = state.table.symbols.indexOf(callerNames[i]);
     let value = args.named.get(atName, true);
 
     if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
@@ -847,8 +847,8 @@ APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {
   let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
   let { blocks } = check(vm.stack.peek(), CheckArguments);
 
-  for (const [i] of enumerate(blocks.names)) {
-    bindBlock(unwrap(blocks.symbolNames[i]), unwrap(blocks.names[i]), state, blocks, vm);
+  for (let i = 0; i < blocks.names.length; i++) {
+    bindBlock(blocks.symbolNames[i], blocks.names[i], state, blocks, vm);
   }
 });
 

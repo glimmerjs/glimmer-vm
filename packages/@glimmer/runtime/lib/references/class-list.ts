@@ -7,8 +7,9 @@ export default function createClassListRef(list: Reference[]) {
   return createComputeRef(() => {
     let ret: string[] = [];
 
-    for (const ref of list) {
-      let value = normalizeStringValue(typeof ref === 'string' ? ref : valueForRef(ref));
+    for (let i = 0; i < list.length; i++) {
+      let ref = list[i];
+      let value = normalizeStringValue(typeof ref === 'string' ? ref : valueForRef(list[i]));
       if (value) ret.push(value);
     }
 

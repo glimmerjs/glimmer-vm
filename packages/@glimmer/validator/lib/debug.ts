@@ -177,7 +177,7 @@ if (import.meta.env.DEV) {
   debug.markTagAsConsumed = (_tag: Tag) => {
     if (!CONSUMED_TAGS || CONSUMED_TAGS.has(_tag)) return;
 
-    CONSUMED_TAGS.set(_tag, getLast(asPresentArray(TRANSACTION_STACK)));
+    CONSUMED_TAGS.set(_tag, TRANSACTION_STACK[TRANSACTION_STACK.length - 1]);
 
     // We need to mark the tag and all of its subtags as consumed, so we need to
     // cast it and access its internals. In the future this shouldn't be necessary,
