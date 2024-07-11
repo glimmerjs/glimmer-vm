@@ -19,6 +19,6 @@ export interface ModifierManager<ModifierStateBucket> {
   installModifier(instance: ModifierStateBucket, element: Element, args: Arguments): void;
   updateModifier(instance: ModifierStateBucket, args: Arguments): void;
   destroyModifier(instance: ModifierStateBucket, args: Arguments): void;
-  getDebugName?(instance: object): string;
-  getDebugInstance?(instance: object): any;
+  getDebugName?(definition?: object): string;
+  getDebugInstance?(instance: ModifierStateBucket): any;
 }
