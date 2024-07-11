@@ -82,7 +82,7 @@ class FunctionalModifierManager implements ModifierManager<SimpleModifierState> 
     }
   }
 
-  getDebugName(fn: Function) {
+  getDebugName(fn: SimpleModifierFn) {
     return fn.name || '(anonymous function)';
   }
 }

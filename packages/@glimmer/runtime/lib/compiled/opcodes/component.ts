@@ -494,7 +494,7 @@ export class ComponentElementOperations implements ElementOperations {
     this.modifiers.push(modifier);
 
     if (vm.env.debugRenderTree !== undefined) {
-      const { manager, definition, state } = modifier;
+      const { manager, state } = modifier;
 
       // TODO: we need a stable object for the debugRenderTree as the key, add support for
       // the case where the state is a primitive, or if in practice we always have/require
@@ -504,7 +504,7 @@ export class ComponentElementOperations implements ElementOperations {
       }
 
       let { element, constructing } = vm.elements();
-      let name = manager.getDebugName(state, definition.state);
+      let name = manager.getDebugName(state);
       let instance = manager.getDebugInstance(state);
 
       assert(constructing, `Expected a constructing element in addModifier`);

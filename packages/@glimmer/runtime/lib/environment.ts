@@ -65,7 +65,7 @@ class TransactionImpl implements Transaction {
           () => manager.install(state),
           import.meta.env.DEV &&
             `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(state as any, definition.state)
+              definition.resolvedName || manager.getDebugName(state)
             }\` modifier)`
         );
         updateTag(modifierTag, tag);
@@ -82,7 +82,7 @@ class TransactionImpl implements Transaction {
           () => manager.update(state),
           import.meta.env.DEV &&
             `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(state as any, definition.state)
+              definition.resolvedName || manager.getDebugName(state)
             }\` modifier)`
         );
         updateTag(modifierTag, tag);
