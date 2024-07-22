@@ -94,6 +94,13 @@ let templates = [
 
   // Comment in Angle Bracket component
   '<Foo {{!-- This is a comment --}} attribute></Foo>',
+
+  // Short Comment
+  '{{! template-lint-disable rule-name }}',
+  '{{! template-lint-disable rule-name }}\n<div class="hello">there</div>',
+  // Long Comment
+  '{{!-- template-lint-disable rule-name --}}',
+  '{{!-- template-lint-disable rule-name --}}\n<div class="hello">there</div>',
 ];
 
 QUnit.module('[glimmer-syntax] Code generation', () => {
