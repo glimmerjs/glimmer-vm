@@ -16,7 +16,7 @@ export class InstructionEncoderImpl implements InstructionEncoder {
 
   encode(type: VmMachineOp, machine: MACHINE_MASK, ...operands: Operand[]): void;
   encode(type: VmOp, machine: 0, ...operands: Operand[]): void;
-  encode(type: SomeVmOp, machine: 0 | MACHINE_MASK, ...args: Operand[]) {
+  encode(type: SomeVmOp, machine: 0 | MACHINE_MASK) {
     if ((type as number) > TYPE_SIZE) {
       throw new Error(`Opcode type over 8-bits. Got ${type}.`);
     }
@@ -25,7 +25,15 @@ export class InstructionEncoderImpl implements InstructionEncoder {
 
     this.buffer.push(first);
 
-    for (const op of args) {
+    for (let i = 2; i < arguments.length; i++) {
+      // We don't want to use rest-params because they create extra allocations
+      // arguments is already provided to each function, so our usage of it is "for free".
+      //
+      // Likewise, we should not re-add rest-params to the method signature.
+      //
+      // eslint-disable-next-line prefer-rest-params
+      let op = arguments[i];
+
       if (import.meta.env.DEV && typeof op === 'number' && op > MAX_SIZE) {
         throw new Error(`Operand over 32-bits. Got ${op}.`);
       }
