@@ -24,7 +24,7 @@ import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/re
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { createIteratorItemRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
@@ -584,7 +584,31 @@ export class VM implements PublicVM, InternalVM {
     let opcode = this[INNER_VM].nextStatement();
     let result: RichIteratorResult<null, RenderResult>;
     if (opcode !== null) {
-      this[INNER_VM].evaluateOuter(opcode, this);
+      if (LOCAL_DEBUG) {
+        // These functions are arrows defined in *this* file.
+        // We don't need to worry about unbound thises
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        let debugBefore = this[INNER_VM].externs.debugBefore;
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        let debugAfter = this[INNER_VM].externs.debugAfter;
+
+        let state = debugBefore(opcode);
+
+        if (opcode.isMachine) {
+          this[INNER_VM].evaluateMachine(opcode);
+        } else {
+          this[INNER_VM].evaluateSyscall(opcode, this);
+        }
+
+        debugAfter(state);
+      } else {
+        if (opcode.isMachine) {
+          this[INNER_VM].evaluateMachine(opcode);
+        } else {
+          this[INNER_VM].evaluateSyscall(opcode, this);
+        }
+      }
+
       result = { done: false, value: null };
     } else {
       // Unload the stack

@@ -1,6 +1,5 @@
 import type { Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
 import type { MachineRegister } from '@glimmer/vm';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, MachineOp } from '@glimmer/vm';
 
@@ -132,27 +131,6 @@ export class LowLevelVM {
     this.registers[$pc] += operationSize;
 
     return opcode;
-  }
-
-  evaluateOuter(opcode: RuntimeOp, vm: VM) {
-    if (LOCAL_DEBUG) {
-      let {
-        externs: { debugBefore, debugAfter },
-      } = this;
-      let state = debugBefore(opcode);
-      this.evaluateInner(opcode, vm);
-      debugAfter(state);
-    } else {
-      this.evaluateInner(opcode, vm);
-    }
-  }
-
-  evaluateInner(opcode: RuntimeOp, vm: VM) {
-    if (opcode.isMachine) {
-      this.evaluateMachine(opcode);
-    } else {
-      this.evaluateSyscall(opcode, vm);
-    }
   }
 
   evaluateMachine(opcode: RuntimeOp) {
