@@ -1,15 +1,6 @@
 import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import type { Revision, Tag } from '@glimmer/validator';
-import {
-  check,
-  CheckBlockSymbolTable,
-  CheckHandle,
-  CheckInstanceof,
-  CheckNumber,
-  CheckOption,
-  CheckPrimitive,
-} from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
 import {
   createComputeRef,
@@ -39,8 +30,6 @@ import type { InternalVM } from '../../vm/append';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
-import { VMArgumentsImpl } from '../../vm/arguments';
-import { CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 
 APPEND_OPCODES.add(Op.ChildScope, (vm) => vm.pushChildScope());
@@ -74,7 +63,7 @@ APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
 
 APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
   let stack = vm.stack;
-  let value = check(stack.pop(), CheckPrimitive);
+  let value = stack.pop();
   let ref;
 
   if (value === undefined) {
@@ -86,6 +75,7 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
   } else if (value === false) {
     ref = FALSE_REFERENCE;
   } else {
+    // @ts-expect-error todo
     ref = createPrimitiveRef(value);
   }
 
@@ -93,7 +83,7 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(register), CheckNumber) - offset;
+  let position = vm.fetchValue(register) - offset;
   vm.stack.dup(position);
 });
 
@@ -146,20 +136,22 @@ APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
 APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
   let { stack } = vm;
 
-  let handle = check(stack.pop(), CheckOption(CheckHandle));
-  let scope = check(stack.pop(), CheckOption(CheckScope));
-  let table = check(stack.pop(), CheckOption(CheckBlockSymbolTable));
+  let handle = stack.pop();
+  let scope = stack.pop();
+  let table = stack.pop();
 
   assert(
+    // @ts-expect-error todo
     table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)),
     stackAssert('Option<BlockSymbolTable>', table)
   );
 
-  let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
+  let args = stack.pop();
 
   if (table === null) {
     // To balance the pop{Frame,Scope}
     vm.pushFrame();
+    // @ts-expect-error todo
     vm.pushScope(scope ?? vm.scope());
 
     return;
@@ -169,27 +161,34 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
 
   // If necessary, create a child scope
   {
+    // @ts-expect-error todo
     let locals = table.parameters;
     let localsCount = locals.length;
 
     if (localsCount > 0) {
+      // @ts-expect-error todo
       invokingScope = invokingScope.child();
 
       for (let i = 0; i < localsCount; i++) {
+        // @ts-expect-error todo
         invokingScope.bindSymbol(unwrap(locals[i]), args.at(i));
       }
     }
   }
 
   vm.pushFrame();
+  // @ts-expect-error todo
   vm.pushScope(invokingScope);
-  vm.call(handle!);
+  // @ts-expect-error todo
+  vm.call(handle);
 });
 
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
+  // @ts-expect-error todo
   let value = Boolean(valueForRef(reference));
 
+  // @ts-expect-error todo
   if (isConstRef(reference)) {
     if (value === true) {
       vm.goto(target);
@@ -199,14 +198,17 @@ APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
       vm.goto(target);
     }
 
+    // @ts-expect-error todo
     vm.updateWith(new Assert(reference));
   }
 });
 
 APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
+  // @ts-expect-error todo
   let value = Boolean(valueForRef(reference));
 
+  // @ts-expect-error todo
   if (isConstRef(reference)) {
     if (value === false) {
       vm.goto(target);
@@ -216,12 +218,13 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
       vm.goto(target);
     }
 
+    // @ts-expect-error todo
     vm.updateWith(new Assert(reference));
   }
 });
 
 APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
-  let other = check(vm.stack.peek(), CheckNumber);
+  let other = vm.stack.peek();
 
   if (other === comparison) {
     vm.goto(target);
@@ -229,17 +232,20 @@ APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
 });
 
 APPEND_OPCODES.add(Op.AssertSame, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = vm.stack.peek();
 
+  // @ts-expect-error todo
   if (isConstRef(reference) === false) {
+    // @ts-expect-error todo
     vm.updateWith(new Assert(reference));
   }
 });
 
 APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
   let { stack } = vm;
-  let valueRef = check(stack.pop(), CheckReference);
+  let valueRef = stack.pop();
 
+  // @ts-expect-error todo
   stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
 });
 

@@ -182,8 +182,8 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
   let { stack } = vm;
   let ref = stack.pop();
-  let args = stack.pop();
   // @ts-expect-error todo
+  let args = stack.pop().capture();
   let { positional: outerPositional, named: outerNamed } = args;
 
   let { constructing } = vm.elements();
