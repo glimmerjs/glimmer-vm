@@ -1,24 +1,19 @@
 import type {
   CapturedPositionalArguments,
   Environment,
+  Maybe,
   ModifierDefinition,
   ModifierDefinitionState,
   ModifierInstance,
   Nullable,
   Owner,
+  SimpleElement,
+  SimpleNode,
   UpdatingOpcode,
   UpdatingVM,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import type { Revision, Tag } from '@glimmer/validator';
-import {
-  check,
-  CheckElement,
-  CheckMaybe,
-  CheckNode,
-  CheckOption,
-  CheckString,
-} from '@glimmer/debug';
 import { associateDestroyableChild, destroy, registerDestructor } from '@glimmer/destroyable';
 import { getInternalModifierManager } from '@glimmer/manager';
 import { createComputeRef, isConstRef, valueForRef } from '@glimmer/reference';
@@ -33,7 +28,6 @@ import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import { createCapturedArgs } from '../../vm/arguments';
-import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
 import { Assert } from './vm';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
@@ -49,18 +43,23 @@ APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, (vm) => {
-  let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
+  // @ts-expect-error todo
+  let tagName = valueForRef(vm.stack.pop());
+  // @ts-expect-error todo
   vm.elements().openElement(tagName);
 });
 
 APPEND_OPCODES.add(Op.PushRemoteElement, (vm) => {
-  let elementRef = check(vm.stack.pop(), CheckReference);
-  let insertBeforeRef = check(vm.stack.pop(), CheckReference);
-  let guidRef = check(vm.stack.pop(), CheckReference);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  let elementRef = vm.stack.pop() as Reference<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  let insertBeforeRef = vm.stack.pop() as Reference<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  let guidRef = vm.stack.pop() as Reference<string>;
 
-  let element = check(valueForRef(elementRef), CheckElement);
-  let insertBefore = check(valueForRef(insertBeforeRef), CheckMaybe(CheckOption(CheckNode)));
-  let guid = valueForRef(guidRef) as string;
+  let element = valueForRef(elementRef) as SimpleElement;
+  let insertBefore = valueForRef(insertBeforeRef) as Maybe<SimpleNode>;
+  let guid = valueForRef(guidRef);
 
   if (!isConstRef(elementRef)) {
     vm.updateWith(new Assert(elementRef));
@@ -105,10 +104,11 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
-  let operations = check(vm.fetchValue($t0), CheckOperations);
+  let operations = vm.fetchValue($t0);
   let modifiers: Nullable<ModifierInstance[]> = null;
 
   if (operations) {
+    // @ts-expect-error todo
     modifiers = operations.flush(vm);
     vm.loadValue($t0, null);
   }
@@ -137,13 +137,14 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
   }
 
   let owner = vm.getOwner();
-  let args = check(vm.stack.pop(), CheckArguments);
+  let args = vm.stack.pop();
   let definition = vm[CONSTANTS].getValue<ModifierDefinition>(handle);
 
   let { manager } = definition;
 
   let { constructing } = vm.elements();
 
+  // @ts-expect-error todo
   let capturedArgs = args.capture();
   let state = manager.create(
     owner,
@@ -159,10 +160,11 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
   };
 
   let operations = expect(
-    check(vm.fetchValue($t0), CheckOperations),
+    vm.fetchValue($t0),
     'BUG: ElementModifier could not find operations to append to'
   );
 
+  // @ts-expect-error todo
   operations.addModifier(vm, instance, capturedArgs);
 
   let tag = manager.getTag(state);
@@ -179,14 +181,16 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
   }
 
   let { stack } = vm;
-  let ref = check(stack.pop(), CheckReference);
-  let args = check(stack.pop(), CheckArguments).capture();
+  let ref = stack.pop();
+  let args = stack.pop();
+  // @ts-expect-error todo
   let { positional: outerPositional, named: outerNamed } = args;
 
   let { constructing } = vm.elements();
   let initialOwner = vm.getOwner();
 
   let instanceRef = createComputeRef(() => {
+    // @ts-expect-error todo
     let value = valueForRef(ref);
     let owner: Owner;
 
@@ -208,10 +212,12 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
       owner = curriedOwner;
 
       if (positional !== undefined) {
+        // @ts-expect-error todo
         args.positional = positional.concat(outerPositional) as CapturedPositionalArguments;
       }
 
       if (named !== undefined) {
+        // @ts-expect-error todo
         args.named = Object.assign({}, ...named, outerNamed);
       }
     } else {
@@ -225,8 +231,10 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
       if (import.meta.env.DEV) {
         throw new Error(
           `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${
+            // @ts-expect-error todo
             ref.debugLabel
           }}}\`, and the incorrect definition is the value at the path \`${
+            // @ts-expect-error todo
             ref.debugLabel
           }\`, which was: ${debugToString!(hostDefinition)}`
         );
@@ -245,6 +253,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
       owner,
       expect(constructing, 'BUG: ElementModifier could not find the element it applies to'),
       definition.state,
+      // @ts-expect-error todo
       args
     );
 
@@ -260,10 +269,11 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
   if (instance !== undefined) {
     let operations = expect(
-      check(vm.fetchValue($t0), CheckOperations),
+      vm.fetchValue($t0),
       'BUG: ElementModifier could not find operations to append to'
     );
 
+    // @ts-expect-error todo
     operations.addModifier(vm, instance, args);
 
     tag = instance.manager.getTag(instance.state);
@@ -273,6 +283,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
     }
   }
 
+  // @ts-expect-error todo
   if (!isConstRef(ref) || tag) {
     return vm.updateWith(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
   }
@@ -366,13 +377,17 @@ APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespac
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
+
+  // @ts-expect-error todo
   let value = valueForRef(reference);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
 
+  // @ts-expect-error todo
   if (!isConstRef(reference)) {
+    // @ts-expect-error todo
     vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
   }
 });
