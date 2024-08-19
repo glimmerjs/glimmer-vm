@@ -8,14 +8,6 @@ import type {
   VM as PublicVM,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import {
-  check,
-  CheckBlockSymbolTable,
-  CheckHandle,
-  CheckMaybe,
-  CheckOption,
-  CheckOr,
-} from '@glimmer/debug';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
@@ -36,24 +28,14 @@ import createCurryRef from '../../references/curry-value';
 import { CONSTANTS } from '../../symbols';
 import { reifyPositional } from '../../vm/arguments';
 import { createConcatRef } from '../expressions/concat';
-import {
-  CheckArguments,
-  CheckCapturedArguments,
-  CheckCompilableBlock,
-  CheckHelper,
-  CheckReference,
-  CheckScope,
-  CheckScopeBlock,
-  CheckUndefinedReference,
-} from './-debug-strip';
 
 export type FunctionExpression<T> = (vm: PublicVM) => Reference<T>;
 
 APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
   let stack = vm.stack;
 
-  let definition = check(stack.pop(), CheckReference);
-  let capturedArgs = check(stack.pop(), CheckCapturedArguments);
+  let definition = stack.pop();
+  let capturedArgs = stack.pop();
 
   let owner = vm.getOwner();
   let resolver = vm.runtime.resolver;
@@ -67,14 +49,16 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
   vm.loadValue(
     $v0,
+    // @ts-expect-error todo
     createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
   );
 });
 
 APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
-  let args = check(stack.pop(), CheckArguments).capture();
+  let ref = stack.pop();
+  // @ts-expect-error todo
+  let args = stack.pop().capture();
 
   let helperRef: Reference;
   let initialOwner: Owner = vm.getOwner();
@@ -84,11 +68,13 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
       destroy(helperRef);
     }
 
+    // @ts-expect-error todo
     let definition = valueForRef(ref);
 
     if (isCurriedType(definition, CurriedTypes.Helper)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
 
+      // @ts-expect-error todo
       let helper = resolveHelper(resolvedDef, ref);
 
       if (named !== undefined) {
@@ -103,6 +89,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 
       associateDestroyableChild(helperInstanceRef, helperRef);
     } else if (isObject(definition)) {
+      // @ts-expect-error todo
       let helper = resolveHelper(definition, ref);
       helperRef = helper(args, initialOwner);
 
@@ -151,8 +138,10 @@ function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helpe
 
 APPEND_OPCODES.add(Op.Helper, (vm, { op1: handle }) => {
   let stack = vm.stack;
-  let helper = check(vm[CONSTANTS].getValue(handle), CheckHelper);
-  let args = check(stack.pop(), CheckArguments);
+  let helper = vm[CONSTANTS].getValue(handle);
+  let args = stack.pop();
+
+  // @ts-expect-error todo
   let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope());
 
   if (_hasDestroyableChildren(value)) {
@@ -169,15 +158,16 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 });
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
-  let expr = check(vm.stack.pop(), CheckReference);
+  let expr = vm.stack.pop();
   vm.scope().bindSymbol(symbol, expr);
 });
 
 APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
-  let handle = check(vm.stack.pop(), CheckCompilableBlock);
-  let scope = check(vm.stack.pop(), CheckScope);
-  let table = check(vm.stack.pop(), CheckBlockSymbolTable);
+  let handle = vm.stack.pop();
+  let scope = vm.stack.pop();
+  let table = vm.stack.pop();
 
+  // @ts-expect-error todo
   vm.scope().bindBlock(symbol, [handle, scope, table]);
 });
 
@@ -199,7 +189,8 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
 
 APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
   let key = vm[CONSTANTS].getValue<string>(_key);
-  let expr = check(vm.stack.pop(), CheckReference);
+  let expr = vm.stack.pop();
+  // @ts-expect-error todo
   vm.stack.push(childRefFor(expr, key));
 });
 
@@ -212,9 +203,12 @@ APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
 
 APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
 
+  let block = stack.pop();
+
+  // @ts-expect-error todo
   if (block && !isUndefinedReference(block)) {
+    // @ts-expect-error todo
     let [handleOrCompilable, scope, table] = block;
 
     stack.push(table);
@@ -237,8 +231,9 @@ function isUndefinedReference(input: ScopeBlock | Reference): input is Reference
 
 APPEND_OPCODES.add(Op.HasBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
+  let block = stack.pop();
 
+  // @ts-expect-error todo
   if (block && !isUndefinedReference(block)) {
     stack.push(TRUE_REFERENCE);
   } else {
@@ -248,13 +243,12 @@ APPEND_OPCODES.add(Op.HasBlock, (vm) => {
 
 APPEND_OPCODES.add(Op.HasBlockParams, (vm) => {
   // FIXME(mmun): should only need to push the symbol table
-  let block = vm.stack.pop();
-  let scope = vm.stack.pop();
+  vm.stack.pop();
+  vm.stack.pop();
 
-  check(block, CheckMaybe(CheckOr(CheckHandle, CheckCompilableBlock)));
-  check(scope, CheckMaybe(CheckScope));
-  let table = check(vm.stack.pop(), CheckMaybe(CheckBlockSymbolTable));
+  let table = vm.stack.pop();
 
+  // @ts-expect-error todo
   let hasBlockParams = table && table.parameters.length;
   vm.stack.push(hasBlockParams ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
@@ -264,22 +258,25 @@ APPEND_OPCODES.add(Op.Concat, (vm, { op1: count }) => {
 
   for (let i = count; i > 0; i--) {
     let offset = i - 1;
-    out[offset] = check(vm.stack.pop(), CheckReference);
+    out[offset] = vm.stack.pop();
   }
 
   vm.stack.push(createConcatRef(out));
 });
 
 APPEND_OPCODES.add(Op.IfInline, (vm) => {
-  let condition = check(vm.stack.pop(), CheckReference);
-  let truthy = check(vm.stack.pop(), CheckReference);
-  let falsy = check(vm.stack.pop(), CheckReference);
+  let condition = vm.stack.pop();
+  let truthy = vm.stack.pop();
+  let falsy = vm.stack.pop();
 
   vm.stack.push(
     createComputeRef(() => {
+      // @ts-expect-error todo
       if (toBool(valueForRef(condition)) === true) {
+        // @ts-expect-error todo
         return valueForRef(truthy);
       } else {
+        // @ts-expect-error todo
         return valueForRef(falsy);
       }
     })
@@ -287,10 +284,11 @@ APPEND_OPCODES.add(Op.IfInline, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Not, (vm) => {
-  let ref = check(vm.stack.pop(), CheckReference);
+  let ref = vm.stack.pop();
 
   vm.stack.push(
     createComputeRef(() => {
+      // @ts-expect-error todo
       return !toBool(valueForRef(ref));
     })
   );
@@ -299,10 +297,11 @@ APPEND_OPCODES.add(Op.Not, (vm) => {
 APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
   let scope = vm.dynamicScope();
   let stack = vm.stack;
-  let nameRef = check(stack.pop(), CheckReference);
+  let nameRef = stack.pop();
 
   stack.push(
     createComputeRef(() => {
+      // @ts-expect-error todo
       let name = String(valueForRef(nameRef));
       return valueForRef(scope.get(name));
     })
@@ -310,7 +309,8 @@ APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Log, (vm) => {
-  let { positional } = check(vm.stack.pop(), CheckArguments).capture();
+  // @ts-expect-error todo
+  let { positional } = vm.stack.pop().capture();
 
   vm.loadValue(
     $v0,

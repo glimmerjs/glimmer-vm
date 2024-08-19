@@ -23,7 +23,6 @@ import type {
   WithUpdateHook,
   WrappedCapability,
 } from '@glimmer/interfaces';
-import { check, CheckNumber } from '@glimmer/debug';
 import { InternalComponentCapabilities } from '@glimmer/vm';
 
 export const FROM_CAPABILITIES = import.meta.env.DEV ? new WeakSet() : undefined;
@@ -104,7 +103,6 @@ export function managerHasCapability<F extends InternalComponentCapability>(
   capabilities: CapabilityMask,
   capability: F
 ): _manager is InternalComponentCapabilityFor<F> {
-  check(capabilities, CheckNumber);
   return !!(capabilities & capability);
 }
 
@@ -112,6 +110,5 @@ export function hasCapability(
   capabilities: CapabilityMask,
   capability: InternalComponentCapability
 ): boolean {
-  check(capabilities, CheckNumber);
   return !!(capabilities & capability);
 }

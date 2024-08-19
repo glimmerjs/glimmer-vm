@@ -1,6 +1,5 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import { check } from '@glimmer/debug';
 import { createComputeRef, isInvokableRef, updateRef, valueForRef } from '@glimmer/reference';
 import { buildUntouchableThis } from '@glimmer/util';
 
@@ -74,7 +73,7 @@ const context = buildUntouchableThis('`fn` helper');
   @public
 */
 export const fn = internalHelper(({ positional }: CapturedArguments) => {
-  let callbackRef = check(positional[0], assertCallbackIsFn);
+  let callbackRef = positional[0];
 
   return createComputeRef(
     () => {
