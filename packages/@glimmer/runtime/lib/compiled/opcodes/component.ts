@@ -25,16 +25,6 @@ import type {
   WithUpdateHook,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import {
-  check,
-  CheckFunction,
-  CheckHandle,
-  CheckInstanceof,
-  CheckInterface,
-  CheckOr,
-  CheckProgramSymbolTable,
-  CheckString,
-} from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
 import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
@@ -63,16 +53,7 @@ import { isCurriedType, isCurriedValue, resolveCurriedValue } from '../../currie
 import { APPEND_OPCODES } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
 import { ARGS, CONSTANTS } from '../../symbols';
-import { EMPTY_ARGS, VMArgumentsImpl } from '../../vm/arguments';
-import {
-  CheckArguments,
-  CheckComponentDefinition,
-  CheckComponentInstance,
-  CheckCurriedComponentDefinition,
-  CheckFinishedComponentInstance,
-  CheckInvocation,
-  CheckReference,
-} from './-debug-strip';
+import { EMPTY_ARGS } from '../../vm/arguments';
 import { UpdateDynamicAttributeOpcode } from './dom';
 
 /**
@@ -131,10 +112,9 @@ APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
 
 APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
   let stack = vm.stack;
-  let component = check(
-    valueForRef(check(stack.pop(), CheckReference)),
-    CheckOr(CheckString, CheckCurriedComponentDefinition)
-  );
+
+  // @ts-expect-error todo
+  let component = valueForRef(stack.pop());
   let constants = vm[CONSTANTS];
   let owner = vm.getOwner();
   let isStrict = constants.getValue<boolean>(_isStrict);
@@ -156,6 +136,7 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
   } else if (isCurriedValue(component)) {
     definition = component;
   } else {
+    // @ts-expect-error todo
     definition = constants.component(component, owner);
   }
 
@@ -164,7 +145,9 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
 
 APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
+
+  let ref = stack.pop();
+  // @ts-expect-error todo
   let value = valueForRef(ref);
   let constants = vm[CONSTANTS];
 
@@ -238,7 +221,8 @@ APPEND_OPCODES.add(Op.PushEmptyArgs, (vm) => {
 APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
   let stack = vm.stack;
 
-  let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
+  let args = stack.pop();
+  // @ts-expect-error todo
   let capturedArgs = args.capture();
   stack.push(capturedArgs);
 });
@@ -246,7 +230,7 @@ APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
 APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let stack = vm.stack;
   let instance = vm.fetchValue<ComponentInstance>(_state);
-  let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
+  let args = stack.pop();
 
   let { definition } = instance;
 
@@ -339,6 +323,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
       stack.push(named[unwrap(names[i])]);
     }
 
+    // @ts-expect-error todo
     args.setup(stack, names, blockNames, positionalCount, false);
   }
 
@@ -346,7 +331,9 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+  let instance = vm.fetchValue(_state);
+
+  // @ts-expect-error todo
   let { definition, manager, capabilities } = instance;
 
   if (!managerHasCapability(manager, capabilities, InternalComponentCapabilities.createInstance)) {
@@ -365,7 +352,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   let args: Nullable<VMArguments> = null;
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createArgs)) {
-    args = check(vm.stack.peek(), CheckArguments);
+    args = vm.stack.peek();
   }
 
   let self: Nullable<Reference> = null;
@@ -385,6 +372,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
 
   // We want to reuse the `state` POJO here, because we know that the opcodes
   // only transition at exactly one place.
+  // @ts-expect-error todo
   instance.state = state;
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.updateHook)) {
@@ -393,7 +381,8 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
-  let { manager, state, capabilities } = check(vm.fetchValue(_state), CheckComponentInstance);
+  // @ts-expect-error todo
+  let { manager, state, capabilities } = vm.fetchValue(_state);
 
   let d = manager.getDestroyable(state);
 
@@ -415,7 +404,8 @@ APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: _state }) => {
   let name;
 
   if (import.meta.env.DEV) {
-    let { definition, manager } = check(vm.fetchValue(_state), CheckComponentInstance);
+    // @ts-expect-error todo
+    let { definition, manager } = vm.fetchValue(_state);
 
     name = definition.resolvedName ?? manager.getDebugName(definition.state);
   }
@@ -431,15 +421,11 @@ APPEND_OPCODES.add(Op.PutComponentOperations, (vm) => {
 APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
-    name,
-    reference,
-    trusting,
-    namespace
-  );
+  // @ts-expect-error todo
+  vm.fetchValue($t0).setAttribute(name, reference, trusting, namespace);
 });
 
 APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
@@ -447,11 +433,8 @@ APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: 
   let value = vm[CONSTANTS].getValue<string>(_value);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setStaticAttribute(
-    name,
-    value,
-    namespace
-  );
+  // @ts-expect-error todo
+  vm.fetchValue($t0).setStaticAttribute(name, value, namespace);
 });
 
 type DeferredAttribute = {
@@ -596,26 +579,30 @@ function setDeferredAttr(
 }
 
 APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
-  let { definition, state } = check(vm.fetchValue(_state), CheckComponentInstance);
+  // @ts-expect-error todo
+  let { definition, state } = vm.fetchValue(_state);
   let { manager } = definition;
 
-  let operations = check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations));
+  let operations = vm.fetchValue($t0);
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
     expect(vm.elements().constructing, `Expected a constructing element in DidCreateOpcode`),
+    // @ts-expect-error todo
     operations
   );
 });
 
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+  let instance = vm.fetchValue(_state);
+  // @ts-expect-error todo
   let { definition, state } = instance;
   let { manager } = definition;
   let selfRef = manager.getSelf(state);
 
   if (vm.env.debugRenderTree !== undefined) {
-    let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+    let instance = vm.fetchValue(_state);
+    // @ts-expect-error todo
     let { definition, manager } = instance;
 
     let args: CapturedArguments;
@@ -696,7 +683,8 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
 });
 
 APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
-  let { definition, state } = check(vm.fetchValue(_state), CheckComponentInstance);
+  // @ts-expect-error todo
+  let { definition, state } = vm.fetchValue(_state);
   let { manager } = definition;
 
   let tagName = (
@@ -709,14 +697,16 @@ APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
 
 // Dynamic Invocation Only
 APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+  let instance = vm.fetchValue(_state);
 
+  // @ts-expect-error todo
   let { manager, definition } = instance;
   let { stack } = vm;
 
   let { compilable } = definition;
 
   if (compilable === null) {
+    // @ts-expect-error todo
     let { capabilities } = instance;
 
     assert(
@@ -724,6 +714,7 @@ APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
       'BUG: No template was found for this component, and the component did not have the dynamic layout capability'
     );
 
+    // @ts-expect-error todo
     compilable = manager.getDynamicLayout(instance.state, vm.runtime.resolver);
 
     if (compilable === null) {
@@ -742,17 +733,21 @@ APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.Main, (vm, { op1: register }) => {
-  let definition = check(vm.stack.pop(), CheckComponentDefinition);
-  let invocation = check(vm.stack.pop(), CheckInvocation);
+  let definition = vm.stack.pop();
+  let invocation = vm.stack.pop();
 
+  // @ts-expect-error todo
   let { manager, capabilities } = definition;
 
   let state: PopulatedComponentInstance = {
+    // @ts-expect-error todo
     definition,
     manager,
     capabilities,
     state: null,
+    // @ts-expect-error todo
     handle: invocation.handle,
+    // @ts-expect-error todo
     table: invocation.symbolTable,
     lookup: null,
   };
@@ -764,20 +759,20 @@ APPEND_OPCODES.add(Op.PopulateLayout, (vm, { op1: _state }) => {
   let { stack } = vm;
 
   // In import.meta.env.DEV handles could be ErrHandle objects
-  let handle = check(stack.pop(), CheckHandle);
-  let table = check(stack.pop(), CheckProgramSymbolTable);
+  let handle = stack.pop();
+  let table = stack.pop();
 
-  let state = check(vm.fetchValue(_state), CheckComponentInstance);
+  let state = vm.fetchValue(_state);
 
+  // @ts-expect-error todo
   state.handle = handle;
+  // @ts-expect-error todo
   state.table = table;
 });
 
 APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
-  let { table, manager, capabilities, state } = check(
-    vm.fetchValue(_state),
-    CheckFinishedComponentInstance
-  );
+  // @ts-expect-error todo
+  let { table, manager, capabilities, state } = vm.fetchValue(_state);
 
   let owner;
 
@@ -804,27 +799,33 @@ APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
+  let state = vm.fetchValue(_state);
 
+  // @ts-expect-error todo
   if (state.table.hasEval) {
+    // @ts-expect-error todo
     let lookup = (state.lookup = dict<ScopeSlot>());
     vm.scope().bindEvalScope(lookup);
   }
 });
 
 APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
+  let state = vm.fetchValue(_state);
   let scope = vm.scope();
 
-  let args = check(vm.stack.peek(), CheckArguments);
+  let args = vm.stack.peek();
+  // @ts-expect-error todo
   let callerNames = args.named.atNames;
 
   for (let i = callerNames.length - 1; i >= 0; i--) {
     let atName = unwrap(callerNames[i]);
+    // @ts-expect-error todo
     let symbol = state.table.symbols.indexOf(atName);
+    // @ts-expect-error todo
     let value = args.named.get(atName, true);
 
     if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
+    // @ts-expect-error todo
     if (state.lookup) state.lookup[atName] = value;
   }
 });
@@ -844,28 +845,33 @@ function bindBlock(
 }
 
 APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
-  let { blocks } = check(vm.stack.peek(), CheckArguments);
+  let state = vm.fetchValue(_state);
+  // @ts-expect-error todo
+  let { blocks } = vm.stack.peek();
 
   for (const [i] of enumerate(blocks.names)) {
+    // @ts-expect-error todo
     bindBlock(unwrap(blocks.symbolNames[i]), unwrap(blocks.names[i]), state, blocks, vm);
   }
 });
 
 // Dynamic Invocation Only
 APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
+  let state = vm.fetchValue(_state);
 
+  // @ts-expect-error todo
   vm.call(state.handle);
 });
 
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+  let instance = vm.fetchValue(_state);
+  // @ts-expect-error todo
   let { manager, state, capabilities } = instance;
   let bounds = vm.elements().popBlock();
 
   if (vm.env.debugRenderTree !== undefined) {
     if (hasCustomDebugRenderTreeLifecycle(manager)) {
+      // @ts-expect-error todo
       let nodes = manager.getDebugCustomRenderTree(instance.definition.state, state, EMPTY_ARGS);
 
       nodes.reverse().forEach((node) => {
@@ -876,17 +882,20 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
         vm.updateWith(new DebugRenderTreeDidRenderOpcode(bucket, bounds));
       });
     } else {
+      // @ts-expect-error todo
       vm.env.debugRenderTree.didRender(instance, bounds);
 
+      // @ts-expect-error todo
       vm.updateWith(new DebugRenderTreeDidRenderOpcode(instance, bounds));
     }
   }
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createInstance)) {
-    let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
-    mgr.didRenderLayout(state, bounds);
+    manager.didRenderLayout(state, bounds);
 
+    // @ts-expect-error todo
     vm.env.didCreate(instance as ComponentInstanceWithCreate);
+    // @ts-expect-error todo
     vm.updateWith(new DidUpdateLayoutOpcode(instance as ComponentInstanceWithCreate, bounds));
   }
 });

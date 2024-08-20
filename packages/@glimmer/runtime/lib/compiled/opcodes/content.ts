@@ -1,10 +1,3 @@
-import {
-  check,
-  CheckDocumentFragment,
-  CheckNode,
-  CheckSafeString,
-  CheckString,
-} from '@glimmer/debug';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import { isObject } from '@glimmer/util';
@@ -14,7 +7,6 @@ import { isCurriedType } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
 import { APPEND_OPCODES } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
-import { CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
 
 function toContentType(value: unknown) {
@@ -64,28 +56,35 @@ function toDynamicContentType(value: unknown) {
 }
 
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = vm.stack.peek();
 
+  // @ts-expect-error todo
   vm.stack.push(toContentType(valueForRef(reference)));
 
+  // @ts-expect-error todo
   if (!isConstRef(reference)) {
+    // @ts-expect-error todo
     vm.updateWith(new AssertFilter(reference, toContentType));
   }
 });
 
 APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = vm.stack.peek();
 
+  // @ts-expect-error todo
   vm.stack.push(toDynamicContentType(valueForRef(reference)));
 
+  // @ts-expect-error todo
   if (!isConstRef(reference)) {
+    // @ts-expect-error todo
     vm.updateWith(new AssertFilter(reference, toDynamicContentType));
   }
 });
 
 APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
 
+  // @ts-expect-error todo
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
@@ -93,39 +92,47 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
 
-  let rawValue = check(valueForRef(reference), CheckSafeString).toHTML();
-  let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
+  // @ts-expect-error todo
+  let rawValue = valueForRef(reference).toHTML();
+  let value = isEmpty(rawValue) ? '' : rawValue;
 
   vm.elements().appendDynamicHTML(value);
 });
 
 APPEND_OPCODES.add(Op.AppendText, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
 
+  // @ts-expect-error todo
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
   let node = vm.elements().appendDynamicText(value);
 
+  // @ts-expect-error todo
   if (!isConstRef(reference)) {
+    // @ts-expect-error todo
     vm.updateWith(new DynamicTextContent(node, reference, value));
   }
 });
 
 APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
 
-  let value = check(valueForRef(reference), CheckDocumentFragment);
+  // @ts-expect-error todo
+  let value = valueForRef(reference);
 
+  // @ts-expect-error todo
   vm.elements().appendDynamicFragment(value);
 });
 
 APPEND_OPCODES.add(Op.AppendNode, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = vm.stack.pop();
 
-  let value = check(valueForRef(reference), CheckNode);
+  // @ts-expect-error todo
+  let value = valueForRef(reference);
 
+  // @ts-expect-error todo
   vm.elements().appendDynamicNode(value);
 });

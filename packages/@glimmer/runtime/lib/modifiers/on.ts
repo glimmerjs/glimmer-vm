@@ -5,14 +5,6 @@ import type {
   SimpleElement,
   UpdatableTag,
 } from '@glimmer/interfaces';
-import {
-  check,
-  CheckBoolean,
-  CheckFunction,
-  CheckOr,
-  CheckString,
-  CheckUndefined,
-} from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalModifierManager } from '@glimmer/manager';
 import { valueForRef } from '@glimmer/reference';
@@ -61,22 +53,14 @@ export class OnModifierState {
       'You must pass a valid DOM event name as the first argument to the `on` modifier'
     );
 
-    let eventName = check(
-      valueForRef(args.positional[0]),
-      CheckString,
-      () => 'You must pass a valid DOM event name as the first argument to the `on` modifier'
-    );
+    let eventName = valueForRef(args.positional[0]);
 
     assert(
       args.positional[1],
       'You must pass a function as the second argument to the `on` modifier'
     );
 
-    let userProvidedCallback = check(valueForRef(args.positional[1]), CheckFunction, (actual) => {
-      return `You must pass a function as the second argument to the \`on\` modifier; you passed ${
-        actual === null ? 'null' : typeof actual
-      }. While rendering:\n\n${args.positional[1]?.debugLabel ?? `{unlabeled value}`}`;
-    }) as EventListener;
+    let userProvidedCallback = valueForRef(args.positional[1]);
 
     if (import.meta.env.DEV && args.positional.length !== 2) {
       throw new Error(
@@ -91,23 +75,11 @@ export class OnModifierState {
     if (import.meta.env.DEV) {
       let { once: _once, passive: _passive, capture: _capture, ...extra } = reifyNamed(args.named);
 
-      once = check(_once, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
-        return `You must pass a boolean or undefined as the \`once\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
-          args.named['once']!.debugLabel ?? `{unlabeled value}`
-        }`;
-      });
+      once = _once;
 
-      passive = check(_passive, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
-        return `You must pass a boolean or undefined as the \`passive\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
-          args.named['passive']!.debugLabel ?? `{unlabeled value}`
-        }`;
-      });
+      passive = _passive;
 
-      capture = check(_capture, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
-        return `You must pass a boolean or undefined as the \`capture\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
-          args.named['capture']!.debugLabel ?? `{unlabeled value}`
-        }`;
-      });
+      capture = _capture;
 
       if (Object.keys(extra).length > 0) {
         throw new Error(
