@@ -315,7 +315,28 @@ export class Package {
         commonjs(),
         nodeResolve(),
         ...this.replacements(env),
-        ...(env === 'prod' ? [terser()] : []),
+        ...(env === 'prod'
+          ? [
+              terser({
+                module: true,
+                compress: {
+                  passes: 3,
+                },
+              }),
+            ]
+          : [
+              terser({
+                module: true,
+                mangle: false,
+                compress: {
+                  passes: 3,
+                },
+                format: {
+                  comments: 'all',
+                  beautify: true,
+                },
+              }),
+            ]),
         postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
