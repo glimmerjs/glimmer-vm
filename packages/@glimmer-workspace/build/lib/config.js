@@ -5,10 +5,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { babel } from '@rollup/plugin-babel';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import * as insert from 'rollup-plugin-insert';
-import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
 
 import importMeta from './import-meta.js';
@@ -18,10 +19,7 @@ import inline from './inline.js';
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
 
 const { default: commonjs } = await import('@rollup/plugin-commonjs');
-const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
-const { default: postcss } = await import('rollup-plugin-postcss');
 const { default: nodePolyfills } = await import('rollup-plugin-polyfill-node');
-const { default: fonts } = await import('unplugin-fonts/vite');
 
 /** @typedef {import("typescript").CompilerOptions} CompilerOptions */
 /** @typedef {import("./config.js").ExternalOption} ExternalOption */
@@ -77,32 +75,13 @@ export function tsconfig(updates) {
  * @returns {RollupPlugin}
  */
 export function typescript(pkg, config) {
-  const typeScriptConfig = {
-    ...config,
-    paths: {
-      '@glimmer/interfaces': [resolve(pkg.root, '../@glimmer/interfaces/index.d.ts')],
-      '@glimmer/*': [resolve(pkg.root, '../@glimmer/*/src/dist/index.d.ts')],
-    },
-  };
-
   /** @type {[string, object][]} */
   const presets = [['@babel/preset-typescript', { allowDeclareFields: true }]];
 
-  const ts = tsconfig(typeScriptConfig);
-
-  /**
-   * TODO: migrate off of rollupTS, it has too many bugs
-   */
-  return rollupTS({
-    transpiler: 'babel',
-    transpileOnly: true,
-    babelConfig: { presets },
-    /**
-     * This shouldn't be required, but it is.
-     * If we use @rollup/plugin-babel, we can remove this.
-     */
-    browserslist: [`last 1 chrome versions`],
-    tsconfig: ts,
+  return babel({
+    extensions: ['.js', '.ts'],
+    babelHelpers: 'inline',
+    presets,
   });
 }
 
@@ -278,15 +257,6 @@ export class Package {
    */
   async #viteConfig() {
     return viteConfig({
-      plugins: [
-        fonts({
-          google: {
-            families: ['Roboto:wght@300;400;500;700'],
-            display: 'swap',
-            preconnect: true,
-          },
-        }),
-      ],
       optimizeDeps: {
         esbuildOptions: {
           define: {
@@ -313,10 +283,30 @@ export class Package {
         inline(),
         nodePolyfills(),
         commonjs(),
-        nodeResolve(),
+        nodeResolve({ extensions: ['.js', '.ts'] }),
         ...this.replacements(env),
-        ...(env === 'prod' ? [terser()] : []),
-        postcss(),
+        ...(env === 'prod'
+          ? [
+              terser({
+                module: true,
+                compress: {
+                  passes: 3,
+                },
+              }),
+            ]
+          : [
+              terser({
+                module: true,
+                mangle: false,
+                compress: {
+                  passes: 3,
+                },
+                format: {
+                  comments: 'all',
+                  beautify: true,
+                },
+              }),
+            ]),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
           importsNotUsedAsValues: ImportsNotUsedAsValues.Preserve,
@@ -337,9 +327,8 @@ export class Package {
         inline(),
         nodePolyfills(),
         commonjs(),
-        nodeResolve(),
+        nodeResolve({ extensions: ['.js', '.ts'] }),
         ...this.replacements(env),
-        postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2021,
           module: ModuleKind.CommonJS,
@@ -422,6 +411,7 @@ export class Package {
           format,
           sourcemap: true,
           exports: format === 'cjs' ? 'named' : 'auto',
+          hoistTransitiveImports: false,
         },
         onwarn: (warning, warn) => {
           switch (warning.code) {

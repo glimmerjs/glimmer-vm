@@ -20,8 +20,8 @@
     "build": "dotenv -- turbo build",
     "build:control": "rollup -c rollup.config.mjs",
     "build:flags": "RETAIN_FLAGS=true ember build --env production --suppress-sizes",
-    "link:all": "esyes ./bin/link-all.mts",
     "clean": "node ./bin/clean.mjs",
+    "link:all": "esyes ./bin/link-all.mts",
     "lint": "npm-run-all lint:*",
     "lint:files": "turbo lint",
     "lint:format": "prettier -c .",
@@ -171,5 +171,6 @@
   "volta": {
     "node": "20.9.0",
     "pnpm": "8.5.0"
-  }
+  },
+  "packageManager": "pnpm@8.5.0"
 }
