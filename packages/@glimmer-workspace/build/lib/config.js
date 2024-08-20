@@ -19,7 +19,6 @@ const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues }
 
 const { default: commonjs } = await import('@rollup/plugin-commonjs');
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
-const { default: postcss } = await import('rollup-plugin-postcss');
 const { default: nodePolyfills } = await import('rollup-plugin-polyfill-node');
 const { default: fonts } = await import('unplugin-fonts/vite');
 
@@ -316,7 +315,6 @@ export class Package {
         nodeResolve(),
         ...this.replacements(env),
         ...(env === 'prod' ? [terser()] : []),
-        postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
           importsNotUsedAsValues: ImportsNotUsedAsValues.Preserve,
@@ -339,7 +337,6 @@ export class Package {
         commonjs(),
         nodeResolve(),
         ...this.replacements(env),
-        postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2021,
           module: ModuleKind.CommonJS,
