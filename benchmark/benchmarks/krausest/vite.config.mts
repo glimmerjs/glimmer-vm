@@ -11,7 +11,7 @@ const currentPath = path.dirname(fileURLToPath(self));
 const packagesPath = path.resolve(currentPath, '..', '..', './../packages');
 
 const packagePath = (name: string) => {
-  return path.join(packagesPath, name, 'dist/prod/index.js');
+  return path.join(packagesPath, name, 'dist/dev/index.js');
 };
 
 export default defineConfig({
