@@ -262,12 +262,12 @@ export class Package {
     let builds = [];
 
     if (formats.esm ?? true) {
-      builds.push(...this.rollupESM({ env: 'dev' }));
+      // builds.push(...this.rollupESM({ env: 'dev' }));
       builds.push(...this.rollupESM({ env: 'prod' }));
     }
 
     if (formats.cjs ?? true) {
-      builds.push(...this.rollupCJS({ env: 'dev' }));
+      builds.push(...this.rollupCJS({ env: 'prod' }));
     }
 
     return builds;
@@ -418,7 +418,7 @@ export class Package {
       return {
         input: resolve(root, ts),
         output: {
-          file: resolve(root, 'dist', env, file),
+          file: resolve(root, 'dist', 'dev', file),
           format,
           sourcemap: true,
           exports: format === 'cjs' ? 'named' : 'auto',
