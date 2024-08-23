@@ -16,20 +16,25 @@ export interface Checker<T> {
   expected(): string;
 }
 
-export function wrap<T>(checker: () => Checker<T>): Checker<T> {
-  class Wrapped {
-    declare type: T;
+class Wrapped<T> {
+  declare type: T;
+  #checker: () => Checker<T>;
 
-    validate(value: unknown): value is T {
-      return checker().validate(value);
-    }
-
-    expected(): string {
-      return checker().expected();
-    }
+  constructor(checker: () => Checker<T>) {
+    this.#checker = checker;
   }
 
-  return new Wrapped();
+  validate(value: unknown): value is T {
+    return this.#checker().validate(value);
+  }
+
+  expected(): string {
+    return this.#checker().expected();
+  }
+}
+
+export function wrap<T>(checker: () => Checker<T>): Checker<T> {
+  return new Wrapped(checker);
 }
 
 export interface Constructor<T> extends Function {
