@@ -18,18 +18,18 @@ export interface Checker<T> {
 
 class Wrapped<T> {
   declare type: T;
-  #checker: () => Checker<T>;
+  #checker: Checker<T>;
 
   constructor(checker: () => Checker<T>) {
-    this.#checker = checker;
+    this.#checker = checker();
   }
 
   validate(value: unknown): value is T {
-    return this.#checker().validate(value);
+    return this.#checker.validate(value);
   }
 
   expected(): string {
-    return this.#checker().expected();
+    return this.#checker.expected();
   }
 }
 
