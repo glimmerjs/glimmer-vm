@@ -16,7 +16,21 @@ export interface Checker<T> {
   expected(): string;
 }
 
+class NoopChecker<T> implements Checker<T> {
+  declare type: T;
+  validate(value: unknown): value is T {
+    return true;
+  }
+  expected(): string {
+    return '<noop>';
+  }
+}
+
 export function wrap<T>(checker: () => Checker<T>): Checker<T> {
+  if (import.meta.env.PROD) {
+    return new NoopChecker<T>();
+  }
+
   class Wrapped {
     declare type: T;
 
@@ -300,14 +314,23 @@ export function CheckInterface<
   I extends { [P in keyof O]: O[P]['type'] },
   O extends Dict<Checker<unknown>>,
 >(obj: O): Checker<I> {
+  if (import.meta.env.PROD) {
+    return new NoopChecker<I>();
+  }
   return new PropertyChecker(obj);
 }
 
 export function CheckArray<T>(obj: Checker<T>): Checker<T[]> {
+  if (import.meta.env.PROD) {
+    return new NoopChecker<T[]>();
+  }
   return new ArrayChecker(obj);
 }
 
 export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
+  if (import.meta.env.PROD) {
+    return new NoopChecker<Dict<T>>();
+  }
   return new DictChecker(obj);
 }
 
@@ -326,6 +349,10 @@ export function check<T>(
   checker: Checker<T> | ((value: unknown) => void),
   message: (value: unknown, expected: string) => string = defaultMessage
 ): T {
+  if (import.meta.env.PROD) {
+    return value as T;
+  }
+
   if (typeof checker === 'function') {
     checker(value);
     return value as T;
@@ -366,10 +393,16 @@ export const CheckSafeString: Checker<SafeString> = new SafeStringChecker();
 export const CheckObject: Checker<object> = new ObjectChecker();
 
 export function CheckOr<T, U>(left: Checker<T>, right: Checker<U>): Checker<T | U> {
+  if (import.meta.env.PROD) {
+    return new NoopChecker<T | U>();
+  }
   return new OrChecker(left, right);
 }
 
 export function CheckValue<T>(value: T, desc = String(value)): Checker<T> {
+  if (import.meta.env.PROD) {
+    return new NoopChecker<T>();
+  }
   return new ExactValueChecker(value, desc);
 }
 

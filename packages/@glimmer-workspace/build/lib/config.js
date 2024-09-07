@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 // @ts-check
-
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +10,6 @@ import * as insert from 'rollup-plugin-insert';
 import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
 
-import importMeta from './import-meta.js';
 import inline from './inline.js';
 
 // eslint-disable-next-line import/no-named-as-default-member
@@ -315,7 +313,31 @@ export class Package {
         commonjs(),
         nodeResolve(),
         ...this.replacements(env),
-        ...(env === 'prod' ? [terser()] : []),
+        ...(env === 'prod'
+          ? [
+              terser({
+                module: true,
+                // to debug the output, uncomment this so you can read the
+                // identifiers, unchanged
+                // mangle: false,
+                compress: {
+                  passes: 3,
+                },
+              }),
+            ]
+          : [
+              terser({
+                module: true,
+                mangle: false,
+                compress: {
+                  passes: 3,
+                },
+                format: {
+                  comments: 'all',
+                  beautify: true,
+                },
+              }),
+            ]),
         postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
@@ -356,7 +378,20 @@ export class Package {
    */
   replacements(env) {
     return env === 'prod'
-      ? [importMeta]
+      ? [
+          replace({
+            preventAssignment: true,
+            values: {
+              // Intended to be left in the build during publish
+              // currently compiled away to `@glimmer/debug`
+              'import.meta.env.MODE': '"production"',
+              'import.meta.env.DEV': 'false',
+              'import.meta.env.PROD': 'true',
+              // Not exposed at publish, compiled away
+              'import.meta.env.VM_LOCAL_DEV': 'false',
+            },
+          }),
+        ]
       : [
           replace({
             preventAssignment: true,
