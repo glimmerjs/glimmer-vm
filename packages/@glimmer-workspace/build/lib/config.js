@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,6 +12,8 @@ import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
 
 import inline from './inline.js';
+
+const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -94,7 +97,7 @@ export function typescript(pkg, config) {
   return rollupTS({
     transpiler: 'babel',
     transpileOnly: true,
-    babelConfig: { presets },
+    babelConfig: { presets, plugins: [require.resolve('@glimmer/local-debug-babel-plugin')] },
     /**
      * This shouldn't be required, but it is.
      * If we use @rollup/plugin-babel, we can remove this.
@@ -452,10 +455,15 @@ export class Package {
 
       return {
         input: resolve(root, ts),
+        treeshake: {
+          // moduleSideEffects: false,
+          moduleSideEffects: (id, external) => !external,
+        },
         output: {
           file: resolve(root, 'dist', env, file),
           format,
           sourcemap: true,
+          hoistTransitiveImports: false,
           exports: format === 'cjs' ? 'named' : 'auto',
         },
         onwarn: (warning, warn) => {
