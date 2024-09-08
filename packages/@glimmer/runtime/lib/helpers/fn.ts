@@ -1,6 +1,6 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import { check } from '@glimmer/local-debug-utils';
+import { check } from '@glimmer/debug';
 import { createComputeRef, isInvokableRef, updateRef, valueForRef } from '@glimmer/reference';
 import { buildUntouchableThis } from '@glimmer/util';
 

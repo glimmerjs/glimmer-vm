@@ -1,3 +1,4 @@
+import type { SafeString } from '@glimmer/debug/lib/stack-check';
 import type { SimpleDocumentFragment, SimpleNode } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import {
@@ -6,7 +7,7 @@ import {
   CheckNode,
   CheckSafeString,
   CheckString,
-} from '@glimmer/local-debug-utils';
+} from '@glimmer/debug';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import { isObject } from '@glimmer/util';
@@ -66,7 +67,9 @@ function toDynamicContentType(value: unknown) {
 }
 
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
-  let reference: Reference<unknown> = check(vm.stack.peek(), CheckReference);
+  let reference: Reference<unknown> = import.meta.env.DEV
+    ? check(vm.stack.peek(), CheckReference)
+    : vm.stack.peek();
 
   vm.stack.push(toContentType(valueForRef(reference)));
 
@@ -76,7 +79,9 @@ APPEND_OPCODES.add(Op.ContentType, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
-  let reference: Reference<unknown> = check(vm.stack.peek(), CheckReference);
+  let reference: Reference<unknown> = import.meta.env.DEV
+    ? check(vm.stack.peek(), CheckReference)
+    : vm.stack.peek();
 
   vm.stack.push(toDynamicContentType(valueForRef(reference)));
 
@@ -86,7 +91,9 @@ APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
-  let reference: Reference<unknown> = check(vm.stack.pop(), CheckReference);
+  let reference: Reference<unknown> = import.meta.env.DEV
+    ? check(vm.stack.pop(), CheckReference)
+    : vm.stack.pop();
 
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
@@ -95,17 +102,29 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
-  let reference: Reference<unknown> = check(vm.stack.pop(), CheckReference);
+  let reference: Reference<unknown> = import.meta.env.DEV
+    ? check(vm.stack.pop(), CheckReference)
+    : vm.stack.pop();
 
-  let rawValue: string = check(valueForRef(reference), CheckSafeString).toHTML();
+  let rawValue: string = (
+    import.meta.env.DEV
+      ? check(valueForRef(reference), CheckSafeString)
+      : (valueForRef(reference) as SafeString)
+  ).toHTML();
 
-  let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
+  let value = isEmpty(rawValue)
+    ? ''
+    : import.meta.env.DEV
+      ? check(rawValue, CheckString)
+      : rawValue;
 
   vm.elements().appendDynamicHTML(value);
 });
 
 APPEND_OPCODES.add(Op.AppendText, (vm) => {
-  let reference: Reference<unknown> = check(vm.stack.pop(), CheckReference);
+  let reference: Reference<unknown> = import.meta.env.DEV
+    ? check(vm.stack.pop(), CheckReference)
+    : vm.stack.pop();
 
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
@@ -118,17 +137,25 @@ APPEND_OPCODES.add(Op.AppendText, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
-  let reference: Reference<unknown> = check(vm.stack.pop(), CheckReference);
+  let reference: Reference<unknown> = import.meta.env.DEV
+    ? check(vm.stack.pop(), CheckReference)
+    : vm.stack.pop();
 
-  let value: SimpleDocumentFragment = check(valueForRef(reference), CheckDocumentFragment);
+  let value: SimpleDocumentFragment = import.meta.env.DEV
+    ? check(valueForRef(reference), CheckDocumentFragment)
+    : (valueForRef(reference) as SimpleDocumentFragment);
 
   vm.elements().appendDynamicFragment(value);
 });
 
 APPEND_OPCODES.add(Op.AppendNode, (vm) => {
-  let reference: Reference<unknown> = check(vm.stack.pop(), CheckReference);
+  let reference: Reference<unknown> = import.meta.env.DEV
+    ? check(vm.stack.pop(), CheckReference)
+    : vm.stack.pop();
 
-  let value: SimpleNode = check(valueForRef(reference), CheckNode);
+  let value: SimpleNode = import.meta.env.DEV
+    ? check(valueForRef(reference), CheckNode)
+    : (valueForRef(reference) as SimpleNode);
 
   vm.elements().appendDynamicNode(value);
 });

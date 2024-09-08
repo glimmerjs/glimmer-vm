@@ -8,8 +8,6 @@ import type {
   VM as PublicVM,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
-import { toBool } from '@glimmer/global-context';
 import {
   check,
   CheckBlockSymbolTable,
@@ -17,7 +15,9 @@ import {
   CheckMaybe,
   CheckOption,
   CheckOr,
-} from '@glimmer/local-debug-utils';
+} from '@glimmer/debug';
+import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
+import { toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
 import {
   childRefFor,

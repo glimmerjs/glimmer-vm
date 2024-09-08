@@ -8,7 +8,6 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 export interface Checker<T> {
   type: T;
@@ -27,7 +26,6 @@ class NoopChecker<T> implements Checker<T> {
   }
 }
 
-/*@__NO_SIDE_EFFECTS__*/
 export function wrap<T>(checker: () => Checker<T>): Checker<T> {
   if (import.meta.env.PROD) {
     return new NoopChecker<T>();
@@ -299,19 +297,19 @@ class SafeStringChecker implements Checker<SafeString> {
     return `SafeString`;
   }
 }
-/*@__NO_SIDE_EFFECTS__*/
+
 export function CheckInstanceof<T>(Class: Constructor<T>): Checker<T> {
   return new InstanceofChecker<T>(Class);
 }
-/*@__NO_SIDE_EFFECTS__*/
+
 export function CheckOption<T>(checker: Checker<T>): Checker<Nullable<T>> {
   return new OptionChecker(checker, null);
 }
-/*@__NO_SIDE_EFFECTS__*/
+
 export function CheckMaybe<T>(checker: Checker<T>): Checker<Maybe<T>> {
   return new MaybeChecker(checker);
 }
-/*@__NO_SIDE_EFFECTS__*/
+
 export function CheckInterface<
   I extends { [P in keyof O]: O[P]['type'] },
   O extends Dict<Checker<unknown>>,
@@ -321,14 +319,14 @@ export function CheckInterface<
   }
   return new PropertyChecker(obj);
 }
-/*@__NO_SIDE_EFFECTS__*/
+
 export function CheckArray<T>(obj: Checker<T>): Checker<T[]> {
   if (import.meta.env.PROD) {
     return new NoopChecker<T[]>();
   }
   return new ArrayChecker(obj);
 }
-/*@__NO_SIDE_EFFECTS__*/
+
 export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
   if (import.meta.env.PROD) {
     return new NoopChecker<Dict<T>>();
@@ -339,6 +337,7 @@ export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
 function defaultMessage(value: unknown, expected: string): string {
   return `Got ${value}, expected:\n${expected}`;
 }
+
 export function check<T>(
   value: unknown,
   checker: Checker<T>,
@@ -350,7 +349,7 @@ export function check<T>(
   checker: Checker<T> | ((value: unknown) => void),
   message: (value: unknown, expected: string) => string = defaultMessage
 ): T {
-  if (!LOCAL_DEBUG) {
+  if (import.meta.env.PROD) {
     return value as T;
   }
 
@@ -383,51 +382,51 @@ export function expectStackChange(stack: { sp: number }, expected: number, name:
 
 export const CheckPrimitive: Checker<Primitive> = new PrimitiveChecker();
 export const CheckFunction: Checker<Function> = new TypeofChecker<Function>('function');
-export const CheckNumber: Checker<number> = /*#__PURE__*/ new TypeofChecker<number>('number');
-export const CheckBoolean: Checker<boolean> = /*#__PURE__*/ new TypeofChecker<boolean>('boolean');
+export const CheckNumber: Checker<number> = new TypeofChecker<number>('number');
+export const CheckBoolean: Checker<boolean> = new TypeofChecker<boolean>('boolean');
 export const CheckHandle: Checker<number> = CheckNumber;
-export const CheckString: Checker<string> = /*#__PURE__*/ new TypeofChecker<string>('string');
-export const CheckNull: Checker<null> = /*#__PURE__*/ new NullChecker();
-export const CheckUndefined: Checker<undefined> = /*#__PURE__*/ new UndefinedChecker();
-export const CheckUnknown: Checker<unknown> = /*#__PURE__*/ new OpaqueChecker();
-export const CheckSafeString: Checker<SafeString> = /*#__PURE__*/ new SafeStringChecker();
-export const CheckObject: Checker<object> = /*#__PURE__*/ new ObjectChecker();
+export const CheckString: Checker<string> = new TypeofChecker<string>('string');
+export const CheckNull: Checker<null> = new NullChecker();
+export const CheckUndefined: Checker<undefined> = new UndefinedChecker();
+export const CheckUnknown: Checker<unknown> = new OpaqueChecker();
+export const CheckSafeString: Checker<SafeString> = new SafeStringChecker();
+export const CheckObject: Checker<object> = new ObjectChecker();
 
 export function CheckOr<T, U>(left: Checker<T>, right: Checker<U>): Checker<T | U> {
   if (import.meta.env.PROD) {
     return new NoopChecker<T | U>();
   }
-  return /*#__PURE__*/ new OrChecker(left, right);
+  return new OrChecker(left, right);
 }
 
 export function CheckValue<T>(value: T, desc = String(value)): Checker<T> {
   if (import.meta.env.PROD) {
     return new NoopChecker<T>();
   }
-  return /*#__PURE__*/ new ExactValueChecker(value, desc);
+  return new ExactValueChecker(value, desc);
 }
 
 export const CheckBlockSymbolTable: Checker<BlockSymbolTable> = CheckInterface({
   parameters: CheckArray(CheckNumber),
 });
 
-export const CheckProgramSymbolTable: Checker<ProgramSymbolTable> = /*#__PURE__*/ CheckInterface({
+export const CheckProgramSymbolTable: Checker<ProgramSymbolTable> = CheckInterface({
   hasEval: CheckBoolean,
   symbols: CheckArray(CheckString),
 });
 
-export const CheckElement: Checker<SimpleElement> = /*#__PURE__*/ CheckInterface({
+export const CheckElement: Checker<SimpleElement> = CheckInterface({
   nodeType: CheckValue(1),
   tagName: CheckString,
   nextSibling: CheckUnknown,
 });
 
-export const CheckDocumentFragment: Checker<SimpleDocumentFragment> = /*#__PURE__*/ CheckInterface({
+export const CheckDocumentFragment: Checker<SimpleDocumentFragment> = CheckInterface({
   nodeType: CheckValue(11),
   nextSibling: CheckUnknown,
 });
 
-export const CheckNode: Checker<SimpleNode> = /*#__PURE__*/ CheckInterface({
+export const CheckNode: Checker<SimpleNode> = CheckInterface({
   nodeType: CheckNumber,
   nextSibling: CheckUnknown,
 });

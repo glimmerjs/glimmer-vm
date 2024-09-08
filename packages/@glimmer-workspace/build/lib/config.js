@@ -324,7 +324,7 @@ export class Package {
                 // identifiers, unchanged
                 // mangle: false,
                 compress: {
-                  passes: 6,
+                  passes: 4,
                 },
               }),
             ]
@@ -333,7 +333,7 @@ export class Package {
                 module: true,
                 mangle: false,
                 compress: {
-                  passes: 6,
+                  passes: 4,
                 },
                 format: {
                   comments: 'all',

@@ -12,27 +12,17 @@
   "private": true,
   "main": "index.ts",
   "types": "index.ts",
-  "publishConfig": {
-    "exports": {
-      ".": {
-        "types": "./dist/dev/index.d.ts",
-        "import": "./noop.js"
-      }
-    },
-    "main": null,
-    "module": "noop.js"
-  },
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "devDependencies": {
-    "@glimmer/debug": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
+    "@glimmer/debug": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/vm": "workspace:*",
+    "@glimmer/local-debug-flags": "workspace:*",
     "eslint": "^8.52.0",
     "rollup": "^4.5.1",
     "typescript": "*"

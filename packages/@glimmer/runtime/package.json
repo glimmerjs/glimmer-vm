@@ -49,7 +49,6 @@
     "@glimmer-workspace/build-support": "workspace:^",
     "@glimmer/debug": "workspace:^",
     "@glimmer/local-debug-flags": "workspace:^",
-    "@glimmer/local-debug-utils": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
     "@types/qunit": "^2.19.9",
     "eslint": "^8.52.0",
