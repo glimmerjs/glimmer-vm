@@ -49,7 +49,10 @@ APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, (vm) => {
-  let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
+  let tagName = import.meta.env.DEV
+    ? check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString)
+    : // eslint-disable-next-line
+      valueForRef(vm.stack.pop() as Reference<string>);
   vm.elements().openElement(tagName);
 });
 

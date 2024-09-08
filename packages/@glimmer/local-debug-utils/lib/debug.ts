@@ -8,13 +8,12 @@ import type {
   TemplateCompilationContext,
 } from '@glimmer/interfaces';
 import type { Register } from '@glimmer/vm';
+import { opcodeMetadata } from '@glimmer/debug';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER } from '@glimmer/util';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 
 import type { Primitive } from './stack-check';
-
-import { opcodeMetadata } from './opcode-metadata';
 
 export interface DebugConstants {
   getValue<T>(handle: number): T;

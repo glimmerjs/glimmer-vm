@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,6 +12,8 @@ import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
 
 import inline from './inline.js';
+
+const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -106,7 +109,7 @@ export function typescript(pkg, config) {
 
 /** @type {['is' | 'startsWith', string[], 'inline' | 'external'][]} */
 const EXTERNAL_OPTIONS = [
-  ['is', ['tslib', '@glimmer/local-debug-flags'], 'inline'],
+  ['is', ['tslib', '@glimmer/local-debug-flags', '@glimmer/local-debug-utils'], 'inline'],
   ['is', ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'], 'external'],
   ['startsWith', ['.', '/', '#', '@babel/runtime/', process.cwd().replace(/\\/gu, '/')], 'inline'],
   ['startsWith', ['@glimmer/', '@simple-dom/', '@babel/', 'node:'], 'external'],
@@ -321,7 +324,7 @@ export class Package {
                 // identifiers, unchanged
                 // mangle: false,
                 compress: {
-                  passes: 3,
+                  passes: 4,
                 },
               }),
             ]
@@ -330,7 +333,7 @@ export class Package {
                 module: true,
                 mangle: false,
                 compress: {
-                  passes: 3,
+                  passes: 4,
                 },
                 format: {
                   comments: 'all',
@@ -452,10 +455,14 @@ export class Package {
 
       return {
         input: resolve(root, ts),
+        treeshake: {
+          moduleSideEffects: false,
+        },
         output: {
           file: resolve(root, 'dist', env, file),
           format,
           sourcemap: true,
+          hoistTransitiveImports: false,
           exports: format === 'cjs' ? 'named' : 'auto',
         },
         onwarn: (warning, warn) => {

@@ -104,7 +104,7 @@ export function managerHasCapability<F extends InternalComponentCapability>(
   capabilities: CapabilityMask,
   capability: F
 ): _manager is InternalComponentCapabilityFor<F> {
-  check(capabilities, CheckNumber);
+  import.meta.env.DEV && check(capabilities, CheckNumber);
   return !!(capabilities & capability);
 }
 
@@ -112,6 +112,6 @@ export function hasCapability(
   capabilities: CapabilityMask,
   capability: InternalComponentCapability
 ): boolean {
-  check(capabilities, CheckNumber);
+  import.meta.env.DEV && check(capabilities, CheckNumber);
   return !!(capabilities & capability);
 }
