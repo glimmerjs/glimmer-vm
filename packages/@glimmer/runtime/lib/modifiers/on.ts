@@ -61,28 +61,22 @@ export class OnModifierState {
       'You must pass a valid DOM event name as the first argument to the `on` modifier'
     );
 
-    let eventName = import.meta.env.DEV
-      ? check(
-          valueForRef(args.positional[0]),
-          CheckString,
-          () => 'You must pass a valid DOM event name as the first argument to the `on` modifier'
-        )
-      : valueForRef(args.positional[0]);
+    let eventName = check(
+      valueForRef(args.positional[0]),
+      CheckString,
+      () => 'You must pass a valid DOM event name as the first argument to the `on` modifier'
+    );
 
     assert(
       args.positional[1],
       'You must pass a function as the second argument to the `on` modifier'
     );
 
-    let userProvidedCallback = (
-      import.meta.env.DEV
-        ? check(valueForRef(args.positional[1]), CheckFunction, (actual) => {
-            return `You must pass a function as the second argument to the \`on\` modifier; you passed ${
-              actual === null ? 'null' : typeof actual
-            }. While rendering:\n\n${args.positional[1]?.debugLabel ?? `{unlabeled value}`}`;
-          })
-        : valueForRef(args.positional[1])
-    ) as EventListener;
+    let userProvidedCallback = check(valueForRef(args.positional[1]), CheckFunction, (actual) => {
+      return `You must pass a function as the second argument to the \`on\` modifier; you passed ${
+        actual === null ? 'null' : typeof actual
+      }. While rendering:\n\n${args.positional[1]?.debugLabel ?? `{unlabeled value}`}`;
+    }) as EventListener;
 
     if (import.meta.env.DEV && args.positional.length !== 2) {
       throw new Error(
@@ -97,29 +91,23 @@ export class OnModifierState {
     if (import.meta.env.DEV) {
       let { once: _once, passive: _passive, capture: _capture, ...extra } = reifyNamed(args.named);
 
-      once = import.meta.env.DEV
-        ? check(_once, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
-            return `You must pass a boolean or undefined as the \`once\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
-              args.named['once']!.debugLabel ?? `{unlabeled value}`
-            }`;
-          })
-        : (_once as boolean | undefined);
+      once = check(_once, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
+        return `You must pass a boolean or undefined as the \`once\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
+          args.named['once']!.debugLabel ?? `{unlabeled value}`
+        }`;
+      });
 
-      passive = import.meta.env.DEV
-        ? check(_passive, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
-            return `You must pass a boolean or undefined as the \`passive\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
-              args.named['passive']!.debugLabel ?? `{unlabeled value}`
-            }`;
-          })
-        : (_passive as boolean | undefined);
+      passive = check(_passive, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
+        return `You must pass a boolean or undefined as the \`passive\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
+          args.named['passive']!.debugLabel ?? `{unlabeled value}`
+        }`;
+      });
 
-      capture = import.meta.env.DEV
-        ? check(_capture, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
-            return `You must pass a boolean or undefined as the \`capture\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
-              args.named['capture']!.debugLabel ?? `{unlabeled value}`
-            }`;
-          })
-        : (_capture as boolean | undefined);
+      capture = check(_capture, CheckOr(CheckBoolean, CheckUndefined), (actual) => {
+        return `You must pass a boolean or undefined as the \`capture\` argument to the \`on\` modifier; you passed ${actual}. While rendering:\n\n${
+          args.named['capture']!.debugLabel ?? `{unlabeled value}`
+        }`;
+      });
 
       if (Object.keys(extra).length > 0) {
         throw new Error(

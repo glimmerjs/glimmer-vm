@@ -167,10 +167,6 @@ export class PositionalArgumentsImpl implements PositionalArguments {
       return UNDEFINED_REFERENCE;
     }
 
-    if (import.meta.env.DEV) {
-      return stack.get(position, base);
-    }
-
     return check(stack.get(position, base), CheckReference);
   }
 
@@ -426,17 +422,14 @@ export class BlockArgumentsImpl implements BlockArguments {
 
     let { base, stack } = this;
 
-    let table = import.meta.env.DEV
-      ? check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable))
-      : stack.get(idx * 3, base);
-    let scope = import.meta.env.DEV
-      ? check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope))
-      : stack.get(idx * 3 + 1, base);
-    let handle = import.meta.env.DEV
-      ? check(stack.get(idx * 3 + 2, base), CheckOption(CheckOr(CheckHandle, CheckCompilableBlock)))
-      : stack.get(idx * 3 + 2, base);
+    let table = check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable));
+    let scope = check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope));
+    let handle = check(
+      stack.get(idx * 3 + 2, base),
+      CheckOption(CheckOr(CheckHandle, CheckCompilableBlock))
+    );
 
-    return handle === null ? null : ([handle, scope, table] as ScopeBlock);
+    return handle === null ? null : ([handle, scope!, table!] as ScopeBlock);
   }
 
   capture(): CapturedBlockArguments {

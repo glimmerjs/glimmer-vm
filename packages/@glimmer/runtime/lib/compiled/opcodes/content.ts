@@ -1,6 +1,3 @@
-import type { SafeString } from '@glimmer/debug/lib/stack-check';
-import type { SimpleDocumentFragment, SimpleNode } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
 import {
   check,
   CheckDocumentFragment,
@@ -67,9 +64,7 @@ function toDynamicContentType(value: unknown) {
 }
 
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
-  let reference: Reference<unknown> = import.meta.env.DEV
-    ? check(vm.stack.peek(), CheckReference)
-    : vm.stack.peek();
+  let reference = check(vm.stack.peek(), CheckReference);
 
   vm.stack.push(toContentType(valueForRef(reference)));
 
@@ -79,9 +74,7 @@ APPEND_OPCODES.add(Op.ContentType, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
-  let reference: Reference<unknown> = import.meta.env.DEV
-    ? check(vm.stack.peek(), CheckReference)
-    : vm.stack.peek();
+  let reference = check(vm.stack.peek(), CheckReference);
 
   vm.stack.push(toDynamicContentType(valueForRef(reference)));
 
@@ -91,9 +84,7 @@ APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
-  let reference: Reference<unknown> = import.meta.env.DEV
-    ? check(vm.stack.pop(), CheckReference)
-    : vm.stack.pop();
+  let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
@@ -102,29 +93,16 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
-  let reference: Reference<unknown> = import.meta.env.DEV
-    ? check(vm.stack.pop(), CheckReference)
-    : vm.stack.pop();
+  let reference = check(vm.stack.pop(), CheckReference);
 
-  let rawValue: string = (
-    import.meta.env.DEV
-      ? check(valueForRef(reference), CheckSafeString)
-      : (valueForRef(reference) as SafeString)
-  ).toHTML();
-
-  let value = isEmpty(rawValue)
-    ? ''
-    : import.meta.env.DEV
-      ? check(rawValue, CheckString)
-      : rawValue;
+  let rawValue = check(valueForRef(reference), CheckSafeString).toHTML();
+  let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
 
   vm.elements().appendDynamicHTML(value);
 });
 
 APPEND_OPCODES.add(Op.AppendText, (vm) => {
-  let reference: Reference<unknown> = import.meta.env.DEV
-    ? check(vm.stack.pop(), CheckReference)
-    : vm.stack.pop();
+  let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
@@ -137,25 +115,17 @@ APPEND_OPCODES.add(Op.AppendText, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
-  let reference: Reference<unknown> = import.meta.env.DEV
-    ? check(vm.stack.pop(), CheckReference)
-    : vm.stack.pop();
+  let reference = check(vm.stack.pop(), CheckReference);
 
-  let value: SimpleDocumentFragment = import.meta.env.DEV
-    ? check(valueForRef(reference), CheckDocumentFragment)
-    : (valueForRef(reference) as SimpleDocumentFragment);
+  let value = check(valueForRef(reference), CheckDocumentFragment);
 
   vm.elements().appendDynamicFragment(value);
 });
 
 APPEND_OPCODES.add(Op.AppendNode, (vm) => {
-  let reference: Reference<unknown> = import.meta.env.DEV
-    ? check(vm.stack.pop(), CheckReference)
-    : vm.stack.pop();
+  let reference = check(vm.stack.pop(), CheckReference);
 
-  let value: SimpleNode = import.meta.env.DEV
-    ? check(valueForRef(reference), CheckNode)
-    : (valueForRef(reference) as SimpleNode);
+  let value = check(valueForRef(reference), CheckNode);
 
   vm.elements().appendDynamicNode(value);
 });
