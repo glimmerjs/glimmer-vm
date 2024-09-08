@@ -25,6 +25,7 @@ import type {
   WithUpdateHook,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
+import { registerDestructor } from '@glimmer/destroyable';
 import {
   check,
   CheckFunction,
@@ -34,8 +35,7 @@ import {
   CheckOr,
   CheckProgramSymbolTable,
   CheckString,
-} from '@glimmer/debug';
-import { registerDestructor } from '@glimmer/destroyable';
+} from '@glimmer/local-debug-utils';
 import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import {

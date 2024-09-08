@@ -7,8 +7,9 @@ import type {
   VmMachineOp,
   VmOp,
 } from '@glimmer/interfaces';
-import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
+import { opcodeMetadata } from '@glimmer/debug';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { debug, logOpcode, recordStackSize } from '@glimmer/local-debug-utils';
 import { valueForRef } from '@glimmer/reference';
 import { assert, LOCAL_LOGGER, unwrap } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, Op } from '@glimmer/vm';

@@ -11,6 +11,7 @@ import type {
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import type { Revision, Tag } from '@glimmer/validator';
+import { associateDestroyableChild, destroy, registerDestructor } from '@glimmer/destroyable';
 import {
   check,
   CheckElement,
@@ -18,8 +19,7 @@ import {
   CheckNode,
   CheckOption,
   CheckString,
-} from '@glimmer/debug';
-import { associateDestroyableChild, destroy, registerDestructor } from '@glimmer/destroyable';
+} from '@glimmer/local-debug-utils';
 import { getInternalModifierManager } from '@glimmer/manager';
 import { createComputeRef, isConstRef, valueForRef } from '@glimmer/reference';
 import { debugToString, expect, isObject } from '@glimmer/util';
@@ -49,10 +49,7 @@ APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, (vm) => {
-  let tagName = import.meta.env.DEV
-    ? check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString)
-    : // eslint-disable-next-line
-      valueForRef(vm.stack.pop() as Reference<string>);
+  let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
   vm.elements().openElement(tagName);
 });
 

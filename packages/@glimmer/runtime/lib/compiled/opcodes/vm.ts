@@ -1,6 +1,7 @@
 import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import type { Revision, Tag } from '@glimmer/validator';
+import { toBool } from '@glimmer/global-context';
 import {
   check,
   CheckBlockSymbolTable,
@@ -9,8 +10,7 @@ import {
   CheckNumber,
   CheckOption,
   CheckPrimitive,
-} from '@glimmer/debug';
-import { toBool } from '@glimmer/global-context';
+} from '@glimmer/local-debug-utils';
 import {
   createComputeRef,
   createConstRef,
@@ -187,7 +187,7 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = /*@__PURE__*/ check(vm.stack.pop(), CheckReference);
   let value = Boolean(valueForRef(reference));
 
   if (isConstRef(reference)) {

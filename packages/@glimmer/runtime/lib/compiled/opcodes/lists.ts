@@ -1,4 +1,4 @@
-import { check } from '@glimmer/debug';
+import { check } from '@glimmer/local-debug-utils';
 import { createIteratorRef, valueForRef } from '@glimmer/reference';
 import { Op } from '@glimmer/vm';
 

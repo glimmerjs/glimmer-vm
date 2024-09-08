@@ -1,4 +1,3 @@
-import type { Checker } from '@glimmer/debug';
 import type {
   CapabilityMask,
   CapturedArguments,
@@ -14,6 +13,7 @@ import type {
   Scope,
   ScopeBlock,
 } from '@glimmer/interfaces';
+import type {Checker} from '@glimmer/local-debug-utils';
 import type { OpaqueIterator, Reference } from '@glimmer/reference';
 import type { Tag } from '@glimmer/validator';
 import {
@@ -31,8 +31,8 @@ import {
   CheckProgramSymbolTable,
   CheckString,
   CheckUnknown,
-  wrap,
-} from '@glimmer/debug';
+  wrap
+} from '@glimmer/local-debug-utils';
 import { REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { COMPUTE } from '@glimmer/validator';
 
