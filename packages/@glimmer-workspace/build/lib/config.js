@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
-// import { createRequire } from 'node:module';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,7 +13,7 @@ import ts from 'typescript';
 
 import inline from './inline.js';
 
-// const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -99,7 +99,7 @@ export function typescript(pkg, config) {
     transpileOnly: true,
     babelConfig: {
       presets,
-      // plugins: [require.resolve('@glimmer/local-debug-babel-plugin')]
+      plugins: [require.resolve('@glimmer/local-debug-babel-plugin')],
     },
     /**
      * This shouldn't be required, but it is.
