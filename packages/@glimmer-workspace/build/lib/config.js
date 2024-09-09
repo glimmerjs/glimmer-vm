@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+// import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,7 +13,7 @@ import ts from 'typescript';
 
 import inline from './inline.js';
 
-const require = createRequire(import.meta.url);
+// const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -97,7 +97,10 @@ export function typescript(pkg, config) {
   return rollupTS({
     transpiler: 'babel',
     transpileOnly: true,
-    babelConfig: { presets, plugins: [require.resolve('@glimmer/local-debug-babel-plugin')] },
+    babelConfig: {
+      presets,
+      // plugins: [require.resolve('@glimmer/local-debug-babel-plugin')]
+    },
     /**
      * This shouldn't be required, but it is.
      * If we use @rollup/plugin-babel, we can remove this.
@@ -109,7 +112,7 @@ export function typescript(pkg, config) {
 
 /** @type {['is' | 'startsWith', string[], 'inline' | 'external'][]} */
 const EXTERNAL_OPTIONS = [
-  ['is', ['tslib', '@glimmer/local-debug-flags'], 'inline'],
+  ['is', ['tslib', '@glimmer/local-debug-flags', '@glimmer/debug'], 'inline'],
   ['is', ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'], 'external'],
   ['startsWith', ['.', '/', '#', '@babel/runtime/', process.cwd().replace(/\\/gu, '/')], 'inline'],
   ['startsWith', ['@glimmer/', '@simple-dom/', '@babel/', 'node:'], 'external'],
