@@ -1,19 +1,15 @@
 /* eslint-disable no-console */
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import replace from '@rollup/plugin-replace';
-import terser from '@rollup/plugin-terser';
 import * as insert from 'rollup-plugin-insert';
 import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
 
 import inline from './inline.js';
-
-const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -380,31 +376,6 @@ export class Package {
         commonjs(),
         nodeResolve(),
         ...this.replacements(env),
-        ...(env === 'prod'
-          ? [
-              terser({
-                module: true,
-                // to debug the output, uncomment this so you can read the
-                // identifiers, unchanged
-                // mangle: false,
-                compress: {
-                  passes: 3,
-                },
-              }),
-            ]
-          : [
-              terser({
-                module: true,
-                mangle: false,
-                compress: {
-                  passes: 3,
-                },
-                format: {
-                  comments: 'all',
-                  beautify: true,
-                },
-              }),
-            ]),
         postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
