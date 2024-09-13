@@ -1,6 +1,6 @@
-import fs from 'node:fs';
+// import fs from 'node:fs';
 
-import { precompile } from '@glimmer/compiler';
+// import { precompile } from '@glimmer/compiler';
 import { defineConfig, type Plugin } from 'vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,9 +47,9 @@ function benchmark(): Plugin {
       /** @type {string | undefined} */
       let result: string | undefined;
       if (id.endsWith('.hbs')) {
-        const source = fs.readFileSync(id, 'utf8');
-        const compiled = precompile(source);
-        result = `export default ${compiled};`;
+        // const source = fs.readFileSync(id, 'utf8');
+        // // const compiled = precompile(source);
+        // result = `export default ${compiled};`;
       }
       return result;
     },
