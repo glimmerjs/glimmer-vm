@@ -11,6 +11,7 @@ export {
   isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/is-serialization-first-node';
+export * from './lib/logger';
 export { assign, entries, values } from './lib/object-utils';
 export * from './lib/platform-utils';
 export * from './lib/present';
@@ -26,16 +27,6 @@ export * from './lib/template';
 export { default as buildUntouchableThis } from './lib/untouchable-this';
 
 export type FIXME<T, S extends string> = (T & S) | T;
-
-/**
- * This constant exists to make it easier to differentiate normal logs from
- * errant console.logs. LOCAL_LOGGER should only be used inside a
- * LOCAL_SHOULD_LOG check.
- *
- * It does not alleviate the need to check LOCAL_SHOULD_LOG, which is used
- * for stripping.
- */
-export const LOCAL_LOGGER = console;
 
 /**
  * This constant exists to make it easier to differentiate normal logs from

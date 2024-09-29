@@ -1,0 +1,3 @@
+[tools]
+pnpm = "latest"
+"npm:tsx" = "latest"

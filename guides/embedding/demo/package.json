@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "type": "module",
+  "exports": {},
+  "dependencies": {
+    "@glimmer/compiler": "workspace:^",
+    "@glimmer/global-context": "workspace:^",
+    "@glimmer/interfaces": "workspace:^",
+    "@glimmer/manager": "workspace:^",
+    "@glimmer/opcode-compiler": "workspace:^",
+    "@glimmer/owner": "workspace:^",
+    "@glimmer/program": "workspace:^",
+    "@glimmer/reference": "workspace:^",
+    "@glimmer/runtime": "workspace:^",
+    "@glimmer/validator": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
+    "simple-dom": "^1.4.0",
+    "@simple-dom/interface": "^1.4.0"
+  },
+  "name": "demo"
+}

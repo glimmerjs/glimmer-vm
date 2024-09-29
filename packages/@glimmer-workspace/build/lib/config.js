@@ -7,8 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
+import rollupTS from '@rollup/plugin-typescript';
+import { emptyDir } from 'fs-extra';
 import * as insert from 'rollup-plugin-insert';
-import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
 
 import inline from './inline.js';
@@ -16,7 +17,7 @@ import inline from './inline.js';
 const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line import/no-named-as-default-member
-const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
+const { ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
 
 const { default: commonjs } = await import('@rollup/plugin-commonjs');
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
@@ -65,21 +66,30 @@ export function tsconfig(updates) {
     declaration: true,
     declarationMap: true,
     verbatimModuleSyntax: true,
-    module: ModuleKind.NodeNext,
-    moduleResolution: ModuleResolutionKind.NodeNext,
+    module: ModuleKind.ESNext,
+    moduleResolution: ModuleResolutionKind.Bundler,
     experimentalDecorators: true,
+    // node is really only here for vm-babel-plugins
+    // and we should target it better
+    types: ['vite/client', 'node'],
     ...updates,
   };
 }
 
 /**
  * @param {PackageInfo} pkg
- * @param {Partial<CompilerOptions>} [config]
+ * @param {Partial<CompilerOptions>} config
+ * @param {"dev" | "prod"} env
  * @returns {RollupPlugin}
  */
-export function typescript(pkg, config) {
+export function typescript(pkg, config, env) {
+  const out = resolve(pkg.root, 'dist', env);
+  /** @satisfies {Partial<CompilerOptions>} */
   const typeScriptConfig = {
     ...config,
+    outDir: out,
+    rootDir: pkg.root,
+    declarationDir: out,
     paths: {
       '@glimmer/interfaces': [resolve(pkg.root, '../@glimmer/interfaces/index.d.ts')],
       '@glimmer/*': [resolve(pkg.root, '../@glimmer/*/src/dist/index.d.ts')],
@@ -91,12 +101,15 @@ export function typescript(pkg, config) {
 
   const ts = tsconfig(typeScriptConfig);
 
-  /**
-   * TODO: migrate off of rollupTS, it has too many bugs
-   */
   return rollupTS({
     transpiler: 'babel',
     transpileOnly: true,
+    // Frustratingly, the right default is to retain the warning:
+    // https://github.com/rollup/plugins/issues/1227#issuecomment-1763536216
+    // outputToFilesystem: false,
+
+    // this doesn't do anything anymore -- is there a better alternative
+    // or should we transpile using babel?
     babelConfig: {
       presets,
       plugins: [require.resolve('@glimmer/local-debug-babel-plugin')],
@@ -106,7 +119,8 @@ export function typescript(pkg, config) {
      * If we use @rollup/plugin-babel, we can remove this.
      */
     browserslist: [`last 1 chrome versions`],
-    tsconfig: ts,
+    compilerOptions: ts,
+    tsconfig: resolve(pkg.root, '../tsconfig.json'),
   });
 }
 
@@ -128,6 +142,7 @@ function matchExternals(id) {
     const result = match(id, operator, prefixes);
 
     if (result) {
+      console.log({ externals: { id, kind } });
       return kind === 'inline' ? INLINE : EXTERNAL;
     }
   }
@@ -257,9 +272,7 @@ export class Package {
 
   /**
    * @typedef {object} Formats
-   * @property {boolean} [ esm ] enabled by default
-   * @property {boolean} [ cjs ] enabled by default until eslint-plugin-ember and ember-source no longer need it
-   *
+   * @param {{ esm?: boolean; cjs?: boolean;}} [ formats ]
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
   config(formats = {}) {
@@ -270,7 +283,7 @@ export class Package {
       builds.push(...this.rollupESM({ env: 'prod' }));
     }
 
-    if (formats.cjs ?? true) {
+    if (formats.cjs ?? false) {
       builds.push(...this.rollupCJS({ env: 'dev' }));
     }
 
@@ -313,11 +326,22 @@ export class Package {
     return this.#shared('esm', env).map((options) => ({
       ...options,
       external: this.#external,
+
       plugins: [
+        {
+          name: '@glimmer-workspace/cleanup',
+          async generateBundle({ dir }) {
+            if (dir) {
+              await emptyDir(dir);
+            }
+          },
+        },
         inline(),
         nodePolyfills(),
         commonjs(),
-        nodeResolve(),
+        nodeResolve({
+          exportConditions: ['build'],
+        }),
         ...this.replacements(env),
         ...(env === 'prod'
           ? [
@@ -345,10 +369,14 @@ export class Package {
               }),
             ]),
         postcss(),
-        typescript(this.#package, {
-          target: ScriptTarget.ES2022,
-          importsNotUsedAsValues: ImportsNotUsedAsValues.Preserve,
-        }),
+        typescript(
+          this.#package,
+          {
+            target: ScriptTarget.ES2022,
+            verbatimModuleSyntax: true,
+          },
+          env
+        ),
       ],
     }));
   }
@@ -365,14 +393,20 @@ export class Package {
         inline(),
         nodePolyfills(),
         commonjs(),
-        nodeResolve(),
+        nodeResolve({
+          exportConditions: ['build'],
+        }),
         ...this.replacements(env),
         postcss(),
-        typescript(this.#package, {
-          target: ScriptTarget.ES2021,
-          module: ModuleKind.CommonJS,
-          moduleResolution: ModuleResolutionKind.NodeJs,
-        }),
+        typescript(
+          this.#package,
+          {
+            target: ScriptTarget.ES2021,
+            module: ModuleKind.Node16,
+            moduleResolution: ModuleResolutionKind.Bundler,
+          },
+          env
+        ),
       ],
     }));
   }
@@ -464,7 +498,8 @@ export class Package {
           moduleSideEffects: (id, external) => !external,
         },
         output: {
-          file: resolve(root, 'dist', env, file),
+          dir: resolve(root, 'dist', env),
+          // file: resolve(root, 'dist', env, file),
           format,
           sourcemap: true,
           hoistTransitiveImports: false,

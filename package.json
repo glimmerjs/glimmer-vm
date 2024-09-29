@@ -38,13 +38,13 @@
   },
   "devDependencies": {
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
-    "@babel/plugin-transform-modules-commonjs": "^7.23.3",
-    "@babel/plugin-transform-runtime": "^7.23.4",
-    "@babel/preset-env": "^7.23.3",
-    "@babel/preset-typescript": "^7.23.3",
-    "@babel/runtime": "^7.23.4",
-    "@babel/traverse": "^7.23.4",
-    "@babel/types": "^7.21.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.24.8",
+    "@babel/plugin-transform-runtime": "^7.25.4",
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-typescript": "^7.24.7",
+    "@babel/runtime": "^7.25.6",
+    "@babel/traverse": "^7.25.6",
+    "@babel/types": "^7.25.6",
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer-workspace/integration-tests": "workspace:*",
@@ -101,10 +101,10 @@
     "testem-failure-only-reporter": "^1.0.0",
     "toml": "^3.0.0",
     "tracerbench": "^8.0.1",
-    "ts-node": "^10.9.1",
-    "turbo": "^1.9.3",
-    "typescript": "^5.0.4",
-    "vite": "^5.0.12",
+    "ts-node": "^10.9.2",
+    "turbo": "^2.1.2",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8",
     "xo": "^0.54.2",
     "zx": "^7.2.3"
   },
@@ -142,5 +142,6 @@
         "typescript": "5"
       }
     }
-  }
+  },
+  "packageManager": "pnpm@9.10.0"
 }

@@ -20,21 +20,34 @@
     "packages/@glimmer-workspace/eslint-plugin/**/*",
     "packages/@glimmer-workspace/build/lib/config.js"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "env": [],
+      "outputs": ["dist/**"],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"]
+    },
+    "clean": {
+      "cache": false
     },
     "lint": {
       "cache": false,
-      "dependsOn": ["test:lint", "test:publint"]
+      "env": [],
+      "dependsOn": ["test:lint", "test:publint"],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"]
     },
-    "test:lint": {},
+    "test:lint": {
+      "env": [],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"]
+    },
     "test:publint": {
-      "dependsOn": ["build"]
+      "env": [],
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"]
     },
     "//#test:types": {
-      "inputs": ["**/dist/**", "tsconfig.dist.json"],
+      "env": [],
+      "inputs": ["**/dist/**", "tsconfig.dist.json", ".env", ".env.local"],
       "dependsOn": ["^build"]
     }
   }

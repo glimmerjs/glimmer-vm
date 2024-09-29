@@ -9,3 +9,4 @@ packages:
   - 'packages/@glimmer-workspace/*'
   - 'packages/@glimmer-workspace/*/test'
   - 'packages/@types/*'
+  - 'guides/embedding/demo'

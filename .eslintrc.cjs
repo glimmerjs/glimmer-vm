@@ -60,7 +60,11 @@ module.exports = {
         'plugin:qunit/recommended',
         'prettier',
       ],
+      env: {
+        node: true,
+      },
       rules: {
+        'no-undef': 'off',
         '@typescript-eslint/no-var-requires': 'off',
       },
     },

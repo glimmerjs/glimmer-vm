@@ -1,24 +1,26 @@
 {
   "compilerOptions": {
     "composite": true,
+    "forceConsistentCasingInFileNames": true,
     // Compilation Configuration
-    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable",
+      "ES2015.Iterable"
+    ],
     "allowJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
     "declaration": true,
     "declarationMap": true,
-    "outDir": "../../ts-dist/packages",
-    "baseUrl": "..",
-
+    // "baseUrl": "..",
     "verbatimModuleSyntax": true,
-
     // Environment Configuration
     "experimentalDecorators": true,
-    "target": "ESNext",
-    "module": "ESNext",
+    "target": "esnext",
+    "module": "esnext",
     "moduleResolution": "bundler",
-
     // Enhance Strictness
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
@@ -27,9 +29,20 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-
-    "types": ["qunit", "node", "vite/client"]
+    "types": [
+      "qunit",
+      "node",
+      "vite/client"
+    ]
   },
-  "include": ["./**/*", "./**/*.d.ts"],
-  "exclude": ["*/dist", "*/node_modules", "**/fixtures", "*/test"]
+  "include": [
+    "./**/*",
+    "./**/*.d.ts",
+  ],
+  "exclude": [
+    "*/dist",
+    "*/node_modules",
+    "**/fixtures",
+    "*/test"
+  ]
 }

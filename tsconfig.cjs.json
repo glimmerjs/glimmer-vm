@@ -1,15 +1,23 @@
 {
   "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "checkJs": true,
     "target": "esnext",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
     "module": "esnext",
     "skipLibCheck": true,
+    "strict": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "outDir": "ts-dist/cjs"
   },
-  "include": ["**/.eslintrc.cjs"],
-  "exclude": ["node_modules", "**/node_modules", "ts-dist"]
+  "include": [
+    "**/.eslintrc.cjs"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "ts-dist"
+  ]
 }

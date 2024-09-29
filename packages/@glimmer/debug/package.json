@@ -10,6 +10,7 @@
   "types": "index.ts",
   "exports": {
     "types": "./index.ts",
+    "import": "./dist/dev/index.js",
     "development": "./index.ts"
   },
   "publishConfig": {
