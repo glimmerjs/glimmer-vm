@@ -27,7 +27,27 @@ module('[glimmer-syntax] AST Builders', () => {
             if (node.name.startsWith('@')) {
               return node;
             } else {
-              return b.attr(`@${node.name}`, node.value);
+              return b.attr(
+                b.attrName(`@${node.name}`, node.attrName.loc.replace(`@${node.name}`)),
+                node.value
+              );
+            }
+          },
+        }));
+        test.normalize(`<Component name="Godfrey" />`);
+        test.expectLogs([]);
+      });
+
+      test(`throws appropriate syntax errors`, () => {
+        let test = new TestOptions((b) => ({
+          AttrNode: (node) => {
+            if (node.name.startsWith('@')) {
+              throw b.error('ohno', node.loc);
+            } else {
+              return b.attr(
+                b.attrName(`@${node.name}`, node.attrName.loc.replace(`@${node.name}`)),
+                node.value
+              );
             }
           },
         }));

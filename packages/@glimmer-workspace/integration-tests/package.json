@@ -29,14 +29,17 @@
     "@simple-dom/document": "^1.4.0",
     "@simple-dom/serializer": "^1.4.0",
     "@simple-dom/void-map": "^1.4.0",
+    "fuzzysort": "^3.0.1",
     "js-reporters": "^2.1.0",
-    "qunit": "^2.19.4",
+    "qunit": "^2.20.1",
+    "qunit-theme-ember": "^1.0.0",
     "simple-html-tokenizer": "^0.5.11"
   },
   "devDependencies": {
     "@glimmer/local-debug-flags": "workspace:^",
     "@types/js-reporters": "workspace:^",
     "@types/qunit": "^2.19.9",
+    "@warp-drive/diagnostic": "0.0.0-alpha.50",
     "eslint": "^8.52.0"
   }
 }

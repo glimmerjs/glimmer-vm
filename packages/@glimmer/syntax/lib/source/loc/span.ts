@@ -2,12 +2,12 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';
 
 import type { SourceLocation, SourcePosition } from '../location';
-import type { Source } from '../source';
 import type { MatchFn } from './match';
 import type { AnyPosition, SourceOffset } from './offset';
 
 import { BROKEN_LOCATION, NON_EXISTENT_LOCATION } from '../location';
 import { SourceSlice } from '../slice';
+import { Source } from '../source';
 import { OffsetKind } from './kinds';
 import { IsInvisible, match, MatchAny } from './match';
 import { BROKEN, CharPosition, HbsPosition, InvisiblePosition } from './offset';
@@ -137,9 +137,27 @@ export class SourceSpan implements SourceLocation {
 
   readonly isInvisible: boolean;
 
-  constructor(private data: SpanData & AnySpan) {
+  /**
+   * When an AST node is replaced, the span will still point to the original source
+   * location, but its string value will be replaced.
+   */
+  #replacement: string | null;
+
+  constructor(
+    private data: SpanData & AnySpan,
+    replacement: string | null = null
+  ) {
     this.isInvisible =
       data.kind !== OffsetKind.CharPosition && data.kind !== OffsetKind.HbsPosition;
+    this.#replacement = replacement;
+  }
+
+  get src(): Source {
+    return this.data.source;
+  }
+
+  replace(replacement: string): SourceSpan {
+    return new SourceSpan(this.data, replacement);
   }
 
   getStart(): SourceOffset {
@@ -195,7 +213,7 @@ export class SourceSpan implements SourceLocation {
   }
 
   asString(): string {
-    return this.data.asString();
+    return this.#replacement ?? this.data.asString();
   }
 
   /**
@@ -204,7 +222,8 @@ export class SourceSpan implements SourceLocation {
    * string.
    */
   toSlice(log: { warn?: (msg: string) => void } | undefined, expected?: string): SourceSlice {
-    const chars = this.data.asString();
+    const chars = this.asString();
+
     // eslint-disable-next-line no-console
     const warn = log?.warn ?? console.warn;
 
@@ -479,6 +498,8 @@ export class HbsSpan implements SpanData {
 }
 
 class InvisibleSpan implements SpanData {
+  readonly source = new Source('');
+
   constructor(
     readonly kind: OffsetKind.Broken | OffsetKind.InternalsSynthetic | OffsetKind.NonExistent,
     // whatever was provided, possibly broken

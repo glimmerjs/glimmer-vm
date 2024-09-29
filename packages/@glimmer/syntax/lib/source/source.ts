@@ -11,6 +11,8 @@ export class Source {
     return new Source(source, options.meta?.moduleName);
   }
 
+  #lazyLines: string[] | null = null;
+
   constructor(
     readonly source: string,
     readonly module = 'an unknown module'
@@ -21,6 +23,18 @@ export class Source {
    */
   check(offset: number): boolean {
     return offset >= 0 && offset <= this.source.length;
+  }
+
+  get #lines() {
+    return (this.#lazyLines ??= this.source.split('\n'));
+  }
+
+  getLine(lineno: number): string | null {
+    return this.#lines[lineno - 1] ?? null;
+  }
+
+  getLines(lineno: number, count: number): string[] {
+    return this.#lines.slice(lineno - 1, lineno + count - 1);
   }
 
   slice(start: number, end: number): string {

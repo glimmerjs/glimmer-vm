@@ -99,9 +99,9 @@ export const BLOCK_KEYWORDS = keywords('Block')
         return Err(
           generateSyntaxError(
             `{{#if}} cannot receive named parameters, received ${args.named.entries
-              .map((e) => e.name.chars)
+              .map((e) => `\'${e.name.chars}\``)
               .join(', ')}`,
-            node.loc
+            args.named.loc
           )
         );
       }
@@ -121,7 +121,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
         return Err(
           generateSyntaxError(
             `{{#if}} requires a condition as its first positional parameter, did not receive any parameters`,
-            node.loc
+            node.callee.loc
           )
         );
       }

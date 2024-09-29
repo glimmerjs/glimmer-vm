@@ -1,0 +1,332 @@
+/**
+ * QUnit Ember Theme by Ignace Maes
+ */
+
+:root {
+  --color-brand: #e04e39;
+  --color-brand-text: #ffd7d2;
+  --color-brand-hc-light: #ff5c44;
+  --color-brand-hc-dark: #cf2d20;
+  --color-brand-40: rgba(224, 78, 57, 0.4);
+
+  --color-gray-100: #f4f6f8;
+  --color-gray-200: #ebeef2;
+  --color-gray-300: #dce0e6;
+  --color-gray-400: #bec4cc;
+  --color-gray-500: #8f949f;
+  --color-gray-600: #6a707a;
+  --color-gray-700: #42474f;
+  --color-gray-800: #2b2d34;
+  --color-gray-900: #1c1e24;
+  --color-black: #000;
+  --color-white: #fff;
+
+  --color-green: #41c351;
+  --color-light-green: #c7f9de;
+  --color-red: #e84646; /* Unofficial as the styleguide doesn't define red, hue shifted from green */
+
+  /* Font weight */
+  --font-weight-1: 200;
+  --font-weight-2: 400;
+  --font-weight-3: 600;
+
+  /* Spacing */
+  --spacing-1: 0.5rem;
+  --spacing-2: 1rem;
+  --spacing-3: 1.5rem;
+  --spacing-4: 2.5rem;
+  --spacing-5: 3.5rem;
+  --spacing-6: 4rem;
+
+  --color-gray: #a2a3a8;
+  --color-success: #d9f9e3;
+  --color-danger: #ffd8e1;
+  --color-warning: #fcffc9;
+  --color-info: #e3eefc;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans",
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    "Noto Color Emoji";
+  position: relative;
+}
+
+#qunit-custom,
+#qunit-custom-tests,
+.qunit-assert-list,
+#qunit-custom-header,
+#qunit-custom-banner,
+#qunit-custom-userAgent,
+#qunit-custom-testresult {
+  margin: 0;
+  padding: 0;
+}
+
+#qunit-custom {
+  background-color: var(--color-gray-100);
+}
+
+#qunit-custom-header {
+  background-color: var(--color-gray-900);
+  border-radius: 0;
+  padding: var(--spacing-2);
+}
+
+#qunit-custom-testrunner-toolbar {
+  background-color: var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-200);
+  padding-left: var(--spacing-2);
+}
+
+#qunit-custom-testrunner-toolbar .qunit-url-config {
+  color: var(--color-gray-900);
+}
+
+#qunit-custom-toolbar-filters {
+  color: var(--color-gray-900);
+}
+
+#qunit-custom-userAgent {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-900);
+  text-shadow: none;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+#qunit-custom-filteredTest {
+  background-color: var(--color-info);
+}
+
+#qunit-custom-header h1 {
+  all: unset;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+}
+
+#qunit-custom-header a {
+  text-decoration: none;
+  color: var(--color-gray-200);
+  font-weight: var(--font-weight-3);
+  padding-right: 22px;
+  position: relative;
+}
+
+#qunit-custom-header a:hover::after,
+#qunit-custom-header a:focus::after {
+  content: "";
+  position: absolute;
+  top: var(--spacing-1);
+  right: 0;
+  width: var(--spacing-2);
+  height: var(--spacing-2);
+  color: var(--color-gray-200);
+  /* https://heroicons.dev */
+  background: url('data:image/svg+xml,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path clip-rule="evenodd" fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0112.548-3.364l1.903 1.903h-3.183a.75.75 0 100 1.5h4.992a.75.75 0 00.75-.75V4.356a.75.75 0 00-1.5 0v3.18l-1.9-1.9A9 9 0 003.306 9.67a.75.75 0 101.45.388zm15.408 3.352a.75.75 0 00-.919.53 7.5 7.5 0 01-12.548 3.364l-1.902-1.903h3.183a.75.75 0 000-1.5H2.984a.75.75 0 00-.75.75v4.992a.75.75 0 001.5 0v-3.18l1.9 1.9a9 9 0 0015.059-4.035.75.75 0 00-.53-.918z"></path></svg>')
+    center right no-repeat;
+}
+
+#qunit-custom-banner.qunit-pass {
+  background-color: var(--color-green);
+}
+
+#qunit-custom-banner.qunit-fail {
+  background-color: var(--color-red);
+}
+
+#qunit-custom-testresult {
+  background-color: var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-200);
+  color: var(--color-gray-900);
+}
+
+#qunit-custom-tests li {
+  background-color: var(--color-gray-100);
+}
+
+#qunit-custom-tests .pass {
+  color: var(--color-gray-900);
+}
+
+#qunit-custom-tests .pass .test-name {
+  color: var(--color-gray-700);
+}
+
+#qunit-custom-tests li {
+  padding-top: var(--spacing-1);
+  padding-bottom: var(--spacing-1);
+  border-bottom: 0;
+}
+
+#qunit-custom-tests li li.pass {
+  color: var(--color-text-success);
+  border-left: 10px solid var(--color-green);
+}
+
+#qunit-custom-tests li p.qunit-source {
+  color: var(--color-gray-900);
+}
+
+ol.qunit-assert-list {
+  margin: 10px 0;
+}
+
+ol.qunit-assert-list .fail {
+  border-left: 0;
+}
+
+#qunit-custom-tests li li.fail {
+  border-left-color: var(--color-red);
+}
+
+#qunit-custom-tests .fail .test-expected {
+  color: var(--color-green);
+}
+
+#qunit-custom-tests .fail .test-actual {
+  color: var(--color-red);
+}
+
+#qunit-custom-testrunner-toolbar button,
+#qunit-custom-testresult button {
+  background-color: #e04e39;
+  color: #fff;
+  padding-left: 1.5rem;
+  padding-left: var(--spacing-2);
+  padding-right: 1.5rem;
+  padding-right: var(--spacing-2);
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+  border: 0;
+  border-radius: 0.3125rem;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  transition:
+    background-color 0.2s,
+    color 0.1s;
+  box-shadow:
+    0 0 2px -1px #2b2d34,
+    0 2px 9px -5px #2b2d34;
+  box-shadow:
+    0 0 2px -1px var(--color-gray-800),
+    0 2px 9px -5px var(--color-gray-800);
+
+  background: var(--color-white);
+  color: var(--color-brand-hc-dark);
+}
+
+#qunit-custom-testresult-display {
+  padding: var(--spacing-1) var(--spacing-2);
+}
+
+#qunit-custom-testrunner-toolbar button:not([disabled]):hover,
+#qunit-custom-testresult button:not([disabled]):hover {
+  background: var(--color-brand);
+  color: var(--color-white);
+}
+
+#qunit-custom-tests .pass {
+  background-color: var(--color-success);
+}
+
+#qunit-custom-tests .fail {
+  background-color: var(--color-danger);
+}
+
+#qunit-custom-testrunner-toolbar input[type="text"],
+#qunit-custom-testrunner-toolbar #qunit-custom-modulefilter-search {
+  border: 1px solid var(--color-gray-300);
+  border-radius: 4px;
+  height: 2em;
+  padding: 0 var(--spacing-1);
+}
+
+#qunit-custom-modulefilter-dropdown-list {
+  background-color: var(--color-white);
+}
+
+#qunit-custom-modulefilter-dropdown .clickable:hover {
+  background-color: var(--color-gray-100);
+}
+
+#qunit-custom-modulefilter-dropdown {
+  border-color: var(--color-gray-300);
+}
+
+#qunit-custom-modulefilter-search-container:after {
+  content: "";
+  width: var(--spacing-2);
+  height: var(--spacing-2);
+  background: url('data:image/svg+xml,<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path clip-rule="evenodd" fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z"></path></svg>')
+    center no-repeat;
+}
+
+#qunit-custom-modulefilter-actions {
+  position: relative;
+  padding: 4px 8px;
+  background-color: var(--color-white);
+}
+
+#qunit-custom-modulefilter-dropdown #qunit-custom-modulefilter-actions > button {
+  float: left;
+}
+
+#qunit-custom-tests > li:last-child {
+  margin-bottom: calc(384px + 40px + 12px);
+}
+
+#ember-testing-container {
+  border: 8px solid var(--color-gray-800);
+  border-radius: 8px;
+  padding-top: 40px;
+  border-top: 0;
+  outline: 1px solid white;
+}
+
+#ember-testing-container::after {
+  content: "";
+  z-index: 100;
+  height: 40px;
+  left: 0;
+  right: 0;
+  top: 0;
+  position: absolute;
+  background: var(--color-gray-800)
+    url('data:image/svg+xml,<svg fill="%2342474f" viewBox="4.5 10.5 15 3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path clip-rule="evenodd" fill-rule="evenodd" d="M4.5 12a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm6 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm6 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z"></path></svg>')
+    center left no-repeat;
+  background-size: 10%;
+  background-position: 8px;
+}
+
+#qunit-custom-tests .test-expected pre,
+#qunit-custom-tests .test-actual pre,
+#qunit-custom-tests .test-diff pre {
+  background: var(--color-gray-100);
+  padding: var(--spacing-2) var(--spacing-2);
+  border-radius: 6px;
+  color: var(--color-gray-900);
+}
+
+#qunit-custom-tests del {
+  color: var(--color-gray-900);
+  background-color: var(--color-success);
+}
+
+#qunit-custom-tests ins {
+  color: var(--color-gray-900);
+  background-color: var(--color-danger);
+}

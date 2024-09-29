@@ -21,7 +21,7 @@ export class ClassifiedSimpleElement implements Classified {
     return Err(
       generateSyntaxError(
         `${attr.name.chars} is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${this.tag.chars}\`) is a regular, non-component HTML element.`,
-        attr.loc
+        attr.name.loc
       )
     );
   }

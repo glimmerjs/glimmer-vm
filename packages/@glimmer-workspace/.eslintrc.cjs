@@ -94,7 +94,7 @@ module.exports = {
       extends: ['plugin:@glimmer-workspace/recommended'],
     },
     {
-      files: ['*/lib/**/*.cjs'],
+      files: ['*/lib/**/*.cjs', '*/lib/**/*.mjs'],
       env: {
         node: true,
       },

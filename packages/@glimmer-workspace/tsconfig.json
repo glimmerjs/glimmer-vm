@@ -7,6 +7,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "allowJs": true,
+    "checkJs": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "verbatimModuleSyntax": true,
@@ -20,10 +21,10 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
     "types": ["qunit", "node", "vite/client"]
   },
-  "include": ["./*/index.*", "./*/lib/**/*", "./*/test/**/*"],
+  "include": ["./*/index.*", "./*/lib/**/*", "./*/test/**/*", "./*/lib/**/*.d.ts"],
   "references": [
     {
       "path": "../@glimmer/tsconfig.json"

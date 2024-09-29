@@ -722,7 +722,7 @@ class ElementNormalizer {
           `* \`${arg.name}={{this.${resolution.path}}}\` if this is meant to be a property lookup, or\n` +
           `* \`${arg.name}={{(${resolution.path})}}\` if this is meant to invoke the resolved helper, or\n` +
           `* \`${arg.name}={{helper "${resolution.path}"}}\` if this is meant to pass the resolved helper by value`,
-        arg.loc
+        arg.value.loc
       );
     }
   }
@@ -732,13 +732,14 @@ class ElementNormalizer {
     this.checkArgCall(arg);
 
     let offsets = this.ctx.loc(arg.loc);
-    let nameSlice = offsets
-      .sliceStartChars({ chars: arg.name.length })
-      .toSlice(this.ctx.log, arg.name);
     let value = this.attrValue(arg.value);
 
     return this.ctx.builder.arg(
-      { name: nameSlice, value: value.expr, trusting: value.trusting },
+      {
+        name: arg.attrName.loc.toSlice(this.ctx.log, arg.name),
+        value: value.expr,
+        trusting: value.trusting,
+      },
       offsets
     );
   }

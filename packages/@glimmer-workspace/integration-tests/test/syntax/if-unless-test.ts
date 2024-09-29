@@ -56,6 +56,21 @@ for (let type of types) {
           0
         )
       );
+
+      this.assert.throws(
+        () => {
+          preprocess(`{{#${type}\n  true\n  false\n}}{{/${type}}}`, {
+            meta: { moduleName: 'test-module' },
+          });
+        },
+        syntaxErrorFor(
+          `{{#${type}}} can only receive one positional parameter in block form, the conditional value. Received 2 parameters`,
+          `{{#${type} true false}}{{/${type}}}`,
+          'test-module',
+          1,
+          0
+        )
+      );
     }
 
     @test

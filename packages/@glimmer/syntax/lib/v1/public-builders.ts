@@ -9,6 +9,7 @@ import { SYNTHETIC_LOCATION } from '../source/location';
 import { Source } from '../source/source';
 import { SourceSpan } from '../source/span';
 import b from './parser-builders';
+import { generateSyntaxError } from '../syntax-error';
 
 let _SOURCE: Source | undefined;
 
@@ -259,11 +260,23 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions = {}): AS
   });
 }
 
-function buildAttr(name: string, value: ASTv1.AttrValue, loc?: SourceLocation): ASTv1.AttrNode {
+function buildAttrName(name: string, loc?: SourceLocation): ASTv1.AttrName {
+  return b.attrName({ name, loc: buildLoc(loc || null) });
+}
+
+function buildAttr(
+  name: string | ASTv1.AttrName,
+  value: ASTv1.AttrValue,
+  loc?: SourceLocation
+): ASTv1.AttrNode {
   let span = buildLoc(loc || null);
+  let attrName =
+    typeof name === 'string'
+      ? buildAttrName(name, span.sliceStartChars({ chars: name.length }))
+      : name;
 
   return b.attr({
-    name: b.attrName({ name, loc: span.sliceStartChars({ chars: name.length }) }),
+    name: attrName,
     value: value,
     loc: span,
   });
@@ -464,7 +477,11 @@ function buildLoc(
     let loc = args[0];
 
     if (loc && typeof loc === 'object') {
-      return SourceSpan.forHbsLoc(SOURCE(), loc);
+      if (loc instanceof SourceSpan) {
+        return loc;
+      } else {
+        return SourceSpan.forHbsLoc(SOURCE(), loc);
+      }
     } else {
       return SourceSpan.forHbsLoc(SOURCE(), SYNTHETIC_LOCATION);
     }
@@ -486,6 +503,8 @@ function buildLoc(
 }
 
 export default {
+  error: generateSyntaxError,
+
   mustache: buildMustache,
   block: buildBlock,
   comment: buildComment,
@@ -513,6 +532,7 @@ export default {
   at: buildAtName,
   var: buildVar,
   this: buildThis,
+  attrName: buildAttrName,
 
   string: literal('StringLiteral') as (value: string) => ASTv1.StringLiteral,
   boolean: literal('BooleanLiteral') as (value: boolean) => ASTv1.BooleanLiteral,

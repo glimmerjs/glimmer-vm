@@ -1,15 +1,24 @@
 /* eslint-disable no-console */
+import './qunit/cleanup';
+
 import { debug } from '@glimmer/validator';
 import { autoRegister } from 'js-reporters';
 
+import type { ExtendedQUnit } from './qunit/extended';
+
+import { start } from './qunit/html';
+
 export async function setupQunit() {
   const qunit = await import('qunit');
-  await import('qunit/qunit/qunit.css');
+  await import('./qunit/qunit.css');
+  await import('./qunit/theme-ember.css');
 
   const runner = autoRegister();
   // @ts-expect-error qunit types don't expose "reporters"
   const tap = qunit.reporters.tap;
   tap.init(runner, { log: console.info });
+
+  start(qunit as unknown as ExtendedQUnit);
 
   QUnit.config.urlConfig.push({
     id: 'smoke_tests',
@@ -26,7 +35,7 @@ export async function setupQunit() {
   await Promise.resolve();
 
   const qunitDiv = document.createElement('div');
-  qunitDiv.id = 'qunit';
+  qunitDiv.id = 'qunit-custom';
   const qunitFixtureDiv = document.createElement('div');
   qunitFixtureDiv.id = 'qunit-fixture';
 

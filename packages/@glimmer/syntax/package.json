@@ -33,11 +33,13 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
+    "@dev-build-deploy/diagnose-it": "^1.4.2",
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/util": "workspace:^",
     "@glimmer/wire-format": "workspace:^",
     "@handlebars/parser": "~2.0.0",
-    "simple-html-tokenizer": "^0.5.11"
+    "simple-html-tokenizer": "^0.5.11",
+    "chalk": "^5.3.0"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:^",
