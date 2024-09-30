@@ -37,6 +37,6 @@
   },
   "include": [
     "lib/**/*",
-    "example.ts"
+    "*.ts"
   ]
 }

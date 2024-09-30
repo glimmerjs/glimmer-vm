@@ -1,5 +1,7 @@
 import type {
   Cursor as GlimmerCursor,
+  Destroyable,
+  Destructor,
   Dict,
   ElementBuilder,
   Environment,
@@ -19,11 +21,13 @@ import {
   runtimeContext,
 } from '@glimmer/runtime';
 
-import { NodeEnvDelegate, setGlobalContext } from './env';
+import { setGlobalContext } from '../embed/global-context';
+import { EnvDelegate, scheduledDestruction, scheduledFinishDestruction } from './env';
 import { CompileTimeResolver, RuntimeResolver } from './resolver';
 
 export interface RenderComponentOptions {
   element: SimpleElement;
+  interactive?: boolean;
   args?: Dict<unknown>;
   owner?: object;
   rehydrate?: boolean;
@@ -45,16 +49,16 @@ export function didRender(): Promise<void> {
 
 export type ComponentDefinition = object;
 
-async function renderComponent(
+async function renderRoot(
   ComponentClass: ComponentDefinition,
   options: RenderComponentOptions
 ): Promise<void>;
-async function renderComponent(
+async function renderRoot(
   ComponentClass: ComponentDefinition,
   element: SimpleElement
 ): Promise<void>;
 // eslint-disable-next-line @typescript-eslint/require-await
-async function renderComponent(
+async function renderRoot(
   ComponentClass: ComponentDefinition,
   optionsOrElement: RenderComponentOptions | SimpleElement
 ): Promise<void> {
@@ -68,7 +72,7 @@ async function renderComponent(
     ComponentClass,
     element,
     { document },
-    new NodeEnvDelegate(),
+    new EnvDelegate(options?.interactive ?? true),
     args,
     owner,
     options.rehydrate ? rehydrationBuilder : clientBuilder
@@ -77,7 +81,7 @@ async function renderComponent(
   results.push(result);
 }
 
-export default renderComponent;
+export default renderRoot;
 
 const results: RenderResult[] = [];
 
@@ -101,7 +105,18 @@ export function scheduleRevalidate(): void {
   }, 0);
 }
 
-setGlobalContext(scheduleRevalidate);
+setGlobalContext({
+  schedule: {
+    revalidate: scheduleRevalidate,
+    destroy<T extends Destroyable>(destroyable: T, destructor: Destructor<T>) {
+      scheduledDestruction.push({ destroyable, destructor });
+    },
+
+    destroyed(fn) {
+      scheduledFinishDestruction.push(fn);
+    },
+  },
+});
 
 function revalidate(): void {
   for (const result of results) {

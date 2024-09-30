@@ -25,6 +25,8 @@ export class NativeIterator<T = unknown> implements IteratorDelegate {
     private result: IteratorResult<T>
   ) {}
 
+  // this is invalid, as it makes `{{#each}}` / `{{else}}` not work
+  // as specified
   isEmpty(): false {
     return false;
   }

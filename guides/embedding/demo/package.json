@@ -3,19 +3,31 @@
   "type": "module",
   "exports": {},
   "dependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/helper-module-imports": "^7.24.7",
     "@glimmer/compiler": "workspace:^",
     "@glimmer/global-context": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer/manager": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
     "@glimmer/owner": "workspace:^",
     "@glimmer/program": "workspace:^",
     "@glimmer/reference": "workspace:^",
     "@glimmer/runtime": "workspace:^",
+    "@glimmer/syntax": "workspace:^",
     "@glimmer/validator": "workspace:^",
-    "@glimmer/local-debug-flags": "workspace:^",
-    "simple-dom": "^1.4.0",
-    "@simple-dom/interface": "^1.4.0"
+    "@peggyjs/from-mem": "^1.3.4",
+    "@simple-dom/interface": "^1.4.0",
+    "babel-import-util": "^3.0.0",
+    "babel-plugin-ember-template-compilation": "^2.3.0",
+    "babel-plugin-transform-imports": "^2.0.0",
+    "content-tag": "^2.0.2",
+    "simple-dom": "^1.4.0"
   },
-  "name": "demo"
+  "name": "demo",
+  "devDependencies": {
+    "@babel/types": "^7.25.6",
+    "@types/babel__core": "^7.20.5"
+  }
 }

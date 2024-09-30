@@ -8,6 +8,7 @@
   "main": "index.ts",
   "types": "index.ts",
   "exports": {
+    "types": "./index.ts",
     "demo": "./dist/dev/index.js"
   },
   "publishConfig": {
