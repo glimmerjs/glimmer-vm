@@ -1,5 +1,4 @@
 // @ts-check
-const path = require('path');
 
 /** @type {import("eslint").ESLint.Plugin} */
 module.exports = {
