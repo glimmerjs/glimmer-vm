@@ -45,10 +45,6 @@ module.exports = {
         'no-fallthrough': 'off',
         'import/no-relative-packages': 'error',
         'import/default': 'off',
-        'import/no-extraneous-dependencies': [
-          'error',
-          { packageDir: [path.join(__dirname, '../../@glimmer/debug')] },
-        ],
         'qunit/require-expect': ['error', 'never-except-zero'],
         // we're using assert.step instead of this sort of thing
         'qunit/no-conditional-assertions': 'off',
