@@ -31,7 +31,6 @@
   ],
   "scripts": {
     "test:lint": "eslint .",
-    "test:publint": "publint",
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
