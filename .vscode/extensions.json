@@ -1,6 +1,3 @@
 {
-  "recommendations": [
-    "foxundermoon.shell-format",
-    "rohit-gohri.format-code-action"
-  ]
+  "recommendations": ["foxundermoon.shell-format", "rohit-gohri.format-code-action", "stkb.rewrap"]
 }

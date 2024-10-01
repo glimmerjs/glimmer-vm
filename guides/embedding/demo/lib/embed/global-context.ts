@@ -2,9 +2,11 @@ import type { Destroyable, Destructor, Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
 import setGlobalContextVM from '@glimmer/global-context';
 
+import type { GlobalEnvironment } from '../core/env';
+
 import { isNativeIterable, NativeIterator } from './iterator';
 
-interface ContextDelegate {
+export interface ScheduleDelegate {
   schedule: {
     revalidate: () => void;
     destroy: <T extends Destroyable>(destroyable: T, destructor: Destructor<T>) => void;
@@ -12,7 +14,7 @@ interface ContextDelegate {
   };
 }
 
-export function setGlobalContext(delegate: ContextDelegate): void {
+export function setGlobalEnv(delegate: GlobalEnvironment): void {
   setGlobalContextVM({
     getProp(obj, key) {
       return (obj as Record<string, unknown>)[key as keyof object];
@@ -42,7 +44,7 @@ export function setGlobalContext(delegate: ContextDelegate): void {
       (obj as Record<string, unknown>)[key] = newValue;
     },
 
-    scheduleRevalidate: delegate.schedule.revalidate,
+    scheduleRevalidate: delegate.didMutate,
 
     toBool,
 
@@ -54,8 +56,8 @@ export function setGlobalContext(delegate: ContextDelegate): void {
       return null;
     },
 
-    scheduleDestroy: delegate.schedule.destroy,
-    scheduleDestroyed: delegate.schedule.destroyed,
+    scheduleDestroy: delegate.scheduleDestroy,
+    scheduleDestroyed: delegate.scheduleFinalize,
 
     warnIfStyleNotTrusted() {
       // Do nothing

@@ -6,6 +6,7 @@
     "@babel/core": "^7.25.2",
     "@babel/helper-module-imports": "^7.24.7",
     "@glimmer/compiler": "workspace:^",
+    "@glimmer/destroyable": "workspace:^",
     "@glimmer/global-context": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/local-debug-flags": "workspace:^",

@@ -1,4 +1,4 @@
 [tools]
-pnpm = "latest"
 "npm:tsx" = "latest"
 node = "latest"
+pnpm = "latest"

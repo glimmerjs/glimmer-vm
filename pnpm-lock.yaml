@@ -321,6 +321,9 @@ importers:
       '@glimmer/compiler':
         specifier: workspace:^
         version: link:../../../packages/@glimmer/compiler
+      '@glimmer/destroyable':
+        specifier: workspace:^
+        version: link:../../../packages/@glimmer/destroyable
       '@glimmer/global-context':
         specifier: workspace:^
         version: link:../../../packages/@glimmer/global-context

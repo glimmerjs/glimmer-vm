@@ -6,11 +6,12 @@ import type {
   ElementBuilder,
   Environment,
   EnvironmentOptions,
-  RenderResult,
   TemplateIterator,
 } from '@glimmer/interfaces';
+import type { SharedArtifacts } from '@glimmer/program';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 import type { SimpleDocument, SimpleElement } from '@simple-dom/interface';
+import { associateDestroyableChild } from '@glimmer/destroyable';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
 import {
@@ -21,9 +22,13 @@ import {
   runtimeContext,
 } from '@glimmer/runtime';
 
-import { setGlobalContext } from '../embed/global-context';
+import type { ScheduleDelegate } from '../embed/global-context';
+import type { Destruction, Finalize } from './env';
+
+import { setGlobalEnv } from '../embed/global-context';
 import { EnvDelegate, scheduledDestruction, scheduledFinishDestruction } from './env';
 import { CompileTimeResolver, RuntimeResolver } from './resolver';
+import { RenderRoot } from './root';
 
 export interface RenderComponentOptions {
   element: SimpleElement;
@@ -36,15 +41,8 @@ export interface RenderComponentOptions {
 type ResolveFn = () => void;
 type RejectFn = (error: Error) => void;
 
-let renderNotifiers: Array<[ResolveFn, RejectFn]> = [];
-
-export function didRender(): Promise<void> {
-  if (scheduled) {
-    return new Promise((resolve, reject) => {
-      renderNotifiers.push([resolve, reject]);
-    });
-  }
-  return Promise.resolve();
+export function addRoot(root: RenderRoot) {
+  results.push(root);
 }
 
 export type ComponentDefinition = object;
@@ -52,16 +50,16 @@ export type ComponentDefinition = object;
 async function renderRoot(
   ComponentClass: ComponentDefinition,
   options: RenderComponentOptions
-): Promise<void>;
+): Promise<RenderRoot>;
 async function renderRoot(
   ComponentClass: ComponentDefinition,
   element: SimpleElement
-): Promise<void>;
+): Promise<RenderRoot>;
 // eslint-disable-next-line @typescript-eslint/require-await
 async function renderRoot(
   ComponentClass: ComponentDefinition,
   optionsOrElement: RenderComponentOptions | SimpleElement
-): Promise<void> {
+): Promise<RenderRoot> {
   const options: RenderComponentOptions =
     'nodeType' in optionsOrElement ? { element: optionsOrElement } : optionsOrElement;
 
@@ -72,42 +70,140 @@ async function renderRoot(
     ComponentClass,
     element,
     { document },
-    new EnvDelegate(options?.interactive ?? true),
+    new EnvDelegate({
+      interactive: options.interactive ?? true,
+      document: element.ownerDocument,
+    }),
     args,
     owner,
     options.rehydrate ? rehydrationBuilder : clientBuilder
   );
   const result = renderSync(env, iterator);
-  results.push(result);
+  return new RenderRoot(result);
 }
 
 export default renderRoot;
 
-const results: RenderResult[] = [];
+const results: RenderRoot[] = [];
 
 let scheduled = false;
-export function scheduleRevalidate(): void {
-  if (scheduled) {
-    return;
+class Revalidator {
+  #roots: Roots;
+  #buckets = {
+    destroy: [] as Destruction[],
+    finalize: [] as Finalize[],
+    revalidate: false,
+  };
+
+  #scheduled = false;
+  #renderNotifiers: Array<[ResolveFn, RejectFn]> = [];
+
+  constructor() {
+    this.#roots = new Roots();
+    associateDestroyableChild(this, this.#roots);
   }
 
-  scheduled = true;
-  setTimeout(() => {
-    scheduled = false;
-    try {
-      revalidate();
-      renderNotifiers.forEach(([resolve]) => resolve());
-    } catch (err) {
-      renderNotifiers.forEach(([, reject]) => reject(err as Error));
+  scheduleDestroy(destroyable: Destroyable, destructor: Destructor<Destroyable>) {
+    this.#buckets.destroy.push({ destroyable, destructor });
+  }
+
+  scheduleFinalize(finalize: Finalize) {
+    this.#buckets.finalize.push(finalize);
+  }
+
+  scheduleRevalidate(): void {
+    if (this.#scheduled) {
+      return;
     }
 
-    renderNotifiers = [];
-  }, 0);
+    this.#scheduled = true;
+    setTimeout(() => {
+      this.#scheduled = false;
+      try {
+        this.#roots.revalidate();
+        this.#renderNotifiers.forEach(([resolve]) => resolve());
+      } catch (err) {
+        this.#renderNotifiers.forEach(([, reject]) => reject(err as Error));
+      }
+
+      this.#renderNotifiers = [];
+    }, 0);
+  }
+
+  #schedule() {
+    if (this.#scheduled) {
+      return;
+    }
+
+    this.#scheduled = true;
+    setTimeout(() => {
+      this.#scheduled = false;
+
+      restart: while (this.#hasQueuedItems()) {
+        const destroy = this.#buckets.destroy;
+        this.#buckets.destroy = [];
+        for (const { destroyable, destructor } of destroy) {
+          destructor(destroyable);
+        }
+
+        if (this.#buckets.destroy.length > 0) {
+          break restart;
+        }
+
+        const finalizers = this.#buckets.finalize;
+        this.#buckets.finalize = [];
+        for (const finalize of finalizers) {
+          finalize();
+        }
+
+        if (this.#buckets.destroy.length > 0 || this.#buckets.finalize.length > 0) {
+          break restart;
+        }
+
+        const revalidate = this.#buckets.revalidate;
+        this.#buckets.revalidate = false;
+        if (revalidate) {
+          this.#roots.revalidate();
+        }
+      }
+    }, 0);
+  }
+
+  #hasQueuedItems() {
+    return !this.#isEmpty();
+  }
+
+  #isEmpty() {
+    return (
+      this.#buckets.destroy.length === 0 &&
+      this.#buckets.finalize.length === 0 &&
+      !this.#buckets.revalidate
+    );
+  }
+
+  didRender(): Promise<void> {
+    if (scheduled) {
+      return new Promise((resolve, reject) => {
+        this.#renderNotifiers.push([resolve, reject]);
+      });
+    }
+    return Promise.resolve();
+  }
+
+  getRenderNotifiers(): Array<[ResolveFn, RejectFn]> {
+    return this.#renderNotifiers;
+  }
 }
 
-setGlobalContext({
+const revalidator = new Revalidator();
+
+setGlobalEnv({
+  didMutate: () => revalidator.scheduleRevalidate(),
+  scheduleDestroy: <T extends Destroyable>(destroyable: T, destructor: Destructor<T>) => {
+    scheduledDestruction.push({ destroyable, destructor });
+  },
   schedule: {
-    revalidate: scheduleRevalidate,
+    revalidate: () => revalidator.scheduleRevalidate(),
     destroy<T extends Destroyable>(destroyable: T, destructor: Destructor<T>) {
       scheduledDestruction.push({ destroyable, destructor });
     },
@@ -118,12 +214,25 @@ setGlobalContext({
   },
 });
 
-function revalidate(): void {
-  for (const result of results) {
-    const { env } = result;
-    env.begin();
-    result.rerender();
-    env.commit();
+
+
+class Roots {
+  #roots: RenderRoot[] = [];
+
+  async renderRoot(
+    ComponentClass: ComponentDefinition,
+    options: RenderComponentOptions
+  ): Promise<RenderRoot> {
+    const root = await renderRoot(ComponentClass, options);
+    this.#roots.push(root);
+    associateDestroyableChild(this, root);
+    return root;
+  }
+
+  revalidate() {
+    for (const root of this.#roots) {
+      root.revalidate();
+    }
   }
 }
 
@@ -161,4 +270,93 @@ export function getTemplateIterator(
     ),
     env: runtime.env,
   };
+}
+
+export interface GlobalRuntimeOptions extends ScheduleDelegate {}
+
+export interface EnvRuntimeOptions {
+  /**
+   * The document that should be used to create DOM nodes. In SSR mode,
+   * this is a SimpleDOM Document, but it's usually a regular document.
+   */
+  document: SimpleDocument | Document;
+  /**
+   * An interactive environment runs element modifiers, while a
+   * non-interactive environment (i.e. SSR) does not.
+   *
+   * This defaults to true when the document is an instance of
+   * `globalThis.Document`, and false otherwise.
+   */
+  interactive?: boolean;
+  /**
+   * Setting this to true enables Glimmer's debug tooling, which
+   * installs an instance of `DebugRenderTree` on the environment.
+   */
+  debug?: boolean;
+  /**
+   * This callback will be called after the Glimmer runtime commits
+   * a render transaction.
+   */
+  onCommit?: () => void;
+}
+
+interface CompileRuntimeOptions {
+  resolver: CompileTimeResolver | 'strict';
+}
+
+interface RuntimeOptions {
+  global: GlobalRuntimeOptions;
+  env: EnvRuntimeOptions;
+  compile: CompileRuntimeOptions;
+}
+
+class GlimmerRuntime {
+  #resolver: CompileTimeResolver;
+  #options: RuntimeOptions;
+  #artifacts: SharedArtifacts;
+  #context: CompileTimeCompilationContext;
+
+  constructor(options: RuntimeOptions) {
+    this.#options = options;
+    this.#resolver =
+      typeof options?.compile.resolver === 'object'
+        ? options.compile.resolver
+        : new CompileTimeResolver();
+    this.#artifacts = artifacts();
+    this.#runtime = runtimeContext(
+      { document: options.env.document as SimpleDocument },
+      {
+        isInteractive: options.env.interactive ?? true,
+        enableDebugTooling: options.env.debug ?? false,
+        onTransactionCommit: options.env.onCommit ?? (() => {}),
+      },
+      this.#artifacts,
+      this.#resolver
+    );
+    this.#context = programCompilationContext(
+      this.#artifacts,
+      typeof options?.resolver === 'object' ? options.resolver : new CompileTimeResolver(),
+      (heap) => new RuntimeOpImpl(heap)
+    );
+  }
+}
+
+/**
+ * A function that creates a new runtime environment.
+ *
+ * Goals:
+ *
+ * 1. Encapsulate details that are shared between Ember (the environment with
+ *    the most customizations), Glimmer.js (a previous production environment)
+ *    and the anticipated `@glimmer/core`.
+ * 2. Default options assume strict mode, so that the low-configuration path
+ *    is also the modern path.
+ */
+export function createRuntime(options: RuntimeOptions = { resolver: 'strict' }) {
+  const sharedArtifacts = artifacts();
+  const context = programCompilationContext(
+    sharedArtifacts,
+    typeof options?.resolver === 'object' ? options.resolver : new CompileTimeResolver(),
+    (heap) => new RuntimeOpImpl(heap)
+  );
 }
