@@ -28,7 +28,7 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
 
-    "types": ["qunit", "node", "vite/client"],
+    "types": ["qunit", "node", "vite/client"]
   },
   "include": ["./**/*", "./**/*.d.ts"],
   "exclude": ["*/dist", "*/node_modules", "**/fixtures", "*/test"]
