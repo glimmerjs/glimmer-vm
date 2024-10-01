@@ -28,7 +28,10 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
 
-    "types": ["qunit", "node", "vite/client"]
+    "types": ["qunit", "node", "vite/client"],
+    "paths": {
+      "@glimmer/debug": ["./debug/index.ts"]
+    }
   },
   "include": ["./**/*", "./**/*.d.ts"],
   "exclude": ["*/dist", "*/node_modules", "**/fixtures", "*/test"]
