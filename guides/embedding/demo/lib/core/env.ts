@@ -2,6 +2,7 @@ import type { DebugRenderTree, Destroyable, Destructor } from '@glimmer/interfac
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 
 import type { EnvRuntimeOptions } from '../core';
+import type { RenderRoot } from './root';
 
 export let scheduledDestruction: {
   destroyable: Destroyable;
@@ -69,6 +70,8 @@ export interface GlobalEnvironment {
    * any roots.
    */
   didMutate: () => void;
+
+  didRenderRoot: (root: RenderRoot) => void;
 
   /**
    * Notifies the global environment that a particular object is being destroyed, and that the
@@ -143,12 +146,24 @@ export interface RootEnvironment {
 
 export class GlobalContextDelegate {}
 
-export class ListScheduler implements Scheduler {
-  revalidate(): void {
-    throw new Error('Method not implemented.');
-  }
-  #destruction: Destruction[] = [];
-  #finish: Finalize[] = [];
+export class ListGlobalEnvironment implements GlobalEnvironment {
+  #destructions: Destruction[] = [];
+  #finalizers: Finalize[] = [];
+  #roots: RenderRoot[] = [];
+
+  didMutate = (): void => {};
+
+  scheduleDestroy = <T extends object>(destroyable: T, destructor: Destructor<T>): void => {
+    this.#destructions.push({ destroyable, destructor });
+  };
+
+  scheduleFinalize = (callback: () => void): void => {
+    this.#finalizers.push(callback);
+  };
+
+  didRenderRoot = (root: RenderRoot): void => {
+    this.#roots.push(root);
+  };
 
   destroy(destruction: Destruction) {
     this.#destruction.push(destruction);
