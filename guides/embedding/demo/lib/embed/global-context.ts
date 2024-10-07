@@ -1,6 +1,6 @@
+import type setGlobalContext from '@glimmer/global-context';
 import type { Destroyable, Destructor, Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
-import setGlobalContextVM from '@glimmer/global-context';
 
 import type { GlobalEnvironment } from '../core/env';
 
@@ -14,8 +14,8 @@ export interface ScheduleDelegate {
   };
 }
 
-export function setGlobalEnv(delegate: GlobalEnvironment): void {
-  setGlobalContextVM({
+export function setGlobalEnv(delegate: GlobalEnvironment, set: typeof setGlobalContext): void {
+  set({
     getProp(obj, key) {
       return (obj as Record<string, unknown>)[key as keyof object];
     },

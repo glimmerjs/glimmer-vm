@@ -1,15 +1,7 @@
 import type { DebugRenderTree, Destroyable, Destructor } from '@glimmer/interfaces';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 
-import type { EnvRuntimeOptions } from '../core';
-import type { RenderRoot } from './root';
-
-export let scheduledDestruction: {
-  destroyable: Destroyable;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  destructor: Destructor<any>;
-}[] = [];
-export let scheduledFinishDestruction: (() => void)[] = [];
+import type { EnvRuntimeOptions } from './index';
 
 /**
  * The environment delegate base class shared by both the client and SSR
@@ -26,19 +18,9 @@ export class EnvDelegate implements EnvironmentDelegate {
   constructor(options: EnvRuntimeOptions) {
     this.isInteractive = options.interactive ?? true;
     this.enableDebugTooling = options.debug ?? false;
-    this.onTransactionCommit = options.onCommit ?? (() => {});
   }
 
-  onTransactionCommit(): void {
-    for (const { destroyable, destructor } of scheduledDestruction) {
-      destructor(destroyable);
-    }
-
-    scheduledFinishDestruction.forEach((fn) => fn());
-
-    scheduledDestruction = [];
-    scheduledFinishDestruction = [];
-  }
+  onTransactionCommit(): void {}
 }
 
 export interface Destruction {
@@ -71,7 +53,7 @@ export interface GlobalEnvironment {
    */
   didMutate: () => void;
 
-  didRenderRoot: (root: RenderRoot) => void;
+  // didRenderRoot: (root: RenderRoot) => void;
 
   /**
    * Notifies the global environment that a particular object is being destroyed, and that the
@@ -146,43 +128,43 @@ export interface RootEnvironment {
 
 export class GlobalContextDelegate {}
 
-export class ListGlobalEnvironment implements GlobalEnvironment {
-  #destructions: Destruction[] = [];
-  #finalizers: Finalize[] = [];
-  #roots: RenderRoot[] = [];
+// export class ListGlobalEnvironment implements GlobalEnvironment {
+//   #destructions: Destruction[] = [];
+//   #finalizers: Finalize[] = [];
+//   #roots: RenderRoot[] = [];
 
-  didMutate = (): void => {};
+//   didMutate = (): void => {};
 
-  scheduleDestroy = <T extends object>(destroyable: T, destructor: Destructor<T>): void => {
-    this.#destructions.push({ destroyable, destructor });
-  };
+//   scheduleDestroy = <T extends object>(destroyable: T, destructor: Destructor<T>): void => {
+//     this.#destructions.push({ destroyable, destructor });
+//   };
 
-  scheduleFinalize = (callback: () => void): void => {
-    this.#finalizers.push(callback);
-  };
+//   scheduleFinalize = (callback: () => void): void => {
+//     this.#finalizers.push(callback);
+//   };
 
-  didRenderRoot = (root: RenderRoot): void => {
-    this.#roots.push(root);
-  };
+//   didRenderRoot = (root: RenderRoot): void => {
+//     this.#roots.push(root);
+//   };
 
-  destroy(destruction: Destruction) {
-    this.#destruction.push(destruction);
-  }
+//   destroy(destruction: Destruction) {
+//     this.#destruction.push(destruction);
+//   }
 
-  destroyed(callback: Finalize) {
-    this.#finish.push(callback);
-  }
+//   destroyed(callback: Finalize) {
+//     this.#finish.push(callback);
+//   }
 
-  commit() {
-    for (const { destroyable, destructor } of this.#destruction) {
-      destructor(destroyable);
-    }
+//   commit() {
+//     for (const { destroyable, destructor } of this.#destruction) {
+//       destructor(destroyable);
+//     }
 
-    for (const finish of this.#finish) {
-      finish();
-    }
+//     for (const finish of this.#finish) {
+//       finish();
+//     }
 
-    this.#destruction = [];
-    this.#finish = [];
-  }
-}
+//     this.#destruction = [];
+//     this.#finish = [];
+//   }
+// }

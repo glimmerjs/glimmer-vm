@@ -3,12 +3,7 @@
     "composite": true,
     "forceConsistentCasingInFileNames": true,
     // Compilation Configuration
-    "lib": [
-      "esnext",
-      "DOM",
-      "DOM.Iterable",
-      "ES2015.Iterable"
-    ],
+    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
     "allowJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
@@ -29,14 +24,7 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
+    "types": ["qunit", "node", "vite/client"]
   },
-  "include": [
-    "lib/**/*",
-    "*.ts"
-  ]
+  "include": ["lib/**/*", "*.ts", "*.mts"]
 }

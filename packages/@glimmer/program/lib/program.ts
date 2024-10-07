@@ -236,7 +236,7 @@ function slice(arr: Int32Array, start: number, end: number): Int32Array {
 }
 
 function sizeof(table: number[], handle: number) {
-  if (LOCAL_DEBUG) {
+  if (LOCAL_DEBUG && table[handle + 1] !== undefined) {
     return unwrap(table[handle + 1]) - unwrap(table[handle]);
   } else {
     return -1;

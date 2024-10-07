@@ -142,7 +142,6 @@ function matchExternals(id) {
     const result = match(id, operator, prefixes);
 
     if (result) {
-      console.log({ externals: { id, kind } });
       return kind === 'inline' ? INLINE : EXTERNAL;
     }
   }
@@ -428,7 +427,7 @@ export class Package {
               'import.meta.env.DEV': 'false',
               'import.meta.env.PROD': 'true',
               // Not exposed at publish, compiled away
-              'import.meta.env.VM_LOCAL_DEV': 'false',
+              'import.meta.env.VITE_VM_LOCAL_DEV': 'false',
             },
           }),
         ]
@@ -439,7 +438,7 @@ export class Package {
               'import.meta.env.MODE': '"development"',
               'import.meta.env.DEV': 'DEBUG',
               'import.meta.env.PROD': '!DEBUG',
-              'import.meta.env.VM_LOCAL_DEV': 'false',
+              'import.meta.env.VITE_VM_LOCAL_DEV': 'false',
             },
           }),
           insert.transform((_magicString, code, _id) => {

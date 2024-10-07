@@ -30,13 +30,15 @@
   ],
   "files.exclude": {
     "**/.DS_Store": true,
-    "**/.git": true
+    "**/.git": true,
+    "**/node_modules/**": true
   },
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
   "files.watcherExclude": {
     "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true
   },
   "javascript.updateImportsOnFileMove.enabled": "always",
   "typescript.updateImportsOnFileMove.enabled": "always",

@@ -1,13 +1,12 @@
-import type Babel from '@babel/core';
 import type { PluginObj } from '@babel/core';
+import type Babel from '@babel/core';
 import type { ASTv1, PreprocessOptions } from '@glimmer/syntax';
 import type { Options } from 'babel-plugin-ember-template-compilation';
 import type { PreprocessorOptions as ContentTagOptions } from 'content-tag';
 import type { PrinterOptions } from 'node_modules/@glimmer/syntax/lib/generation/printer';
-import { transformAsync } from '@babel/core';
+import { transform } from '@babel/standalone';
 import { precompile } from '@glimmer/compiler';
 import { preprocess as glimmerPreprocess, print } from '@glimmer/syntax';
-import fromMem from '@peggyjs/from-mem';
 import { ImportUtil } from 'babel-import-util';
 import plugin from 'babel-plugin-ember-template-compilation';
 import { Preprocessor } from 'content-tag';
@@ -41,7 +40,7 @@ export async function compile(
   options?: ContentTagOptions
 ): Promise<Babel.BabelFileResult & { code: string }> {
   const output = contentTag(source, options);
-  const result = await transformAsync(output, {
+  const result = transform(output, {
     plugins: [[plugin, { compiler: Compiler } satisfies Options], [transformImports]],
   });
 
@@ -114,12 +113,50 @@ interface ModuleTag {
 }
 type ModuleObject = Record<string, unknown> & ModuleTag;
 
-export function asModule<T = ModuleObject>(
+export async function asModule<T = ModuleObject>(
   source: string,
   { at, name = 'template.js' }: { at: { url: URL | string }; name?: string }
 ): Promise<T & ModuleTag> {
-  return fromMem(source, {
-    filename: new URL(name, at.url).pathname,
-    format: 'es',
-  }) as Promise<T & ModuleTag>;
+  if (typeof window === 'undefined') {
+    const { default: fromMem } = await import('@peggyjs/from-mem');
+    return fromMem(source, {
+      filename: new URL(name, at.url).pathname,
+      format: 'es',
+    }) as Promise<T & ModuleTag>;
+  }
+
+  const blob = new Blob([source], { type: 'application/javascript' });
+
+  return import(URL.createObjectURL(blob));
+
+  // const init = createInitminalRun({
+  //   whitelists: [...defaultSafeObjects, 'Proxy', 'WeakMap', 'WeakSet'],
+  // });
+  // const result = await init.run(
+  //   source,
+  //   {
+  //     '@glimmer/validator': 'http://localhost:5173/node_modules/@glimmer/validator/index.ts',
+  //     '@glimmer/manager': 'http://localhost:5173/node_modules/@glimmer/manager/index.ts',
+  //     '@glimmer/opcode-compiler':
+  //       'http://localhost:5173/node_modules/@glimmer/opcode-compiler/index.ts',
+  //     '@glimmer/runtime': 'http://localhost:5173/node_modules/@glimmer/runtime/index.ts',
+  //   },
+  //   null,
+  //   'default'
+  // );
+
+  // if (result.success) {
+  //   console.log(result);
+  //   return result.value as T & ModuleTag;
+  // } else {
+  //   throw result.error;
+  // }
+}
+
+function esm(templateStrings: TemplateStringsArray, ...substitutions: string[]) {
+  let js = templateStrings.raw[0] as string;
+  for (let i = 0; i < substitutions.length; i++) {
+    js += substitutions[i] + templateStrings.raw[i + 1];
+  }
+  return 'data:text/javascript;base64,' + btoa(js);
 }

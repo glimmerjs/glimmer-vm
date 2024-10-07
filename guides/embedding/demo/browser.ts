@@ -1,21 +1,19 @@
-/* eslint-disable no-console */
+// A runtime wrapper of the compile-time template compiler that ships with Ember.
+// Conveniences for interacting w/ the runtime & tracked values in pure Glimmer.
 import * as global from '@glimmer/global-context';
 import * as opcodes from '@glimmer/opcode-compiler';
 import * as program from '@glimmer/program';
 import * as rt from '@glimmer/runtime';
-import createDocument from '@simple-dom/document';
 
 import type { Cell } from './lib/utils';
 
-// A runtime wrapper of the compile-time template compiler that ships with Ember.
 import { asModule, compile } from './lib/compile-support';
 // A simple entry point for creating the Glimmer runtime and rendering a root.
 import { GlimmerRuntime } from './lib/core';
-// Conveniences for interacting w/ the runtime & tracked values in pure Glimmer.
-import { serialize, tracked } from './lib/utils';
+import { tracked } from './lib/utils';
 
 const runtime = GlimmerRuntime.enable({
-  document: createDocument(),
+  document,
   deps: { program, runtime: rt, opcodes, global },
 });
 
@@ -24,7 +22,7 @@ const runtime = GlimmerRuntime.enable({
 // 1. Preprocess the source with `content-tag`
 // 2. Adjust the imports to use core Glimmer imports
 let output = await compile(/*ts*/ `
-  import { Cell } from './lib/utils';
+  import { Cell } from '@/lib/utils.ts';
 
   const h = new Cell('hello');
   const w = new Cell('world');
@@ -32,9 +30,9 @@ let output = await compile(/*ts*/ `
   export { h, w };
 
   <template>
-    {{~#let h w as |hello world|~}}
-      <p>{{hello.current}} {{@kind}} {{world.current}}</p>
-    {{~/let~}}
+  {{~#let h w as |hello world|~}}
+    <p>{{hello.current}} {{@kind}} {{world.current}}</p>
+  {{~/let~}}
   </template>
 `);
 
@@ -45,22 +43,24 @@ const { default: component, h } = await asModule<{ default: object; h: Cell<stri
   { at: import.meta }
 );
 
-// This is a Node demo, so we create a SimpleDOM element.
-const doc = createDocument();
-export const element = doc.createElement('div');
+export const element = document.createElement('div');
+document.body.appendChild(element);
 
 // Set up the args that we will render the component with.
 const args = tracked({ kind: 'great' });
 
 // render the component
 await runtime.renderRoot(component, { element, interactive: false, args });
-console.log(serialize(element)); // <div><p>hello great world</p></div>
+await delay(1000);
 
 h.current = 'goodbye';
 await runtime.didRender();
-console.log(serialize(element)); // <div><p>goodbye great world</p></div>
+await delay(1000);
 
 // update one of the arguments
 args.kind = 'cruel';
 await runtime.didRender();
-console.log(serialize(element)); // <div><p>goodbye cruel world</p></div>
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
