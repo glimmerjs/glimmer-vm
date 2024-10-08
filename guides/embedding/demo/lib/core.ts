@@ -140,10 +140,11 @@ export class GlimmerRuntime {
     const { env, iterator } = this.#getTemplateIterator(
       component,
       element,
-      { document },
+      { document: document as SimpleDocument },
       new EnvDelegate({
         interactive: options.interactive ?? true,
         document: element.ownerDocument,
+        debug: options.debug ?? false,
       }),
       args,
       owner,
@@ -204,6 +205,7 @@ export interface RuntimeOptions {
 export interface RenderRootOptions {
   element: SimpleElement | Element;
   interactive?: boolean;
+  debug?: boolean;
   args?: Dict<unknown>;
   owner?: object;
   rehydrate?: boolean;

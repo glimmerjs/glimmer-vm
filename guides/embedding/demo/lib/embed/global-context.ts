@@ -1,18 +1,10 @@
 import type setGlobalContext from '@glimmer/global-context';
-import type { Destroyable, Destructor, Nullable } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
 
 import type { GlobalEnvironment } from '../core/env';
 
 import { isNativeIterable, NativeIterator } from './iterator';
-
-export interface ScheduleDelegate {
-  schedule: {
-    revalidate: () => void;
-    destroy: <T extends Destroyable>(destroyable: T, destructor: Destructor<T>) => void;
-    destroyed: (fn: () => void) => void;
-  };
-}
 
 export function setGlobalEnv(delegate: GlobalEnvironment, set: typeof setGlobalContext): void {
   set({

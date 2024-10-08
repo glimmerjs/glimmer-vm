@@ -8,7 +8,7 @@ import createDocument from '@simple-dom/document';
 import type { Cell } from './lib/utils';
 
 // A runtime wrapper of the compile-time template compiler that ships with Ember.
-import { asModule, compile } from './lib/compile-support';
+import { asModule, compile } from './lib/compiler';
 // A simple entry point for creating the Glimmer runtime and rendering a root.
 import { GlimmerRuntime } from './lib/core';
 // Conveniences for interacting w/ the runtime & tracked values in pure Glimmer.

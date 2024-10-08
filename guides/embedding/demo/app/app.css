@@ -1,0 +1,35 @@
+pre {
+  margin: 0;
+  padding: 0;
+}
+
+div.component {
+  margin: 0;
+  padding: 0;
+}
+
+#overlay {
+  display: none;
+  position: absolute;
+  background-color: oklch(0.8 0 0 / 0.5);
+  border: 1px solid black;
+}
+
+.debug {
+  & .name {
+    font-weight: bold;
+    color: oklch(80% 50% 0 / 1);
+  }
+
+  & .key {
+    color: oklch(60% 0% 0 / 1);
+  }
+
+  & .punct {
+    color: oklch(80% 0% 0 / 1);
+  }
+
+  & .value {
+    color: oklch(60% 50% 100 / 1);
+  }
+}
