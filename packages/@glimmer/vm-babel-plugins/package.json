@@ -1,6 +1,6 @@
 {
   "name": "@glimmer/vm-babel-plugins",
-  "version": "0.92.0",
+  "version": "0.92.3",
   "license": "MIT",
   "description": "Compiles out VM assertion and deprecation utilities and debug tooling based on environment",
   "repository": "https://github.com/glimmerjs/glimmer.js",
@@ -39,7 +39,7 @@
     "babel-plugin-debug-macros": "^0.3.4"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:^",
+    "@glimmer-workspace/build-support": "workspace:*",
     "babel-plugin-tester": "^11.0.4",
     "eslint": "^8.54.0",
     "mocha": "^10.2.0",

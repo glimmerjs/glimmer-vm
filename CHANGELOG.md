@@ -1,3 +1,110 @@
+# Changelog
+
+## Release (2024-09-13)
+
+
+
+#### :bug: Bug Fix
+* `@glimmer-workspace/bin`, `@glimmer-workspace/build-support`
+  * [#1622](https://github.com/glimmerjs/glimmer-vm/pull/1622) Add CI step for verifying that unwanted code does not get published ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## Release (2024-09-12)
+
+@glimmer/compiler 0.92.2 (patch)
+@glimmer/debug 0.92.3 (patch)
+@glimmer/destroyable 0.92.2 (patch)
+@glimmer/encoder 0.92.2 (patch)
+@glimmer/global-context 0.92.2 (patch)
+@glimmer/interfaces 0.92.2 (patch)
+@glimmer/manager 0.92.3 (patch)
+@glimmer/node 0.92.3 (patch)
+@glimmer/opcode-compiler 0.92.3 (patch)
+@glimmer/owner 0.92.2 (patch)
+@glimmer/program 0.92.3 (patch)
+@glimmer/reference 0.92.2 (patch)
+@glimmer/runtime 0.92.3 (patch)
+@glimmer/syntax 0.92.3 (patch)
+@glimmer/util 0.92.2 (patch)
+@glimmer/validator 0.92.2 (patch)
+@glimmer/vm 0.92.2 (patch)
+@glimmer/vm-babel-plugins 0.92.2 (patch)
+@glimmer/wire-format 0.92.2 (patch)
+
+#### :bug: Bug Fix
+* `@glimmer/debug`, `@glimmer/compiler`, `@glimmer/destroyable`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm`, `@glimmer/vm-babel-plugins`, `@glimmer/wire-format`
+  * [#1620](https://github.com/glimmerjs/glimmer-vm/pull/1620) cause patch release of glimmer debug ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* [#1619](https://github.com/glimmerjs/glimmer-vm/pull/1619) Add turbo build before publish ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* [#1617](https://github.com/glimmerjs/glimmer-vm/pull/1617) Use ignore-scripts during publish, as we don't need to install browsers during publish ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## Release (2024-09-12)
+
+@glimmer/debug 0.92.3 (patch)
+@glimmer/manager 0.92.3 (patch)
+@glimmer/node 0.92.3 (patch)
+@glimmer/opcode-compiler 0.92.3 (patch)
+@glimmer/program 0.92.3 (patch)
+@glimmer/runtime 0.92.3 (patch)
+
+#### :bug: Bug Fix
+* `@glimmer/debug`
+  * [#1620](https://github.com/glimmerjs/glimmer-vm/pull/1620) cause patch release of glimmer debug ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* [#1619](https://github.com/glimmerjs/glimmer-vm/pull/1619) Add turbo build before publish ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* [#1617](https://github.com/glimmerjs/glimmer-vm/pull/1617) Use ignore-scripts during publish, as we don't need to install browsers during publish ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
+## Release (2024-09-11)
+
+@glimmer/compiler 0.92.1 (patch)
+@glimmer/debug 0.92.2 (patch)
+@glimmer/destroyable 0.92.1 (patch)
+@glimmer/encoder 0.92.1 (patch)
+@glimmer/global-context 0.92.1 (patch)
+@glimmer/interfaces 0.92.1 (patch)
+@glimmer/manager 0.92.2 (patch)
+@glimmer/node 0.92.2 (patch)
+@glimmer/opcode-compiler 0.92.2 (patch)
+@glimmer/owner 0.92.1 (patch)
+@glimmer/program 0.92.2 (patch)
+@glimmer/reference 0.92.1 (patch)
+@glimmer/runtime 0.92.2 (patch)
+@glimmer/syntax 0.92.1 (patch)
+@glimmer/util 0.92.1 (patch)
+@glimmer/validator 0.92.1 (patch)
+@glimmer/vm 0.92.1 (patch)
+@glimmer/vm-babel-plugins 0.92.1 (patch)
+@glimmer/wire-format 0.92.1 (patch)
+
+#### :bug: Bug Fix
+* `@glimmer-workspace/build-support`, `@glimmer/debug`, `@glimmer/local-debug-babel-plugin`
+  * [#1606](https://github.com/glimmerjs/glimmer-vm/pull/1606) Fix stripping local debug code so can that dead-code-elimination produces smaller bundles with fewer function calls (part 1) ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :house: Internal
+* `@glimmer-workspace/krausest`, `@glimmer-workspace/bin`, `@glimmer-workspace/benchmark-env`, `@glimmer-workspace/integration-tests`, `@glimmer-workspace/test-utils`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1616](https://github.com/glimmerjs/glimmer-vm/pull/1616) Declare all workspace protocols workspace:* so that patch bumps bump all consumers as well ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* Other
+  * [#1615](https://github.com/glimmerjs/glimmer-vm/pull/1615) When generating the release plan, we don't need to run the puppeteer install -- so we can use --ignore-scripts ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1614](https://github.com/glimmerjs/glimmer-vm/pull/1614) Do not have nested packages ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1612](https://github.com/glimmerjs/glimmer-vm/pull/1612) Don't run the Krausest benchmark unless we have to ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1613](https://github.com/glimmerjs/glimmer-vm/pull/1613) Add a name entry to a package.json that didn't have a name -- all package.jsons must have a name ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1610](https://github.com/glimmerjs/glimmer-vm/pull/1610) Have the release-automation workflows use the same setup as CI ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1609](https://github.com/glimmerjs/glimmer-vm/pull/1609) Sync pnpm versions in the new release-automation workflows ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1607](https://github.com/glimmerjs/glimmer-vm/pull/1607) Setup Release plan, remove release-it ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 
 
 
