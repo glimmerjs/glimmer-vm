@@ -1,7 +1,9 @@
 {
   "name": "@glimmer/debug",
-  "version": "0.92.0",
+  "version": "0.92.4",
   "license": "MIT",
+  "description": "Utilities for helping make working in the vm easier. these should be inlined and stripped for ember usage.",
+  "sideEffects": false,
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/debug",
   "type": "module",
   "main": "index.ts",
@@ -28,19 +30,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
-    "test:publint": "publint",
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/interfaces": "workspace:^",
-    "@glimmer/util": "workspace:^",
-    "@glimmer/vm": "workspace:^"
+    "@glimmer/interfaces": "workspace:*",
+    "@glimmer/util": "workspace:*",
+    "@glimmer/vm": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:^",
-    "@glimmer/local-debug-flags": "workspace:^",
+    "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer/local-debug-flags": "workspace:*",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",
     "rollup": "^4.5.1",
