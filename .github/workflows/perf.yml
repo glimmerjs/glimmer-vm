@@ -43,7 +43,7 @@ jobs:
 
       - uses: browser-actions/setup-chrome@v1
         with:
-          chrome-version: 129
+          chrome-version: 128
           install-chromedriver: true
 
       - name: RUN
