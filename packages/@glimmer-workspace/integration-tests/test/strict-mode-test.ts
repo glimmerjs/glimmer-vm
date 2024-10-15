@@ -1220,6 +1220,20 @@ class DynamicStrictModeTest extends RenderTest {
   }
 
   @test
+  'Throws an error with correct debug label if a non-component is used as a component'() {
+    const Foo = defineSimpleHelper(() => 'Hello, world!');
+    const Bar = defineComponent({}, '{{#let this.Foo as |foo|}}<foo/>{{/let}}', {
+      definition: class extends GlimmerishComponent {
+        Foo = Foo;
+      },
+    });
+
+    this.assert.throws(() => {
+      this.renderComponent(Bar);
+    }, /Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was `<foo>` or `\{\{foo\}\}`, and the incorrect definition is the value at the path `foo`, which was:/u);
+  }
+
+  @test
   'Can pass helper as argument and invoke dynamically'() {
     const plusOne = defineSimpleHelper(() => 'Hello, world!');
     const Foo = defineComponent({}, '{{@value}}');
