@@ -41,11 +41,6 @@ jobs:
         with:
           node-version: '20.18.0'
 
-      - uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: 128
-          install-chromedriver: true
-
       - name: RUN
         if: steps.did-change.outputs.changed == 'true'
         run: pnpm run benchmark:setup
