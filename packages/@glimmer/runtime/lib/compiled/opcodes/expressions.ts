@@ -29,7 +29,7 @@ import {
   createDebugAliasRef,
 } from '@glimmer/reference';
 import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
-import { $v0, CurriedTypes, Op } from '@glimmer/vm';
+import { $s0, $v0, CurriedTypes, Op } from '@glimmer/vm';
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
