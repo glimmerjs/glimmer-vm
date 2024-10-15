@@ -7,7 +7,7 @@ import type {
 } from '@glimmer/interfaces';
 import { assign, expect, Stack } from '@glimmer/util';
 
-import { reifyArgsDebug } from './vm/arguments';
+import { getArgTags, reifyArgsDebug } from "./vm/arguments";
 
 interface InternalRenderNode<T extends object> extends RenderNode {
   bounds: Nullable<Bounds>;

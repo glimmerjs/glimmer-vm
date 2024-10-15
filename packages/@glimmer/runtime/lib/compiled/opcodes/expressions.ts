@@ -7,7 +7,7 @@ import type {
   ScopeBlock,
   VM as PublicVM,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
+import { createDebugAliasRef, type Reference } from "@glimmer/reference";
 import {
   check,
   CheckBlockSymbolTable,
@@ -28,7 +28,7 @@ import {
   valueForRef,
 } from '@glimmer/reference';
 import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
-import { $v0, CurriedTypes, Op } from '@glimmer/vm';
+import { $s0, $v0, CurriedTypes, Op } from "@glimmer/vm";
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
@@ -67,7 +67,10 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
   vm.loadValue(
     $v0,
-    createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
+    addHelper(createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict), {
+      type,
+      definition
+    })
   );
 });
 
@@ -170,6 +173,11 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   let expr = check(vm.stack.pop(), CheckReference);
+  if (import.meta.env.DEV) {
+    let state = vm.fetchValue($s0);
+    let symbols = state.table.symbols;
+    expr = createDebugAliasRef(`${symbols[symbol - 1]} from let`, expr);
+  }
   vm.scope().bindSymbol(symbol, expr);
 });
 

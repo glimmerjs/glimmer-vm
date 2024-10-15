@@ -19,7 +19,7 @@ import type {
 import type { Reference } from '@glimmer/reference';
 import type { Tag } from '@glimmer/validator';
 import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
-import { createDebugAliasRef, UNDEFINED_REFERENCE, valueForRef } from '@glimmer/reference';
+import { createDebugAliasRef, UNDEFINED_REFERENCE, valueForRef, setEnableRefTrace, getRefsTrace } from '@glimmer/reference';
 import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
 import { CONSTANT_TAG } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
@@ -503,6 +503,7 @@ export function reifyArgs(args: CapturedArguments) {
 }
 
 const ARGUMENT_ERROR = Symbol('ARGUMENT_ERROR');
+const ARGUMENT_TAG = Symbol('ARGUMENT_TAG');
 
 export function isArgumentError(arg: unknown): arg is ArgumentError {
   return (
@@ -516,6 +517,42 @@ function ArgumentErrorImpl(error: any) {
   return {
     [ARGUMENT_ERROR]: true,
     error,
+  };
+}
+
+export function getArgTags(args: CapturedArguments) {
+  let named = dict();
+  for (const [key, value] of Object.entries(args.named)) {
+    named[key] = value.tag;
+  }
+  let positional = args.positional.map(p => p.tag);
+  return {
+    named,
+    positional,
+  };
+}
+
+function buildRefTree(tracedRefs: Map<Reference, Reference[]>, ref: Reference) {
+  return {
+    ref: {
+      label: ref.debugLabel,
+      value: ref.lastValue,
+      meta: ref.debugMeta
+    },
+    children: tracedRefs[ref]?.map(r => buildRefTree(tracedRefs, r)) || []
+  }
+}
+
+export function getArgRefsTree(args: CapturedArguments) {
+  const tracedRefs = getRefsTrace();
+  let named = dict();
+  for (const [key, value] of Object.entries(args.named)) {
+    named[key] = buildRefTree(tracedRefs, value);
+  }
+  let positional = args.positional.map(p => buildRefTree(tracedRefs, p));
+  return {
+    named,
+    positional,
   };
 }
 
@@ -543,11 +580,15 @@ export function reifyPositionalDebug(positional: CapturedPositionalArguments) {
 }
 
 export function reifyArgsDebug(args: CapturedArguments) {
+  setEnableRefTrace(true);
   let named = reifyNamedDebug(args.named);
   let positional = reifyPositionalDebug(args.positional);
+  setEnableRefTrace(false);
   return {
     named,
     positional,
+    tags: getArgTags(args),
+    refs: getArgRefsTree(args)
   };
 }
 
