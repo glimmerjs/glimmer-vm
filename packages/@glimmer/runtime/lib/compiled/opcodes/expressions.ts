@@ -22,13 +22,14 @@ import { getInternalHelperManager } from '@glimmer/manager';
 import {
   childRefFor,
   createComputeRef,
+  createDebugAliasRef,
   FALSE_REFERENCE,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
 import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
-import { $v0, CurriedTypes, Op } from '@glimmer/vm';
+import { $s0, $v0, CurriedTypes, Op } from '@glimmer/vm';
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
@@ -170,6 +171,12 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   let expr = check(vm.stack.pop(), CheckReference);
+  if (import.meta.env.DEV) {
+    let state = vm.fetchValue($s0);
+    let symbols = (state as any)?.table?.symbols;
+    let sym = symbol === 0 ? 'this' : symbols?.[symbol - 1];
+    expr = createDebugAliasRef!(sym, expr);
+  }
   vm.scope().bindSymbol(symbol, expr);
 });
 
