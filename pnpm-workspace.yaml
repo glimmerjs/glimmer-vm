@@ -11,5 +11,5 @@ packages:
   - 'packages/@types/*'
 catalog:
   eslint: ^8.57.1
-  typescript: ^5.6.3
+  typescript: ^5.5.4
   vite: ^5.4.9
