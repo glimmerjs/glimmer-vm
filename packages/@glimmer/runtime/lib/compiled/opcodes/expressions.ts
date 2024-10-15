@@ -174,7 +174,7 @@ APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   if (import.meta.env.DEV) {
     let state = vm.fetchValue($s0);
     let symbols = state.table.symbols;
-    expr = createDebugAliasRef(`result of let ... as | ${symbols[symbol]} |`, expr);
+    expr = createDebugAliasRef(`result of let ... as | ${symbols[symbol - 1]} |`, expr);
   }
   vm.scope().bindSymbol(symbol, expr);
 });
