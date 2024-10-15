@@ -41,11 +41,11 @@
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
     "babel-plugin-tester": "^11.0.4",
-    "eslint": "^8.54.0",
+    "eslint": "catalog:",
     "mocha": "^10.2.0",
     "publint": "^0.2.5",
     "rollup": "^4.5.1",
-    "typescript": "*"
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=16"

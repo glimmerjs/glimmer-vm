@@ -47,9 +47,9 @@
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/debug": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
-    "eslint": "^8.52.0",
+    "eslint": "catalog:",
     "publint": "^0.2.5",
     "rollup": "^4.5.1",
-    "typescript": "*"
+    "typescript": "catalog:"
   }
 }
