@@ -173,10 +173,12 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   let expr = check(vm.stack.pop(), CheckReference);
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && symbol > 0) {
     let state = vm.fetchValue($s0);
-    let symbols = state.table.symbols;
-    expr = createDebugAliasRef(`${symbols[symbol - 1]} from let`, expr);
+    let symbols = state.table?.symbols;
+    if (symbols && symbols.length >= symbol) {
+      expr = createDebugAliasRef(`${symbols[symbol - 1]} from let`, expr);
+    }
   }
   vm.scope().bindSymbol(symbol, expr);
 });
