@@ -156,7 +156,7 @@ export function isUpdatableRef(_ref: Reference) {
   return ref.update !== null;
 }
 
-const trackedRefs = new Map();
+const trackedRefs = new WeakMap();
 const refStack = [];
 let isTraceEnabled = false;
 
@@ -169,15 +169,13 @@ function getCurrentRef() {
 }
 
 export function getRefsTrace() {
-  const copy = new Map(trackedRefs);
-  trackedRefs.clear();
-  return copy;
+  return trackedRefs;
 }
 
 export function valueForRef<T>(_ref: Reference<T>): T {
   const ref = _ref as ReferenceImpl<T>;
 
-  if (import.meta.env.DEV && isTraceEnabled) {
+  if (import.meta.env.DEV) {
     if (refStack.length) {
       trackedRefs.get(getCurrentRef()).push(ref);
     }
@@ -192,12 +190,11 @@ export function valueForRef<T>(_ref: Reference<T>): T {
   const { lastRevision } = ref;
   let lastValue;
 
-  if (import.meta.env.DEV && isTraceEnabled) {
-    refStack.push(ref);
-    trackedRefs.set(ref, []);
-  }
-
   if (tag === null || !validateTag(tag, lastRevision)) {
+    if (import.meta.env.DEV) {
+      refStack.push(ref);
+      trackedRefs.set(ref, []);
+    }
     const { compute } = ref;
 
     const newTag = track(
@@ -210,15 +207,15 @@ export function valueForRef<T>(_ref: Reference<T>): T {
     tag = ref.tag = newTag;
 
     ref.lastRevision = valueForTag(newTag);
+
+    if (import.meta.env.DEV) {
+      refStack.pop();
+    }
   } else {
     lastValue = ref.lastValue;
   }
 
   consumeTag(tag);
-
-  if (import.meta.env.DEV && isTraceEnabled) {
-    refStack.pop();
-  }
 
   return lastValue as T;
 }
