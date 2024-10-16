@@ -1,5 +1,40 @@
 # Changelog
 
+## Release (2024-10-16)
+
+@glimmer/compiler 0.92.5 (patch)
+@glimmer/debug 0.92.5 (patch)
+@glimmer/destroyable 0.92.4 (patch)
+@glimmer/encoder 0.92.4 (patch)
+@glimmer/global-context 0.92.4 (patch)
+@glimmer/interfaces 0.92.4 (patch)
+@glimmer/manager 0.92.5 (patch)
+@glimmer/node 0.92.5 (patch)
+@glimmer/opcode-compiler 0.92.5 (patch)
+@glimmer/owner 0.92.4 (patch)
+@glimmer/program 0.92.5 (patch)
+@glimmer/reference 0.92.4 (patch)
+@glimmer/runtime 0.92.5 (patch)
+@glimmer/syntax 0.92.4 (patch)
+@glimmer/util 0.92.4 (patch)
+@glimmer/validator 0.92.4 (patch)
+@glimmer/vm 0.92.4 (patch)
+@glimmer/vm-babel-plugins 0.92.4 (patch)
+@glimmer/wire-format 0.92.4 (patch)
+
+#### :house: Internal
+* `@glimmer-workspace/bin`, `@glimmer/syntax`, `@types/puppeteer-chromium-resolver`
+  * [#1628](https://github.com/glimmerjs/glimmer-vm/pull/1628) Update puppeteer, node (for perf testing), and the setup script which launches tracerbench ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* Other
+  * [#1627](https://github.com/glimmerjs/glimmer-vm/pull/1627) Add `packageManager` to root package.json and `use-node-version` to the .npmrc ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/bin`, `@glimmer/debug`, `@glimmer/manager`, `@glimmer/opcode-compiler`, `@glimmer/syntax`
+  * [#1625](https://github.com/glimmerjs/glimmer-vm/pull/1625) Don't build @glimmer/debug, as no package should be using it during publish-time ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/bin`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`
+  * [#1624](https://github.com/glimmerjs/glimmer-vm/pull/1624) Force bump, plan fix for release-plan ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## Release (2024-09-13)
 
 
