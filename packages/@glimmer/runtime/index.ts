@@ -1,5 +1,4 @@
 /**
- * big change
  * @deprecated use RichIteratorResult<Tick, Return> or TemplateIterator instead
  */
 import './lib/bootstrap';
