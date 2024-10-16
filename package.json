@@ -130,7 +130,7 @@
     "overrides": {
       "@rollup/pluginutils": "^5.0.2",
       "@types/node": "$@types/node",
-      "typescript": "$typescript"
+      "typescript": "catalog:"
     },
     "peerDependencyRules": {
       "allowAny": [
