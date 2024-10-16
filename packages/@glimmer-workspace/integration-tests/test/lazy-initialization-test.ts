@@ -1,4 +1,6 @@
+import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
 import { assign } from '@glimmer/util';
+
 import {
   BaseEnv,
   GlimmerishComponent,
@@ -39,6 +41,50 @@ class LazyInitializationTest extends RenderTest {
     this.render(`<HelloWorld />`);
 
     this.assertHTML(`0 0`);
+  }
+
+  @test 'Should be able to lazily initialize with a modifier'() {
+    const modifier = (callback: () => unknown) => {
+      setModifierManager(
+        () => ({
+          capabilities: modifierCapabilities('3.22'),
+          createModifier() {},
+          installModifier() {
+            callback();
+          },
+          updateModifier() {},
+          destroyModifier() {},
+        }),
+        callback
+      );
+
+      return callback;
+    };
+
+    class Thing extends GlimmerishComponent {
+      @tracked something: string | null = null;
+
+      thing = modifier(() => {
+        if (!this.something) {
+          this.something = 'something';
+        }
+      });
+    }
+
+    this.registerComponent(
+      'Glimmer',
+      'HelloWorld',
+      `
+<div {{this.thing}}>
+  {{this.something}}
+</div>
+`,
+      Thing
+    );
+
+    this.render(`<HelloWorld />`);
+
+    this.assertHTML(`<div>something</div>`);
   }
 }
 
