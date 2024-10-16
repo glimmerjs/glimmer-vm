@@ -9,3 +9,7 @@ packages:
   - 'packages/@glimmer-workspace/*'
   - 'packages/@glimmer-workspace/*/test'
   - 'packages/@types/*'
+catalog:
+  eslint: ^8.57.1
+  typescript: ~5.5.4
+  vite: ^5.4.9

@@ -18,26 +18,26 @@
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-terser": "^0.4.4",
-    "eslint": "^8.52.0",
-    "eslint-plugin-import": "^2.29.0",
-    "eslint-plugin-json": "^3.1.0",
-    "eslint-plugin-prettier": "^5.0.1",
-    "eslint-plugin-simple-import-sort": "^10.0.0",
-    "eslint-plugin-unused-imports": "^3.0.0",
+    "eslint": "catalog:",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-json": "^4.0.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
     "magic-string": "^0.30.0",
     "postcss": "^8.4.31",
-    "rollup": "^4.5.1",
+    "rollup": "^4.24.0",
     "rollup-plugin-insert": "^1.3.2",
     "rollup-plugin-polyfill-node": "^0.13.0",
     "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-ts": "^3.4.5",
     "unplugin-fonts": "^1.0.3",
-    "vite": "^5.0.12"
+    "vite": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^20.9.4",
-    "eslint": "^8.52.0",
-    "typescript": "*"
+    "@types/node": "^20.16.11",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=16"

@@ -20,7 +20,7 @@
     "@glimmer/validator": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "^8.52.0"
+    "eslint": "catalog:"
   },
   "engines": {
     "node": ">=16"

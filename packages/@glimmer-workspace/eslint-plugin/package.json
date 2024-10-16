@@ -4,27 +4,27 @@
   "type": "commonjs",
   "main": "lib/index.cjs",
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^6.12.0",
-    "@typescript-eslint/parser": "^6.12.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-import-resolver-typescript": "^3.6.0",
-    "eslint-plugin-deprecation": "^2.0.0",
-    "eslint-plugin-import": "^2.28.0",
-    "eslint-plugin-n": "^16.3.1",
-    "eslint-plugin-qunit": "^8.0.0",
-    "eslint-plugin-regexp": "^2.1.1",
-    "eslint-plugin-simple-import-sort": "^10.0.0",
-    "eslint-plugin-unused-imports": "^3.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.9.0",
+    "@typescript-eslint/parser": "^8.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.3",
+    "eslint-plugin-deprecation": "^3.0.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-n": "^17.11.1",
+    "eslint-plugin-qunit": "^8.1.2",
+    "eslint-plugin-regexp": "^2.6.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.1.4",
     "eslint-utils": "^3.0.0",
-    "ignore": "^5.2.4"
+    "ignore": "^5.3.2"
   },
   "peerDependencies": {
-    "eslint": "^8.47.0"
+    "eslint": "catalog:"
   },
   "devDependencies": {
-    "@types/eslint": "^8.44.7",
+    "@types/eslint": "^8.56.12",
     "@types/eslint-utils": "^3.0.5",
-    "@types/node": "^20.9.4",
-    "eslint": "^8.47.0"
+    "@types/node": "^20.16.11",
+    "eslint": "catalog:"
   }
 }
