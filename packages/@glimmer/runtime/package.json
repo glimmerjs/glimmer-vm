@@ -1,27 +1,23 @@
 {
   "name": "@glimmer/runtime",
-  "version": "0.92.4",
+  "version": "0.92.5-beta",
   "license": "MIT",
   "description": "Minimal runtime needed to render Glimmer templates",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/runtime",
   "type": "module",
-  "main": "index.ts",
-  "types": "index.ts",
-  "publishConfig": {
-    "access": "public",
-    "types": "dist/dev/index.d.ts",
-    "exports": {
-      ".": {
-        "types": "./dist/dev/index.d.ts",
-        "development": {
-          "import": "./dist/dev/index.js"
-        },
-        "import": "./dist/prod/index.js"
-      }
-    },
-    "main": null,
-    "module": "dist/dev/index.js"
+  "access": "public",
+  "types": "dist/dev/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/dev/index.d.ts",
+      "development": {
+        "import": "./dist/dev/index.js"
+      },
+      "import": "./dist/prod/index.js"
+    }
   },
+  "main": null,
+  "module": "dist/dev/index.js",
   "files": [
     "dist"
   ],
@@ -32,24 +28,24 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/destroyable": "workspace:*",
+    "@glimmer/destroyable": "*",
     "@glimmer/env": "0.1.7",
-    "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*",
-    "@glimmer/manager": "workspace:*",
-    "@glimmer/owner": "workspace:*",
-    "@glimmer/program": "workspace:*",
-    "@glimmer/reference": "workspace:*",
-    "@glimmer/util": "workspace:*",
-    "@glimmer/validator": "workspace:*",
-    "@glimmer/vm": "workspace:*",
-    "@glimmer/wire-format": "workspace:*"
+    "@glimmer/global-context": "*",
+    "@glimmer/interfaces": "*",
+    "@glimmer/manager": "*",
+    "@glimmer/owner": "*",
+    "@glimmer/program": "*",
+    "@glimmer/reference": "*",
+    "@glimmer/util": "*",
+    "@glimmer/validator": "*",
+    "@glimmer/vm": "*",
+    "@glimmer/wire-format": "*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
-    "@glimmer/debug": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
-    "@glimmer/opcode-compiler": "workspace:*",
+    "@glimmer-workspace/build-support": "*",
+    "@glimmer/debug": "*",
+    "@glimmer/local-debug-flags": "*",
+    "@glimmer/opcode-compiler": "*",
     "@types/qunit": "^2.19.9",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",

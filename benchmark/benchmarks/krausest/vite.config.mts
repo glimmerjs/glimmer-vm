@@ -17,6 +17,7 @@ const packagePath = (name: string) => {
 export default defineConfig({
   plugins: [benchmark()],
   resolve: {
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.d.ts'],
     alias: {
       '@glimmer-workspace/benchmark-env': '@glimmer-workspace/benchmark-env/index.ts',
       '@glimmer/debug': packagePath('@glimmer/debug'),
@@ -42,7 +43,7 @@ function benchmark(): Plugin {
       if (id === '\0@glimmer/env') {
         return `export const DEBUG = false;`;
       } else if (id === '\0@glimmer/local-debug-flags') {
-        return `export const LOCAL_SHOULD_LOG = false;`;
+        return `export const LOCAL_SHOULD_LOG = false;export const LOCAL_DEBUG=false`;
       }
       /** @type {string | undefined} */
       let result: string | undefined;

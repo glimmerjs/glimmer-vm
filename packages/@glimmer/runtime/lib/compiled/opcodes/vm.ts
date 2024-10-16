@@ -56,7 +56,7 @@ APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
 });
 
 APPEND_OPCODES.add(Op.ConstantReference, (vm, { op1: other }) => {
-  vm.stack.push(createConstRef(vm[CONSTANTS].getValue(decodeHandle(other)), false));
+  vm.stack.push(createConstRef(vm[CONSTANTS].getValue(decodeHandle(other))));
 });
 
 APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {

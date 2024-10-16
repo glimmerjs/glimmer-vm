@@ -49,6 +49,7 @@ class ReferenceImpl<T = unknown> implements Reference<T> {
   public update: Nullable<(val: T) => void> = null;
 
   public debugLabel?: string;
+  public debugMeta?: object;
 
   constructor(type: ReferenceType) {
     this[REFERENCE] = type;
@@ -75,20 +76,21 @@ export const NULL_REFERENCE = createPrimitiveRef(null);
 export const TRUE_REFERENCE = createPrimitiveRef(true as const);
 export const FALSE_REFERENCE = createPrimitiveRef(false as const);
 
-export function createConstRef<T>(value: T, debugLabel: false | string): Reference<T> {
+export function createConstRef<T>(value: T, debugLabel: false | string, meta?: object | undefined): Reference<T> {
   const ref = new ReferenceImpl<T>(CONSTANT);
 
   ref.lastValue = value;
   ref.tag = CONSTANT_TAG;
 
   if (import.meta.env.DEV) {
-    ref.debugLabel = debugLabel as string;
+    ref.debugLabel = String(debugLabel || value);
+    ref.debugMeta = meta;
   }
 
   return ref;
 }
 
-export function createUnboundRef<T>(value: T, debugLabel: false | string): Reference<T> {
+export function createUnboundRef<T>(value: T, debugLabel: false | string, meta?: object | undefined): Reference<T> {
   const ref = new ReferenceImpl<T>(UNBOUND);
 
   ref.lastValue = value;
@@ -96,6 +98,7 @@ export function createUnboundRef<T>(value: T, debugLabel: false | string): Refer
 
   if (import.meta.env.DEV) {
     ref.debugLabel = debugLabel as string;
+    ref.debugMeta = meta;
   }
 
   return ref;
@@ -104,7 +107,8 @@ export function createUnboundRef<T>(value: T, debugLabel: false | string): Refer
 export function createComputeRef<T = unknown>(
   compute: () => T,
   update: Nullable<(value: T) => void> = null,
-  debugLabel: false | string = 'unknown'
+  debugLabel: false | string = 'unknown',
+  meta?: object | undefined
 ): Reference<T> {
   const ref = new ReferenceImpl<T>(COMPUTE);
 
@@ -113,6 +117,7 @@ export function createComputeRef<T = unknown>(
 
   if (import.meta.env.DEV) {
     ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+    ref.debugMeta = meta;
   }
 
   return ref;
@@ -151,8 +156,30 @@ export function isUpdatableRef(_ref: Reference) {
   return ref.update !== null;
 }
 
+const trackedRefs = new WeakMap();
+const refStack = [];
+let isTraceEnabled = false;
+
+export function setEnableRefTrace(enable: boolean) {
+  isTraceEnabled = enable;
+}
+
+function getCurrentRef() {
+  return refStack.at(-1);
+}
+
+export function getRefsTrace() {
+  return trackedRefs;
+}
+
 export function valueForRef<T>(_ref: Reference<T>): T {
   const ref = _ref as ReferenceImpl<T>;
+
+  if (import.meta.env.DEV) {
+    if (refStack.length) {
+      trackedRefs.get(getCurrentRef()).push(ref);
+    }
+  }
 
   let { tag } = ref;
 
@@ -164,6 +191,10 @@ export function valueForRef<T>(_ref: Reference<T>): T {
   let lastValue;
 
   if (tag === null || !validateTag(tag, lastRevision)) {
+    if (import.meta.env.DEV) {
+      refStack.push(ref);
+      trackedRefs.set(ref, []);
+    }
     const { compute } = ref;
 
     const newTag = track(
@@ -176,6 +207,10 @@ export function valueForRef<T>(_ref: Reference<T>): T {
     tag = ref.tag = newTag;
 
     ref.lastRevision = valueForTag(newTag);
+
+    if (import.meta.env.DEV) {
+      refStack.pop();
+    }
   } else {
     lastValue = ref.lastValue;
   }

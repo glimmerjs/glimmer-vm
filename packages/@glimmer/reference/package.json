@@ -9,25 +9,21 @@
     "directory": "packages/@glimmer/reference"
   },
   "type": "module",
-  "main": "index.ts",
-  "types": "index.ts",
-  "publishConfig": {
-    "access": "public",
-    "types": "dist/dev/index.d.ts",
-    "exports": {
-      ".": {
-        "types": "./dist/dev/index.d.ts",
-        "development": {
-          "require": "./dist/dev/index.cjs",
-          "import": "./dist/dev/index.js"
-        },
+  "access": "public",
+  "types": "dist/dev/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/dev/index.d.ts",
+      "development": {
         "require": "./dist/dev/index.cjs",
-        "import": "./dist/prod/index.js"
-      }
-    },
-    "main": null,
-    "module": "dist/dev/index.js"
+        "import": "./dist/dev/index.js"
+      },
+      "require": "./dist/dev/index.cjs",
+      "import": "./dist/prod/index.js"
+    }
   },
+  "main": null,
+  "module": "dist/dev/index.js",
   "files": [
     "dist"
   ],
@@ -39,14 +35,14 @@
   },
   "dependencies": {
     "@glimmer/env": "^0.1.7",
-    "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*",
-    "@glimmer/validator": "workspace:*"
+    "@glimmer/global-context": "*",
+    "@glimmer/interfaces": "*",
+    "@glimmer/util": "*",
+    "@glimmer/validator": "*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
+    "@glimmer-workspace/build-support": "*",
+    "@glimmer/local-debug-flags": "*",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",
     "rollup": "^4.5.1",
