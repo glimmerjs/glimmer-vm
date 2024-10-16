@@ -539,7 +539,7 @@ function buildRefTree(tracedRefs: Map<Reference, Reference[]>, ref: Reference) {
       value: ref.lastValue,
       meta: ref.debugMeta
     },
-    children: tracedRefs[ref]?.map(r => buildRefTree(tracedRefs, r)) || []
+    children: tracedRefs.get(ref)?.map(r => buildRefTree(tracedRefs, r)) || []
   }
 }
 
