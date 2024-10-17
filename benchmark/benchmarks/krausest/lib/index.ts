@@ -1,26 +1,23 @@
-import { createBenchmark } from '@glimmer-workspace/benchmark-env';
+import { createBenchmark } from '@/utils/benchmark';
 
-import Application from '@/components/Application';
-import ApplicationTemplate from '@/components/Application.hbs';
-import Row from '@/components/Row';
-import RowTemplate from '@/components/Row.hbs';
-import ButtonTemplate from '@/components/BsButton.hbs';
 import { enforcePaintEvent, ButtonSelectors, emitDomClickEvent, waitForIdle } from '@/utils/compat';
 
-export default async function render(element: HTMLElement, isInteractive: boolean) {
-  const benchmark = createBenchmark();
+// @ts-check
+// https://codepen.io/lifeart/pen/abMzEZm?editors=0110
+// https://github.com/glimmerjs/glimmer-vm/issues/1540
 
-  benchmark.templateOnlyComponent('BsButton', ButtonTemplate);
-  benchmark.basicComponent('Row', RowTemplate, Row);
-  benchmark.basicComponent('Application', ApplicationTemplate, Application);
+export default async function render() {
+  const benchmark = createBenchmark();
 
   // starting app
 
   await waitForIdle();
 
-  const app = await benchmark.render('Application', {}, element, isInteractive);
+  const app = await benchmark.render();
 
   await waitForIdle();
+
+  // return;
 
   await app('render1000Items1', () => {
     emitDomClickEvent(ButtonSelectors.Create1000);
