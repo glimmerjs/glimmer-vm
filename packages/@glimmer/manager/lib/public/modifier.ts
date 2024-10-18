@@ -38,7 +38,6 @@ export interface CustomModifierState<ModifierStateBucket> {
   modifier: ModifierStateBucket;
   delegate: ModifierManager<ModifierStateBucket>;
   args: Arguments;
-  definition?: object;
 }
 
 /**
@@ -109,7 +108,6 @@ export class CustomModifierManager<O extends Owner, ModifierStateBucket>
       element,
       delegate,
       args,
-      definition,
       modifier,
     };
 
@@ -118,7 +116,8 @@ export class CustomModifierManager<O extends Owner, ModifierStateBucket>
     return state;
   }
 
-  getDebugName({ delegate, definition }: CustomModifierState<ModifierStateBucket>) {
+  getDebugName(definition: object) {
+    const delegate = this.factory.prototype;
     if (typeof delegate?.getDebugName === 'function') {
       return delegate.getDebugName(definition);
     }

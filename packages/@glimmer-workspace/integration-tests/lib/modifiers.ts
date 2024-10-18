@@ -44,8 +44,8 @@ export class TestModifierManager
     return tag;
   }
 
-  getDebugName(definition?: object) {
-    return (definition as any).instance.constructor.name || '<unknown>';
+  getDebugName({ Klass }: TestModifierDefinitionState) {
+    return Klass?.name || '<unknown>';
   }
 
   getDebugInstance({ instance }: TestModifier) {

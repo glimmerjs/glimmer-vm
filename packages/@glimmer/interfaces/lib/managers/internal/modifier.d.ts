@@ -22,8 +22,8 @@ export interface InternalModifierManager<
   // the modifier's update hooks need to be called (if at all).
   getTag(modifier: TModifierInstanceState): UpdatableTag | null;
 
-  getDebugName(modifier: TModifierInstanceState): string;
-  getDebugInstance(modifier: TModifierInstanceState): unknown;
+  getDebugName(Modifier: TModifierDefinitionState): string;
+  getDebugInstance(Modifier: TModifierInstanceState): unknown;
 
   // At initial render, the modifier gets a chance to install itself on the
   // element it is managing. It can also return a bucket of state that
