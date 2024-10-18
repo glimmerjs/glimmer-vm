@@ -48,11 +48,15 @@ test('deprecated program visitor', (assert) => {
     return {
       name: 'plugin',
       visitor: {
-        Program(node: AST.Program) {
+        Template(node: AST.Template) {
           assert.step(node.type);
         },
 
         BlockStatement(node: AST.BlockStatement) {
+          assert.step(node.type);
+        },
+
+        Block(node: AST.Block) {
           assert.step(node.type);
         },
       },

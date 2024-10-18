@@ -82,7 +82,7 @@ export function createConstRef<T>(value: T, debugLabel: false | string): Referen
   ref.tag = CONSTANT_TAG;
 
   if (import.meta.env.DEV) {
-    ref.debugLabel = debugLabel as string;
+    ref.debugLabel = (debugLabel as string) || String(value);
   }
 
   return ref;
