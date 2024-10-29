@@ -1,7 +1,7 @@
 import type {
   CompileTimeHeap,
+  DebugConstants,
   ResolutionTimeConstants,
-  RuntimeConstants,
   RuntimeHeap,
   RuntimeProgram,
   SerializedHeap,
@@ -33,6 +33,10 @@ export class RuntimeHeapImpl implements RuntimeHeap {
     let { buffer, table } = serializedHeap;
     this.heap = new Int32Array(buffer);
     this.table = table;
+  }
+
+  entries(): number {
+    return this.table.length;
   }
 
   // It is illegal to close over this address, as compaction
@@ -90,6 +94,16 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     this.handleState = [];
   }
 
+  /**
+   * The number of entries in the table. A handle is legal if
+   * it is less than this number.
+   *
+   * @debugging
+   */
+  entries(): number {
+    return this.handleTable.length;
+  }
+
   pushRaw(value: number): void {
     this.sizeCheck();
     this.heap[this.offset++] = value;
@@ -133,7 +147,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     // if we start using the compact API, we should change this.
     if (LOCAL_DEBUG) {
       this.handleState[handle] = TableSlotState.Allocated;
-      this.#lastSize = size;
+      this.handleTable[handle + 1] = this.offset;
     }
   }
 
@@ -211,7 +225,7 @@ export class RuntimeProgramImpl implements RuntimeProgram {
   private _opcode: RuntimeOpImpl;
 
   constructor(
-    public constants: RuntimeConstants & ResolutionTimeConstants,
+    public constants: DebugConstants & ResolutionTimeConstants,
     public heap: RuntimeHeap
   ) {
     this._opcode = new RuntimeOpImpl(this.heap);
@@ -237,13 +251,9 @@ function slice(arr: Int32Array, start: number, end: number): Int32Array {
   return ret;
 }
 
-function sizeof(table: number[], handle: number, lastSize: number) {
+function sizeof(table: number[], handle: number) {
   if (LOCAL_DEBUG) {
-    if (table.length === handle + 1) {
-      return lastSize;
-    } else {
-      return unwrap(table[handle + 1]) - unwrap(table[handle]);
-    }
+    return unwrap(table[handle + 1]) - unwrap(table[handle]);
   } else {
     return -1;
   }

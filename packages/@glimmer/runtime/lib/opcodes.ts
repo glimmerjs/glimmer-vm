@@ -17,7 +17,7 @@ import type { LowLevelVM, VM } from './vm';
 import type { InternalVM } from './vm/append';
 
 import { isScopeReference } from './scope';
-import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
+import { CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, STACKS } from './symbols';
 import { CURSOR_STACK } from './vm/element-builder';
 
 export interface OpcodeJSON {
@@ -74,7 +74,7 @@ export class AppendOpcodes {
     if (LOCAL_SHOULD_LOG) {
       let pos = vm[INNER_VM].fetchRegister($pc) - opcode.size;
 
-      [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
+      [opName, params] = debug(vm[CONSTANTS], vm[HEAP], opcode, opcode.isMachine)!;
 
       // console.log(`${typePos(vm['pc'])}.`);
       LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, params)}`);

@@ -54,7 +54,7 @@ if (LOCAL_DEBUG) {
     ops: [
       {
         name: 'offset',
-        type: 'u32',
+        type: 'inline:u32',
       },
     ],
     check: true,
@@ -67,7 +67,7 @@ if (LOCAL_DEBUG) {
     ops: [
       {
         name: 'to',
-        type: 'u32',
+        type: 'inline:relative-pc',
       },
     ],
     check: true,
@@ -88,7 +88,7 @@ if (LOCAL_DEBUG) {
     ops: [
       {
         name: 'offset',
-        type: 'i32',
+        type: 'inline:relative-pc',
       },
     ],
     check: true,
@@ -100,7 +100,7 @@ if (LOCAL_DEBUG) {
     ops: [
       {
         name: 'helper',
-        type: 'handle',
+        type: 'const:helper',
       },
     ],
     check: true,
@@ -121,7 +121,7 @@ if (LOCAL_DEBUG) {
     ops: [
       {
         name: 'register',
-        type: 'u32',
+        type: 'register:saved',
       },
     ],
     check: true,
@@ -133,7 +133,7 @@ if (LOCAL_DEBUG) {
     stackChange: 0,
     ops: [
       {
-        name: 'register',
+        name: 'register:saved',
         type: 'u32',
       },
     ],
@@ -147,7 +147,7 @@ if (LOCAL_DEBUG) {
     ops: [
       {
         name: 'symbol',
-        type: 'u32',
+        type: 'symbol',
       },
     ],
     check: true,
@@ -173,7 +173,7 @@ if (LOCAL_DEBUG) {
     ops: [
       {
         name: 'symbol',
-        type: 'u32',
+        type: 'symbol',
       },
     ],
     check: true,

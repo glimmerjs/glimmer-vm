@@ -3,11 +3,11 @@ import type {
   ComponentDefinition,
   ComponentDefinitionState,
   ConstantPool,
+  DebugConstants,
   HelperDefinitionState,
   ModifierDefinitionState,
   ResolutionTimeConstants,
   ResolvedComponentDefinition,
-  RuntimeConstants,
   Template,
 } from '@glimmer/interfaces';
 import {
@@ -67,7 +67,7 @@ export class CompileTimeConstantImpl implements CompileTimeConstants {
   }
 }
 
-export class RuntimeConstantsImpl implements RuntimeConstants {
+export class RuntimeConstantsImpl implements DebugConstants {
   protected values: unknown[];
 
   constructor(pool: ConstantPool) {
@@ -88,11 +88,15 @@ export class RuntimeConstantsImpl implements RuntimeConstants {
 
     return reified;
   }
+
+  hasHandle(handle: number) {
+    return this.values.length > handle;
+  }
 }
 
 export class ConstantsImpl
   extends CompileTimeConstantImpl
-  implements RuntimeConstants, ResolutionTimeConstants
+  implements DebugConstants, ResolutionTimeConstants
 {
   protected reifiedArrs: { [key: number]: unknown[] } = {
     [WELL_KNOWN_EMPTY_ARRAY_POSITION]: WELL_KNOWN_EMPTY_ARRAY as unknown[],
@@ -114,6 +118,10 @@ export class ConstantsImpl
     ComponentDefinitionState | ResolvedComponentDefinition,
     ComponentDefinition | null
   >();
+
+  hasHandle(handle: number): boolean {
+    return this.values.length > handle;
+  }
 
   helper(
     definitionState: HelperDefinitionState,

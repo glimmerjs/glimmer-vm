@@ -1,6 +1,6 @@
 import type {
+  DebugConstants,
   ResolutionTimeConstants,
-  RuntimeConstants,
   RuntimeHeap,
   RuntimeOp,
 } from '../program.js';
@@ -21,13 +21,13 @@ export interface RuntimeContext {
 }
 
 export interface RuntimeProgram {
-  readonly constants: RuntimeConstants & ResolutionTimeConstants;
+  readonly constants: DebugConstants & ResolutionTimeConstants;
   readonly heap: RuntimeHeap;
 
   opcode(offset: number): RuntimeOp;
 }
 
 export interface RuntimeArtifacts {
-  readonly constants: RuntimeConstants & ResolutionTimeConstants;
+  readonly constants: DebugConstants & ResolutionTimeConstants;
   readonly heap: RuntimeHeap;
 }

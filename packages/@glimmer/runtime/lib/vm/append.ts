@@ -1,6 +1,7 @@
 import type {
   CompilableTemplate,
   CompileTimeCompilationContext,
+  DebugConstants,
   Destroyable,
   DynamicScope,
   ElementBuilder,
@@ -11,7 +12,6 @@ import type {
   RenderResult,
   ResolutionTimeConstants,
   RichIteratorResult,
-  RuntimeConstants,
   RuntimeContext,
   RuntimeHeap,
   RuntimeProgram,
@@ -54,7 +54,7 @@ import { ListBlockOpcode, ListItemOpcode, ResumableVMStateImpl, TryOpcode } from
  * the implementation of the Append VM itself.
  */
 export interface InternalVM {
-  readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
+  readonly [CONSTANTS]: DebugConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
 
   readonly env: Environment;
@@ -66,7 +66,7 @@ export interface InternalVM {
   loadValue(register: Register, value: unknown): void;
   loadValue(register: Register | MachineRegister, value: unknown): void;
 
-  fetchValue(register: MachineRegister.ra | MachineRegister.pc): number;
+  fetchValue(register: MachineRegister.ra | MachineRegister.pc ): number;
   // TODO: Something better than a type assertion?
   fetchValue<T>(register: Register): T;
   fetchValue(register: Register): unknown;
@@ -133,7 +133,7 @@ export class VM implements PublicVM, InternalVM {
   private readonly [HEAP]: RuntimeHeap;
   private readonly destructor: object;
   private readonly [DESTROYABLE_STACK] = new Stack<object>();
-  readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
+  readonly [CONSTANTS]: DebugConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly [INNER_VM]: LowLevelVM;
 

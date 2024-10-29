@@ -26,6 +26,13 @@ export interface SerializedHeap {
 
 export interface OpcodeHeap {
   getbyaddr(address: number): number;
+  /**
+   * Return the number of entries in the table. A handle is legal if
+   * it is less than this number.
+   *
+   * @debugging
+   */
+  entries(): number;
 }
 
 export interface CompileTimeHeap extends OpcodeHeap {
@@ -137,6 +144,10 @@ export interface ResolutionTimeConstants {
 export interface RuntimeConstants {
   getValue<T>(handle: number): T;
   getArray<T>(handle: number): T[];
+}
+
+export interface DebugConstants extends RuntimeConstants {
+  hasHandle(handle: number): boolean;
 }
 
 export interface CompileTimeArtifacts {

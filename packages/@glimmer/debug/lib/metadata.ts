@@ -2,6 +2,11 @@ import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
 
 // TODO: How do these map onto constant and machine types?
 export const OPERAND_TYPES = [
+  'inline:u32',
+  'inline:relative-pc',
+  'const:helper',
+  'register:saved',
+  'symbol',
   'u32',
   'i32',
   'owner',
@@ -16,7 +21,7 @@ export const OPERAND_TYPES = [
   'unknown',
   'symbol-table',
   'scope',
-];
+] as const;
 
 function isOperandType(s: string): s is OperandType {
   return OPERAND_TYPES.indexOf(s as any) !== -1;

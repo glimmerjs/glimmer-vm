@@ -14,8 +14,10 @@ export const $fp: MachineRegister.fp = 2;
 // $3 or $sp (stack pointer): pointer into the `evalStack` for the top of the stack
 export const $sp: MachineRegister.sp = 3;
 // $4-$5 or $s0-$s1 (saved): callee saved general-purpose registers
-export const $s0: SavedRegister.s0 = 4;
-export const $s1: SavedRegister.s1 = 5;
+export const $s0: $s0 = 4;
+export type $s0 = 4;
+export const $s1: $s1 = 5;
+export type $s1 = 5;
 // $6-$7 or $t0-$t1 (temporaries): caller saved general-purpose registers
 export const $t0: TemporaryRegister.t0 = 6;
 export const $t1: TemporaryRegister.t1 = 7;
@@ -39,8 +41,8 @@ export function isLowLevelRegister(
 }
 
 export enum SavedRegister {
-  's0' = 4,
-  's1' = 5,
+  's0' = $s0,
+  's1' = $s1,
 }
 
 export enum TemporaryRegister {

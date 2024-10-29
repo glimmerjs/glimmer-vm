@@ -4,26 +4,38 @@ import type {
   Maybe,
   Recast,
   ResolutionTimeConstants,
+  RuntimeHeap,
   RuntimeOp,
   TemplateCompilationContext,
 } from '@glimmer/interfaces';
 import type { Register } from '@glimmer/vm';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER } from '@glimmer/util';
+import { assertNever, decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER } from '@glimmer/util';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 
 import type { Primitive } from './stack-check';
 
 import { opcodeMetadata } from './opcode-metadata';
+import {
+  ConstHandle,
+  DebugDecoder,
+  HELPER,
+  INLINE,
+  RELATIVE_PC,
+  SAVED_REGISTER,
+  SYMBOL,
+  U32,
+} from './util';
 
 export interface DebugConstants {
+  hasHandle(handle: number): boolean;
   getValue<T>(handle: number): T;
   getArray<T>(value: number): T[];
 }
 
 export function debugSlice(context: TemplateCompilationContext, start: number, end: number) {
   if (LOCAL_SHOULD_LOG) {
-    LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
+    LOCAL_LOGGER.group(`block -> %c${start}:${end}`, 'color: #999');
 
     let heap = context.program.heap;
     let opcode = context.program.createOp(heap);
@@ -36,6 +48,7 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
           CompileTimeConstants & ResolutionTimeConstants,
           DebugConstants
         >,
+        context.program.heap,
         opcode,
         opcode.isMachine
       )!;
@@ -89,10 +102,12 @@ function json(param: unknown) {
 
 export function debug(
   c: DebugConstants,
+  heap: RuntimeHeap,
   op: RuntimeOp,
   isMachine: 0 | 1
 ): [string, Dict] | undefined {
   if (LOCAL_SHOULD_LOG) {
+    const decoder = new DebugDecoder({ constants: c, heap, op });
     let metadata = opcodeMetadata(op.type, isMachine);
 
     if (!metadata) {
@@ -105,6 +120,28 @@ export function debug(
       let actualOperand = opcodeOperand(op, index);
 
       switch (operand.type) {
+        case 'inline:u32': {
+          const inline = decoder.decode(actualOperand, INLINE, operand);
+          out[operand.name] = decoder.decode(inline, U32, operand);
+          break;
+        }
+        case 'inline:relative-pc': {
+          const inline = decoder.decode(actualOperand, INLINE, operand);
+          out[operand.name] = decoder.decode(inline, RELATIVE_PC, operand);
+          break;
+        }
+        case 'const:helper': {
+          const constant = decoder.decode(actualOperand, new ConstHandle(), operand);
+          out[operand.name] = decoder.decode(constant, HELPER, operand);
+          break;
+        }
+        case 'register:saved': {
+          out[operand.name] = decoder.decode(actualOperand, SAVED_REGISTER, operand);
+          break;
+        }
+        case 'symbol':
+          out[operand.name] = decoder.decode(actualOperand, SYMBOL, operand);
+          break;
         case 'u32':
         case 'i32':
         case 'owner':
@@ -138,7 +175,7 @@ export function debug(
           out[operand.name] = `<scope ${actualOperand}>`;
           break;
         default:
-          throw new Error(`Unexpected operand type ${operand.type} for debug output`);
+          assertNever(operand.type);
       }
     }
 
