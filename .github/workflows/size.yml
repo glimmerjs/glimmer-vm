@@ -28,24 +28,19 @@ jobs:
         id: prod
         run: |
           cd packages/\@glimmer
-          sizes=$(dust --ignore_hidden \
+          echo "sizes=$(dust --ignore_hidden \
              --reverse --apparent-size \
              --filter ".+\/dist\/dev\/index.js$" \
-             --no-percent-bars --only-dir --depth 1)
-
-
-          echo "sizes=$issue" >> $GITHUB_OUTPUT
+             --no-percent-bars --only-dir --depth 1)" >> $GITHUB_OUTPUT
 
       - name: "Get sizes for production outputs"
         id: dev
         run: |
           cd packages/\@glimmer
-          sizes=$(dust --ignore_hidden \
+          echo "sizes=$(dust --ignore_hidden \
              --reverse --apparent-size \
              --filter ".+\/dist\/prod\/index.js$" \
-             --no-percent-bars --only-dir --depth 1)
-
-          echo "sizes=$sizes" >> $GITHUB_OUTPUT
+             --no-percent-bars --only-dir --depth 1)" >> $GITHUB_OUTPUT
 
       - uses: mshick/add-pr-comment@v2
         with:
