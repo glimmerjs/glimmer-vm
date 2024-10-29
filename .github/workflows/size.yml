@@ -28,7 +28,7 @@ jobs:
         id: prod
         run: |
           cd packages/\@glimmer
-          sizes=$(du --ignore_hidden \
+          sizes=$(dust --ignore_hidden \
              --reverse --apparent-size \
              --filter ".+\/dist\/dev\/index.js$" \
              --no-percent-bars --only-dir --depth 1)
@@ -40,7 +40,7 @@ jobs:
         id: dev
         run: |
           cd packages/\@glimmer
-          sizes=$(du --ignore_hidden \
+          sizes=$(dust --ignore_hidden \
              --reverse --apparent-size \
              --filter ".+\/dist\/prod\/index.js$" \
              --no-percent-bars --only-dir --depth 1)
