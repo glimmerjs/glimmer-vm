@@ -172,10 +172,11 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
                 tests[kind as DeclaredComponentKind].push(createTest(prop, test, true));
               });
             }
-          default:
+          default: {
             tests.glimmer.push(createTest(prop, test));
             tests.curly.push(createTest(prop, test));
             tests.dynamic.push(createTest(prop, test));
+          }
         }
         continue;
       }

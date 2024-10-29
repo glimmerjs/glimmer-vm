@@ -82,6 +82,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   private handleTable: number[];
   private handleState: TableSlotState[];
   private handle = 0;
+  #lastSize = 0;
 
   constructor() {
     this.heap = new Int32Array(PAGE_SIZE);
@@ -126,12 +127,13 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     return this.handleTable.length - 1;
   }
 
-  finishMalloc(handle: number): void {
+  finishMalloc(handle: number, size: number): void {
     // @TODO: At the moment, garbage collection isn't actually used, so this is
     // wrapped to prevent us from allocating extra space in prod. In the future,
     // if we start using the compact API, we should change this.
     if (LOCAL_DEBUG) {
       this.handleState[handle] = TableSlotState.Allocated;
+      this.#lastSize = size;
     }
   }
 
@@ -147,7 +149,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   }
 
   sizeof(handle: number): number {
-    return sizeof(this.handleTable, handle);
+    return sizeof(this.handleTable, handle, this.#lastSize);
   }
 
   free(handle: number): void {
@@ -235,9 +237,13 @@ function slice(arr: Int32Array, start: number, end: number): Int32Array {
   return ret;
 }
 
-function sizeof(table: number[], handle: number) {
+function sizeof(table: number[], handle: number, lastSize: number) {
   if (LOCAL_DEBUG) {
-    return unwrap(table[handle + 1]) - unwrap(table[handle]);
+    if (table.length === handle + 1) {
+      return lastSize;
+    } else {
+      return unwrap(table[handle + 1]) - unwrap(table[handle]);
+    }
   } else {
     return -1;
   }

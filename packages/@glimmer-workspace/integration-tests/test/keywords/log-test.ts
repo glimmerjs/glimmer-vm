@@ -1,3 +1,5 @@
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags/index';
+
 import { jitSuite, RenderTest, test } from '../..';
 
 class LogTest extends RenderTest {
@@ -80,4 +82,8 @@ class LogTest extends RenderTest {
   }
 }
 
-jitSuite(LogTest);
+// LOCAL_SHOULD_LOG results in eager evaluation of expressions, which
+// results in many more logs than the tests expect.
+if (!LOCAL_SHOULD_LOG) {
+  jitSuite(LogTest);
+}

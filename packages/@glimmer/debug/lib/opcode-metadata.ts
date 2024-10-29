@@ -968,11 +968,64 @@ if (LOCAL_DEBUG) {
     check: true,
   };
 
+  METADATA[Op.ResolveCurriedComponent] = {
+    name: 'ResolveCurriedComponent',
+    mnemonic: 'rslvcc',
+    before: null,
+    stackChange: 0,
+    ops: [],
+    operands: 0,
+    check: true,
+  };
+
+  METADATA[Op.StaticComponentAttr] = {
+    name: 'StaticComponentAttr',
+    mnemonic: 'scattr',
+    before: null,
+    stackChange: 0,
+    ops: [
+      {
+        name: 'name',
+        type: 'str',
+      },
+      {
+        name: 'value',
+        type: 'str',
+      },
+      {
+        name: 'namespace',
+        type: 'option-str',
+      },
+    ],
+    operands: 3,
+    check: true,
+  };
+
   METADATA[Op.DynamicContentType] = {
     name: 'DynamicContentType',
     mnemonic: 'dctload',
     before: null,
     stackChange: 1,
+    ops: [],
+    operands: 0,
+    check: true,
+  };
+
+  METADATA[Op.DynamicHelper] = {
+    name: 'DynamicHelper',
+    mnemonic: 'dhload',
+    before: null,
+    stackChange: -2,
+    ops: [],
+    operands: 0,
+    check: true,
+  };
+
+  METADATA[Op.DynamicModifier] = {
+    name: 'DynamicModifier',
+    mnemonic: 'dmload',
+    before: null,
+    stackChange: -2,
     ops: [],
     operands: 0,
     check: true,
@@ -1335,6 +1388,26 @@ if (LOCAL_DEBUG) {
       },
     ],
     operands: 2,
+    check: true,
+  };
+
+  METADATA[Op.GetDynamicVar] = {
+    name: 'GetDynamicVar',
+    mnemonic: 'rslvdvar',
+    before: null,
+    stackChange: 0,
+    ops: [],
+    operands: 1,
+    check: true,
+  };
+
+  METADATA[Op.Log] = {
+    name: 'Log',
+    mnemonic: 'log',
+    before: null,
+    stackChange: -1,
+    ops: [],
+    operands: 0,
     check: true,
   };
 }
