@@ -1,0 +1,71 @@
+name: Size
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+env:
+  TURBO_API: http://127.0.0.1:9080
+  TURBO_TOKEN: this-is-not-a-secret
+  TURBO_TEAM: myself
+
+jobs:
+  install_dependencies:
+    name: 'Setup'
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - uses: wyvox/action@v1
+        with:
+          pnpm-args: '--ignore-scripts'
+          node-version: 20.1.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: pnpm turbo build
+      - name: "Get sizes for development outputs"
+        id: prod
+        run: |
+          cd packages/\@glimmer
+          sizes=$(du --ignore_hidden \
+             --reverse --apparent-size \
+             --filter ".+\/dist\/dev\/index.js$" \
+             --no-percent-bars --only-dir --depth 1)
+
+
+          echo "sizes=$issue" >> $GITHUB_OUTPUT
+
+      - name: "Get sizes for production outputs"
+        id: dev
+        run: |
+          cd packages/\@glimmer
+          sizes=$(du --ignore_hidden \
+             --reverse --apparent-size \
+             --filter ".+\/dist\/prod\/index.js$" \
+             --no-percent-bars --only-dir --depth 1)
+
+          echo "sizes=$sizes" >> $GITHUB_OUTPUT
+
+      - uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+
+
+            <table><thead><tr><th></th><th>Dev</th><th>Prod</th></tr></thead>
+            <tbody>
+            <tr><td>This PR</td><td>
+
+            ${{ steps.dev.outputs.sizes }}
+
+            </td><td>
+
+            ${{ steps.prod.outputs.sizes }}
+
+            </td></tr>
+            </tbody></table>
+
+
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
