@@ -23,6 +23,7 @@ jobs:
           node-version: 20.1.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: pnpm turbo build
+      - run: snap install dust
       - name: "Get sizes for development outputs"
         id: prod
         run: |
