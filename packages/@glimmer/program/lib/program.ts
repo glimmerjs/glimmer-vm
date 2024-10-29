@@ -47,7 +47,7 @@ export class RuntimeHeapImpl implements RuntimeHeap {
   }
 
   sizeof(handle: number): number {
-    return sizeof(this.table, handle);
+    return sizeof(this.table, handle, 0);
   }
 }
 

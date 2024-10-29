@@ -35,10 +35,8 @@ export type OperandList = ([] | [Operand] | [Operand, Operand] | [Operand, Opera
 export interface NormalizedMetadata {
   name: string;
   mnemonic: string;
-  before: null;
   stackChange: Nullable<number>;
   ops: OperandList;
-  operands: number;
   check: boolean;
 }
 
@@ -74,10 +72,8 @@ export function normalize(key: string, input: RawOperandMetadata): NormalizedMet
   return {
     name,
     mnemonic: key,
-    before: null,
     stackChange: stackChange(input['operand-stack']),
     ops,
-    operands: ops.length,
     check: input.skip === true ? false : true,
   };
 }
