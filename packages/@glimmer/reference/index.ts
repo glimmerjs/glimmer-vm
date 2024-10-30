@@ -29,4 +29,6 @@ export {
   UNDEFINED_REFERENCE,
   updateRef,
   valueForRef,
+  setEnableRefTrace,
+  getRefsTrace
 } from './lib/reference';
