@@ -1,7 +1,6 @@
 import type {
   CompileTimeHeap,
-  ResolutionTimeConstants,
-  RuntimeConstants,
+  JitConstants,
   RuntimeHeap,
   RuntimeProgram,
   SerializedHeap,
@@ -209,7 +208,7 @@ export class RuntimeProgramImpl implements RuntimeProgram {
   private _opcode: RuntimeOpImpl;
 
   constructor(
-    public constants: RuntimeConstants & ResolutionTimeConstants,
+    public constants: JitConstants,
     public heap: RuntimeHeap
   ) {
     this._opcode = new RuntimeOpImpl(this.heap);

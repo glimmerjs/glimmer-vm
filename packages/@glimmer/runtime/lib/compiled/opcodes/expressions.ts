@@ -33,7 +33,6 @@ import { $v0, CurriedTypes, Op } from '@glimmer/vm';
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
-import { CONSTANTS } from '../../symbols';
 import { reifyPositional } from '../../vm/arguments';
 import { createConcatRef } from '../expressions/concat';
 import {
@@ -62,7 +61,7 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
   if (import.meta.env.DEV) {
     // strict check only happens in import.meta.env.DEV builds, no reason to load it otherwise
-    isStrict = vm[CONSTANTS].getValue<boolean>(decodeHandle(_isStrict));
+    isStrict = vm.constants.getValue<boolean>(decodeHandle(_isStrict));
   }
 
   vm.loadValue(
@@ -151,7 +150,7 @@ function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helpe
 
 APPEND_OPCODES.add(Op.Helper, (vm, { op1: handle }) => {
   let stack = vm.stack;
-  let helper = check(vm[CONSTANTS].getValue(handle), CheckHelper);
+  let helper = check(vm.constants.getValue(handle), CheckHelper);
   let args = check(stack.pop(), CheckArguments);
   let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope());
 
@@ -182,7 +181,7 @@ APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
 });
 
 APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
-  let name = vm[CONSTANTS].getValue<string>(_name);
+  let name = vm.constants.getValue<string>(_name);
   let locals = vm.scope().getPartialMap()!;
 
   let ref = locals[name];
@@ -198,7 +197,7 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
 });
 
 APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
-  let key = vm[CONSTANTS].getValue<string>(_key);
+  let key = vm.constants.getValue<string>(_key);
   let expr = check(vm.stack.pop(), CheckReference);
   vm.stack.push(childRefFor(expr, key));
 });

@@ -11,13 +11,11 @@ import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debu
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
 import { assert, LOCAL_LOGGER, unwrap } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp, Op } from '@glimmer/vm';
+import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0, Op } from '@glimmer/vm';
 
 import type { LowLevelVM, VM } from './vm';
-import type { InternalVM } from './vm/append';
 
 import { isScopeReference } from './scope';
-import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
 import { CURSOR_STACK } from './vm/element-builder';
 
 export interface OpcodeJSON {
@@ -33,7 +31,7 @@ export type Operand1 = number;
 export type Operand2 = number;
 export type Operand3 = number;
 
-export type Syscall = (vm: InternalVM, opcode: RuntimeOp) => void;
+export type Syscall = (vm: VM, opcode: RuntimeOp) => void;
 export type MachineOpcode = (vm: LowLevelVM, opcode: RuntimeOp) => void;
 
 export type Evaluate =
@@ -72,9 +70,10 @@ export class AppendOpcodes {
     let opName: string | undefined = undefined;
 
     if (LOCAL_SHOULD_LOG) {
-      let pos = vm[INNER_VM].fetchRegister($pc) - opcode.size;
+      const lowlevel = unwrap(vm.debug).lowlevel;
+      let pos = lowlevel.fetchRegister($pc) - opcode.size;
 
-      [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
+      [opName, params] = debug(vm.constants, opcode, opcode.isMachine)!;
 
       // console.log(`${typePos(vm['pc'])}.`);
       LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, params)}`);
@@ -110,6 +109,8 @@ export class AppendOpcodes {
     let { sp, type, isMachine, pc } = pre;
 
     if (LOCAL_DEBUG) {
+      const debug = unwrap(vm.debug);
+
       let meta = opcodeMetadata(type, isMachine);
       let actualChange = vm.fetchValue($sp) - sp;
       if (
@@ -127,27 +128,28 @@ export class AppendOpcodes {
       }
 
       if (LOCAL_SHOULD_LOG) {
+        const { lowlevel, registers } = unwrap(vm.debug);
         LOCAL_LOGGER.log(
           '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
           'color: orange',
-          vm[INNER_VM].registers[$pc],
-          vm[INNER_VM].registers[$ra],
-          vm[INNER_VM].registers[$fp],
-          vm[INNER_VM].registers[$sp],
-          vm['s0'],
-          vm['s1'],
-          vm['t0'],
-          vm['t1'],
-          vm['v0']
+          lowlevel.registers[$pc],
+          lowlevel.registers[$ra],
+          lowlevel.registers[$fp],
+          lowlevel.registers[$sp],
+          registers[$s0],
+          registers[$s1],
+          registers[$t0],
+          registers[$t1],
+          registers[$v0]
         );
         LOCAL_LOGGER.log('%c -> eval stack', 'color: red', vm.stack.toArray());
         LOCAL_LOGGER.log('%c -> block stack', 'color: magenta', vm.elements().debugBlocks());
         LOCAL_LOGGER.log(
           '%c -> destructor stack',
           'color: violet',
-          vm[DESTROYABLE_STACK].toArray()
+          debug.destroyableStack.toArray()
         );
-        if (vm[STACKS].scope.current === null) {
+        if (debug.stacks.scope.current === null) {
           LOCAL_LOGGER.log('%c -> scope', 'color: green', 'null');
         } else {
           LOCAL_LOGGER.log(
@@ -182,7 +184,7 @@ export class AppendOpcodes {
         opcode.isMachine,
         `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`
       );
-      operation.evaluate(vm[INNER_VM], opcode);
+      operation.evaluate(vm.lowlevel, opcode);
     }
   }
 }
