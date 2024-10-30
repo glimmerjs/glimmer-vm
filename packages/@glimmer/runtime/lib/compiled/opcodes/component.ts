@@ -33,6 +33,7 @@ import {
   CheckInterface,
   CheckOr,
   CheckProgramSymbolTable,
+  CheckRegister,
   CheckString,
 } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
@@ -242,9 +243,9 @@ APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
   stack.push(capturedArgs);
 });
 
-APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: register }) => {
   let stack = vm.stack;
-  let instance = vm.fetchValue<ComponentInstance>(_state);
+  let instance = vm.fetchValue<ComponentInstance>(check(register, CheckRegister));
   let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
 
   let { definition } = instance;
@@ -344,8 +345,8 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   stack.push(args);
 });
 
-APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: register }) => {
+  let instance = check(vm.fetchValue(check(register, CheckRegister)), CheckComponentInstance);
   let { definition, manager, capabilities } = instance;
 
   if (!managerHasCapability(manager, capabilities, InternalComponentCapabilities.createInstance)) {
@@ -391,8 +392,11 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
-  let { manager, state, capabilities } = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: register }) => {
+  let { manager, state, capabilities } = check(
+    vm.fetchValue(check(register, CheckRegister)),
+    CheckComponentInstance
+  );
 
   let d = manager.getDestroyable(state);
 
@@ -410,11 +414,14 @@ APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
   if (d) vm.associateDestroyable(d);
 });
 
-APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: register }) => {
   let name;
 
   if (import.meta.env.DEV) {
-    let { definition, manager } = check(vm.fetchValue(_state), CheckComponentInstance);
+    let { definition, manager } = check(
+      vm.fetchValue(check(register, CheckRegister)),
+      CheckComponentInstance
+    );
 
     name = getDebugName(definition, manager);
   }
@@ -594,8 +601,11 @@ function setDeferredAttr(
   }
 }
 
-APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
-  let { definition, state } = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: register }) => {
+  let { definition, state } = check(
+    vm.fetchValue(check(register, CheckRegister)),
+    CheckComponentInstance
+  );
   let { manager } = definition;
 
   let operations = check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations));
@@ -607,14 +617,14 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
   );
 });
 
-APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: register, op2: _names }) => {
+  let instance = check(vm.fetchValue(check(register, CheckRegister)), CheckComponentInstance);
   let { definition, state } = instance;
   let { manager } = definition;
   let selfRef = manager.getSelf(state);
 
   if (vm.env.debugRenderTree !== undefined) {
-    let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+    let instance = check(vm.fetchValue(check(register, CheckRegister)), CheckComponentInstance);
     let { definition, manager } = instance;
 
     let args: CapturedArguments;
@@ -694,8 +704,11 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
   vm.stack.push(selfRef);
 });
 
-APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
-  let { definition, state } = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: register }) => {
+  let { definition, state } = check(
+    vm.fetchValue(check(register, CheckRegister)),
+    CheckComponentInstance
+  );
   let { manager } = definition;
 
   let tagName = (
@@ -707,8 +720,8 @@ APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
 });
 
 // Dynamic Invocation Only
-APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: register }) => {
+  let instance = check(vm.fetchValue(check(register, CheckRegister)), CheckComponentInstance);
 
   let { manager, definition } = instance;
   let { stack } = vm;
@@ -756,25 +769,25 @@ APPEND_OPCODES.add(Op.Main, (vm, { op1: register }) => {
     lookup: null,
   };
 
-  vm.loadValue(register, state);
+  vm.loadValue(check(register, CheckRegister), state);
 });
 
-APPEND_OPCODES.add(Op.PopulateLayout, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.PopulateLayout, (vm, { op1: register }) => {
   let { stack } = vm;
 
   // In import.meta.env.DEV handles could be ErrHandle objects
   let handle = check(stack.pop(), CheckHandle);
   let table = check(stack.pop(), CheckProgramSymbolTable);
 
-  let state = check(vm.fetchValue(_state), CheckComponentInstance);
+  let state = check(vm.fetchValue(check(register, CheckRegister)), CheckComponentInstance);
 
   state.handle = handle;
   state.table = table;
 });
 
-APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: register }) => {
   let { table, manager, capabilities, state } = check(
-    vm.fetchValue(_state),
+    vm.fetchValue(check(register, CheckRegister)),
     CheckFinishedComponentInstance
   );
 
@@ -802,8 +815,8 @@ APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
   vm.pushRootScope(table.symbols.length + 1, owner);
 });
 
-APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
+APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: register }) => {
+  let state = check(vm.fetchValue(check(register, CheckRegister)), CheckFinishedComponentInstance);
 
   if (state.table.hasEval) {
     let lookup = (state.lookup = dict<ScopeSlot>());
@@ -811,8 +824,8 @@ APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: _state }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
+APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: register }) => {
+  let state = check(vm.fetchValue(check(register, CheckRegister)), CheckFinishedComponentInstance);
   let scope = vm.scope();
 
   let args = check(vm.stack.peek(), CheckArguments);
@@ -842,8 +855,8 @@ function bindBlock(
   if (state.lookup) state.lookup[symbolName] = block;
 }
 
-APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
+APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: register }) => {
+  let state = check(vm.fetchValue(check(register, CheckRegister)), CheckFinishedComponentInstance);
   let { blocks } = check(vm.stack.peek(), CheckArguments);
 
   for (const [i] of enumerate(blocks.names)) {
@@ -852,14 +865,14 @@ APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {
 });
 
 // Dynamic Invocation Only
-APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
+APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: register }) => {
+  let state = check(vm.fetchValue(check(register, CheckRegister)), CheckFinishedComponentInstance);
 
   vm.call(state.handle);
 });
 
-APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
-  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: register }) => {
+  let instance = check(vm.fetchValue(check(register, CheckRegister)), CheckComponentInstance);
   let { manager, state, capabilities } = instance;
   let bounds = vm.elements().popBlock();
 

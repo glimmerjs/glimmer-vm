@@ -12,7 +12,7 @@ export type NormalizedHash = Dict<NormalizedExpression>;
 export type NormalizedBlock = NormalizedStatement[];
 export type NormalizedBlocks = Dict<NormalizedBlock>;
 export type NormalizedAttrs = Dict<NormalizedAttr>;
-export type NormalizedAttr = HeadKind.Splat | NormalizedExpression;
+export type NormalizedAttr = HeadKinds['Splat'] | NormalizedExpression;
 
 export interface NormalizedElement {
   name: string;
@@ -26,27 +26,33 @@ export interface NormalizedAngleInvocation {
   block: Nullable<NormalizedBlock>;
 }
 
-export enum HeadKind {
-  Block = 'Block',
-  Call = 'Call',
-  Element = 'Element',
-  AppendPath = 'AppendPath',
-  AppendExpr = 'AppendExpr',
-  Literal = 'Literal',
-  Modifier = 'Modifier',
-  DynamicComponent = 'DynamicComponent',
-  Comment = 'Comment',
-  Splat = 'Splat',
-  Keyword = 'Keyword',
-}
+export const HeadKind = {
+  Block: 'Block',
+  Call: 'Call',
+  Element: 'Element',
+  AppendPath: 'AppendPath',
+  AppendExpr: 'AppendExpr',
+  Literal: 'Literal',
+  Modifier: 'Modifier',
+  DynamicComponent: 'DynamicComponent',
+  Comment: 'Comment',
+  Splat: 'Splat',
+  Keyword: 'Keyword',
+} as const;
 
-export enum VariableKind {
-  Local = 'Local',
-  Free = 'Free',
-  Arg = 'Arg',
-  Block = 'Block',
-  This = 'This',
-}
+export type HeadKinds = typeof HeadKind;
+export type HeadKind = keyof HeadKinds;
+
+export const VariableKind = {
+  Local: 'Local',
+  Free: 'Free',
+  Arg: 'Arg',
+  Block: 'Block',
+  This: 'This',
+} as const;
+
+export type VariableKinds = typeof VariableKind;
+export type VariableKind = keyof VariableKinds;
 
 export interface Variable {
   kind: VariableKind;
@@ -67,19 +73,19 @@ export interface Path {
 }
 
 export interface AppendExpr {
-  kind: HeadKind.AppendExpr;
+  kind: HeadKinds['AppendExpr'];
   expr: NormalizedExpression;
   trusted: boolean;
 }
 
 export interface AppendPath {
-  kind: HeadKind.AppendPath;
+  kind: HeadKinds['AppendPath'];
   path: NormalizedPath;
   trusted: boolean;
 }
 
 export interface NormalizedKeywordStatement {
-  kind: HeadKind.Keyword;
+  kind: HeadKinds['Keyword'];
   name: string;
   params: Nullable<NormalizedParams>;
   hash: Nullable<NormalizedHash>;
@@ -89,14 +95,14 @@ export interface NormalizedKeywordStatement {
 
 export type NormalizedStatement =
   | {
-      kind: HeadKind.Call;
+      kind: HeadKinds['Call'];
       head: NormalizedHead;
       params: Nullable<NormalizedParams>;
       hash: Nullable<NormalizedHash>;
       trusted: boolean;
     }
   | {
-      kind: HeadKind.Block;
+      kind: HeadKinds['Block'];
       head: NormalizedHead;
       params: Nullable<NormalizedParams>;
       hash: Nullable<NormalizedHash>;
@@ -105,18 +111,18 @@ export type NormalizedStatement =
     }
   | NormalizedKeywordStatement
   | {
-      kind: HeadKind.Element;
+      kind: HeadKinds['Element'];
       name: string;
       attrs: NormalizedAttrs;
       block: NormalizedBlock;
     }
-  | { kind: HeadKind.Comment; value: string }
-  | { kind: HeadKind.Literal; value: string }
+  | { kind: HeadKinds['Comment']; value: string }
+  | { kind: HeadKinds['Literal']; value: string }
   | AppendPath
   | AppendExpr
-  | { kind: HeadKind.Modifier; params: NormalizedParams; hash: Nullable<NormalizedHash> }
+  | { kind: HeadKinds['Modifier']; params: NormalizedParams; hash: Nullable<NormalizedHash> }
   | {
-      kind: HeadKind.DynamicComponent;
+      kind: HeadKinds['DynamicComponent'];
       expr: NormalizedExpression;
       hash: Nullable<NormalizedHash>;
       block: NormalizedBlock;

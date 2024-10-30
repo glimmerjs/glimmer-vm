@@ -25,9 +25,9 @@ import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { createIteratorItemRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
+import { expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
-import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
+import { $pc, $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 
 import type { DebugState } from '../opcodes';
 import type { LiveBlockList } from './element-builder';
@@ -41,7 +41,6 @@ import {
 } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES } from '../opcodes';
 import { PartialScopeImpl } from '../scope';
-import { REGISTERS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import { LowLevelVM } from './low-level';
 import RenderResultImpl from './render-result';
@@ -197,13 +196,7 @@ export class VM implements PublicVM {
     }
 
     this.resume = initVM(context);
-    let evalStack = EvaluationStackImpl.restore(stack);
-
-    assert(typeof pc === 'number', 'pc is a number');
-
-    evalStack[REGISTERS][$pc] = pc;
-    evalStack[REGISTERS][$sp] = stack.length - 1;
-    evalStack[REGISTERS][$fp] = -1;
+    let evalStack = EvaluationStackImpl.restore(stack, pc);
 
     this.#heap = this.program.heap;
     this.#constants = this.program.constants;
@@ -224,7 +217,7 @@ export class VM implements PublicVM {
           APPEND_OPCODES.debugAfter(this, state);
         },
       },
-      evalStack[REGISTERS]
+      evalStack.registers
     );
 
     this.#destructor = {};

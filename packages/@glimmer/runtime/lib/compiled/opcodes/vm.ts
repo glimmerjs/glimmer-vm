@@ -9,6 +9,8 @@ import {
   CheckNumber,
   CheckOption,
   CheckPrimitive,
+  CheckRegister,
+  CheckSyscallRegister,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
 import {
@@ -92,7 +94,7 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(register), CheckNumber) - offset;
+  let position = check(vm.fetchValue(check(register, CheckRegister)), CheckNumber) - offset;
   vm.stack.dup(position);
 });
 
@@ -101,11 +103,11 @@ APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => {
 });
 
 APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => {
-  vm.load(register);
+  vm.load(check(register, CheckSyscallRegister));
 });
 
 APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
-  vm.fetch(register);
+  vm.fetch(check(register, CheckSyscallRegister));
 });
 
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
