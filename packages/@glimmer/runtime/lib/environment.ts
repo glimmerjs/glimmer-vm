@@ -102,6 +102,7 @@ export class EnvironmentImpl implements Environment {
   // Delegate methods and values
   public isInteractive: boolean;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isArgumentCaptureError: ((error: any) => boolean) | undefined;
   debugRenderTree: DebugRenderTree<object> | undefined;
 

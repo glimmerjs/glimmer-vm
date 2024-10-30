@@ -35,10 +35,9 @@ import {
 import { Op } from '@glimmer/vm';
 
 import type { UpdatingVM } from '../../vm';
-import type { InternalVM } from '../../vm/append';
+import type { VM } from '../../vm/append';
 
 import { APPEND_OPCODES } from '../../opcodes';
-import { CONSTANTS } from '../../symbols';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
@@ -52,11 +51,11 @@ APPEND_OPCODES.add(Op.PushDynamicScope, (vm) => vm.pushDynamicScope());
 APPEND_OPCODES.add(Op.PopDynamicScope, (vm) => vm.popDynamicScope());
 
 APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
-  vm.stack.push(vm[CONSTANTS].getValue(decodeHandle(other)));
+  vm.stack.push(vm.constants.getValue(decodeHandle(other)));
 });
 
 APPEND_OPCODES.add(Op.ConstantReference, (vm, { op1: other }) => {
-  vm.stack.push(createConstRef(vm[CONSTANTS].getValue(decodeHandle(other)), false));
+  vm.stack.push(createConstRef(vm.constants.getValue(decodeHandle(other)), false));
 });
 
 APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
@@ -64,7 +63,7 @@ APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
 
   if (isHandle(primitive)) {
     // it is a handle which does not already exist on the stack
-    let value = vm[CONSTANTS].getValue(decodeHandle(primitive));
+    let value = vm.constants.getValue(decodeHandle(primitive));
     stack.push(value as object);
   } else {
     // is already an encoded immediate or primitive handle
@@ -110,7 +109,7 @@ APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
 });
 
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm[CONSTANTS].getArray<string>(_names);
+  let names = vm.constants.getArray<string>(_names);
   vm.bindDynamicScope(names);
 });
 
@@ -124,7 +123,7 @@ APPEND_OPCODES.add(Op.Exit, (vm) => {
 
 APPEND_OPCODES.add(Op.PushSymbolTable, (vm, { op1: _table }) => {
   let stack = vm.stack;
-  stack.push(vm[CONSTANTS].getValue(_table));
+  stack.push(vm.constants.getValue(_table));
 });
 
 APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
@@ -132,7 +131,7 @@ APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
   stack.push(vm.scope());
 });
 
-APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
+APPEND_OPCODES.add(Op.CompileBlock, (vm: VM) => {
   let stack = vm.stack;
   let block = stack.pop<Nullable<CompilableTemplate> | 0>();
 

@@ -21,7 +21,7 @@ import { updateRef, valueForRef } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
 
-import type { InternalVM, VmInitCallback } from './append';
+import type { VM, VmInitCallback } from './append';
 import type { LiveBlockList } from './element-builder';
 
 import { clear, move as moveBounds } from '../bounds';
@@ -106,7 +106,7 @@ export interface VMState {
 }
 
 export interface ResumableVMState {
-  resume(runtime: RuntimeContext, builder: ElementBuilder): InternalVM;
+  resume(runtime: RuntimeContext, builder: ElementBuilder): VM;
 }
 
 export class ResumableVMStateImpl implements ResumableVMState {
@@ -115,7 +115,7 @@ export class ResumableVMStateImpl implements ResumableVMState {
     private resumeCallback: VmInitCallback
   ) {}
 
-  resume(runtime: RuntimeContext, builder: ElementBuilder): InternalVM {
+  resume(runtime: RuntimeContext, builder: ElementBuilder): VM {
     return this.resumeCallback(runtime, this.state, builder);
   }
 }
