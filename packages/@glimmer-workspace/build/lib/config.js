@@ -1,19 +1,15 @@
 /* eslint-disable no-console */
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import replace from '@rollup/plugin-replace';
-import terser from '@rollup/plugin-terser';
 import * as insert from 'rollup-plugin-insert';
 import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
 
 import inline from './inline.js';
-
-const require = createRequire(import.meta.url);
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -86,26 +82,87 @@ export function typescript(pkg, config) {
     },
   };
 
-  /** @type {[string, object][]} */
-  const presets = [['@babel/preset-typescript', { allowDeclareFields: true }]];
-
   const ts = tsconfig(typeScriptConfig);
 
   /**
    * TODO: migrate off of rollupTS, it has too many bugs
    */
   return rollupTS({
-    transpiler: 'babel',
+    transpiler: 'swc',
     transpileOnly: true,
-    babelConfig: {
-      presets,
-      plugins: [require.resolve('@glimmer/local-debug-babel-plugin')],
+    swcConfig: {
+      jsc: {
+        parser: {
+          syntax: 'typescript',
+          tsx: false,
+        },
+        target: 'es2022',
+        loose: false,
+        minify: {
+          compress: {
+            arguments: false,
+            arrows: true,
+            booleans: true,
+            booleans_as_integers: false,
+            collapse_vars: true,
+            comparisons: true,
+            computed_props: true,
+            conditionals: true,
+            dead_code: true,
+            directives: true,
+            drop_console: false,
+            drop_debugger: true,
+            evaluate: true,
+            expression: false,
+            hoist_funs: false,
+            hoist_props: true,
+            hoist_vars: false,
+            if_return: true,
+            join_vars: true,
+            keep_classnames: false,
+            keep_fargs: true,
+            keep_fnames: false,
+            keep_infinity: false,
+            loops: true,
+            negate_iife: true,
+            properties: true,
+            reduce_funcs: false,
+            reduce_vars: false,
+            side_effects: true,
+            switches: true,
+            typeofs: true,
+            unsafe: false,
+            unsafe_arrows: false,
+            unsafe_comps: false,
+            unsafe_Function: false,
+            unsafe_math: false,
+            unsafe_symbols: false,
+            unsafe_methods: false,
+            unsafe_proto: false,
+            unsafe_regexp: false,
+            unsafe_undefined: false,
+            unused: true,
+            const_to_let: true,
+            pristine_globals: true,
+          },
+          mangle: false,
+        },
+        transform: {
+          constModules: {
+            globals: {
+              debug: {
+                'import.meta.env.VM_LOCAL_DEV': 'false',
+              },
+            },
+          },
+        },
+      },
+      module: {
+        type: 'es6',
+      },
+      minify: false,
+      isModule: true,
     },
-    /**
-     * This shouldn't be required, but it is.
-     * If we use @rollup/plugin-babel, we can remove this.
-     */
-    browserslist: [`last 1 chrome versions`],
     tsconfig: ts,
   });
 }
@@ -318,31 +375,6 @@ export class Package {
         commonjs(),
         nodeResolve(),
         ...this.replacements(env),
-        ...(env === 'prod'
-          ? [
-              terser({
-                module: true,
-                // to debug the output, uncomment this so you can read the
-                // identifiers, unchanged
-                // mangle: false,
-                compress: {
-                  passes: 3,
-                },
-              }),
-            ]
-          : [
-              terser({
-                module: true,
-                mangle: false,
-                compress: {
-                  passes: 3,
-                },
-                format: {
-                  comments: 'all',
-                  beautify: true,
-                },
-              }),
-            ]),
         postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
