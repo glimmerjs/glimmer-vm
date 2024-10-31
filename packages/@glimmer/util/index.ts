@@ -31,7 +31,7 @@ export type FIXME<T, S extends string> = (T & S) | T;
  * This constant exists to make it easier to differentiate normal logs from
  * errant console.logs. LOCAL_LOGGER should only be used inside a
  * LOCAL_SHOULD_LOG check.
- *
+ *FF
  * It does not alleviate the need to check LOCAL_SHOULD_LOG, which is used
  * for stripping.
  */

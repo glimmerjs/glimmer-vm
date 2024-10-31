@@ -20,14 +20,24 @@ import type {
 } from '@glimmer/interfaces';
 import type { RuntimeOpImpl } from '@glimmer/program';
 import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/reference';
-import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
+import type {
+  $ra,
+  $s0,
+  $s1,
+  $t0,
+  $t1,
+  $v0,
+  MachineRegister,
+  Register,
+  SyscallRegister,
+} from '@glimmer/vm';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { createIteratorItemRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
-import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
+import { $fp, $pc, $sp, isLowLevelRegister } from '@glimmer/vm';
 
 import type { DebugState } from '../opcodes';
 import type { LiveBlockList } from './element-builder';
@@ -57,6 +67,10 @@ class Stacks {
 }
 
 interface SyscallRegisters {
+  [$pc]: null;
+  [$ra]: null;
+  [$fp]: null;
+  [$sp]: null;
   [$s0]: unknown;
   [$s1]: unknown;
   [$t0]: unknown;
@@ -104,13 +118,7 @@ export class VM implements PublicVM {
     return this.#lowlevel.fetchRegister($pc);
   }
 
-  #registers: SyscallRegisters = {
-    [$s0]: null,
-    [$s1]: null,
-    [$t0]: null,
-    [$t1]: null,
-    [$v0]: null,
-  };
+  #registers: SyscallRegisters = [null, null, null, null, null, null, null, null, null];
 
   // Fetch a value from a register onto the stack
   fetch(register: SyscallRegister): void {

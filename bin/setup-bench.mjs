@@ -5,6 +5,7 @@ import chalk from 'chalk';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 $.verbose = true;
+const REUSE_CONTROL = !!process.env['REUSE_CONTROL'];
 
 /*
 
@@ -75,9 +76,12 @@ const benchmarkFolder = 'benchmark';
 await $`rm -rf ${join(pwd, benchmarkFolder, 'node_modules')}`;
 await $`rm -rf ${join(pwd, benchmarkFolder, 'benchmarks', 'krausest', 'node_modules')}`;
 
-await $`rm -rf ${CONTROL_DIR}`;
+if (!REUSE_CONTROL) {
+  await $`rm -rf ${CONTROL_DIR}`;
+  await $`mkdir ${CONTROL_DIR}`;
+}
+
 await $`rm -rf ${EXPERIMENT_DIR}`;
-await $`mkdir ${CONTROL_DIR}`;
 await $`mkdir ${EXPERIMENT_DIR}`;
 
 const isMacOs = os.platform() === 'darwin';
@@ -100,9 +104,11 @@ await within(async () => {
   await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
   console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[experiment]')}`);
-  await $`pnpm install --frozen-lockfile`.quiet();
+  const install = () => $`pnpm install --frozen-lockfile`.quiet();
+  await spinner(install);
   console.info(`$ pnpm build ${chalk.gray('[experiment]')}`);
-  await spinner(() => $`pnpm build`.quiet());
+  const build = () => $`pnpm build`.quiet();
+  await spinner(build);
 
   if (isMacOs) {
     await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
@@ -118,33 +124,35 @@ await within(async () => {
   await $`pnpm vite build`;
 });
 
-// setup control
-await within(async () => {
-  await cd(CONTROL_DIR);
-  await $`git clone ${join(ROOT, '.git')} .`;
-  await $`git fetch origin`;
-  await $`git reset --hard origin/${controlBranchName}`;
-  await $`rm -rf ./benchmark`;
-  await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
+if (!REUSE_CONTROL) {
+  // setup control
+  await within(async () => {
+    await cd(CONTROL_DIR);
+    await $`git clone ${join(ROOT, '.git')} .`;
+    await $`git fetch origin`;
+    await $`git reset --hard origin/${controlBranchName}`;
+    await $`rm -rf ./benchmark`;
+    await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
-  console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[control]')}`);
-  await $`pnpm install --frozen-lockfile`.quiet();
-  console.info(`$ pnpm build ${chalk.gray('[control]')}`);
-  await spinner(() => $`pnpm build`.quiet());
+    console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[control]')}`);
+    await spinner(async () => await $`pnpm install --frozen-lockfile`.quiet());
+    console.info(`$ pnpm build ${chalk.gray('[control]')}`);
+    await spinner(() => $`pnpm build`.quiet());
 
-  if (isMacOs) {
-    await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-    await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-    await $`find ./packages -name 'package.json' -exec sed -i '' 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
-  } else {
-    await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-    await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-    await $`find ./packages -name 'package.json' -exec sed -i 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
-  }
+    if (isMacOs) {
+      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
+    } else {
+      await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
+    }
 
-  await cd(CONTROL_BENCH_DIR);
-  await $`pnpm vite build`;
-});
+    await cd(CONTROL_BENCH_DIR);
+    await $`pnpm vite build`;
+  });
+}
 
 console.info({
   control: controlBranchName,
