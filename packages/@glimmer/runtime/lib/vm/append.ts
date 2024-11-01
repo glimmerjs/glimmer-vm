@@ -34,7 +34,7 @@ import type {
 import { assert, expect, unwrapHandle } from '@glimmer/debug-util';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { createIteratorItemRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { LOCAL_LOGGER, reverse, Stack } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
@@ -92,31 +92,19 @@ export class VM implements PublicVM {
   readonly #heap: RuntimeHeap;
   readonly #destructor: object;
   readonly #destroyableStack = new Stack<object>();
-  readonly #constants: JitConstants;
-  readonly #args: VMArgumentsImpl;
-  readonly #lowlevel: LowLevelVM;
+  readonly constants: JitConstants;
+  readonly args: VMArgumentsImpl;
+  readonly lowlevel: LowLevelVM;
   readonly debug?: DebugVmState;
 
   get stack(): EvaluationStack {
-    return this.#lowlevel.stack as EvaluationStack;
-  }
-
-  get constants(): JitConstants {
-    return this.#constants;
-  }
-
-  get args(): VMArgumentsImpl {
-    return this.#args;
-  }
-
-  get lowlevel(): LowLevelVM {
-    return this.#lowlevel;
+    return this.lowlevel.stack as EvaluationStack;
   }
 
   /* Registers */
 
   get pc(): number {
-    return this.#lowlevel.fetchRegister($pc);
+    return this.lowlevel.fetchRegister($pc);
   }
 
   #registers: SyscallRegisters = [null, null, null, null, null, null, null, null, null];
@@ -140,7 +128,7 @@ export class VM implements PublicVM {
   fetchValue<T>(register: Register): T;
   fetchValue(register: Register | MachineRegister): unknown {
     if (isLowLevelRegister(register)) {
-      return this.#lowlevel.fetchRegister(register);
+      return this.lowlevel.fetchRegister(register);
     }
 
     return this.#registers[register];
@@ -151,7 +139,7 @@ export class VM implements PublicVM {
   loadValue<T>(register: Register | MachineRegister, value: T): void {
     if (isLowLevelRegister(register)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.#lowlevel.loadRegister(register, value as any as number);
+      this.lowlevel.loadRegister(register, value as any as number);
     } else {
       this.#registers[register] = value;
     }
@@ -163,32 +151,32 @@ export class VM implements PublicVM {
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this.#lowlevel.pushFrame();
+    this.lowlevel.pushFrame();
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this.#lowlevel.popFrame();
+    this.lowlevel.popFrame();
   }
 
   // Jump to an address in `program`
   goto(offset: number) {
-    this.#lowlevel.goto(offset);
+    this.lowlevel.goto(offset);
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
-    this.#lowlevel.call(handle);
+    this.lowlevel.call(handle);
   }
 
   // Put a specific `program` address in $ra
   returnTo(offset: number) {
-    this.#lowlevel.returnTo(offset);
+    this.lowlevel.returnTo(offset);
   }
 
   // Return to the `program` address stored in $ra
   return() {
-    this.#lowlevel.return();
+    this.lowlevel.return();
   }
 
   /**
@@ -215,12 +203,12 @@ export class VM implements PublicVM {
     evalStack[REGISTERS][$fp] = -1;
 
     this.#heap = this.program.heap;
-    this.#constants = this.program.constants;
+    this.constants = this.program.constants;
     this.elementStack = elementStack;
     this.#stacks.scope.push(scope);
     this.#stacks.dynamicScope.push(dynamicScope);
-    this.#args = new VMArgumentsImpl();
-    this.#lowlevel = new LowLevelVM(
+    this.args = new VMArgumentsImpl();
+    this.lowlevel = new LowLevelVM(
       evalStack,
       this.#heap,
       runtime.program,
@@ -239,12 +227,12 @@ export class VM implements PublicVM {
     this.#destructor = {};
     this.#destroyableStack.push(this.#destructor);
 
-    if (import.meta.env.DEV) {
+    if (LOCAL_DEBUG) {
       this.debug = {
         stacks: this.#stacks,
         destroyableStack: this.#destroyableStack,
-        constants: this.#constants,
-        lowlevel: this.#lowlevel,
+        constants: this.constants,
+        lowlevel: this.lowlevel,
         registers: this.#registers,
       };
     }
@@ -296,7 +284,7 @@ export class VM implements PublicVM {
     return this.runtime.env;
   }
 
-  captureState(args: number, pc = this.#lowlevel.fetchRegister($pc)): VMState {
+  captureState(args: number, pc = this.lowlevel.fetchRegister($pc)): VMState {
     return {
       pc,
       scope: this.scope(),
@@ -305,7 +293,7 @@ export class VM implements PublicVM {
     };
   }
 
-  capture(args: number, pc = this.#lowlevel.fetchRegister($pc)): ResumableVMState {
+  capture(args: number, pc = this.lowlevel.fetchRegister($pc)): ResumableVMState {
     return new ResumableVMStateImpl(this.captureState(args, pc), this.resume);
   }
 
@@ -366,7 +354,7 @@ export class VM implements PublicVM {
   enterList(iterableRef: Reference<OpaqueIterator>, offset: number) {
     let updating: ListItemOpcode[] = [];
 
-    let addr = this.#lowlevel.target(offset);
+    let addr = this.lowlevel.target(offset);
     let state = this.capture(0, addr);
     let list = this.elements().pushBlockList(updating) as LiveBlockList;
 
@@ -519,7 +507,7 @@ export class VM implements PublicVM {
 
   private _execute(initialize?: (vm: this) => void): RenderResult {
     if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.log(`EXECUTING FROM ${this.#lowlevel.fetchRegister($pc)}`);
+      LOCAL_LOGGER.log(`EXECUTING FROM ${this.lowlevel.fetchRegister($pc)}`);
     }
 
     if (initialize) initialize(this);
@@ -534,10 +522,10 @@ export class VM implements PublicVM {
 
   next(): RichIteratorResult<null, RenderResult> {
     let { env, elementStack } = this;
-    let opcode = this.#lowlevel.nextStatement();
+    let opcode = this.lowlevel.nextStatement();
     let result: RichIteratorResult<null, RenderResult>;
     if (opcode !== null) {
-      this.#lowlevel.evaluateOuter(opcode, this);
+      this.lowlevel.evaluateOuter(opcode, this);
       result = { done: false, value: null };
     } else {
       // Unload the stack
