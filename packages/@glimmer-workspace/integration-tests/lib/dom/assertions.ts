@@ -1,5 +1,6 @@
 import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { assign, dict, isSimpleElement } from '@glimmer/util';
+import { isSimpleElement } from '@glimmer/debug-util';
+import { assign, dict } from '@glimmer/util';
 
 export interface DebugElement {
   element: SimpleElement | null | undefined;

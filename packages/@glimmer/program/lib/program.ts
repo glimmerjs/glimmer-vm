@@ -6,8 +6,8 @@ import type {
   SerializedHeap,
   StdLibOperand,
 } from '@glimmer/interfaces';
+import { expect, unwrap } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { expect, unwrap } from '@glimmer/util';
 import { MACHINE_MASK } from '@glimmer/vm';
 
 import { RuntimeOpImpl } from './opcode';

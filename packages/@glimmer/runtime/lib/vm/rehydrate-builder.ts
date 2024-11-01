@@ -12,7 +12,8 @@ import type {
   SimpleText,
 } from '@glimmer/interfaces';
 import type { Stack } from '@glimmer/util';
-import { assert, castToBrowser, castToSimple, COMMENT_NODE, expect, NS_SVG } from '@glimmer/util';
+import { assert, castToBrowser, castToSimple, expect } from '@glimmer/debug-util';
+import { COMMENT_NODE, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds, CursorImpl } from '../bounds';
 import { CURSOR_STACK, NewElementBuilder, RemoteLiveBlock } from './element-builder';

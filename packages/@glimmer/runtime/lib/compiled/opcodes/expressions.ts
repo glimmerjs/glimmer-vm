@@ -16,6 +16,7 @@ import {
   CheckOption,
   CheckOr,
 } from '@glimmer/debug';
+import { assert, debugToString } from '@glimmer/debug-util';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
@@ -27,7 +28,7 @@ import {
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
-import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
+import { assign, decodeHandle, isObject } from '@glimmer/util';
 import { $v0, CurriedTypes, Op } from '@glimmer/vm';
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
@@ -141,7 +142,7 @@ function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helpe
         ref.debugLabel
       }}}\` or \`(${ref.debugLabel})\`, and the incorrect definition is the value at the path \`${
         ref.debugLabel
-      }\`, which was: ${debugToString!(definition)}`
+      }\`, which was: ${debugToString?.(definition)}`
     );
   }
 

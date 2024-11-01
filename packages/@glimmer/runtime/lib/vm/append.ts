@@ -31,11 +31,12 @@ import type {
   Register,
   SyscallRegister,
 } from '@glimmer/vm';
+import { assert, expect, unwrapHandle } from '@glimmer/debug-util';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { createIteratorItemRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
+import { LOCAL_LOGGER, reverse, Stack } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import { $fp, $pc, $sp, isLowLevelRegister } from '@glimmer/vm';
 

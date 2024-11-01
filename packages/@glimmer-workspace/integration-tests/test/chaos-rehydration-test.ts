@@ -1,13 +1,6 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
-import {
-  castToBrowser,
-  castToSimple,
-  COMMENT_NODE,
-  ELEMENT_NODE,
-  expect,
-  isObject,
-  LOCAL_LOGGER,
-} from '@glimmer/util';
+import { castToBrowser, castToSimple, expect } from '@glimmer/debug-util';
+import { COMMENT_NODE, ELEMENT_NODE, isObject, LOCAL_LOGGER } from '@glimmer/util';
 
 import type { ComponentBlueprint, Content } from '..';
 

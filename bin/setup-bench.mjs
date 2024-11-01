@@ -104,10 +104,10 @@ await within(async () => {
   await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
   console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[experiment]')}`);
-  const install = () => $`pnpm install --frozen-lockfile`.quiet();
+  const install = () => $`pnpm install --frozen-lockfile`.pipe(process.stderr);
   await spinner(install);
   console.info(`$ pnpm build ${chalk.gray('[experiment]')}`);
-  const build = () => $`pnpm build`.quiet();
+  const build = () => $`pnpm build`.pipe(process.stderr);
   await spinner(build);
 
   if (isMacOs) {

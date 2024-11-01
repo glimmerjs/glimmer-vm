@@ -19,8 +19,9 @@ import type {
 import type { Reference } from '@glimmer/reference';
 import type { Tag } from '@glimmer/validator';
 import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
+import { unwrap } from '@glimmer/debug-util';
 import { createDebugAliasRef, UNDEFINED_REFERENCE, valueForRef } from '@glimmer/reference';
-import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
+import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate } from '@glimmer/util';
 import { CONSTANT_TAG } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
 

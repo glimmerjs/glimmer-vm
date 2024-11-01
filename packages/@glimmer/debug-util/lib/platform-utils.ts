@@ -3,10 +3,6 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 export type Factory<T> = new (...args: unknown[]) => T;
 
-export function keys<T extends object>(obj: T): Array<keyof T> {
-  return Object.keys(obj) as Array<keyof T>;
-}
-
 export function unwrap<T>(val: Maybe<T>): T {
   if (LOCAL_DEBUG) {
     if (val === null || val === undefined) throw new Error(`Expected value to be present`);

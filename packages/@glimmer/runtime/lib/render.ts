@@ -12,8 +12,8 @@ import type {
   TemplateIterator,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
+import { expect, unwrapHandle } from '@glimmer/debug-util';
 import { childRefFor, createConstRef } from '@glimmer/reference';
-import { expect, unwrapHandle } from '@glimmer/util';
 import { debug } from '@glimmer/validator';
 
 import { inTransaction } from './environment';

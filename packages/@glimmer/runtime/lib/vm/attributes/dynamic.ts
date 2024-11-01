@@ -8,8 +8,9 @@ import type {
   Nullable,
   SimpleElement,
 } from '@glimmer/interfaces';
+import { castToBrowser } from '@glimmer/debug-util';
 import { warnIfStyleNotTrusted } from '@glimmer/global-context';
-import { castToBrowser, NS_SVG } from '@glimmer/util';
+import { NS_SVG } from '@glimmer/util';
 
 import { normalizeStringValue } from '../../dom/normalize';
 import { normalizeProperty } from '../../dom/props';

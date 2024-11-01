@@ -19,10 +19,11 @@ import {
   CheckOption,
   CheckString,
 } from '@glimmer/debug';
+import { debugToString, expect } from '@glimmer/debug-util';
 import { associateDestroyableChild, destroy, registerDestructor } from '@glimmer/destroyable';
 import { getInternalModifierManager } from '@glimmer/manager';
 import { createComputeRef, isConstRef, valueForRef } from '@glimmer/reference';
-import { debugToString, expect, isObject } from '@glimmer/util';
+import { isObject } from '@glimmer/util';
 import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
 
@@ -227,7 +228,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
             ref.debugLabel
           }}}\`, and the incorrect definition is the value at the path \`${
             ref.debugLabel
-          }\`, which was: ${debugToString!(hostDefinition)}`
+          }\`, which was: ${debugToString?.(hostDefinition)}`
         );
       } else {
         throw new Error('BUG: modifier manager expected');

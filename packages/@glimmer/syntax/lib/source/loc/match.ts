@@ -1,4 +1,4 @@
-import { assert, isPresentArray } from '@glimmer/util';
+import { assert, isPresentArray } from '@glimmer/debug-util';
 
 import type { CharPosition, HbsPosition, InvisiblePosition, PositionData } from './offset';
 

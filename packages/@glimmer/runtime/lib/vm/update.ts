@@ -15,10 +15,11 @@ import type {
   UpdatingVM as IUpdatingVM,
 } from '@glimmer/interfaces';
 import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/reference';
+import { expect, unwrap } from '@glimmer/debug-util';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { updateRef, valueForRef } from '@glimmer/reference';
-import { expect, logStep, Stack, unwrap } from '@glimmer/util';
+import { logStep, Stack } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
 
 import type { VM, VmInitCallback } from './append';

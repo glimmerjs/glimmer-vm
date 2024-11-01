@@ -5,7 +5,8 @@ import type {
   EmberishCurlyComponentFactory,
   JitRenderDelegate,
 } from '@glimmer-workspace/integration-tests';
-import { assign, castToSimple, unwrap } from '@glimmer/util';
+import { castToSimple, unwrap } from '@glimmer/debug-util';
+import { assign } from '@glimmer/util';
 import {
   classes,
   createTemplate,

@@ -1,7 +1,7 @@
 import type { Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
 import type { MachineRegister } from '@glimmer/vm';
+import { assert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { assert } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, MachineOp } from '@glimmer/vm';
 
 import type { VM } from './append';

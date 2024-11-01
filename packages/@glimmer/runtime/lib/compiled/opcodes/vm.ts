@@ -10,6 +10,7 @@ import {
   CheckOption,
   CheckPrimitive,
 } from '@glimmer/debug';
+import { assert, expect, unwrap } from '@glimmer/debug-util';
 import { toBool } from '@glimmer/global-context';
 import {
   createComputeRef,
@@ -22,7 +23,7 @@ import {
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
-import { assert, decodeHandle, decodeImmediate, expect, isHandle, unwrap } from '@glimmer/util';
+import { decodeHandle, decodeImmediate, isHandle } from '@glimmer/util';
 import {
   beginTrackFrame,
   CONSTANT_TAG,

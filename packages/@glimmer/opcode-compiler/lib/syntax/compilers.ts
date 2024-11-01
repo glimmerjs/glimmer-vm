@@ -1,5 +1,5 @@
 import type { BuilderOp, HighLevelOp, SexpOpcode, SexpOpcodeMap } from '@glimmer/interfaces';
-import { assert, unwrap } from '@glimmer/util';
+import { assert, unwrap } from '@glimmer/debug-util';
 
 export type PushExpressionOp = (...op: BuilderOp | HighLevelOp) => void;
 

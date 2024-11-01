@@ -35,20 +35,11 @@ import {
   CheckProgramSymbolTable,
   CheckString,
 } from '@glimmer/debug';
+import { assert, debugToString, expect, unwrap, unwrapTemplate } from '@glimmer/debug-util';
 import { registerDestructor } from '@glimmer/destroyable';
 import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
-import {
-  assert,
-  assign,
-  debugToString,
-  dict,
-  EMPTY_STRING_ARRAY,
-  enumerate,
-  expect,
-  unwrap,
-  unwrapTemplate,
-} from '@glimmer/util';
+import { assign, dict, EMPTY_STRING_ARRAY, enumerate } from '@glimmer/util';
 import { $t0, $t1, CurriedTypes, InternalComponentCapabilities, Op } from '@glimmer/vm';
 
 import type { CurriedValue } from '../../curried-value';
@@ -192,7 +183,7 @@ APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
           ref.debugLabel
         }}}\`, and the incorrect definition is the value at the path \`${
           ref.debugLabel
-        }\`, which was: ${debugToString!(value)}`
+        }\`, which was: ${debugToString?.(value) ?? value}`
       );
     }
   }
