@@ -20,8 +20,8 @@ const REUSE_CONTROL = !!process.env['REUSE_CONTROL'];
 
 */
 
-const experimentBranchName =
-  process.env['EXPERIMENT_BRANCH_NAME'] || (await $`git rev-parse --abbrev-ref HEAD`).stdout.trim();
+const experimentRef =
+  process.env['EXPERIMENT_BRANCH_NAME'] || (await $`git rev-parse HEAD`).stdout.trim();
 const controlBranchName = process.env['CONTROL_BRANCH_NAME'] || 'main';
 
 // same order as in benchmark/benchmarks/krausest/lib/index.ts
@@ -95,16 +95,46 @@ const EXPERIMENT_URL = `http://localhost:${EXPERIMENT_PORT}`;
 
 // we can't do it in parallel on CI,
 
+if (!REUSE_CONTROL) {
+  // setup control
+  await within(async () => {
+    await cd(CONTROL_DIR);
+    await $`git clone ${join(ROOT, '.git')} .`;
+    await $`git fetch origin`;
+    await $`git checkout --force origin/${controlBranchName}`;
+    await $`rm -rf ./benchmark`;
+    await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
+
+    console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[control]')}`);
+    await spinner(async () => await $`pnpm install --no-frozen-lockfile`.pipe(process.stderr));
+    console.info(`$ pnpm build ${chalk.gray('[control]')}`);
+    await spinner(() => $`pnpm build`.pipe(process.stderr));
+
+    if (isMacOs) {
+      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
+    } else {
+      await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
+      await $`find ./packages -name 'package.json' -exec sed -i 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
+    }
+
+    await cd(CONTROL_BENCH_DIR);
+    await $`pnpm vite build`;
+  });
+}
+
 // setup experiment
 await within(async () => {
   await cd(EXPERIMENT_DIR);
   await $`git clone ${join(ROOT, '.git')} .`;
-  await $`git checkout ${experimentBranchName}`;
+  await $`git checkout --force ${experimentRef}`;
   await $`rm -rf ./benchmark`;
   await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
   console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[experiment]')}`);
-  const install = () => $`pnpm install --frozen-lockfile`.pipe(process.stderr);
+  const install = () => $`pnpm install --no-frozen-lockfile`.pipe(process.stderr);
   await spinner(install);
   console.info(`$ pnpm build ${chalk.gray('[experiment]')}`);
   const build = () => $`pnpm build`.pipe(process.stderr);
@@ -124,39 +154,9 @@ await within(async () => {
   await $`pnpm vite build`;
 });
 
-if (!REUSE_CONTROL) {
-  // setup control
-  await within(async () => {
-    await cd(CONTROL_DIR);
-    await $`git clone ${join(ROOT, '.git')} .`;
-    await $`git fetch origin`;
-    await $`git reset --hard origin/${controlBranchName}`;
-    await $`rm -rf ./benchmark`;
-    await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
-
-    console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[control]')}`);
-    await spinner(async () => await $`pnpm install --frozen-lockfile`.quiet());
-    console.info(`$ pnpm build ${chalk.gray('[control]')}`);
-    await spinner(() => $`pnpm build`.quiet());
-
-    if (isMacOs) {
-      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-      await $`find ./packages -name 'package.json' -exec sed -i '' 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
-    } else {
-      await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-      await $`find ./packages -name 'package.json' -exec sed -i 's|"main": "./dist/index.js",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
-      await $`find ./packages -name 'package.json' -exec sed -i 's|"import": "./dist/index.js"|"import": "./dist/prod/index.js"|g' {} \\;`;
-    }
-
-    await cd(CONTROL_BENCH_DIR);
-    await $`pnpm vite build`;
-  });
-}
-
 console.info({
   control: controlBranchName,
-  experiment: experimentBranchName,
+  experiment: experimentRef,
   EXPERIMENT_DIR,
   CONTROL_DIR,
 });
