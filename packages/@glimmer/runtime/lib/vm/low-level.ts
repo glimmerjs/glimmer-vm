@@ -27,7 +27,7 @@ export function initializeRegistersWithPC(pc: number): LowLevelRegisters {
   return [pc, -1, 0, 0];
 }
 
-export interface Stack {
+export interface VmStack {
   push(value: unknown): void;
   get(position: number): number;
   pop<T>(): T;
@@ -42,7 +42,7 @@ export class LowLevelVM {
   public currentOpSize = 0;
 
   constructor(
-    public stack: Stack,
+    public stack: VmStack,
     public heap: RuntimeHeap,
     public program: RuntimeProgram,
     public externs: Externs,
