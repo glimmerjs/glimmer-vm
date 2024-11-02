@@ -137,6 +137,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   public base = 0;
   public length = 0;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private stack: EvaluationStack = null as any;
 
   private _references: Nullable<readonly Reference[]> = null;
@@ -513,6 +514,7 @@ export function isArgumentError(arg: unknown): arg is ArgumentError {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ArgumentErrorImpl(error: any) {
   return {
     [ARGUMENT_ERROR]: true,

@@ -1,12 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": [
-      "esnext",
-      "DOM",
-      "DOM.Iterable",
-      "ES2015.Iterable"
-    ],
+    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
     "allowJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
@@ -26,17 +21,16 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
+    "types": ["qunit", "node", "vite/client"]
   },
-  "include": [
-    "*/test/**/*"
-  ],
-  "exclude": [
-    "*/test/node_modules",
-    "**/fixtures"
-  ],
+  "include": ["./*/test/**/*"],
+  "exclude": ["./*/test/node_modules", "**/fixtures"],
+  "references": [
+    {
+      "path": "./tsconfig.json"
+    },
+    {
+      "path": "../@glimmer-workspace/tsconfig.json"
+    }
+  ]
 }

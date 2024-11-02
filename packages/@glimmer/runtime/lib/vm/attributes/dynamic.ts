@@ -123,6 +123,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
     const { element } = this.attribute;
 
     if (this.value !== value) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (element as any)[this.normalizedName] = this.value = value;
 
       if (value === null || value === undefined) {

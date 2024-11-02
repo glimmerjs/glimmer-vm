@@ -179,6 +179,7 @@ class Matcher<Out, M extends Matches = Matches> {
     left: Pattern,
     right: Pattern,
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (left: any, right: any) => Out
   ): Matcher<Out, Matches> | ExhaustiveMatcher<Out> {
     this._whens.get(left, () => new When()).add(right, callback);

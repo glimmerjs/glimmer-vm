@@ -98,6 +98,7 @@ function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; h
   let tokens = tokenize(toInnerHTML(div), {});
 
   tokens = tokens.reduce((tokens, token) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     if (token.type === 'StartTag') {
       if (token.attributes) {
         token.attributes.sort((a, b) => {

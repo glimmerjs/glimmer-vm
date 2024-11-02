@@ -19,6 +19,7 @@ export class Compilers<PushOp extends PushExpressionOp, TSexpOpcodes extends Sex
     [name: number]: number;
   } = {};
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private funcs: CompilerFunction<PushOp, any>[] = [];
 
   add<TSexpOpcode extends TSexpOpcodes>(

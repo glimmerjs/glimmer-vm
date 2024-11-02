@@ -110,6 +110,7 @@ function assertFired(component: HookedComponent, name: string, count = 1) {
   let hooks = component.hooks;
 
   if (!hooks) {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     throw new TypeError(`Not hooked: ${component}`);
   }
 

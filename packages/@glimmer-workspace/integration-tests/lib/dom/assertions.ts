@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { isSimpleElement } from '@glimmer/debug-util';
 import { assign, dict } from '@glimmer/util';
@@ -103,6 +104,7 @@ export function equalsElement(
 }
 
 // TODO: Consider removing this
+// eslint-disable-next-line deprecation/deprecation
 interface CompatibleTagNameMap extends ElementTagNameMap {
   foreignobject: SVGForeignObjectElement;
 }

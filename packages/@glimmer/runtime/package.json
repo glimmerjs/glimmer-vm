@@ -46,9 +46,9 @@
     "@glimmer/wire-format": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer/debug-util": "workspace:*",
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/debug": "workspace:*",
+    "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
     "@glimmer/opcode-compiler": "workspace:*",
     "@types/qunit": "^2.19.9",
