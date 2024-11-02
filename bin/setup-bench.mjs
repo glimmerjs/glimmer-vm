@@ -98,17 +98,23 @@ const EXPERIMENT_URL = `http://localhost:${EXPERIMENT_PORT}`;
 if (!REUSE_CONTROL) {
   // setup control
   await within(async () => {
+    await $`git fetch origin`;
+    const mainRef = await $`git rev-parse origin/main`;
     await cd(CONTROL_DIR);
     await $`git clone ${join(ROOT, '.git')} .`;
-    await $`git fetch origin`;
-    await $`git checkout --force origin/${controlBranchName}`;
+    await $`git reset --hard ${mainRef}`;
     await $`rm -rf ./benchmark`;
     await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
-    console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[control]')}`);
-    await spinner(async () => await $`pnpm install --no-frozen-lockfile`.pipe(process.stderr));
+    console.info(`$ pnpm install --no-frozen-lockfile ${chalk.gray('[control]')}`);
+
+    await $`pwd`;
+    const result = await $`pnpm install`;
+    console.log(result);
+
     console.info(`$ pnpm build ${chalk.gray('[control]')}`);
-    await spinner(() => $`pnpm build`.pipe(process.stderr));
+
+    await $`pnpm build`;
 
     if (isMacOs) {
       await $`find ./packages -name 'package.json' -exec sed -i '' 's|"main": "index.ts",|"main": "./dist/prod/index.js","module": "./dist/prod/index.js",|g' {} \\;`;
@@ -133,7 +139,7 @@ await within(async () => {
   await $`rm -rf ./benchmark`;
   await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
-  console.info(`$ pnpm install --frozen-lockfile ${chalk.gray('[experiment]')}`);
+  console.info(`$ pnpm install --no-frozen-lockfile ${chalk.gray('[experiment]')}`);
   const install = () => $`pnpm install --no-frozen-lockfile`.pipe(process.stderr);
   await spinner(install);
   console.info(`$ pnpm build ${chalk.gray('[experiment]')}`);
