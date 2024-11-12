@@ -863,6 +863,46 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
+  @test({ kind: 'glimmer' }) 'destruction is not autotracked'() {
+    let fooCount = 0;
+    class Foo extends GlimmerishComponent {
+      declare args: { exclaim: string };
+
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
+      }
+
+      @tracked hello = 'hello';
+
+      get foo() {
+        fooCount++;
+        return this.hello + this.args.exclaim;
+      }
+    }
+    this.registerComponent('Glimmer', 'Foo', '{{this.foo}}', Foo);
+
+    this.render('{{#if this.showing}}<Foo @exclaim={{this.exclaim}} />{{/if}}', {
+      showing: false,
+      exclaim: '?',
+    });
+
+    this.assert.strictEqual(fooCount, 0);
+
+    this.rerender({ showing: true });
+    this.assert.strictEqual(fooCount, 1);
+
+    this.rerender({ exclaim: '!' });
+    this.assert.strictEqual(fooCount, 2);
+
+    this.rerender({ showing: false, exclaim: '!!!' });
+    this.assert.strictEqual(fooCount, 2);
+
+    this.destroy();
+    this.assert.strictEqual(fooCount, 2);
+
+    this.assertHTML('', 'destroys correctly');
+  }
+
   @test({ kind: 'templateOnly' })
   'throwing an error during rendering gives a readable error stack'(assert: Assert) {
     // eslint-disable-next-line no-console
