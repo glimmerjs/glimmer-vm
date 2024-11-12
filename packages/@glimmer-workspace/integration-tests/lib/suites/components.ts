@@ -864,41 +864,45 @@ export class GlimmerishComponents extends RenderTest {
   }
 
   @test({ kind: 'glimmer' }) 'destruction is not autotracked'() {
-    let fooCount = 0;
-    class Foo extends GlimmerishComponent {
-      declare args: { exclaim: string };
-
-      constructor(owner: Owner, args: Dict) {
-        super(owner, args);
-      }
-
-      @tracked hello = 'hello';
-
-      get foo() {
-        fooCount++;
-        return this.hello + this.args.exclaim;
+    class State {
+      @tracked willDestroyCalls = 0;
+      increment = () => this.willDestroyCalls++;
+    }
+    let state = new State();
+    class Child extends GlimmerishComponent {
+      declare args: { incrementWillDestroy: () => void };
+      override willDestroy() {
+        super.willDestroy();
+        this.args.incrementWillDestroy();
       }
     }
-    this.registerComponent('Glimmer', 'Foo', '{{this.foo}}', Foo);
+    class Example extends GlimmerishComponent {
+      @tracked showChild = true;
+      toggleChild = () => (this.showChild = !this.showChild);
+    }
+    this.registerComponent('Glimmer', 'Child', 'a child', Child);
+    this.registerComponent(
+      'Glimmer',
+      'Example',
+      `
+      <p>willDestroyCalls: {{@willDestroyCalls}}</p>
+      <button {{on "click" this.toggleChild}}>Toggle child</button>
 
-    this.render('{{#if this.showing}}<Foo @exclaim={{this.exclaim}} />{{/if}}', {
-      showing: false,
-      exclaim: '?',
-    });
+      {{#if this.showChild}}
+        <Child @incrementWillDestroy={{@incrementWillDestroy}} />
+      {{/if}}
+      `,
+      Example
+    );
 
-    this.assert.strictEqual(fooCount, 0);
+    this.render(
+      '<Example @incrementWillDestroy={{this.state.increment}} @willDestroyCalls={{this.state.willDestroyCalls}} />',
+      { state }
+    );
 
-    this.rerender({ showing: true });
-    this.assert.strictEqual(fooCount, 1);
-
-    this.rerender({ exclaim: '!' });
-    this.assert.strictEqual(fooCount, 2);
-
-    this.rerender({ showing: false, exclaim: '!!!' });
-    this.assert.strictEqual(fooCount, 2);
-
-    this.destroy();
-    this.assert.strictEqual(fooCount, 2);
+    this.assert.strictEqual(this.takeSnapshot(), '..');
+    this.assert.strictEqual(state.willDestroyCalls, 0);
+    this.assertHTML('', 'p', 'destroys correctly');
 
     this.assertHTML('', 'destroys correctly');
   }
