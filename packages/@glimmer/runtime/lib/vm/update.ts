@@ -10,6 +10,8 @@ import type {
   RuntimeContext,
   Scope,
   SimpleComment,
+  SimpleElement,
+  SimpleNode,
   UpdatableBlock,
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
@@ -121,10 +123,20 @@ export class ResumableVMStateImpl implements ResumableVMState {
   }
 }
 
-export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
+export interface BlockOpcode extends UpdatingOpcode, Bounds {
+  children: UpdatingOpcode[];
+  bounds: LiveBlock | UpdatableBlock;
+  parentElement(): SimpleElement;
+  firstNode(): SimpleNode;
+  lastNode(): SimpleNode;
+  evaluate(vm: UpdatingVM): void;
+}
+
+export class TryOpcode implements BlockOpcode, ExceptionHandler {
+  public type = 'try';
   public children: UpdatingOpcode[];
 
-  protected readonly bounds: LiveBlock;
+  declare bounds: UpdatableBlock; // Hides property on base class
 
   constructor(
     protected state: ResumableVMState,
@@ -133,7 +145,7 @@ export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
     children: UpdatingOpcode[]
   ) {
     this.children = children;
-    this.bounds = bounds;
+    this.bounds = bounds as UpdatableBlock;
   }
 
   parentElement() {
@@ -149,16 +161,6 @@ export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
   }
 
   evaluate(vm: UpdatingVM) {
-    vm.try(this.children, null);
-  }
-}
-
-export class TryOpcode extends BlockOpcode implements ExceptionHandler {
-  public type = 'try';
-
-  protected declare bounds: UpdatableBlock; // Hides property on base class
-
-  override evaluate(vm: UpdatingVM) {
     vm.try(this.children, this);
   }
 
@@ -183,19 +185,54 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
   }
 }
 
-export class ListItemOpcode extends TryOpcode {
+export class ListItemOpcode implements BlockOpcode, ExceptionHandler {
   public retained = false;
   public index = -1;
+  public children: UpdatingOpcode[] = [];
 
   constructor(
-    state: ResumableVMState,
-    runtime: RuntimeContext,
-    bounds: UpdatableBlock,
+    protected state: ResumableVMState,
+    protected runtime: RuntimeContext,
+    public bounds: UpdatableBlock,
     public key: unknown,
     public memo: Reference,
     public value: Reference
-  ) {
-    super(state, runtime, bounds, []);
+  ) {}
+
+  parentElement() {
+    return this.bounds.parentElement();
+  }
+
+  firstNode() {
+    return this.bounds.firstNode();
+  }
+
+  lastNode() {
+    return this.bounds.lastNode();
+  }
+
+  evaluate(vm: UpdatingVM) {
+    vm.try(this.children, this);
+  }
+
+  handleException() {
+    let { state, bounds, runtime } = this;
+
+    destroyChildren(this);
+
+    let elementStack = NewElementBuilder.resume(runtime.env, bounds);
+    let vm = state.resume(runtime, elementStack);
+
+    let updating: UpdatingOpcode[] = [];
+    let children = (this.children = []);
+
+    let result = vm.execute((vm) => {
+      vm.pushUpdating(updating);
+      vm.updateWith(this);
+      vm.pushUpdating(children);
+    });
+
+    associateDestroyableChild(this, result.drop);
   }
 
   updateReferences(item: OpaqueIterationItem) {
@@ -213,7 +250,7 @@ export class ListItemOpcode extends TryOpcode {
   }
 }
 
-export class ListBlockOpcode extends BlockOpcode {
+export class ListBlockOpcode implements BlockOpcode, ExceptionHandler {
   public type = 'list-block';
   public declare children: ListItemOpcode[];
 
@@ -221,17 +258,30 @@ export class ListBlockOpcode extends BlockOpcode {
   private marker: SimpleComment | null = null;
   private lastIterator: OpaqueIterator;
 
-  protected declare readonly bounds: LiveBlockList;
+  bounds: LiveBlockList;
 
   constructor(
-    state: ResumableVMState,
-    runtime: RuntimeContext,
+    protected state: ResumableVMState,
+    protected runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],
     private iterableRef: Reference<OpaqueIterator>
   ) {
-    super(state, runtime, bounds, children);
+    this.children = children;
+    this.bounds = bounds;
     this.lastIterator = valueForRef(iterableRef);
+  }
+
+  parentElement() {
+    return this.bounds.parentElement();
+  }
+
+  firstNode() {
+    return this.bounds.firstNode();
+  }
+
+  lastNode() {
+    return this.bounds.lastNode();
   }
 
   initializeChild(opcode: ListItemOpcode) {
@@ -239,7 +289,7 @@ export class ListBlockOpcode extends BlockOpcode {
     this.opcodeMap.set(opcode.key, opcode);
   }
 
-  override evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM) {
     let iterator = valueForRef(this.iterableRef);
 
     if (this.lastIterator !== iterator) {
@@ -261,7 +311,27 @@ export class ListBlockOpcode extends BlockOpcode {
     }
 
     // Run now-updated updating opcodes
-    super.evaluate(vm);
+    vm.try(this.children, this);
+  }
+
+  handleException() {
+    let { state, bounds, runtime } = this;
+
+    destroyChildren(this);
+
+    let elementStack = NewElementBuilder.resume(runtime.env, bounds);
+    let vm = state.resume(runtime, elementStack);
+
+    let updating: UpdatingOpcode[] = [];
+    let children = (this.children = []);
+
+    let result = vm.execute((vm) => {
+      vm.pushUpdating(updating);
+      vm.updateWith(this);
+      vm.pushUpdating(children);
+    });
+
+    associateDestroyableChild(this, result.drop);
   }
 
   private sync(iterator: OpaqueIterator) {

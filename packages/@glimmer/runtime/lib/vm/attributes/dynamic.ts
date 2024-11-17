@@ -21,7 +21,7 @@ export function dynamicAttribute(
   attr: string,
   namespace: Nullable<AttrNamespace>,
   isTrusting = false
-): DynamicAttribute {
+): SimpleDynamicAttribute | DefaultDynamicProperty {
   const { tagName, namespaceURI } = element;
   const attribute = { element, name: attr, namespace };
 
@@ -46,7 +46,7 @@ function buildDynamicAttribute(
   tagName: string,
   name: string,
   attribute: AttributeCursor
-): DynamicAttribute {
+): SimpleDynamicAttribute | DefaultDynamicProperty {
   if (requiresSanitization(tagName, name)) {
     return new SafeDynamicAttribute(attribute);
   } else {
@@ -58,7 +58,7 @@ function buildDynamicProperty(
   tagName: string,
   name: string,
   attribute: AttributeCursor
-): DynamicAttribute {
+): SimpleDynamicAttribute | DefaultDynamicProperty {
   if (requiresSanitization(tagName, name)) {
     return new SafeDynamicProperty(name, attribute);
   }
@@ -74,14 +74,9 @@ function buildDynamicProperty(
   return new DefaultDynamicProperty(name, attribute);
 }
 
-export abstract class DynamicAttribute implements AttributeOperation {
+export class SimpleDynamicAttribute implements AttributeOperation {
   constructor(public attribute: AttributeCursor) {}
 
-  abstract set(dom: ElementBuilder, value: unknown, env: Environment): void;
-  abstract update(value: unknown, env: Environment): void;
-}
-
-export class SimpleDynamicAttribute extends DynamicAttribute {
   set(dom: ElementBuilder, value: unknown, _env: Environment): void {
     const normalizedValue = normalizeValue(value);
 
@@ -103,13 +98,11 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
   }
 }
 
-export class DefaultDynamicProperty extends DynamicAttribute {
+export class DefaultDynamicProperty implements AttributeOperation {
   constructor(
     private normalizedName: string,
-    attribute: AttributeCursor
-  ) {
-    super(attribute);
-  }
+    public attribute: AttributeCursor
+  ) {}
 
   value: unknown;
   set(dom: ElementBuilder, value: unknown, _env: Environment): void {
