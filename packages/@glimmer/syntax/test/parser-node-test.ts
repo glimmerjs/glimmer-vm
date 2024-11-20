@@ -35,6 +35,15 @@ test('various html element paths', () => {
   }
 });
 
+test('continue parsing after an error', () => {
+  let t = '<img id="one">{{> face}}<img id="two">';
+  astEqual(t, b.template([
+    element('img', ['attrs', ['id', 'one']]),
+    // errorNode('error message'),
+    element('img', ['attrs', ['id', 'two']])
+  ]), undefined, { continueOnError: true });
+});
+
 test('elements can have empty attributes', () => {
   let t = '<img id="">';
   astEqual(t, b.template([element('img', ['attrs', ['id', '']])]));

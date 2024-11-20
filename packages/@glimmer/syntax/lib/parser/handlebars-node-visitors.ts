@@ -355,7 +355,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return comment;
   }
 
-  PartialStatement(partial: HBS.PartialStatement): never {
+  PartialStatement(partial: HBS.PartialStatement): unknown { // Error node type
+    if(this.continueOnError) {
+      // return b.error({
+      //   loc: partial.loc,
+      //   error: `Handlebars partials are not supported`
+      // })
+      return null;
+    }
+
     throw generateSyntaxError(
       `Handlebars partials are not supported`,
       this.source.spanFor(partial.loc)
