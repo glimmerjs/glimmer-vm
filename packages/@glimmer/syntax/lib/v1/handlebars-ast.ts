@@ -18,7 +18,7 @@ export interface NodeMap {
   Decorator: { input: Decorator; output: never };
   BlockStatement: { input: BlockStatement; output: ASTv1.BlockStatement | void };
   DecoratorBlock: { input: DecoratorBlock; output: never };
-  PartialStatement: { input: PartialStatement; output: unknown };
+  PartialStatement: { input: PartialStatement; output: ASTv1.ErrorNode };
   PartialBlockStatement: { input: PartialBlockStatement; output: never };
   ContentStatement: { input: ContentStatement; output: void };
   CommentStatement: { input: CommentStatement; output: ASTv1.MustacheCommentStatement | null };

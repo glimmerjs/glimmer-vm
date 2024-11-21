@@ -35,15 +35,6 @@ test('various html element paths', () => {
   }
 });
 
-test('continue parsing after an error', () => {
-  let t = '<img id="one">{{> face}}<img id="two">';
-  astEqual(t, b.template([
-    element('img', ['attrs', ['id', 'one']]),
-    // errorNode('error message'),
-    element('img', ['attrs', ['id', 'two']])
-  ]), undefined, { continueOnError: true });
-});
-
 test('elements can have empty attributes', () => {
   let t = '<img id="">';
   astEqual(t, b.template([element('img', ['attrs', ['id', '']])]));
@@ -907,6 +898,15 @@ test('Handlebars partial should error', (assert) => {
     },
     syntaxErrorFor('Handlebars partials are not supported', '{{> foo}}', 'test-module', 1, 0)
   );
+});
+
+test('Continue on error - Handlebars partial should error', () => {
+  let t = '<img id="one">{{> foo}}<img id="two">';
+  astEqual(t, b.template([
+    element('img', ['attrs', ['id', 'one']]),
+    b.error('Handlebars partials are not supported'),
+    element('img', ['attrs', ['id', 'two']])
+  ]), undefined, { continueOnError: true });
 });
 
 test('Handlebars partial block should error', (assert) => {
