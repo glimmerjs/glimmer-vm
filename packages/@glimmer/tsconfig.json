@@ -2,7 +2,12 @@
   "compilerOptions": {
     "composite": true,
     // Compilation Configuration
-    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable",
+      "ES2015.Iterable"
+    ],
     "allowJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
@@ -24,8 +29,18 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "types": ["qunit", "node", "vite/client"]
+    "skipLibCheck": true,
+    "types": [
+      "qunit",
+      "node",
+      "vite/client"
+    ]
   },
-  "include": ["*/lib/**/*", "*/index.ts"],
-  "exclude": ["**/fixtures"]
+  "include": [
+    "*/lib/**/*",
+    "*/index.ts"
+  ],
+  "exclude": [
+    "**/fixtures"
+  ]
 }

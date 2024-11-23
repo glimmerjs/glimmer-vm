@@ -9,10 +9,7 @@
     "directory": "packages/@glimmer/validator"
   },
   "type": "module",
-  "exports": {
-    "types": "./index.ts",
-    "development": "./index.ts"
-  },
+  "exports": "./index.ts",
   "publishConfig": {
     "access": "public",
     "exports": {
