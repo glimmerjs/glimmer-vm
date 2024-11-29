@@ -58,15 +58,18 @@ export abstract class Parser {
     >
   > = null;
   public tokenizer: EventedTokenizer;
+  protected continueOnError: boolean;
 
   constructor(
     source: src.Source,
     entityParser = new EntityParser(namedCharRefs),
-    mode: 'precompile' | 'codemod' = 'precompile'
+    mode: 'precompile' | 'codemod' = 'precompile',
+    continueOnError = false,
   ) {
     this.source = source;
     this.lines = source.source.split(/\r\n?|\n/u);
     this.tokenizer = new EventedTokenizer(this, entityParser, mode);
+    this.continueOnError = continueOnError;
   }
 
   offset(): src.SourceOffset {

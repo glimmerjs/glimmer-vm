@@ -716,6 +716,7 @@ export interface PreprocessOptions {
     escaping/unescaping of HTML entity codes.
    */
   mode?: 'codemod' | 'precompile' | undefined;
+  continueOnError?: boolean | undefined;
 }
 
 export interface Syntax {
@@ -786,7 +787,7 @@ export function preprocess(
     end: offsets.endPosition,
   };
 
-  let template = new TokenizerEventHandlers(source, entityParser, mode).parse(
+  let template = new TokenizerEventHandlers(source, entityParser, mode, options.continueOnError).parse(
     ast,
     options.locals ?? []
   );

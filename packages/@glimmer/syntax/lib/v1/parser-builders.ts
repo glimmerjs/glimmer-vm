@@ -434,6 +434,14 @@ class Builders {
   }): T {
     return buildLegacyLiteral({ type, value, loc });
   }
+
+  error({ message, loc }: { message: string; loc: SourceSpan }): ASTv1.ErrorNode {
+    return {
+      type: 'ErrorNode',
+      message,
+      loc,
+    };
+  }
 }
 
 const b = new Builders();

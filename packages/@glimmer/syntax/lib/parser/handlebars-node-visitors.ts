@@ -105,6 +105,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return node;
   }
 
+  triggerError(message: string, loc: SourceSpan): ASTv1.ErrorNode {
+    if(this.continueOnError) {
+      let error = b.error({ loc,  message });
+      appendChild(this.currentElement(), error);
+      return error;
+    }
+    throw generateSyntaxError(message, loc);
+  }
+
   BlockStatement(block: HBS.BlockStatement): ASTv1.BlockStatement | void {
     if (this.tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(block));
@@ -355,32 +364,28 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return comment;
   }
 
-  PartialStatement(partial: HBS.PartialStatement): never {
-    throw generateSyntaxError(
-      `Handlebars partials are not supported`,
-      this.source.spanFor(partial.loc)
-    );
+  PartialStatement(partial: HBS.PartialStatement): ASTv1.ErrorNode {
+    const loc = this.source.spanFor(partial.loc);
+    const message = `Handlebars partials are not supported`;
+    return this.triggerError(message, loc);
   }
 
-  PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): never {
-    throw generateSyntaxError(
-      `Handlebars partial blocks are not supported`,
-      this.source.spanFor(partialBlock.loc)
-    );
+  PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): ASTv1.ErrorNode {
+    const loc = this.source.spanFor(partialBlock.loc);
+    const message = `Handlebars partial blocks are not supported`;
+    return this.triggerError(message, loc);
   }
 
-  Decorator(decorator: HBS.Decorator): never {
-    throw generateSyntaxError(
-      `Handlebars decorators are not supported`,
-      this.source.spanFor(decorator.loc)
-    );
+  Decorator(decorator: HBS.Decorator): ASTv1.ErrorNode {
+    const loc = this.source.spanFor(decorator.loc);
+    const message = `Handlebars decorators are not supported`;
+    return this.triggerError(message, loc);
   }
 
-  DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): never {
-    throw generateSyntaxError(
-      `Handlebars decorator blocks are not supported`,
-      this.source.spanFor(decoratorBlock.loc)
-    );
+  DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): ASTv1.ErrorNode {
+    const loc = this.source.spanFor(decoratorBlock.loc);
+    const message = `Handlebars decorator blocks are not supported`;
+    return this.triggerError(message, loc);
   }
 
   SubExpression(sexpr: HBS.SubExpression): ASTv1.SubExpression {

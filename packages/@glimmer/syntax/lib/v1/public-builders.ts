@@ -483,6 +483,13 @@ function buildLoc(
   }
 }
 
+function buildError(message = '', loc?: SourceLocation): ASTv1.ErrorNode {
+  return b.error({
+    message,
+    loc: buildLoc(loc || null),
+  });
+}
+
 export default {
   mustache: buildMustache,
   block: buildBlock,
@@ -503,6 +510,7 @@ export default {
   template: buildTemplate,
   loc: buildLoc,
   pos: buildPosition,
+  error: buildError,
 
   path: buildPath,
 

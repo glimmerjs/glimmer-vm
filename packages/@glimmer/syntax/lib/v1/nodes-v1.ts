@@ -135,6 +135,7 @@ export type StatementName =
   | 'BlockStatement'
   | 'MustacheCommentStatement'
   | 'TextNode'
+  | 'ErrorNode'
   | 'ElementNode';
 
 export interface AttrNode extends BaseNode {
@@ -288,6 +289,11 @@ export interface HashPair extends BaseNode {
   value: Expression;
 }
 
+export interface ErrorNode extends BaseNode {
+  type: 'ErrorNode';
+  message: string;
+}
+
 export interface StripFlags {
   open: boolean;
   close: boolean;
@@ -318,6 +324,8 @@ export type Nodes = {
 
   Hash: Hash;
   HashPair: HashPair;
+
+  ErrorNode: ErrorNode;
 };
 
 export type NodeType = keyof Nodes;
