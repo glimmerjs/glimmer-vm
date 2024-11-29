@@ -924,6 +924,13 @@ test('Handlebars partial block should error', (assert) => {
   );
 });
 
+test('Continue on error - Handlebars partial block should error', () => {
+  let t = '{{#> foo}}{{/foo}}';
+  astEqual(t, b.template([
+    b.error('Handlebars partial blocks are not supported'),
+  ]), undefined, { continueOnError: true });
+});
+
 test('Handlebars decorator should error', (assert) => {
   assert.throws(
     () => {
@@ -931,6 +938,13 @@ test('Handlebars decorator should error', (assert) => {
     },
     syntaxErrorFor('Handlebars decorators are not supported', '{{* foo}}', 'test-module', 1, 0)
   );
+});
+
+test('Continue on error - Handlebars decorator should error', () => {
+  let t = '{{* foo}}';
+  astEqual(t, b.template([
+    b.error('Handlebars decorators are not supported'),
+  ]), undefined, { continueOnError: true });
 });
 
 test('Handlebars decorator block should error', (assert) => {
@@ -946,6 +960,13 @@ test('Handlebars decorator block should error', (assert) => {
       0
     )
   );
+});
+
+test('Continue on error - Handlebars decorator block should error', () => {
+  let t = '{{#* foo}}{{/foo}}';
+  astEqual(t, b.template([
+    b.error('Handlebars decorator blocks are not supported'),
+  ]), undefined, { continueOnError: true });
 });
 
 test('disallowed mustaches in the tagName space', (assert) => {
