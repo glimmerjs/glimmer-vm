@@ -589,6 +589,12 @@ importers:
         specifier: ^8.52.0
         version: 8.54.0
 
+  packages/@glimmer-workspace/smoke-types:
+    devDependencies:
+      eslint:
+        specifier: ^8.52.0
+        version: 8.54.0
+
   packages/@glimmer-workspace/test-utils:
     dependencies:
       '@glimmer/interfaces':

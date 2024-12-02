@@ -1,7 +1,11 @@
-import type { BlockMetadata, ProgramConstants, ProgramHeap } from '@glimmer/interfaces';
+import type {
+  BlockMetadata,
+  ProgramConstants,
+  ProgramHeap,
+  RawDisassembledOperand,
+} from '@glimmer/interfaces';
 import { decodeHandle } from '@glimmer/constants';
 
-import type { RawDisassembledOperand } from '../debug';
 import type {
   NonNullableOperandType,
   NormalizedOperand,

@@ -4,6 +4,7 @@ import type {
   BlockMetadata,
   BlockSymbolNames,
   Cursor,
+  DisassembledOperand,
   NamedArguments,
   Nullable,
   PositionalArguments,
@@ -12,9 +13,8 @@ import type {
   VMArguments,
 } from '@glimmer/interfaces';
 import { dev, exhausted, getLocalDebugType } from '@glimmer/debug-util';
-import { isIndexable } from '@glimmer/util';
+import { entries, isIndexable } from '@glimmer/util';
 
-import type { DisassembledOperand } from '../debug';
 import type { ValueRefOptions } from '../render/basic';
 import type { IntoFragment } from '../render/fragment';
 import type { RegisterName, SomeDisassembledOperand } from './dism';
@@ -33,7 +33,7 @@ export function describeOp(
 
   const block = new SerializeBlockContext(meta?.symbols ?? null);
 
-  let args: IntoFragment[] = Object.entries(params).map(
+  let args: IntoFragment[] = entries(params).map(
     ([p, v]) => frag`${as.attrName(p)}=${block.serialize(v)}`
   );
 

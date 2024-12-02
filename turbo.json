@@ -35,7 +35,7 @@
     },
     "lint:types": {},
     "//#test:types": {
-      "inputs": ["**/dist/**", "tsconfig.dist.json"],
+      "inputs": ["**/dist/**"],
       "dependsOn": ["^build"]
     }
   }

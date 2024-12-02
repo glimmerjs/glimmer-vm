@@ -75,7 +75,6 @@ export function tsconfig(updates) {
     target: ScriptTarget.ESNext,
     noEmit: true,
     declarationDir: 'dist',
-    types: ['vite/client'],
     ...updates,
   };
 }
