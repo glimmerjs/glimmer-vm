@@ -9,12 +9,6 @@
     "access": "public",
     "exports": {
       ".": {
-        "require": {
-          "development": {
-            "types": "./dist/dev/index.d.cts",
-            "default": "./dist/dev/index.cjs"
-          }
-        },
         "default": {
           "development": {
             "types": "./dist/dev/index.d.ts",

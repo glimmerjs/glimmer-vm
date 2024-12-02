@@ -35,7 +35,7 @@ import {
   CheckNullable,
   CheckOr,
 } from '@glimmer/debug';
-import { assert, debugToString } from '@glimmer/debug-util';
+import { assert, debugToString, unwrap } from '@glimmer/debug-util';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
@@ -163,7 +163,7 @@ function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helpe
     );
   }
 
-  return helper!;
+  return unwrap(helper);
 }
 
 APPEND_OPCODES.add(VM_HELPER_OP, (vm, { op1: handle }) => {
