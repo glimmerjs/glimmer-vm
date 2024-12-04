@@ -1,8 +1,7 @@
-import type { UpdatableTag } from '@glimmer/interfaces';
+import type { DirtyableTag, UpdatableTag } from '@glimmer/interfaces';
+import { allowCycles, validateTag, valueForTag } from '@glimmer/fundamental';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 import {
-  ALLOW_CYCLES,
-  bump,
   combine,
   CONSTANT_TAG,
   createTag,
@@ -10,9 +9,6 @@ import {
   CURRENT_TAG,
   dirtyTag,
   updateTag,
-  validateTag,
-  valueForTag,
-  VOLATILE_TAG,
 } from '@glimmer/validator';
 
 import { module, test } from './-utils';
@@ -65,6 +61,9 @@ module('@glimmer/validator: validators', () => {
         let subtag = createTag();
 
         assert.throws(
+          // This cast is intentionally unsound in order to trigger an
+          // error condition that would otherwise be caught by the type
+          // system
           () => updateTag(tag as unknown as UpdatableTag, subtag),
           /Error: Attempted to update a tag that was not updatable/u
         );
@@ -165,8 +164,8 @@ module('@glimmer/validator: validators', () => {
 
         let snapshot = valueForTag(tag);
 
-        unwrap(ALLOW_CYCLES).set(tag, true);
-        unwrap(ALLOW_CYCLES).set(subtag, true);
+        allowCycles(tag);
+        allowCycles(subtag);
 
         updateTag(tag, subtag);
         updateTag(subtag, tag);
@@ -202,8 +201,10 @@ module('@glimmer/validator: validators', () => {
         let combined = combine([tag1, tag2]);
 
         assert.throws(
-          // @ts-expect-error this is an error condition
-          () => dirtyTag(combined),
+          // This cast is intentionally unsound in order to trigger an
+          // error condition that would otherwise be caught by the type
+          // system
+          () => dirtyTag(combined as unknown as DirtyableTag),
           /Error: Attempted to dirty a tag that was not dirtyable/u
         );
       });
@@ -215,8 +216,10 @@ module('@glimmer/validator: validators', () => {
         let combined = combine([tag1, tag2]);
 
         assert.throws(
-          // @ts-expect-error this is an error condition
-          () => updateTag(combined, tag1),
+          // This cast is intentionally unsound in order to trigger an
+          // error condition that would otherwise be caught by the type
+          // system
+          () => updateTag(combined as unknown as UpdatableTag, tag1),
           /Error: Attempted to update a tag that was not updatable/u
         );
       });
@@ -227,8 +230,8 @@ module('@glimmer/validator: validators', () => {
     if (import.meta.env.DEV) {
       test('it cannot be dirtied', (assert) => {
         assert.throws(
-          // @ts-expect-error this is an error condition
-          () => dirtyTag(CONSTANT_TAG),
+          //
+          () => dirtyTag(CONSTANT_TAG as unknown as DirtyableTag),
           /Error: Attempted to dirty a tag that was not dirtyable/u
         );
       });
@@ -237,46 +240,10 @@ module('@glimmer/validator: validators', () => {
         let subtag = createTag();
 
         assert.throws(
-          // @ts-expect-error this is an error condition
-          () => updateTag(CONSTANT_TAG, subtag),
-          /Error: Attempted to update a tag that was not updatable/u
-        );
-      });
-    }
-  });
-
-  module('VolatileTag', () => {
-    test('it is always invalid', (assert) => {
-      let snapshot = valueForTag(VOLATILE_TAG);
-      assert.notOk(validateTag(VOLATILE_TAG, snapshot));
-    });
-
-    test('it ensures that any tags which it is combined with are also always invalid', (assert) => {
-      let tag2 = createTag();
-
-      let combined = combine([VOLATILE_TAG, tag2]);
-
-      bump();
-
-      let snapshot = valueForTag(combined);
-      assert.notOk(validateTag(combined, snapshot));
-    });
-
-    if (import.meta.env.DEV) {
-      test('it cannot be dirtied', (assert) => {
-        assert.throws(
-          // @ts-expect-error this is an error condition
-          () => dirtyTag(VOLATILE_TAG),
-          /Error: Attempted to dirty a tag that was not dirtyable/u
-        );
-      });
-
-      test('it cannot be updated', (assert) => {
-        let subtag = createTag();
-
-        assert.throws(
-          // @ts-expect-error this is an error condition
-          () => updateTag(VOLATILE_TAG, subtag),
+          // This cast is intentionally unsound in order to trigger an
+          // error condition that would otherwise be caught by the type
+          // system
+          () => updateTag(CONSTANT_TAG as unknown as UpdatableTag, subtag),
           /Error: Attempted to update a tag that was not updatable/u
         );
       });
@@ -310,8 +277,10 @@ module('@glimmer/validator: validators', () => {
     if (import.meta.env.DEV) {
       test('it cannot be dirtied', (assert) => {
         assert.throws(
-          // @ts-expect-error this is an error condition
-          () => dirtyTag(CURRENT_TAG),
+          // This cast is intentionally unsound in order to trigger an
+          // error condition that would otherwise be caught by the type
+          // system
+          () => dirtyTag(CURRENT_TAG as unknown as DirtyableTag),
           /Error: Attempted to dirty a tag that was not dirtyable/u
         );
       });
@@ -320,8 +289,10 @@ module('@glimmer/validator: validators', () => {
         let subtag = createTag();
 
         assert.throws(
-          // @ts-expect-error this is an error condition
-          () => updateTag(CURRENT_TAG, subtag),
+          // This cast is intentionally unsound in order to trigger an
+          // error condition that would otherwise be caught by the type
+          // system
+          () => updateTag(CURRENT_TAG as unknown as UpdatableTag, subtag),
           /Error: Attempted to update a tag that was not updatable/u
         );
       });

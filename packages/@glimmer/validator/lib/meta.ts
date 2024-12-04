@@ -1,8 +1,9 @@
+import type { TagMeta } from '@glimmer/fundamental';
 import type { ConstantTag, UpdatableTag } from '@glimmer/interfaces';
+import { debug, getTagMeta, upsertTagMetaFor } from '@glimmer/fundamental';
 
 import type { Indexable } from './utils';
 
-import { debug } from './debug';
 import { unwrap } from './utils';
 import { createUpdatableTag, DIRTY_TAG } from './validators';
 
@@ -11,10 +12,6 @@ function isObjectLike<T>(u: T): u is Indexable & T {
 }
 
 ///////////
-
-export type TagMeta = Map<PropertyKey, UpdatableTag>;
-
-const TRACKED_TAGS = new WeakMap<object, TagMeta>();
 
 export function dirtyTagFor<T extends object>(
   obj: T,
@@ -25,7 +22,7 @@ export function dirtyTagFor<T extends object>(
     throw new Error(`BUG: Can't update a tag for a primitive`);
   }
 
-  let tags = meta === undefined ? TRACKED_TAGS.get(obj) : meta;
+  const tags = meta ?? getTagMeta(obj);
 
   // No tags have been setup for this object yet, return
   if (tags === undefined) return;
@@ -42,24 +39,12 @@ export function dirtyTagFor<T extends object>(
   }
 }
 
-export function tagMetaFor(obj: object): TagMeta {
-  let tags = TRACKED_TAGS.get(obj);
-
-  if (tags === undefined) {
-    tags = new Map();
-
-    TRACKED_TAGS.set(obj, tags);
-  }
-
-  return tags;
-}
-
 export function tagFor<T extends object>(
   obj: T,
   key: keyof T | string | symbol,
   meta?: TagMeta
 ): UpdatableTag | ConstantTag {
-  let tags = meta === undefined ? tagMetaFor(obj) : meta;
+  const tags = meta ?? upsertTagMetaFor(obj);
   let tag = tags.get(key);
 
   if (tag === undefined) {

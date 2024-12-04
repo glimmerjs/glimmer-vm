@@ -1,9 +1,10 @@
 import type { GlobalContext } from '@glimmer/global-context';
 import type { OpaqueIterationItem, Reference } from '@glimmer/reference';
 import { unwrap } from '@glimmer/debug-util';
+import { consumeTag } from '@glimmer/fundamental';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 import { createComputeRef, createIteratorRef, valueForRef } from '@glimmer/reference';
-import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';
+import { CURRENT_TAG } from '@glimmer/validator';
 
 import objectValues from './utils/platform';
 import { module, test } from './utils/qunit';
@@ -14,7 +15,7 @@ class IterableWrapper {
 
   constructor(obj: unknown, key = '@identity') {
     let valueRef = createComputeRef(() => {
-      consumeTag(VOLATILE_TAG);
+      consumeTag(CURRENT_TAG);
       return obj;
     });
     this.iterable = createIteratorRef(valueRef, key);

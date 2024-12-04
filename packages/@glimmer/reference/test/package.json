@@ -2,12 +2,14 @@
   "private": true,
   "name": "@glimmer-test/reference",
   "dependencies": {
+    "@glimmer/fundamental": "workspace:*",
     "@glimmer/reference": "workspace:*",
     "@glimmer/validator": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/global-context": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer/debug-util": "workspace:*"
+    "@glimmer/debug-util": "workspace:*",
+    "vite": "*"
   }
 }

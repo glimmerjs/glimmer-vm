@@ -1,0 +1,47 @@
+{
+  "name": "@glimmer/fundamental",
+  "version": "0.93.1",
+  "license": "MIT",
+  "description": "The fundamental state used by Glimmer reactivity. This package coordinates via a single global, and allows the rest of the packages to be duplicated semantically.",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/fundamental",
+  "type": "module",
+  "exports": "./index.ts",
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "default": {
+          "development": {
+            "types": "./dist/dev/index.d.ts",
+            "default": "./dist/dev/index.js"
+          },
+          "default": {
+            "types": "./dist/prod/index.d.ts",
+            "default": "./dist/prod/index.js"
+          }
+        }
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "test:lint": "eslint .",
+    "test:publint": "publint",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
+  },
+  "dependencies": {
+    "@glimmer/debug-util": "workspace:*",
+    "@glimmer/global-context": "workspace:*",
+    "@glimmer/interfaces": "workspace:*"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:*",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^4.5.1",
+    "typescript": "*"
+  }
+}

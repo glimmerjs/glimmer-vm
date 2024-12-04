@@ -23,11 +23,11 @@ import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/re
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { dev, expect, unwrapHandle } from '@glimmer/debug-util';
 import { associateDestroyableChild } from '@glimmer/destroyable';
+import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/fundamental';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { createIteratorItemRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { LOCAL_LOGGER, reverse, Stack } from '@glimmer/util';
-import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import { $pc, isLowLevelRegister } from '@glimmer/vm';
 
 import type { ScopeOptions } from '../scope';

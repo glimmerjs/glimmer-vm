@@ -21,6 +21,7 @@ import type {
 import type { DirtyableTag } from '@glimmer/validator';
 import { unwrapTemplate } from '@glimmer/debug-util';
 import { registerDestructor } from '@glimmer/destroyable';
+import { consumeTag } from '@glimmer/fundamental';
 import { setInternalComponentManager } from '@glimmer/manager';
 import {
   childRefFor,
@@ -31,7 +32,7 @@ import {
 } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
 import { assign, EMPTY_ARRAY, keys } from '@glimmer/util';
-import { consumeTag, createTag, dirtyTag, dirtyTagFor } from '@glimmer/validator';
+import { createTag, dirtyTag, dirtyTagFor } from '@glimmer/validator';
 
 import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
 import type { TestComponentConstructor } from './types';

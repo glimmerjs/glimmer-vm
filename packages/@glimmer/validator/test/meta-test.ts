@@ -1,4 +1,5 @@
-import { dirtyTagFor, tagFor, validateTag, valueForTag } from '@glimmer/validator';
+import { validateTag, valueForTag } from '@glimmer/fundamental';
+import { dirtyTagFor, tagFor } from '@glimmer/validator';
 
 import { module, test } from './-utils';
 

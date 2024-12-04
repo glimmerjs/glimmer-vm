@@ -17,15 +17,25 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
-    "noEmit": true,
     "paths": {
-      "@/components/*": ["./lib/components/*"],
-      "@/utils/*": ["./lib/utils/*"],
-      "@glimmer-workspace/benchmark-env": ["../../../packages/@glimmer-workspace/benchmark-env"],
-      "@glimmer/runtime": ["../../../packages/@glimmer/runtime"]
+      "@/components/*": [
+        "./lib/components/*"
+      ],
+      "@/utils/*": [
+        "./lib/utils/*"
+      ],
+      "@glimmer-workspace/benchmark-env": [
+        "../../../packages/@glimmer-workspace/benchmark-env"
+      ],
+      "@glimmer/runtime": [
+        "../../../packages/@glimmer/runtime"
+      ]
     }
   },
-  "include": ["./lib/", "./browser.js"],
+  "include": [
+    "./lib/",
+    "./browser.js"
+  ],
   "references": [
     {
       "path": "../../../packages/@glimmer/tsconfig.json"

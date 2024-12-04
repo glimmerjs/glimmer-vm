@@ -4,10 +4,14 @@ export type TagTypeSymbol = typeof TYPE;
 declare const COMPUTE: unique symbol;
 export type TagComputeSymbol = typeof COMPUTE;
 
-export type DIRTYABLE_TAG_ID = 0;
-export type UPDATABLE_TAG_ID = 1;
-export type COMBINATOR_TAG_ID = 2;
-export type CONSTANT_TAG_ID = 3;
+export type CONSTANT_REVISION = 0;
+export type INITIAL_REVISION = 1;
+
+export type DirtyableTagId = 0;
+export type UpdatableTagId = 1;
+export type CombinatorTagId = 2;
+export type ConstantTagId = 3;
+export type CurrentTagId = 101;
 
 /**
  * This union represents all of the possible tag types for the monomorphic tag class.
@@ -15,43 +19,23 @@ export type CONSTANT_TAG_ID = 3;
  * performance reasons, any type of tag that is meant to be used frequently should
  * be added to the monomorphic tag.
  */
-export type MonomorphicTagId =
-  | DIRTYABLE_TAG_ID
-  | UPDATABLE_TAG_ID
-  | COMBINATOR_TAG_ID
-  | CONSTANT_TAG_ID;
-
-export type VOLATILE_TAG_ID = 100;
-export type CURRENT_TAG_ID = 101;
-
-export type PolymorphicTagId = VOLATILE_TAG_ID | CURRENT_TAG_ID;
-
-export type TagId = MonomorphicTagId | PolymorphicTagId;
+export type TagId =
+  | DirtyableTagId
+  | UpdatableTagId
+  | CurrentTagId
+  | CombinatorTagId
+  | ConstantTagId;
 
 export type Revision = number;
 
-export interface Tag {
-  readonly [TYPE]: TagId;
+export interface Tag<T extends TagId = TagId> {
+  readonly [TYPE]: T;
   readonly subtag?: Tag | Tag[] | null | undefined;
   [COMPUTE](): Revision;
 }
 
-export interface MonomorphicTag extends Tag {
-  readonly [TYPE]: MonomorphicTagId;
-}
-
-export interface UpdatableTag extends MonomorphicTag {
-  readonly [TYPE]: UPDATABLE_TAG_ID;
-}
-
-export interface DirtyableTag extends MonomorphicTag {
-  readonly [TYPE]: DIRTYABLE_TAG_ID;
-}
-
-export interface ConstantTag extends MonomorphicTag {
-  readonly [TYPE]: CONSTANT_TAG_ID;
-}
-
-export interface CombinatorTag extends MonomorphicTag {
-  readonly [TYPE]: COMBINATOR_TAG_ID;
-}
+export type DirtyableTag = Tag<DirtyableTagId>;
+export type UpdatableTag = Tag<UpdatableTagId>;
+export type CurrentTag = Tag<CurrentTagId>;
+export type CombinatorTag = Tag<CombinatorTagId>;
+export type ConstantTag = Tag<ConstantTagId>;

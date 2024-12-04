@@ -1,8 +1,11 @@
 import { jitSuite, preprocess, RenderTest, syntaxErrorFor, test } from '../..';
 
-let types = ['if', 'unless'];
+const types = ['if', 'unless'];
 
-for (let type of types) {
+for (const _type of types) {
+  // this causes TS to understand that the type is assigned before it's used
+  const type = _type;
+
   class SyntaxErrors extends RenderTest {
     static suiteName = `if/unless (${type}) keyword syntax errors`;
 

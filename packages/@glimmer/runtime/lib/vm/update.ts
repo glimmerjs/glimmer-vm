@@ -16,10 +16,10 @@ import type {
 import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/reference';
 import { expect, unwrap } from '@glimmer/debug-util';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
+import { debug, resetTracking } from '@glimmer/fundamental';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { updateRef, valueForRef } from '@glimmer/reference';
 import { logStep, Stack } from '@glimmer/util';
-import { debug, resetTracking } from '@glimmer/validator';
 
 import type { Closure } from './append';
 import type { AppendingBlockList } from './element-builder';

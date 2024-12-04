@@ -55,6 +55,27 @@ export interface Constructor<T> extends Function {
   prototype: T;
 }
 
+class CheckSatisfies<T> implements Checker<T> {
+  declare type: T;
+
+  constructor(
+    private predicate: (value: unknown) => value is T,
+    private desc: string
+  ) {}
+
+  validate(value: unknown): value is T {
+    return this.predicate(value);
+  }
+
+  expected(): string {
+    return this.desc;
+  }
+}
+
+export function satisfies<T>(predicate: (value: unknown) => value is T, desc: string): Checker<T> {
+  return new CheckSatisfies(predicate, desc);
+}
+
 class TypeofChecker<T> implements Checker<T> {
   declare type: T;
 

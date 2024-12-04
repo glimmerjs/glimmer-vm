@@ -2,8 +2,12 @@
   "private": true,
   "name": "@glimmer-test/validator",
   "dependencies": {
+    "@glimmer/fundamental": "workspace:*",
     "@glimmer/validator": "workspace:*",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "*"
   }
 }

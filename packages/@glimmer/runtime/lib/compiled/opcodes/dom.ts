@@ -6,11 +6,12 @@ import type {
   ModifierInstance,
   Nullable,
   Owner,
+  Revision,
+  Tag,
   UpdatingOpcode,
   UpdatingVM,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import type { Revision, Tag } from '@glimmer/validator';
 import {
   CURRIED_MODIFIER,
   VM_CLOSE_ELEMENT_OP,
@@ -36,10 +37,11 @@ import {
 } from '@glimmer/debug';
 import { debugToString, expect } from '@glimmer/debug-util';
 import { associateDestroyableChild, destroy, registerDestructor } from '@glimmer/destroyable';
+import { consumeTag, validateTag, valueForTag } from '@glimmer/fundamental';
 import { getInternalModifierManager } from '@glimmer/manager';
 import { createComputeRef, isConstRef, valueForRef } from '@glimmer/reference';
 import { isIndexable } from '@glimmer/util';
-import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
+import { CURRENT_TAG } from '@glimmer/validator';
 import { $t0 } from '@glimmer/vm';
 
 import type { CurriedValue } from '../../curried-value';

@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
+    "incremental": true,
     "lib": [
       "esnext",
       "DOM",
@@ -12,7 +13,6 @@
     "inlineSourceMap": true,
     "declaration": true,
     "declarationMap": true,
-    "outDir": "../../ts-dist/packages",
     "baseUrl": "..",
     "verbatimModuleSyntax": true,
     "experimentalDecorators": true,
@@ -34,11 +34,12 @@
     ]
   },
   "include": [
-    "./*/test/**/*"
+    "**/test/**/*"
   ],
   "exclude": [
-    "./*/test/node_modules",
-    "**/fixtures"
+    "**/node_modules",
+    "**/fixtures",
+    "**/vm-babel-plugins/**",
   ],
   "references": [
     {

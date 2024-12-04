@@ -6,6 +6,7 @@ export type * from './lib/components.d.ts';
 export type * from './lib/content.d.ts';
 export type * from './lib/core.d.ts';
 export type * from './lib/curry.d.ts';
+export type * from './lib/debug/dism.d.ts';
 export type * from './lib/dom/attributes.d.ts';
 export type * from './lib/dom/bounds.d.ts';
 export type * from './lib/dom/changes.d.ts';
@@ -23,6 +24,5 @@ export type * from './lib/template.d.ts';
 export type * from './lib/tier1/symbol-table.d.ts';
 export type * from './lib/type-utils.d.ts';
 export type * from './lib/vm-opcodes.d.ts';
-export type * from './lib/debug/dism.d.ts';
 
 export { WireFormat };

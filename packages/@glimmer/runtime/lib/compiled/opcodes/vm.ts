@@ -1,6 +1,11 @@
-import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
+import type {
+  CompilableTemplate,
+  Nullable,
+  Revision,
+  Tag,
+  UpdatingOpcode,
+} from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import type { Revision, Tag } from '@glimmer/validator';
 import {
   decodeHandle,
   decodeImmediate,
@@ -42,6 +47,13 @@ import {
   CheckSyscallRegister,
 } from '@glimmer/debug';
 import { assert, expect, unwrap } from '@glimmer/debug-util';
+import {
+  beginTrackFrame,
+  consumeTag,
+  endTrackFrame,
+  validateTag,
+  valueForTag,
+} from '@glimmer/fundamental';
 import { toBool } from '@glimmer/global-context';
 import {
   createComputeRef,
@@ -54,15 +66,7 @@ import {
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
-import {
-  beginTrackFrame,
-  CONSTANT_TAG,
-  consumeTag,
-  endTrackFrame,
-  INITIAL,
-  validateTag,
-  valueForTag,
-} from '@glimmer/validator';
+import { CONSTANT_TAG, INITIAL } from '@glimmer/validator';
 
 import type { UpdatingVM } from '../../vm';
 import type { VM } from '../../vm/append';

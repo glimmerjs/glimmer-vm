@@ -1,3 +1,4 @@
+import type { Revision } from '@glimmer/fundamental';
 import type {
   ComputeReference,
   ConstantReference,
@@ -8,18 +9,12 @@ import type {
   ReferenceType,
   UnboundReference,
 } from '@glimmer/interfaces';
-import type { Revision, Tag } from '@glimmer/validator';
+import type { Tag } from '@glimmer/validator';
 import { expect } from '@glimmer/debug-util';
+import { consumeTag, validateTag, valueForTag } from '@glimmer/fundamental';
 import { getProp, setProp } from '@glimmer/global-context';
 import { isDict } from '@glimmer/util';
-import {
-  CONSTANT_TAG,
-  consumeTag,
-  INITIAL,
-  track,
-  validateTag,
-  valueForTag,
-} from '@glimmer/validator';
+import { CONSTANT_TAG, INITIAL, track } from '@glimmer/validator';
 
 export const REFERENCE: ReferenceSymbol = Symbol('REFERENCE') as ReferenceSymbol;
 

@@ -1,19 +1,21 @@
 import {
   beginTrackFrame,
   consumeTag,
+  debug,
+  endTrackFrame,
+  isTracking,
+  validateTag,
+  valueForTag,
+} from '@glimmer/fundamental';
+import {
   createCache,
   createTag,
-  debug,
   dirtyTag,
-  endTrackFrame,
   getValue,
   isConst,
-  isTracking,
   track,
   trackedData,
   untrack,
-  validateTag,
-  valueForTag,
 } from '@glimmer/validator';
 
 import { module, test } from './-utils';

@@ -45,6 +45,7 @@ export {
   CheckUndefined,
   CheckUnknown,
   recordStackSize,
+  satisfies,
   wrap,
 } from './lib/stack-check';
 export { type VmDiff, VmSnapshot, type VmSnapshotValueDiff } from './lib/vm/snapshot';

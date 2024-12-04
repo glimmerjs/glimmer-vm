@@ -118,8 +118,10 @@ export function typescript(pkg, env) {
   ];
 }
 
-/** @type {['is' | 'startsWith', string[], 'inline' | 'external'][]} */
-const EXTERNAL_OPTIONS = [
+/**
+ * @satisfies {ExternalOption[]}
+ */
+const EXTERNAL_OPTIONS = /** @type {const} */ ([
   [
     'is',
     [
@@ -128,13 +130,24 @@ const EXTERNAL_OPTIONS = [
       '@glimmer/constants',
       '@glimmer/debug',
       '@glimmer/debug-util',
+      '@glimmer/destroyable',
+      '@glimmer/fundamental',
+      '@glimmer/interfaces',
+      '@glimmer/manager',
+      '@glimmer/opcode-compiler',
+      '@glimmer/program',
+      '@glimmer/reference',
+      '@glimmer/runtime',
+      '@glimmer/validator',
+      '@glimmer/util',
+      '@glimmer/global-context',
     ],
     'inline',
   ],
   ['is', ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'], 'external'],
   ['startsWith', ['.', '/', '#', '@babel/runtime/', process.cwd().replace(/\\/gu, '/')], 'inline'],
   ['startsWith', ['@glimmer/', '@simple-dom/', '@babel/', 'node:'], 'external'],
-];
+]);
 
 /**
  * @param {string} id

@@ -37,6 +37,7 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
+    "@glimmer/fundamental": "workspace:*",
     "@glimmer/env": "^0.1.7",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",

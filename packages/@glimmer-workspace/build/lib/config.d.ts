@@ -22,6 +22,9 @@ export type PackageJsonInline = string | [ExternalOperator, string];
 
 export interface PackageJSON {
   readonly exports: string;
+  readonly publishConfig: {
+    'glimmer:externals'?: ExternalOption[];
+  };
   readonly types: string;
   readonly private: boolean;
   readonly name: string;

@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import type { Expand } from '@glimmer/interfaces';
-import { debug } from '@glimmer/validator';
+import { debug } from '@glimmer/fundamental';
 import { autoRegister } from 'js-reporters';
 import { default as QUnit } from 'qunit';
 

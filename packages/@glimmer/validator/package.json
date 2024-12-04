@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@glimmer/env": "^0.1.7",
+    "@glimmer/fundamental": "workspace:*",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/util": "workspace:*"

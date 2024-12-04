@@ -320,6 +320,9 @@ importers:
 
   packages/@glimmer-workspace/benchmark-env:
     dependencies:
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../../@glimmer/fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../../@glimmer/global-context
@@ -509,6 +512,9 @@ importers:
       '@glimmer/destroyable':
         specifier: workspace:*
         version: link:../../@glimmer/destroyable
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../../@glimmer/fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../../@glimmer/global-context
@@ -900,6 +906,109 @@ importers:
         specifier: ^5.7.2
         version: 5.7.2
 
+  packages/@glimmer/engine:
+    devDependencies:
+      '@glimmer-workspace/build-support':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/build
+      '@glimmer/constants':
+        specifier: workspace:*
+        version: link:../constants
+      '@glimmer/debug-util':
+        specifier: workspace:*
+        version: link:../debug-util
+      '@glimmer/destroyable':
+        specifier: workspace:*
+        version: link:../destroyable
+      '@glimmer/encoder':
+        specifier: workspace:*
+        version: link:../encoder
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../fundamental
+      '@glimmer/global-context':
+        specifier: workspace:*
+        version: link:../global-context
+      '@glimmer/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+      '@glimmer/manager':
+        specifier: workspace:*
+        version: link:../manager
+      '@glimmer/opcode-compiler':
+        specifier: workspace:*
+        version: link:../opcode-compiler
+      '@glimmer/program':
+        specifier: workspace:*
+        version: link:../program
+      '@glimmer/reference':
+        specifier: workspace:*
+        version: link:../reference
+      '@glimmer/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@glimmer/util':
+        specifier: workspace:*
+        version: link:../util
+      '@glimmer/validator':
+        specifier: workspace:*
+        version: link:../validator
+      eslint:
+        specifier: ^8.52.0
+        version: 8.54.0
+      publint:
+        specifier: ^0.2.5
+        version: 0.2.5
+      rollup:
+        specifier: ^4.5.1
+        version: 4.27.4
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.2
+
+  packages/@glimmer/fundamental:
+    dependencies:
+      '@glimmer/debug-util':
+        specifier: workspace:*
+        version: link:../debug-util
+      '@glimmer/global-context':
+        specifier: workspace:*
+        version: link:../global-context
+      '@glimmer/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+    devDependencies:
+      '@glimmer-workspace/build-support':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/build
+      eslint:
+        specifier: ^8.52.0
+        version: 8.54.0
+      publint:
+        specifier: ^0.2.5
+        version: 0.2.5
+      rollup:
+        specifier: ^4.5.1
+        version: 4.27.4
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.2
+
+  packages/@glimmer/fundamental/test:
+    dependencies:
+      '@glimmer/debug-util':
+        specifier: workspace:*
+        version: link:../../debug-util
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:..
+      '@glimmer/global-context':
+        specifier: workspace:*
+        version: link:../../global-context
+      '@glimmer/interfaces':
+        specifier: workspace:*
+        version: link:../../interfaces
+
   packages/@glimmer/global-context:
     devDependencies:
       '@glimmer-workspace/build-support':
@@ -1207,6 +1316,9 @@ importers:
       '@glimmer/env':
         specifier: ^0.1.7
         version: 0.1.7
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../global-context
@@ -1244,6 +1356,9 @@ importers:
 
   packages/@glimmer/reference/test:
     dependencies:
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../../fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../../global-context
@@ -1260,6 +1375,9 @@ importers:
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../../debug-util
+      vite:
+        specifier: '*'
+        version: 5.4.10(@types/node@20.9.4)
 
   packages/@glimmer/runtime:
     dependencies:
@@ -1269,6 +1387,9 @@ importers:
       '@glimmer/env':
         specifier: 0.1.7
         version: 0.1.7
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../global-context
@@ -1447,6 +1568,9 @@ importers:
       '@glimmer/env':
         specifier: ^0.1.7
         version: 0.1.7
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../global-context
@@ -1481,6 +1605,9 @@ importers:
 
   packages/@glimmer/validator/test:
     dependencies:
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../../fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../../global-context
@@ -1490,6 +1617,10 @@ importers:
       '@glimmer/validator':
         specifier: workspace:*
         version: link:..
+    devDependencies:
+      vite:
+        specifier: '*'
+        version: 5.4.10(@types/node@20.9.4)
 
   packages/@glimmer/vm:
     dependencies:
@@ -4319,7 +4450,6 @@ packages:
     cpu: [arm]
     os: [android]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-android-arm64@4.24.3:
@@ -4334,7 +4464,6 @@ packages:
     cpu: [arm64]
     os: [android]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-darwin-arm64@4.24.3:
@@ -4349,7 +4478,6 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-darwin-x64@4.24.3:
@@ -4364,7 +4492,6 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-freebsd-arm64@4.24.3:
@@ -4379,7 +4506,6 @@ packages:
     cpu: [arm64]
     os: [freebsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-freebsd-x64@4.24.3:
@@ -4394,7 +4520,6 @@ packages:
     cpu: [x64]
     os: [freebsd]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm-gnueabihf@4.24.3:
@@ -4409,7 +4534,6 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm-musleabihf@4.24.3:
@@ -4424,7 +4548,6 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm64-gnu@4.24.3:
@@ -4439,7 +4562,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-arm64-musl@4.24.3:
@@ -4454,7 +4576,6 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-powerpc64le-gnu@4.24.3:
@@ -4469,7 +4590,6 @@ packages:
     cpu: [ppc64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-riscv64-gnu@4.24.3:
@@ -4484,7 +4604,6 @@ packages:
     cpu: [riscv64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-s390x-gnu@4.24.3:
@@ -4499,7 +4618,6 @@ packages:
     cpu: [s390x]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-x64-gnu@4.24.3:
@@ -4514,7 +4632,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-linux-x64-musl@4.24.3:
@@ -4529,7 +4646,6 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-win32-arm64-msvc@4.24.3:
@@ -4544,7 +4660,6 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-win32-ia32-msvc@4.24.3:
@@ -4559,7 +4674,6 @@ packages:
     cpu: [ia32]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@rollup/rollup-win32-x64-msvc@4.24.3:
@@ -4574,7 +4688,6 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
-    dev: true
     optional: true
 
   /@samverschueren/stream-to-observable@0.3.1(rxjs@6.6.7):
@@ -15908,7 +16021,6 @@ packages:
       '@rollup/rollup-win32-ia32-msvc': 4.27.4
       '@rollup/rollup-win32-x64-msvc': 4.27.4
       fsevents: 2.3.3
-    dev: true
 
   /rsvp@3.2.1:
     resolution: {integrity: sha512-Rf4YVNYpKjZ6ASAmibcwTNciQ5Co5Ztq6iZPEykHpkoflnD/K5ryE/rHehFsTm4NJj8nKDhbi3eKBWGogmNnkg==}
@@ -18003,7 +18115,7 @@ packages:
       '@types/node': 20.9.4
       esbuild: 0.21.5
       postcss: 8.4.47
-      rollup: 4.24.3
+      rollup: 4.27.4
     optionalDependencies:
       fsevents: 2.3.3
 

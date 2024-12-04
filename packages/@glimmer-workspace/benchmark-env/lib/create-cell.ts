@@ -1,5 +1,7 @@
-import type { TagMeta, UpdatableTag } from '@glimmer/validator';
-import { consumeTag, dirtyTagFor, tagFor, tagMetaFor } from '@glimmer/validator';
+import type { TagMeta } from '@glimmer/fundamental';
+import type { UpdatableTag } from '@glimmer/validator';
+import { consumeTag, upsertTagMetaFor } from '@glimmer/fundamental';
+import { dirtyTagFor, tagFor } from '@glimmer/validator';
 
 import type { Cell } from './interfaces';
 
@@ -11,7 +13,7 @@ class CellImpl<T> implements Cell<T> {
   private _value: T;
 
   constructor(obj: object, key: string, initialValue: T) {
-    const meta = tagMetaFor(obj);
+    const meta = upsertTagMetaFor(obj);
     this._meta = meta;
     this._obj = obj;
     this._key = key;

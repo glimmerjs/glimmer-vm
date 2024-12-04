@@ -12,9 +12,9 @@ import type {
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import { dev, expect, unwrapHandle } from '@glimmer/debug-util';
+import { debug } from '@glimmer/fundamental';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { childRefFor, createConstRef } from '@glimmer/reference';
-import { debug } from '@glimmer/validator';
 
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';

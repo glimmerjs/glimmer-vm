@@ -2,6 +2,34 @@ import type { Tag } from '@glimmer/interfaces';
 import { asPresentArray, getLast } from '@glimmer/debug-util';
 import { assert } from '@glimmer/global-context';
 
+export const ALLOW_CYCLES: WeakMap<Tag, boolean> | undefined = import.meta.env.DEV
+  ? new WeakMap()
+  : undefined;
+
+/**
+ * This function should collapse down to nothing, inline as `true`, and
+ * disappear entirely in production.
+ */
+export function allowsCycles(tag: Tag): boolean {
+  if (import.meta.env.DEV) {
+    return ALLOW_CYCLES!.has(tag);
+  }
+
+  return true;
+}
+
+export function allowCycles(tag: Tag): void {
+  if (import.meta.env.DEV) {
+    ALLOW_CYCLES!.set(tag, true);
+  }
+}
+
+//// DebugTransaction ////
+
+// This section should really be moved into globalContext, since it's a big chunk of code
+// to include in a package that is supposed to remain stable enough to avoid major
+// version bumps.
+
 interface DebugTransaction {
   beginTrackingTransaction?:
     | undefined

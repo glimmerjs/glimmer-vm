@@ -12,6 +12,7 @@
     "@glimmer-workspace/test-utils": "workspace:*",
     "@glimmer/compiler": "workspace:*",
     "@glimmer/destroyable": "workspace:*",
+    "@glimmer/fundamental": "workspace:*",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/manager": "workspace:*",

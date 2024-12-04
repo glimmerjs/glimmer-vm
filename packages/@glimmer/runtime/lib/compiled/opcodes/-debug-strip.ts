@@ -13,9 +13,9 @@ import type {
   Nullable,
   Scope,
   ScopeBlock,
+  Tag,
 } from '@glimmer/interfaces';
 import type { OpaqueIterator, Reference } from '@glimmer/reference';
-import type { Tag } from '@glimmer/validator';
 import {
   CheckArray,
   CheckBlockSymbolTable,
@@ -31,18 +31,17 @@ import {
   CheckProgramSymbolTable,
   CheckString,
   CheckUnknown,
+  satisfies,
   wrap,
 } from '@glimmer/debug';
+import { isTag } from '@glimmer/fundamental';
 import { REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { COMPUTE } from '@glimmer/validator';
 
 import { ScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { ComponentElementOperations } from './component';
 
-export const CheckTag: Checker<Tag> = CheckInterface({
-  [COMPUTE]: CheckFunction,
-});
+export const CheckTag: Checker<Tag> = satisfies((v) => isTag(v), 'Tag');
 
 export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wrap(() =>
   CheckNullable(CheckInstanceof(ComponentElementOperations))

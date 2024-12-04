@@ -1,7 +1,8 @@
 import type { Dict, Nullable } from '@glimmer/interfaces';
+import { consumeTag } from '@glimmer/fundamental';
 import { getPath, toIterator } from '@glimmer/global-context';
 import { EMPTY_ARRAY, isIndexable } from '@glimmer/util';
-import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
+import { createTag, dirtyTag } from '@glimmer/validator';
 
 import type { Reference, ReferenceEnvironment } from './reference';
 

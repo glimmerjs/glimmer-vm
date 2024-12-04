@@ -4,9 +4,15 @@
     {
       "type": "shell",
       "command": "pnpm",
-      "args": ["dotenv", "--", "turbo", "lint"],
-      // "script": "lint:files",
-      "problemMatcher": ["$eslint-stylish"],
+      "args": [
+        "dotenv",
+        "--",
+        "turbo",
+        "lint"
+      ],
+      "problemMatcher": [
+        "$eslint-stylish"
+      ],
       "presentation": {
         "echo": true,
         "reveal": "always",
@@ -17,6 +23,31 @@
       },
       "label": "turbo: lint",
       "detail": "dotenv -- turbo lint"
+    },
+    {
+      "type": "npm",
+      "script": "lint:types:watch",
+      "detail": "Check Types in the background",
+      "isBackground": true,
+      "runOptions": {
+        "instanceLimit": 1,
+        "reevaluateOnRerun": true,
+        "runOn": "default"
+      },
+      "problemMatcher": [
+        "$tsc-watch"
+      ],
+      "group": "build",
+      "label": "Watch Types"
+    },
+    {
+      "type": "npm",
+      "script": "lint:types",
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "label": "npm: lint:types",
+      "detail": "x-env tsc -b --noEmit"
     }
   ]
 }

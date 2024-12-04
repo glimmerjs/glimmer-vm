@@ -1,0 +1,57 @@
+{
+  "name": "@glimmer/engine",
+  "version": "0.93.1",
+  "license": "MIT",
+  "description": "A single package that sets up a Glimmer runtime environment that can be used for rendering",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/engine",
+  "type": "module",
+  "exports": "./index.ts",
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "default": {
+          "development": {
+            "types": "./dist/dev/index.d.ts",
+            "default": "./dist/dev/index.js"
+          },
+          "default": {
+            "types": "./dist/prod/index.d.ts",
+            "default": "./dist/prod/index.js"
+          }
+        }
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "test:lint": "eslint .",
+    "test:publint": "publint",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer/constants": "workspace:*",
+    "@glimmer/debug-util": "workspace:*",
+    "@glimmer/destroyable": "workspace:*",
+    "@glimmer/encoder": "workspace:*",
+    "@glimmer/fundamental": "workspace:*",
+    "@glimmer/global-context": "workspace:*",
+    "@glimmer/interfaces": "workspace:*",
+    "@glimmer/manager": "workspace:*",
+    "@glimmer/opcode-compiler": "workspace:*",
+    "@glimmer/program": "workspace:*",
+    "@glimmer/reference": "workspace:*",
+    "@glimmer/runtime": "workspace:*",
+    "@glimmer/util": "workspace:*",
+    "@glimmer/validator": "workspace:*",
+    "eslint": "^8.52.0",
+    "publint": "^0.2.5",
+    "rollup": "^4.5.1",
+    "typescript": "*"
+  }
+}
