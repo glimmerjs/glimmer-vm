@@ -23,5 +23,6 @@ export type * from './lib/template.d.ts';
 export type * from './lib/tier1/symbol-table.d.ts';
 export type * from './lib/type-utils.d.ts';
 export type * from './lib/vm-opcodes.d.ts';
+export type * from './lib/debug/dism.d.ts';
 
 export { WireFormat };

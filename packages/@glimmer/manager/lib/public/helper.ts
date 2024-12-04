@@ -117,7 +117,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
       if (hasValue(manager)) {
         let cache = createComputeRef(
-          () => (manager as HelperManagerWithValue<unknown>).getValue(bucket),
+          () => manager.getValue(bucket),
           null,
           import.meta.env.DEV && manager.getDebugName && manager.getDebugName(definition)
         );

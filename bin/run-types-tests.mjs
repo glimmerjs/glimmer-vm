@@ -26,7 +26,7 @@ async function main() {
   for (const pkg of packages) {
     try {
       console.log(`# Smoke testing ${pkg.name}`);
-      await execa('tsc', ['-p', resolve(root, 'tsconfig.dist.json')], {
+      await execa('tsc', ['--noEmit', '--strict', '--skipLibCheck'], {
         cwd: resolve(pkg.path, 'dist'),
         preferLocal: true,
       });

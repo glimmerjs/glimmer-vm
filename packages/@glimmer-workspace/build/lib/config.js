@@ -1,29 +1,31 @@
 /* eslint-disable no-console */
+/* eslint-env node */
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import replace from '@rollup/plugin-replace';
+import rollupSWC from '@rollup/plugin-swc';
 import terser from '@rollup/plugin-terser';
+import ms from 'ms';
 import * as insert from 'rollup-plugin-insert';
-import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
+import { $, chalk } from 'zx';
 
 import inline from './inline.js';
 
-const require = createRequire(import.meta.url);
-
 // eslint-disable-next-line import/no-named-as-default-member
-const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
+const { ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
 
-const { default: commonjs } = await import('@rollup/plugin-commonjs');
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
 const { default: postcss } = await import('rollup-plugin-postcss');
 const { default: nodePolyfills } = await import('rollup-plugin-polyfill-node');
 const { default: fonts } = await import('unplugin-fonts/vite');
 
+/**
+ * @import { PartialCompilerOptions } from "@rollup/plugin-typescript";
+ */
 /** @typedef {import("typescript").CompilerOptions} CompilerOptions */
 /** @typedef {import("./config.js").ExternalOption} ExternalOption */
 /** @typedef {import("./config.js").PackageInfo} PackageInfo */
@@ -58,56 +60,62 @@ const EXTERNAL = true;
 
 /**
  * @param {CompilerOptions} updates
- * @returns {CompilerOptions}
+ * @returns {PartialCompilerOptions & ts.CompilerOptions}
  */
 export function tsconfig(updates) {
   return {
     declaration: true,
-    declarationMap: true,
-    verbatimModuleSyntax: true,
-    module: ModuleKind.NodeNext,
-    moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
+    emitDeclarationOnly: true,
+    rewriteRelativeImportExtensions: true,
+    // verbatimModuleSyntax: true,
+    isolatedModules: true,
+    module: ModuleKind.ESNext,
+    moduleResolution: ModuleResolutionKind.Bundler,
+    // experimentalDecorators: true,
+    target: ScriptTarget.ESNext,
+    noEmit: true,
+    declarationDir: 'dist',
     ...updates,
   };
 }
 
 /**
  * @param {PackageInfo} pkg
- * @param {Partial<CompilerOptions>} [config]
- * @returns {RollupPlugin}
+ * @param {'dev' | 'prod'} env
+ * @returns {RollupPlugin[]}
  */
-export function typescript(pkg, config) {
-  const typeScriptConfig = {
-    ...config,
-    paths: {
-      '@glimmer/interfaces': [resolve(pkg.root, '../@glimmer/interfaces/index.d.ts')],
-      '@glimmer/*': [resolve(pkg.root, '../@glimmer/*/src/dist/index.d.ts')],
+export function typescript(pkg, env) {
+  return [
+    rollupSWC({
+      swc: {
+        jsc: {
+          parser: {
+            syntax: 'typescript',
+            // decorators: true,
+          },
+          target: 'es2022',
+          transform: {
+            // legacyDecorator: true,
+          },
+        },
+      },
+    }),
+    {
+      name: 'Build Declarations',
+      closeBundle: async function () {
+        const start = performance.now();
+        await $({
+          stdio: 'inherit',
+        })`pnpm tsc --declaration --declarationDir dist/${env} --emitDeclarationOnly --module esnext --moduleResolution bundler ${pkg.exports} --types vite/client,node --skipLibCheck --target esnext --strict`;
+        const duration = performance.now() - start;
+        console.log(
+          `${chalk.green('created')} ${chalk.green.bold(`dist/${env}/index.d.ts`)} ${chalk.green(
+            'in'
+          )} ${chalk.green.bold(ms(duration))}`
+        );
+      },
     },
-  };
-
-  /** @type {[string, object][]} */
-  const presets = [['@babel/preset-typescript', { allowDeclareFields: true }]];
-
-  const ts = tsconfig(typeScriptConfig);
-
-  /**
-   * TODO: migrate off of rollupTS, it has too many bugs
-   */
-  return rollupTS({
-    transpiler: 'babel',
-    transpileOnly: true,
-    babelConfig: {
-      presets,
-      plugins: [require.resolve('@glimmer/local-debug-babel-plugin')],
-    },
-    /**
-     * This shouldn't be required, but it is.
-     * If we use @rollup/plugin-babel, we can remove this.
-     */
-    browserslist: [`last 1 chrome versions`],
-    tsconfig: ts,
-  });
+  ];
 }
 
 /** @type {['is' | 'startsWith', string[], 'inline' | 'external'][]} */
@@ -185,10 +193,10 @@ export class Package {
     /** @type {PackageJSON} */
     const json = parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
-    if (json.main) {
+    if (json.exports) {
       return new Package({
         name: json.name,
-        main: resolve(root, json.main),
+        exports: resolve(root, json.exports),
         root,
       });
     } else {
@@ -197,7 +205,7 @@ export class Package {
         if (existsSync(path)) {
           return new Package({
             name: json.name,
-            main: path,
+            exports: path,
             root,
           });
         }
@@ -209,14 +217,13 @@ export class Package {
 
   /**
    * @param {ImportMeta | string} meta
-   * @param {Formats} [formats]
    * @returns {import("./config.js").RollupExport}
    */
-  static config(meta, formats) {
+  static config(meta) {
     const pkg = Package.at(meta);
 
     if (pkg) {
-      return pkg.config(formats);
+      return pkg.config();
     } else {
       return [];
     }
@@ -254,34 +261,27 @@ export class Package {
   /**
    * @returns {string}
    */
-  get root() {
-    return this.#package.root;
+  get exports() {
+    return this.#package.exports;
   }
 
   /**
    * @returns {string}
    */
-  get main() {
-    return this.#package.main;
+  get root() {
+    return this.#package.root;
   }
 
   /**
    * @typedef {{esm?: boolean, cjs?: boolean}} Formats
-   * @param {Formats} [formats] enabled by default
    *
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
-  config(formats = {}) {
+  config() {
     let builds = [];
 
-    if (formats.esm ?? true) {
-      builds.push(...this.rollupESM({ env: 'dev' }));
-      builds.push(...this.rollupESM({ env: 'prod' }));
-    }
-
-    if (formats.cjs ?? true) {
-      builds.push(...this.rollupCJS({ env: 'dev' }));
-    }
+    builds.push(...this.rollupESM({ env: 'dev' }));
+    builds.push(...this.rollupESM({ env: 'prod' }));
 
     return builds;
   }
@@ -319,71 +319,64 @@ export class Package {
    * @returns {RollupOptions[]}
    */
   rollupESM({ env }) {
-    return this.#shared('esm', env).map((options) => ({
-      ...options,
-      external: this.#external,
-      plugins: [
-        inline(),
-        nodePolyfills(),
-        commonjs(),
-        nodeResolve(),
-        ...this.replacements(env),
-        ...(env === 'prod'
-          ? [
-              terser({
-                module: true,
-                // to debug the output, uncomment this so you can read the
-                // identifiers, unchanged
-                // mangle: false,
-                compress: {
-                  passes: 3,
-                },
-              }),
-            ]
-          : [
-              terser({
-                module: true,
-                mangle: false,
-                compress: {
-                  passes: 3,
-                },
-                format: {
-                  comments: 'all',
-                  beautify: true,
-                },
-              }),
-            ]),
-        postcss(),
-        typescript(this.#package, {
-          target: ScriptTarget.ES2022,
-          importsNotUsedAsValues: ImportsNotUsedAsValues.Preserve,
-        }),
-      ],
-    }));
-  }
-
-  /**
-   * @param {RollupConfigurationOptions} options
-   * @returns {import("rollup").RollupOptions[]}
-   */
-  rollupCJS({ env }) {
-    return this.#shared('cjs', env).map((options) => ({
-      ...options,
-      external: this.#external,
-      plugins: [
-        inline(),
-        nodePolyfills(),
-        commonjs(),
-        nodeResolve(),
-        ...this.replacements(env),
-        postcss(),
-        typescript(this.#package, {
-          target: ScriptTarget.ES2021,
-          module: ModuleKind.CommonJS,
-          moduleResolution: ModuleResolutionKind.Node16,
-        }),
-      ],
-    }));
+    return this.#shared('esm', env).map(
+      (options) =>
+        /** @satisfies {RollupOptions} */ ({
+          ...options,
+          external: this.#external,
+          plugins: [
+            inline(),
+            nodePolyfills(),
+            nodeResolve({ extensions: ['.js', '.ts'] }),
+            ...this.replacements(env),
+            ...(env === 'prod'
+              ? [
+                  terser({
+                    module: true,
+                    // to debug the output, uncomment this so you can read the
+                    // identifiers, unchanged
+                    // mangle: false,
+                    compress: {
+                      passes: 3,
+                      keep_fargs: false,
+                      keep_fnames: false,
+                      // unsafe_arrows: true,
+                      // unsafe_comps: true,
+                      // unsafe_math: true,
+                      // unsafe_symbols: true,
+                      // unsafe_function: true,
+                      // unsafe_undefined: true,
+                      // keep_classnames: false,
+                      // toplevel: true,
+                    },
+                    format: {
+                      wrap_func_args: false,
+                    },
+                  }),
+                ]
+              : [
+                  terser({
+                    module: true,
+                    mangle: {
+                      keep_classnames: true,
+                      keep_fnames: false,
+                    },
+                    compress: {
+                      passes: 3,
+                      keep_fargs: false,
+                      keep_fnames: false,
+                    },
+                    format: {
+                      comments: 'all',
+                      wrap_func_args: false,
+                    },
+                  }),
+                ]),
+            postcss(),
+            ...typescript(this.#package, env),
+          ],
+        })
+    );
   }
 
   /**
@@ -452,7 +445,7 @@ export class Package {
    * @returns {import("rollup").RollupOptions[]}
    */
   #shared(format, env) {
-    const { root, main } = this.#package;
+    const { root, exports } = this.#package;
 
     const ext = format === 'esm' ? 'js' : 'cjs';
 
@@ -467,7 +460,7 @@ export class Package {
         experiment === undefined ? `${exportName}.${ext}` : `${exportName}.${experiment}.${ext}`;
 
       return {
-        input: resolve(root, ts),
+        input: ts,
         treeshake: {
           // moduleSideEffects: false,
           moduleSideEffects: (id, external) => !external,
@@ -491,7 +484,7 @@ export class Package {
       };
     }
 
-    return [entryPoint([`index`, main])];
+    return [entryPoint([`index`, exports])];
   }
 }
 

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "strict": true,
+    "paths": {
+      "@glimmer/*": [
+        "../../@glimmer/*/dist/prod/index.d.ts"
+      ],
+    },
+    "skipLibCheck": true
+  },
+  "files": [
+    "index.ts"
+  ]
+}

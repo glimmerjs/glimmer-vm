@@ -1,11 +1,12 @@
-import type { DebugOp, SomeDisassembledOperand } from '@glimmer/debug';
 import type {
+  DebugOp,
   DebugVmSnapshot,
   Dict,
   Maybe,
   Nullable,
   Optional,
   RuntimeOp,
+  SomeDisassembledOperand,
   SomeVmOp,
   VmMachineOp,
   VmOp,
@@ -23,7 +24,7 @@ import {
 } from '@glimmer/debug';
 import { assert, dev, unwrap } from '@glimmer/debug-util';
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import { LOCAL_LOGGER } from '@glimmer/util';
+import { entries, LOCAL_LOGGER } from '@glimmer/util';
 import { $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 
 import type { LowLevelVM, VM } from './vm';
@@ -94,7 +95,7 @@ export class AppendOpcodes {
             .expanded();
 
           let debugParams = [];
-          for (let [name, param] of Object.entries(op.params)) {
+          for (let [name, param] of entries(op.params)) {
             const value = param.value;
             if (value !== null && (typeof value === 'object' || typeof value === 'function')) {
               debugParams.push(name, '=', value);
