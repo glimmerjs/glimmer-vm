@@ -93,7 +93,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
     return delegate;
   }
 
-  getDelegateFor(owner: O | undefined) {
+  getDelegateFor(owner: O | undefined): HelperManager<unknown> {
     if (owner === undefined) {
       let { undefinedDelegate } = this;
 

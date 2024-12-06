@@ -144,7 +144,7 @@ export function getInternalHelperManager(
   }
 
   if (manager) {
-    return manager;
+    return manager as CustomHelperManager;
   } else if (isOptional === true) {
     return null;
   } else if (import.meta.env.DEV) {
