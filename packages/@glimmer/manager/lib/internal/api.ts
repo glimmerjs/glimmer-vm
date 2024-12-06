@@ -1,3 +1,4 @@
+import type { InternalManager } from '@glimmer/fundamental';
 import type {
   Helper,
   InternalComponentManager,
@@ -5,21 +6,10 @@ import type {
   Owner,
 } from '@glimmer/interfaces';
 import { debugToString } from '@glimmer/debug-util';
+import { COMPONENT_MANAGERS, HELPER_MANAGERS, MODIFIER_MANAGERS } from '@glimmer/fundamental';
 
 import { CustomHelperManager } from '../public/helper';
 import { FunctionHelperManager } from './defaults';
-
-type InternalManager =
-  | InternalComponentManager
-  | InternalModifierManager
-  | CustomHelperManager
-  | Helper;
-
-const COMPONENT_MANAGERS = new WeakMap<object, InternalComponentManager>();
-
-const MODIFIER_MANAGERS = new WeakMap<object, InternalModifierManager>();
-
-const HELPER_MANAGERS = new WeakMap<object, CustomHelperManager | Helper>();
 
 ///////////
 

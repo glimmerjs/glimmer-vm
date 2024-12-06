@@ -1065,6 +1065,9 @@ importers:
       '@glimmer/env':
         specifier: 0.1.7
         version: 0.1.7
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../fundamental
       '@glimmer/global-context':
         specifier: workspace:*
         version: link:../global-context
