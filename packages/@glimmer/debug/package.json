@@ -16,12 +16,15 @@
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/vm": "workspace:*",
-    "@glimmer/reference": "workspace:*"
+    "@glimmer/reference": "workspace:*",
+    "@glimmer/state": "workspace:*",
+    "@glimmer/global-context": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
+    "@glimmer/fundamental": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",

@@ -11,8 +11,8 @@ import type {
   TreeBuilder,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import { dev, expect, unwrapHandle } from '@glimmer/debug-util';
-import { debug } from '@glimmer/fundamental';
+import { trackingDebug } from '@glimmer/debug';
+import { dev, expect, unwrap, unwrapHandle } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { childRefFor, createConstRef } from '@glimmer/reference';
 
@@ -28,7 +28,10 @@ class TemplateIteratorImpl implements TemplateIterator {
 
   sync(): RenderResult {
     if (import.meta.env.DEV) {
-      return debug.runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
+      return unwrap(trackingDebug).runInTrackingTransaction(
+        () => this.vm.execute(),
+        '- While rendering:'
+      );
     } else {
       return this.vm.execute();
     }

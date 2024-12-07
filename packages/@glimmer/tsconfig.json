@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
+    "incremental": true,
     // Compilation Configuration
     "lib": [
       "esnext",
@@ -37,9 +38,15 @@
   },
   "include": [
     "*/lib/**/*",
-    "*/index.ts"
+    "*/index.ts",
   ],
   "exclude": [
-    "**/fixtures"
+    "**/fixtures",
+    "**/node_modules",
+  ],
+  "references": [
+    {
+      "path": "./interfaces/tsconfig.json"
+    }
   ]
 }

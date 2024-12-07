@@ -15,7 +15,8 @@
     "test:types": "tsc --noEmit"
   },
   "dependencies": {
-    "@simple-dom/interface": "^1.4.0"
+    "@simple-dom/interface": "^1.4.0",
+    "ts-essentials": "^10.0.3"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",

@@ -1,13 +1,9 @@
 {
-  "name": "@glimmer/reference",
+  "name": "@glimmer/state",
   "version": "0.93.1",
   "license": "MIT",
-  "description": "Objects used to track values and their dirtiness in Glimmer",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/glimmerjs/glimmer-vm.git",
-    "directory": "packages/@glimmer/reference"
-  },
+  "description": "The fundamental state used by Glimmer reactivity. This package coordinates via a single global, and allows the rest of the packages to be duplicated semantically.",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/fundamental",
   "type": "module",
   "exports": "./index.ts",
   "publishConfig": {
@@ -37,18 +33,10 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/state": "workspace:*",
-    "@glimmer/fundamental": "workspace:*",
-    "@glimmer/env": "^0.1.7",
-    "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*",
-    "@glimmer/validator": "workspace:*"
+    "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
-    "@glimmer/debug-util": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",
     "rollup": "^4.5.1",

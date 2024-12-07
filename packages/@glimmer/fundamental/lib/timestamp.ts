@@ -1,20 +1,16 @@
-export type Revision = number;
-
-export const CONSTANT: Revision = 0;
-export const INITIAL: Revision = 1;
-
-let $REVISION: Revision = INITIAL;
+import type { Revision } from '@glimmer/interfaces';
+import state from '@glimmer/state';
 
 /**
  * Increments the revision counter and returns the next revision.
  */
 export function bump(): Revision {
-  return ++$REVISION;
+  return ++state.clock.now;
 }
 
 /**
  * Returns the current revision without changing it.
  */
 export function now(): Revision {
-  return $REVISION;
+  return state.clock.now;
 }

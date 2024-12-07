@@ -1,3 +1,5 @@
+import state from '@glimmer/state';
+
 export {
   type AbstractIterator,
   createIteratorItemRef,
@@ -22,11 +24,12 @@ export {
   isInvokableRef,
   isUpdatableRef,
   NULL_REFERENCE,
-  REFERENCE,
   type Reference,
   type ReferenceEnvironment,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
   updateRef,
-  valueForRef,
 } from './lib/reference';
+export { valueForRef } from '@glimmer/fundamental';
+
+export const REFERENCE = state.REFERENCE;

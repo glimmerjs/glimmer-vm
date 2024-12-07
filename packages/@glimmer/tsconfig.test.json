@@ -20,13 +20,12 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
-    "suppressImplicitAnyIndexErrors": false,
     "useDefineForClassFields": false,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
     "types": [
       "qunit",
       "node",
@@ -34,17 +33,14 @@
     ]
   },
   "include": [
-    "**/test/**/*"
+    "*/test/**/*"
   ],
   "exclude": [
-    "**/node_modules",
+    "*/test/node_modules",
     "**/fixtures",
     "**/vm-babel-plugins/**",
   ],
   "references": [
-    {
-      "path": "./tsconfig.json"
-    },
     {
       "path": "../@glimmer-workspace/tsconfig.json"
     }

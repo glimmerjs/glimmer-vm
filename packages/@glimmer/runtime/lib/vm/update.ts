@@ -14,9 +14,10 @@ import type {
   UpdatingVM as IUpdatingVM,
 } from '@glimmer/interfaces';
 import type { OpaqueIterationItem, OpaqueIterator, Reference } from '@glimmer/reference';
+import { trackingDebug } from '@glimmer/debug';
 import { expect, unwrap } from '@glimmer/debug-util';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
-import { debug, resetTracking } from '@glimmer/fundamental';
+import { resetTracking } from '@glimmer/fundamental';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { updateRef, valueForRef } from '@glimmer/reference';
 import { logStep, Stack } from '@glimmer/util';
@@ -44,7 +45,7 @@ export class UpdatingVM implements IUpdatingVM {
     if (import.meta.env.DEV) {
       let hasErrored = true;
       try {
-        debug.runInTrackingTransaction!(
+        unwrap(trackingDebug).runInTrackingTransaction(
           () => this._execute(opcodes, handler),
           '- While rendering:'
         );

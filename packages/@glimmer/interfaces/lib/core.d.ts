@@ -5,7 +5,8 @@ export type Maybe<T> = Nullable<T> | Optional<T>;
 export type FIXME<T, _S extends string> = T;
 
 export type Dict<T = unknown> = Record<string, T>;
-export type Indexable = Record<AnyKey, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Indexable = Record<keyof any, unknown>;
 
 export type DictValue<D extends Dict> = D extends Dict<infer V> ? V : never;
 

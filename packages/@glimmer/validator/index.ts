@@ -16,7 +16,6 @@ export { dirtyTagFor, tagFor } from './lib/meta';
 export { trackedData } from './lib/tracked-data';
 export { type Cache, createCache, getValue, isConst, track, untrack } from './lib/tracking';
 export {
-  combine,
   CONSTANT,
   CONSTANT_TAG,
   createTag,
@@ -26,6 +25,7 @@ export {
   INITIAL,
   UPDATE_TAG as updateTag,
 } from './lib/validators';
+export { combineTags } from '@glimmer/fundamental';
 export type {
   CombinatorTag,
   ConstantTag,

@@ -1,3 +1,4 @@
+import type { IntoFragment } from '@glimmer/debug';
 import type {
   DebugOp,
   DebugVmSnapshot,
@@ -142,13 +143,13 @@ export class AppendOpcodes {
         if (LOCAL_TRACE_LOGGING) {
           const logger = DebugLogger.configured();
 
-          logger.log(diff.registers[$pc].describe());
-          logger.log(diff.registers[$ra].describe());
-          logger.log(diff.registers[$s0].describe());
-          logger.log(diff.registers[$s1].describe());
-          logger.log(diff.registers[$t0].describe());
-          logger.log(diff.registers[$t1].describe());
-          logger.log(diff.registers[$v0].describe());
+          logger.log(diff.registers[$pc].describe() as IntoFragment[]);
+          logger.log(diff.registers[$ra].describe() as IntoFragment[]);
+          logger.log(diff.registers[$s0].describe() as IntoFragment[]);
+          logger.log(diff.registers[$s1].describe() as IntoFragment[]);
+          logger.log(diff.registers[$t0].describe() as IntoFragment[]);
+          logger.log(diff.registers[$t1].describe() as IntoFragment[]);
+          logger.log(diff.registers[$v0].describe() as IntoFragment[]);
           logger.log(diff.stack.describe());
           logger.log(diff.destructors.describe());
           logger.log(diff.scope.describe());

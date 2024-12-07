@@ -140,11 +140,11 @@ console.info({
   CONTROL_DIR,
 });
 
-// setup experiment
-await buildRepo(EXPERIMENT_DIR, experimentRef, REUSE_EXPERIMENT);
-
 // setup control
 await buildRepo(CONTROL_DIR, controlRef, REUSE_CONTROL);
+
+// setup experiment
+await buildRepo(EXPERIMENT_DIR, experimentRef, REUSE_EXPERIMENT);
 
 // start build assets
 $`cd ${CONTROL_BENCH_DIR} && pnpm vite preview --port ${CONTROL_PORT}`;

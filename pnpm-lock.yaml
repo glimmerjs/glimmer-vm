@@ -509,6 +509,9 @@ importers:
       '@glimmer/compiler':
         specifier: workspace:*
         version: link:../../@glimmer/compiler
+      '@glimmer/debug':
+        specifier: workspace:*
+        version: link:../../@glimmer/debug
       '@glimmer/destroyable':
         specifier: workspace:*
         version: link:../../@glimmer/destroyable
@@ -740,12 +743,18 @@ importers:
 
   packages/@glimmer/debug:
     dependencies:
+      '@glimmer/global-context':
+        specifier: workspace:*
+        version: link:../global-context
       '@glimmer/interfaces':
         specifier: workspace:*
         version: link:../interfaces
       '@glimmer/reference':
         specifier: workspace:*
         version: link:../reference
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../state
       '@glimmer/util':
         specifier: workspace:*
         version: link:../util
@@ -762,6 +771,9 @@ importers:
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../debug-util
+      '@glimmer/fundamental':
+        specifier: workspace:*
+        version: link:../fundamental
       '@glimmer/local-debug-flags':
         specifier: workspace:*
         version: link:../local-debug-flags
@@ -914,6 +926,9 @@ importers:
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../constants
+      '@glimmer/debug':
+        specifier: workspace:*
+        version: link:../debug
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../debug-util
@@ -947,6 +962,9 @@ importers:
       '@glimmer/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../state
       '@glimmer/util':
         specifier: workspace:*
         version: link:../util
@@ -977,6 +995,9 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:*
         version: link:../interfaces
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../state
     devDependencies:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
@@ -996,6 +1017,9 @@ importers:
 
   packages/@glimmer/fundamental/test:
     dependencies:
+      '@glimmer/debug':
+        specifier: workspace:*
+        version: link:../../debug
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../../debug-util
@@ -1008,6 +1032,9 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:*
         version: link:../../interfaces
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../../state
 
   packages/@glimmer/global-context:
     devDependencies:
@@ -1032,6 +1059,9 @@ importers:
       '@simple-dom/interface':
         specifier: ^1.4.0
         version: 1.4.0
+      ts-essentials:
+        specifier: ^10.0.3
+        version: 10.0.3(typescript@5.7.2)
     devDependencies:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
@@ -1077,6 +1107,9 @@ importers:
       '@glimmer/reference':
         specifier: workspace:*
         version: link:../reference
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../state
       '@glimmer/util':
         specifier: workspace:*
         version: link:../util
@@ -1328,6 +1361,9 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:*
         version: link:../interfaces
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../state
       '@glimmer/util':
         specifier: workspace:*
         version: link:../util
@@ -1411,6 +1447,9 @@ importers:
       '@glimmer/reference':
         specifier: workspace:*
         version: link:../reference
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../state
       '@glimmer/util':
         specifier: workspace:*
         version: link:../util
@@ -1457,6 +1496,43 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
+
+  packages/@glimmer/state:
+    dependencies:
+      '@glimmer/interfaces':
+        specifier: workspace:*
+        version: link:../interfaces
+    devDependencies:
+      '@glimmer-workspace/build-support':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/build
+      eslint:
+        specifier: ^8.52.0
+        version: 8.54.0
+      publint:
+        specifier: ^0.2.5
+        version: 0.2.5
+      rollup:
+        specifier: ^4.5.1
+        version: 4.27.4
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.2
+
+  packages/@glimmer/state/test:
+    dependencies:
+      '@glimmer/debug-util':
+        specifier: workspace:*
+        version: link:../../debug-util
+      '@glimmer/global-context':
+        specifier: workspace:*
+        version: link:../../global-context
+      '@glimmer/interfaces':
+        specifier: workspace:*
+        version: link:../../interfaces
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:..
 
   packages/@glimmer/syntax:
     dependencies:
@@ -1593,6 +1669,9 @@ importers:
       '@glimmer/local-debug-flags':
         specifier: workspace:*
         version: link:../local-debug-flags
+      '@glimmer/state':
+        specifier: workspace:*
+        version: link:../state
       eslint:
         specifier: ^8.52.0
         version: 8.54.0
@@ -1608,6 +1687,9 @@ importers:
 
   packages/@glimmer/validator/test:
     dependencies:
+      '@glimmer/debug':
+        specifier: workspace:*
+        version: link:../../debug
       '@glimmer/fundamental':
         specifier: workspace:*
         version: link:../../fundamental
@@ -1621,6 +1703,9 @@ importers:
         specifier: workspace:*
         version: link:..
     devDependencies:
+      '@glimmer/debug-util':
+        specifier: workspace:*
+        version: link:../../debug-util
       vite:
         specifier: '*'
         version: 5.4.10(@types/node@20.9.4)
@@ -17490,6 +17575,17 @@ packages:
       typescript: '>=4.2.0 || 5'
     dependencies:
       typescript: 5.7.2
+
+  /ts-essentials@10.0.3(typescript@5.7.2):
+    resolution: {integrity: sha512-/FrVAZ76JLTWxJOERk04fm8hYENDo0PWSP3YLQKxevLwWtxemGcl5JJEzN4iqfDlRve0ckyfFaOBu4xbNH/wZw==}
+    peerDependencies:
+      typescript: '>=4.5.0 || 5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      typescript: 5.7.2
+    dev: false
 
   /ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}

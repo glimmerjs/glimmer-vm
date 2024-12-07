@@ -4,8 +4,9 @@ import type {
   ConstantTagId,
   DirtyableTag,
   DirtyableTagId,
+  INITIAL_REVISION,
+  Revision,
   Tag,
-  TagComputeSymbol,
   TagId,
   TagTypeSymbol,
   UpdatableTag,
@@ -13,31 +14,21 @@ import type {
 } from '@glimmer/interfaces';
 import { assert, unwrap } from '@glimmer/debug-util';
 import { scheduleRevalidate } from '@glimmer/global-context';
+import state from '@glimmer/state';
 
-import type { Revision } from './timestamp';
+import { bump, now } from './timestamp';
+import { getTrackingDebug } from './tracking';
 
-import { allowsCycles, debug } from './debug';
-import { bump, INITIAL, now } from './timestamp';
+const TYPE: TagTypeSymbol = state.TYPE;
 
 const DIRYTABLE_TAG_ID: DirtyableTagId = 0;
 const UPDATABLE_TAG_ID: UpdatableTagId = 1;
 const COMBINATOR_TAG_ID: CombinatorTagId = 2;
 const CONSTANT_TAG_ID: ConstantTagId = 3;
 
-const TYPE: TagTypeSymbol = Symbol('TAG_TYPE') as TagTypeSymbol;
-export const COMPUTE: TagComputeSymbol = Symbol('TAG_COMPUTE') as TagComputeSymbol;
-
 export class TagImpl<const T extends TagId> implements Tag<T> {
   static value(this: void, tag: Tag): Revision {
-    return tag[COMPUTE]();
-  }
-
-  static is(this: void, value: unknown): value is Tag {
-    return value instanceof TagImpl;
-  }
-
-  static isConst(this: void, value: Tag): value is Tag<ConstantTagId> {
-    return value[TYPE] === CONSTANT_TAG_ID;
+    return compute(tag as unknown as TagImpl<TagId>);
   }
 
   /**
@@ -48,85 +39,23 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
    * calculation related to the tags should be rerun.
    */
   static validate(this: void, tag: Tag, snapshot: Revision): boolean {
-    return snapshot >= tag[COMPUTE]();
+    return snapshot >= compute(tag as unknown as TagImpl<TagId>);
   }
 
-  static combine(this: void, tags: Tag[]): Tag {
-    switch (tags.length) {
-      case 0:
-        return CONSTANT_TAG;
-      case 1:
-        return tags[0] as Tag;
-      default: {
-        let tag = new TagImpl(COMBINATOR_TAG_ID);
-        tag.subtag = tags;
-        return tag;
-      }
-    }
-  }
+  revision = 1 satisfies INITIAL_REVISION;
+  lastChecked = 1 satisfies INITIAL_REVISION;
+  lastValue = 1 satisfies INITIAL_REVISION;
 
-  private revision = INITIAL;
-  private lastChecked = INITIAL;
-  private lastValue = INITIAL;
-
-  private isUpdating = false;
+  isUpdating = false;
   public subtag: Tag | Tag[] | null = null;
-  private subtagBufferCache: Revision | null = null;
-  private compute: undefined | ((this: void) => Revision);
+  subtagBufferCache: Revision | null = null;
+  compute: undefined | ((this: void) => Revision);
 
   [TYPE]: T;
 
   constructor(type: T, compute?: () => Revision) {
     this[TYPE] = type;
     this.compute = compute;
-  }
-
-  [COMPUTE](): Revision {
-    if (this.compute) {
-      return this.compute();
-    }
-
-    let { lastChecked } = this;
-
-    if (this.isUpdating === true) {
-      if (import.meta.env.DEV && !allowsCycles(this)) {
-        throw new Error('Cycles in tags are not allowed');
-      }
-
-      this.lastChecked = bump();
-    } else if (lastChecked !== now()) {
-      this.isUpdating = true;
-      this.lastChecked = now();
-
-      try {
-        let { subtag, revision } = this;
-
-        if (subtag !== null) {
-          if (Array.isArray(subtag)) {
-            for (const tag of subtag) {
-              let value = tag[COMPUTE]();
-              revision = Math.max(value, revision);
-            }
-          } else {
-            let subtagValue = subtag[COMPUTE]();
-
-            if (subtagValue === this.subtagBufferCache) {
-              revision = Math.max(revision, this.lastValue);
-            } else {
-              // Clear the temporary buffer cache
-              this.subtagBufferCache = null;
-              revision = Math.max(revision, subtagValue);
-            }
-          }
-        }
-
-        this.lastValue = revision;
-      } finally {
-        this.isUpdating = false;
-      }
-    }
-
-    return this.lastValue;
   }
 
   static update(this: void, _tag: UpdatableTag, _subtag: Tag) {
@@ -136,7 +65,7 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
     let tag = _tag as TagImpl<UpdatableTagId>;
     let subtag = _subtag as TagImpl<TagId>;
 
-    if (subtag === CONSTANT_TAG) {
+    if (subtag === CONSTANT_TAG || isConstTag(subtag)) {
       tag.subtag = null;
     } else {
       // There are two different possibilities when updating a subtag:
@@ -157,7 +86,7 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
       // subsequent updates. If its value hasn't changed, then we return the
       // parent's previous value. Once the subtag changes for the first time,
       // we clear the cache and everything is finally in sync with the parent.
-      tag.subtagBufferCache = subtag[COMPUTE]();
+      tag.subtagBufferCache = compute(subtag);
       tag.subtag = subtag;
     }
   }
@@ -177,7 +106,7 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
     if (import.meta.env.DEV && disableConsumptionAssertion !== true) {
       // Usually by this point, we've already asserted with better error information,
       // but this is our last line of defense.
-      unwrap(debug.assertTagNotConsumed)(tag);
+      getTrackingDebug?.()?.assertTagNotConsumed(tag);
     }
 
     (tag as TagImpl<TagId>).revision = bump();
@@ -186,8 +115,69 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
   }
 }
 
+function compute(tag: TagImpl<TagId>): Revision {
+  if (tag.compute) {
+    return tag.compute();
+  }
+
+  let { lastChecked } = tag;
+
+  if (tag.isUpdating === true) {
+    if (import.meta.env.DEV && !unwrap(state.debug).cycleMap.has(tag)) {
+      throw new Error('Cycles in tags are not allowed');
+    }
+
+    tag.lastChecked = bump();
+  } else if (lastChecked !== now()) {
+    tag.isUpdating = true;
+    tag.lastChecked = now();
+
+    try {
+      let { subtag, revision } = tag;
+
+      if (subtag !== null) {
+        if (Array.isArray(subtag)) {
+          for (const tag of subtag as TagImpl<TagId>[]) {
+            let value = compute(tag);
+            revision = Math.max(value, revision);
+          }
+        } else {
+          let subtagValue = compute(subtag as TagImpl<TagId>);
+
+          if (subtagValue === tag.subtagBufferCache) {
+            revision = Math.max(revision, tag.lastValue);
+          } else {
+            // Clear the temporary buffer cache
+            tag.subtagBufferCache = null;
+            revision = Math.max(revision, subtagValue);
+          }
+        }
+      }
+
+      tag.lastValue = revision;
+    } finally {
+      tag.isUpdating = false;
+    }
+  }
+
+  return tag.lastValue;
+}
+
 export const CONSTANT_TAG: ConstantTag = new TagImpl(CONSTANT_TAG_ID);
-export const combine = TagImpl.combine;
+
+export const combineTags = (tags: Tag[]): Tag => {
+  switch (tags.length) {
+    case 0:
+      return CONSTANT_TAG;
+    case 1:
+      return tags[0] as Tag;
+    default: {
+      let tag = new TagImpl(COMBINATOR_TAG_ID);
+      tag.subtag = tags;
+      return tag;
+    }
+  }
+};
 
 /**
  * `valueForTag` receives a tag and returns an opaque Revision based on that tag. This
@@ -198,5 +188,11 @@ export const combine = TagImpl.combine;
 export const valueForTag = TagImpl.value;
 export const validateTag = TagImpl.validate;
 export const dirtyTag = TagImpl.dirtyTag;
-export const isTag = TagImpl.is;
-export const isConstTag = TagImpl.isConst;
+
+export const isTag = (value: unknown): value is Tag => {
+  return !!(value && TYPE in (value as object));
+};
+
+export const isConstTag = (value: Tag | null): value is Tag<ConstantTagId> => {
+  return value?.[TYPE] === CONSTANT_TAG_ID;
+};

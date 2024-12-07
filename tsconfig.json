@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "strict": true,
     "baseUrl": ".",
+    "noErrorTruncation": true
   },
   "files": [],
   "references": [

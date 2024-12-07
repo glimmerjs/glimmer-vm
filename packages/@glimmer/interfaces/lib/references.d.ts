@@ -1,4 +1,5 @@
 import type { Nullable } from './core.js';
+import type { Revision, Tag } from './tags.js';
 
 export type ConstantReference = 0;
 export type ComputeReference = 1;
@@ -26,4 +27,11 @@ export interface Reference<T = unknown> {
   debugLabel?: string | false | undefined;
   compute: Nullable<() => T>;
   children: null | Map<string | Reference, Reference>;
+}
+
+export interface ReferenceInternals<T = unknown> extends Reference<T> {
+  tag: Nullable<Tag>;
+  lastRevision: Revision;
+  lastValue: T;
+  update: Nullable<(val: T) => void>;
 }

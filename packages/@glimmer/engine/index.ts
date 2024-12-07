@@ -1,4 +1,5 @@
 export * from '@glimmer/constants';
+export { allowCycles, trackingDebug } from '@glimmer/debug';
 export { assert, expect, unwrapTemplate } from '@glimmer/debug-util';
 export {
   associateDestroyableChild,
@@ -8,11 +9,8 @@ export {
   registerDestructor,
   unregisterDestructor,
 } from '@glimmer/destroyable';
-export type { Revision, TagMeta } from '@glimmer/fundamental';
 export {
-  allowCycles,
   consumeTag,
-  debug,
   isTracking,
   upsertTagMetaFor as tagMetaFor,
   upsertTagMetaFor,
@@ -42,6 +40,7 @@ export type {
   ModifierCapabilities,
   ModifierDefinitionState,
   ResolvedComponentDefinition,
+  Revision,
   Template,
   TemplateFactory,
   VMArguments,
@@ -108,9 +107,9 @@ export {
   TEMPLATE_ONLY_COMPONENT_MANAGER,
   templateOnlyComponent,
 } from '@glimmer/runtime';
+export type { TagMeta } from '@glimmer/state';
 export type { DirtyableTag, Tag, UpdatableTag } from '@glimmer/validator';
 export {
-  combine,
   CONSTANT_TAG,
   createCache,
   createTag,

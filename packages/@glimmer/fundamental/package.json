@@ -1,5 +1,6 @@
 {
   "name": "@glimmer/fundamental",
+  "private": true,
   "version": "0.93.1",
   "license": "MIT",
   "description": "The fundamental state used by Glimmer reactivity. This package coordinates via a single global, and allows the rest of the packages to be duplicated semantically.",
@@ -33,6 +34,7 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
+    "@glimmer/state": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*"

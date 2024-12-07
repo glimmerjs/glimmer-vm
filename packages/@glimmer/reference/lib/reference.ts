@@ -1,4 +1,3 @@
-import type { Revision } from '@glimmer/fundamental';
 import type {
   ComputeReference,
   ConstantReference,
@@ -7,24 +6,25 @@ import type {
   Reference,
   ReferenceSymbol,
   ReferenceType,
+  Revision,
   UnboundReference,
 } from '@glimmer/interfaces';
 import type { Tag } from '@glimmer/validator';
 import { expect } from '@glimmer/debug-util';
-import { consumeTag, validateTag, valueForTag } from '@glimmer/fundamental';
+import { valueForRef } from '@glimmer/fundamental';
 import { getProp, setProp } from '@glimmer/global-context';
+import state from '@glimmer/state';
 import { isDict } from '@glimmer/util';
-import { CONSTANT_TAG, INITIAL, track } from '@glimmer/validator';
+import { CONSTANT_TAG, INITIAL } from '@glimmer/validator';
 
-export const REFERENCE: ReferenceSymbol = Symbol('REFERENCE') as ReferenceSymbol;
+const REFERENCE: ReferenceSymbol = state.REFERENCE;
 
 const CONSTANT: ConstantReference = 0;
 const COMPUTE: ComputeReference = 1;
 const UNBOUND: UnboundReference = 2;
 const INVOKABLE: InvokableReference = 3;
 
-export type { Reference as default };
-export type { Reference };
+export type { Reference as default, Reference };
 
 //////////
 
@@ -145,40 +145,6 @@ export function isUpdatableRef(_ref: Reference) {
   const ref = _ref as ReferenceImpl;
 
   return ref.update !== null;
-}
-
-export function valueForRef<T>(_ref: Reference<T>): T {
-  const ref = _ref as ReferenceImpl<T>;
-
-  let { tag } = ref;
-
-  if (tag === CONSTANT_TAG) {
-    return ref.lastValue as T;
-  }
-
-  const { lastRevision } = ref;
-  let lastValue;
-
-  if (tag === null || !validateTag(tag, lastRevision)) {
-    const { compute } = ref;
-
-    const newTag = track(
-      () => {
-        lastValue = ref.lastValue = compute!();
-      },
-      import.meta.env.DEV && ref.debugLabel
-    );
-
-    tag = ref.tag = newTag;
-
-    ref.lastRevision = valueForTag(newTag);
-  } else {
-    lastValue = ref.lastValue;
-  }
-
-  consumeTag(tag);
-
-  return lastValue as T;
 }
 
 export function updateRef(_ref: Reference, value: unknown) {

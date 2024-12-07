@@ -1,8 +1,8 @@
 import type { DirtyableTag, UpdatableTag } from '@glimmer/interfaces';
-import { allowCycles, validateTag, valueForTag } from '@glimmer/fundamental';
+import { allowCycles } from '@glimmer/debug';
+import { combineTags, validateTag, valueForTag } from '@glimmer/fundamental';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 import {
-  combine,
   CONSTANT_TAG,
   createTag,
   createUpdatableTag,
@@ -182,7 +182,7 @@ module('@glimmer/validator: validators', () => {
       let tag1 = createTag();
       let tag2 = createTag();
 
-      let combined = combine([tag1, tag2]);
+      let combined = combineTags([tag1, tag2]);
 
       let snapshot = valueForTag(combined);
       dirtyTag(tag1);
@@ -198,7 +198,7 @@ module('@glimmer/validator: validators', () => {
         let tag1 = createTag();
         let tag2 = createTag();
 
-        let combined = combine([tag1, tag2]);
+        let combined = combineTags([tag1, tag2]);
 
         assert.throws(
           // This cast is intentionally unsound in order to trigger an
@@ -213,7 +213,7 @@ module('@glimmer/validator: validators', () => {
         let tag1 = createTag();
         let tag2 = createTag();
 
-        let combined = combine([tag1, tag2]);
+        let combined = combineTags([tag1, tag2]);
 
         assert.throws(
           // This cast is intentionally unsound in order to trigger an
@@ -263,7 +263,7 @@ module('@glimmer/validator: validators', () => {
 
     test('it ensures that any tags which it is combined with are also always the current revision', (assert) => {
       let tag2 = createTag();
-      let combined = combine([CURRENT_TAG, tag2]);
+      let combined = combineTags([CURRENT_TAG, tag2]);
 
       let snapshot = valueForTag(combined);
       assert.ok(validateTag(combined, snapshot));

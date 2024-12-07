@@ -9,6 +9,7 @@ import type {
   Nullable,
   PositionalArguments,
   Program,
+  RegisterName,
   RuntimeOp,
   VMArguments,
 } from '@glimmer/interfaces';
@@ -17,7 +18,7 @@ import { entries, isIndexable } from '@glimmer/util';
 
 import type { ValueRefOptions } from '../render/basic';
 import type { IntoFragment } from '../render/fragment';
-import type { RegisterName, SomeDisassembledOperand } from './dism';
+import type { SomeDisassembledOperand } from './dism';
 
 import { debugOp } from '../debug';
 import { empty, join, unknownValue, value } from '../render/basic';

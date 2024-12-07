@@ -1,6 +1,6 @@
 import type { CompilableTemplate, Optional, Reference, SimpleNode } from '@glimmer/interfaces';
 import { IS_COMPILABLE_TEMPLATE } from '@glimmer/constants';
-import { REFERENCE } from '@glimmer/reference';
+import state from '@glimmer/state';
 import { isIndexable } from '@glimmer/util';
 
 import type { IntoFragment } from './fragment';
@@ -110,7 +110,7 @@ function isCompilable(element: unknown): element is CompilableTemplate {
 }
 
 function isReference(element: unknown): element is Reference {
-  return !!(element && typeof element === 'object' && REFERENCE in element);
+  return !!(element && typeof element === 'object' && state.REFERENCE in element);
 }
 
 function isDom(element: unknown): element is Node | SimpleNode {

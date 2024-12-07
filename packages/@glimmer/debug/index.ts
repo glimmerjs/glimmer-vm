@@ -62,3 +62,4 @@ export type {
   Stack,
 } from './lib/metadata';
 export type { Checker } from './lib/stack-check';
+export { allowCycles, allowsCycles, helpers as trackingDebug } from './lib/tracking';

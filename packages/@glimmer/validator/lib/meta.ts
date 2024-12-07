@@ -1,6 +1,6 @@
-import type { TagMeta } from '@glimmer/fundamental';
 import type { ConstantTag, UpdatableTag } from '@glimmer/interfaces';
-import { debug, getTagMeta, upsertTagMetaFor } from '@glimmer/fundamental';
+import type { TagMeta } from '@glimmer/state';
+import { getTagMeta, getTrackingDebug, upsertTagMetaFor } from '@glimmer/fundamental';
 
 import type { Indexable } from './utils';
 
@@ -32,7 +32,7 @@ export function dirtyTagFor<T extends object>(
 
   if (propertyTag !== undefined) {
     if (import.meta.env.DEV) {
-      unwrap(debug.assertTagNotConsumed)(propertyTag, obj, key);
+      unwrap(getTrackingDebug)().assertTagNotConsumed(propertyTag, obj, key);
     }
 
     DIRTY_TAG(propertyTag, true);

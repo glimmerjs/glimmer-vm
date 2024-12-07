@@ -42,6 +42,7 @@
     "@glimmer/owner": "workspace:*",
     "@glimmer/program": "workspace:*",
     "@glimmer/reference": "workspace:*",
+    "@glimmer/state": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/validator": "workspace:*",
     "@glimmer/vm": "workspace:*",

@@ -3,6 +3,7 @@ import type {
   Dict,
   Maybe,
   Nullable,
+  Primitive,
   ProgramSymbolTable,
   SimpleDocumentFragment,
   SimpleElement,
@@ -11,8 +12,6 @@ import type {
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
-
-import type { Primitive } from './dism/dism';
 
 export interface Checker<T> {
   type: T;

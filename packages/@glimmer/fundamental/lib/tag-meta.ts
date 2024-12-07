@@ -1,21 +1,19 @@
-import type { Optional, UpdatableTag } from '@glimmer/interfaces';
-
-export type TagMeta = Map<PropertyKey, UpdatableTag>;
+import type { Optional } from '@glimmer/interfaces';
+import type { TagMeta } from '@glimmer/state';
+import state from '@glimmer/state';
 
 export function upsertTagMetaFor(obj: object): TagMeta {
-  let tags = TRACKED_TAGS.get(obj);
+  let tags = state.meta.get(obj);
 
   if (tags === undefined) {
     tags = new Map();
 
-    TRACKED_TAGS.set(obj, tags);
+    state.meta.set(obj, tags);
   }
 
   return tags;
 }
 
 export function getTagMeta(obj: object): Optional<TagMeta> {
-  return TRACKED_TAGS.get(obj);
+  return state.meta.get(obj);
 }
-
-const TRACKED_TAGS = new WeakMap<object, TagMeta>();

@@ -1,10 +1,11 @@
 import type { GlobalContext } from '@glimmer/global-context';
 import type { OpaqueIterationItem, Reference } from '@glimmer/reference';
+import type { Cache } from '@glimmer/validator';
 import { unwrap } from '@glimmer/debug-util';
-import { consumeTag } from '@glimmer/fundamental';
+import { bump, consumeTag } from '@glimmer/fundamental';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 import { createComputeRef, createIteratorRef, valueForRef } from '@glimmer/reference';
-import { CURRENT_TAG } from '@glimmer/validator';
+import { createCache, CURRENT_TAG, getValue } from '@glimmer/validator';
 
 import objectValues from './utils/platform';
 import { module, test } from './utils/qunit';
@@ -12,6 +13,7 @@ import { TestContext } from './utils/template';
 
 class IterableWrapper {
   private iterable: Reference<{ next(): OpaqueIterationItem | null }>;
+  private iterateCache: Cache<OpaqueIterationItem[]>;
 
   constructor(obj: unknown, key = '@identity') {
     let valueRef = createComputeRef(() => {
@@ -19,9 +21,11 @@ class IterableWrapper {
       return obj;
     });
     this.iterable = createIteratorRef(valueRef, key);
+
+    this.iterateCache = createCache(() => this.iterate());
   }
 
-  private iterate() {
+  private iterate(): OpaqueIterationItem[] {
     let result: OpaqueIterationItem[] = [];
 
     // bootstrap
@@ -37,11 +41,11 @@ class IterableWrapper {
   }
 
   toValues() {
-    return this.iterate().map((i) => i.value);
+    return getValue(this.iterateCache)!.map((i) => i.value);
   }
 
   toKeys() {
-    return this.iterate().map((i) => i.key);
+    return getValue(this.iterateCache)!.map((i) => i.key);
   }
 }
 
@@ -72,10 +76,12 @@ module('@glimmer/reference: IterableReference', (hooks) => {
       assert.deepEqual(target.toValues(), objectValues(obj));
 
       obj.c = 'Rob';
+      bump();
 
       assert.deepEqual(target.toValues(), objectValues(obj));
 
       obj.a = 'Godhuda';
+      bump();
 
       assert.deepEqual(target.toValues(), objectValues(obj));
     });
@@ -114,6 +120,7 @@ module('@glimmer/reference: IterableReference', (hooks) => {
 
       arr.pop();
       arr.unshift(godfrey);
+      bump();
 
       let keys2 = target.toKeys();
 
@@ -141,6 +148,7 @@ module('@glimmer/reference: IterableReference', (hooks) => {
       let keys1 = target.toKeys();
 
       arr.unshift(undefined);
+      bump();
 
       let keys2 = target.toKeys();
 
@@ -155,6 +163,7 @@ module('@glimmer/reference: IterableReference', (hooks) => {
       let keys1 = target.toKeys();
 
       arr.push(null);
+      bump();
 
       let keys2 = target.toKeys();
 

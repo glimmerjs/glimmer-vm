@@ -1,19 +1,6 @@
-import type { Expand, Nullable } from '@glimmer/interfaces';
+import type { Expand, Nullable, Primitive, RegisterName } from '@glimmer/interfaces';
 
 import type { NormalizedOperand } from './operand-types';
-
-export type Primitive = undefined | null | boolean | number | string;
-export type RegisterName =
-  | '$pc'
-  | '$ra'
-  | '$fp'
-  | '$sp'
-  | '$s0'
-  | '$s1'
-  | '$t0'
-  | '$t1'
-  | '$v0'
-  | `$bug${number}`;
 
 export type StaticDisassembledOperand = ObjectForRaw<RawStaticDisassembledOperand> & {
   isDynamic: false;

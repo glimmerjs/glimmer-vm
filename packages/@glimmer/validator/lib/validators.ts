@@ -9,7 +9,7 @@ import type {
   UpdatableTag,
   UpdatableTagId,
 } from '@glimmer/interfaces';
-import { now, TagImpl, valueForTag } from '@glimmer/fundamental';
+import { combineTags, now, TagImpl, valueForTag } from '@glimmer/fundamental';
 
 //////////
 
@@ -45,8 +45,6 @@ export const CURRENT_TAG = new TagImpl(101 satisfies CurrentTagId, now);
 
 //////////
 
-export const combine = TagImpl.combine;
-
 // Warm
 
 let tag1 = createUpdatableTag();
@@ -56,7 +54,7 @@ let tag3 = createUpdatableTag();
 valueForTag(tag1);
 DIRTY_TAG(tag1);
 valueForTag(tag1);
-UPDATE_TAG(tag1, combine([tag2, tag3]));
+UPDATE_TAG(tag1, combineTags([tag2, tag3]));
 valueForTag(tag1);
 DIRTY_TAG(tag2);
 valueForTag(tag1);

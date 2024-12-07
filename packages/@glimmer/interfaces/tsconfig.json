@@ -1,8 +1,16 @@
 {
-  "extends": ["../tsconfig.json"],
+  "extends": [
+    "../tsconfig.json"
+  ],
   "compilerOptions": {
+    "composite": true,
+    "incremental": true,
     "rootDir": ".",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "skipLibCheck": false,
   },
-  "include": ["index.d.ts", "lib"]
+  "include": [
+    "index.d.ts",
+    "lib"
+  ]
 }

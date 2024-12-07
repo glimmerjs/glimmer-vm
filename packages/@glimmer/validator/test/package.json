@@ -5,9 +5,11 @@
     "@glimmer/fundamental": "workspace:*",
     "@glimmer/validator": "workspace:*",
     "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*"
+    "@glimmer/interfaces": "workspace:*",
+    "@glimmer/debug": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer/debug-util": "workspace:*",
     "vite": "*"
   }
 }

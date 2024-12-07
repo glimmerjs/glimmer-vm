@@ -1,9 +1,6 @@
 declare const TYPE: unique symbol;
 export type TagTypeSymbol = typeof TYPE;
 
-declare const COMPUTE: unique symbol;
-export type TagComputeSymbol = typeof COMPUTE;
-
 export type CONSTANT_REVISION = 0;
 export type INITIAL_REVISION = 1;
 
@@ -31,7 +28,6 @@ export type Revision = number;
 export interface Tag<T extends TagId = TagId> {
   readonly [TYPE]: T;
   readonly subtag?: Tag | Tag[] | null | undefined;
-  [COMPUTE](): Revision;
 }
 
 export type DirtyableTag = Tag<DirtyableTagId>;

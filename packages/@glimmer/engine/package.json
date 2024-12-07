@@ -36,6 +36,7 @@
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/constants": "workspace:*",
+    "@glimmer/debug": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/destroyable": "workspace:*",
     "@glimmer/encoder": "workspace:*",
@@ -47,6 +48,7 @@
     "@glimmer/program": "workspace:*",
     "@glimmer/reference": "workspace:*",
     "@glimmer/runtime": "workspace:*",
+    "@glimmer/state": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/validator": "workspace:*",
     "eslint": "^8.52.0",

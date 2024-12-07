@@ -4,9 +4,11 @@ import type {
   DebugOp,
   Dict,
   OpSnapshot,
+  Primitive,
   Program,
   ProgramConstants,
   RawDisassembledOperand,
+  RegisterName,
   RuntimeOp,
   SomeDisassembledOperand,
 } from '@glimmer/interfaces';
@@ -22,7 +24,6 @@ import { LOCAL_DEBUG, LOCAL_SUBTLE_LOGGING, LOCAL_TRACE_LOGGING } from '@glimmer
 import { enumerate, LOCAL_LOGGER } from '@glimmer/util';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 
-import type { Primitive, RegisterName } from './dism/dism';
 import type { NormalizedOperand, OperandType, ShorthandOperand } from './dism/operand-types';
 
 import { describeOp } from './dism/opcode';

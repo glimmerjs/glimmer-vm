@@ -1,8 +1,20 @@
-import type { Tag } from '@glimmer/interfaces';
+import type { DebugTransaction, Optional, Tag } from '@glimmer/interfaces';
 import { unwrap } from '@glimmer/debug-util';
+import state from '@glimmer/state';
 
-import { debug } from './debug';
-import { combine, CONSTANT_TAG } from './tag';
+import { combineTags, CONSTANT_TAG, isConstTag } from './tag';
+
+const { tracking } = state;
+
+let trackingDebug: Optional<DebugTransaction>;
+
+export const setTrackingDebug: Optional<(debug: DebugTransaction) => void> = import.meta.env.DEV
+  ? (d) => (trackingDebug = d)
+  : undefined;
+
+export const getTrackingDebug = import.meta.env.DEV
+  ? () => trackingDebug as DebugTransaction
+  : undefined;
 
 /**
  * An object that that tracks @tracked properties that were consumed.
@@ -12,12 +24,12 @@ export class Tracker {
   private last: Tag | null = null;
 
   add(tag: Tag) {
-    if (tag === CONSTANT_TAG) return;
+    if (tag === CONSTANT_TAG || isConstTag(tag)) return;
 
     this.tags.add(tag);
 
     if (import.meta.env.DEV) {
-      unwrap(debug.markTagAsConsumed)(tag);
+      unwrap(trackingDebug).markTagAsConsumed(tag);
     }
 
     this.last = tag;
@@ -31,9 +43,14 @@ export class Tracker {
     } else if (tags.size === 1) {
       return this.last as Tag;
     } else {
-      return combine(Array.from(this.tags));
+      return combineTags(Array.from(this.tags));
     }
   }
+}
+
+export interface TrackerState {
+  current: Tracker | null;
+  stack: (Tracker | null)[];
 }
 
 /**
@@ -49,68 +66,65 @@ export class Tracker {
  * that corresponds to the tracked properties consumed inside of
  * itself, including child tracked computed properties.
  */
-let CURRENT_TRACKER: Tracker | null = null;
-
-const OPEN_TRACK_FRAMES: (Tracker | null)[] = [];
 
 export function beginTrackFrame(debuggingContext?: string | false): void {
-  OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
+  tracking.stack.push(tracking.current);
 
-  CURRENT_TRACKER = new Tracker();
+  tracking.current = new Tracker();
 
   if (import.meta.env.DEV) {
-    unwrap(debug.beginTrackingTransaction)(debuggingContext);
+    unwrap(trackingDebug).beginTrackingTransaction(debuggingContext);
   }
 }
 
 export function endTrackFrame(): Tag {
-  let current = CURRENT_TRACKER;
+  let current = tracking.current;
 
   if (import.meta.env.DEV) {
-    if (OPEN_TRACK_FRAMES.length === 0) {
+    if (tracking.stack.length === 0) {
       throw new Error('attempted to close a tracking frame, but one was not open');
     }
 
-    unwrap(debug.endTrackingTransaction)();
+    unwrap(trackingDebug).endTrackingTransaction();
   }
 
-  CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
+  tracking.current = tracking.stack.pop() || null;
 
   return unwrap(current).combine();
 }
 
 export function beginUntrackFrame(): void {
-  OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
-  CURRENT_TRACKER = null;
+  tracking.stack.push(tracking.current);
+  tracking.current = null;
 }
 
 export function endUntrackFrame(): void {
-  if (import.meta.env.DEV && OPEN_TRACK_FRAMES.length === 0) {
+  if (import.meta.env.DEV && tracking.stack.length === 0) {
     throw new Error('attempted to close a tracking frame, but one was not open');
   }
 
-  CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
+  tracking.current = tracking.stack.pop() || null;
 }
 
 // This function is only for handling errors and resetting to a valid state
 export function resetTracking(): string | void {
-  while (OPEN_TRACK_FRAMES.length > 0) {
-    OPEN_TRACK_FRAMES.pop();
+  while (tracking.stack.length > 0) {
+    tracking.stack.pop();
   }
 
-  CURRENT_TRACKER = null;
+  tracking.current = null;
 
   if (import.meta.env.DEV) {
-    return unwrap(debug.resetTrackingTransaction)();
+    return unwrap(trackingDebug).resetTrackingTransaction();
   }
 }
 
 export function isTracking(): boolean {
-  return CURRENT_TRACKER !== null;
+  return tracking.current !== null;
 }
 
 export function consumeTag(tag: Tag): void {
-  if (CURRENT_TRACKER !== null) {
-    CURRENT_TRACKER.add(tag);
+  if (tracking.current !== null) {
+    tracking.current.add(tag);
   }
 }

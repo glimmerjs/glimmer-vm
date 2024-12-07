@@ -1,3 +1,27 @@
+import type { SimpleElement } from '@simple-dom/interface';
+
+import type { Dict, Nullable } from '../core';
+import type { Cursor } from '../dom/bounds';
+import type { RuntimeOp } from '../program';
+import type { DebugRegisters, ScopeSlot } from '../runtime';
+import type { BlockMetadata } from '../template';
+import type { Expand } from '../type-utils';
+import type { VmMachineOp, VmOp } from '../vm-opcodes';
+
+export type Primitive = undefined | null | boolean | number | string;
+
+export type RegisterName =
+  | '$pc'
+  | '$ra'
+  | '$fp'
+  | '$sp'
+  | '$s0'
+  | '$s1'
+  | '$t0'
+  | '$t1'
+  | '$v0'
+  | `$bug${number}`;
+
 export type AnyOperand = [type: string, value: never, options?: object];
 export type OperandTypeOf<O extends AnyOperand> = O[0];
 export type OperandValueOf<O extends AnyOperand> = O[1];
@@ -16,25 +40,7 @@ export type OperandOptionsA<O extends AnyOperand> = O extends [
   ? Options
   : {};
 
-type ExtractA<O> = O extends { a: infer A } ? A : never;
-type ExpandUnion<U> = U extends infer O ? ExtractA<{ a: O }> : never;
-
-export type NullableOperand<O extends AnyOperand> =
-  | [OperandTypeOf<O>, OperandValueOf<O>, Expand<OperandOptionsA<O> & { nullable?: false }>]
-  | [
-      OperandTypeOf<O>,
-      Nullable<OperandValueOf<O>>,
-      Expand<OperandOptionsA<O> & { nullable: true }>,
-    ];
-
 export type NullableName<T extends string> = T extends `${infer N}?` ? N : never;
-
-export type WithOptions<O extends AnyOperand, Options> = ExpandUnion<
-  [OperandTypeOf<O>, OperandValueOf<O>, Expand<OperandOptionsA<O> & Options>]
->;
-
-// expands object types one level deep
-type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
 type DefineOperand<T extends string, V, Options = undefined> = undefined extends Options
   ? readonly [type: T, value: V]
@@ -116,4 +122,46 @@ export interface DisassembledOperand<R extends RawDisassembledOperand = RawDisas
 
 export interface VmSnapshot {
   diff(other: VmSnapshot): VmDiff;
+}
+
+export type GetRegisterDiffs<D extends DebugRegisters> = {
+  [P in keyof D]: VmSnapshotValueDiff<P, D[P]>;
+};
+
+export type RegisterDiffs = GetRegisterDiffs<DebugRegisters>;
+
+export interface RuntimeOpSnapshot {
+  type: VmMachineOp | VmOp;
+  isMachine: 0 | 1;
+  size: number;
+}
+
+export interface VmDiff {
+  readonly opcode: RuntimeOpSnapshot;
+
+  readonly registers: RegisterDiffs;
+  readonly stack: VmSnapshotArrayDiff<'stack', unknown[]>;
+  readonly blocks: VmSnapshotArrayDiff<'blocks', object[]>;
+  readonly cursors: VmSnapshotArrayDiff<'cursors', Cursor[]>;
+  readonly constructing: VmSnapshotValueDiff<'constructing', Nullable<SimpleElement>>;
+  readonly destructors: VmSnapshotArrayDiff<'destructors', object[]>;
+  readonly scope: VmSnapshotArrayDiff<'scope', ScopeSlot[]>;
+}
+
+export interface VmSnapshotArrayDiff<N extends string | number, T extends unknown[]> {
+  readonly name: N;
+  readonly before: T;
+  readonly after: T;
+  readonly change: boolean | 'reset';
+
+  describe(): object;
+}
+
+export interface VmSnapshotValueDiff<N extends string | number, T> {
+  readonly name: N;
+  readonly before: T;
+  readonly after: T;
+  readonly didChange: boolean;
+
+  describe(): object;
 }

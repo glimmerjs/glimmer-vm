@@ -1,12 +1,12 @@
 import type { Dict, Nullable } from '@glimmer/interfaces';
-import { consumeTag } from '@glimmer/fundamental';
+import { consumeTag, valueForRef } from '@glimmer/fundamental';
 import { getPath, toIterator } from '@glimmer/global-context';
 import { EMPTY_ARRAY, isIndexable } from '@glimmer/util';
 import { createTag, dirtyTag } from '@glimmer/validator';
 
 import type { Reference, ReferenceEnvironment } from './reference';
 
-import { createComputeRef, valueForRef } from './reference';
+import { createComputeRef } from './reference';
 
 export interface IterationItem<T, U> {
   key: unknown;
