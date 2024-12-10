@@ -1,8 +1,17 @@
-import type { Reference, ReferenceInternals } from '@glimmer/interfaces';
+import type { Reference, Revision, Tag } from '@glimmer/state';
 import { unwrap } from '@glimmer/debug-util';
 
 import { CONSTANT_TAG, isConstTag, validateTag, valueForTag } from './tag';
 import { beginTrackFrame, consumeTag, endTrackFrame } from './tracking';
+
+type Nullable<T> = T | null;
+
+export interface ReferenceInternals<T = unknown> extends Reference<T> {
+  tag: Nullable<Tag>;
+  lastRevision: Revision;
+  lastValue: T;
+  update: Nullable<(val: T) => void>;
+}
 
 export function valueForRef<T>(_ref: Reference<T>): T {
   const ref = _ref as ReferenceInternals<T>;

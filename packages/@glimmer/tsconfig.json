@@ -3,18 +3,14 @@
     "composite": true,
     "incremental": true,
     // Compilation Configuration
-    "lib": [
-      "esnext",
-      "DOM",
-      "DOM.Iterable",
-      "ES2015.Iterable"
-    ],
+    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
     "allowJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
     "declaration": true,
     "declarationMap": true,
     "baseUrl": "..",
+    "outDir": "../../ts-dist/packages",
     "verbatimModuleSyntax": true,
     // Environment Configuration
     "experimentalDecorators": true,
@@ -29,24 +25,10 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
+    "skipLibCheck": false,
+    "skipDefaultLibCheck": true,
+    "types": ["qunit", "node", "vite/client"]
   },
-  "include": [
-    "*/lib/**/*",
-    "*/index.ts",
-  ],
-  "exclude": [
-    "**/fixtures",
-    "**/node_modules",
-  ],
-  "references": [
-    {
-      "path": "./interfaces/tsconfig.json"
-    }
-  ]
+  "include": ["*/lib/**/*", "*/index.ts"],
+  "exclude": ["**/fixtures", "**/node_modules"]
 }

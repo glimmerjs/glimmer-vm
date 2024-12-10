@@ -1,11 +1,11 @@
 import type {
   Helper as GlimmerHelper,
-  InternalModifierManager,
   Nullable,
   ResolutionTimeConstants,
   TemplateFactory,
 } from '@glimmer/interfaces';
 import type { CurriedValue } from '@glimmer/runtime';
+import type { InternalModifierManager } from '@glimmer/state';
 import { CURRIED_COMPONENT } from '@glimmer/constants';
 import {
   getInternalComponentManager,

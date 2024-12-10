@@ -1,4 +1,3 @@
-import type { Optional } from '@glimmer/interfaces';
 import type { TagMeta } from '@glimmer/state';
 import state from '@glimmer/state';
 
@@ -13,6 +12,8 @@ export function upsertTagMetaFor(obj: object): TagMeta {
 
   return tags;
 }
+
+type Optional<T> = T | undefined;
 
 export function getTagMeta(obj: object): Optional<TagMeta> {
   return state.meta.get(obj);

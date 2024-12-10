@@ -2,12 +2,8 @@
   "compilerOptions": {
     "composite": true,
     "incremental": true,
-    "lib": [
-      "esnext",
-      "DOM",
-      "DOM.Iterable",
-      "ES2015.Iterable"
-    ],
+    "outDir": "../../ts-dist/test",
+    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
     "allowJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
@@ -26,20 +22,10 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "skipDefaultLibCheck": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
+    "types": ["qunit", "node", "vite/client"]
   },
-  "include": [
-    "*/test/**/*"
-  ],
-  "exclude": [
-    "*/test/node_modules",
-    "**/fixtures",
-    "**/vm-babel-plugins/**",
-  ],
+  "include": ["*/test/**/*"],
+  "exclude": ["*/test/node_modules", "**/fixtures"],
   "references": [
     {
       "path": "../@glimmer-workspace/tsconfig.json"

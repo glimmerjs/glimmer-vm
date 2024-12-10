@@ -2,7 +2,7 @@ import { getFirst, getLast, isPresentArray } from '@glimmer/debug-util';
 
 import { enumerate } from './array-utils';
 
-export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
+export function strip(strings: TemplateStringsArray, ...args: { toString(): string }[]) {
   let out = '';
   for (const [i, string] of enumerate(strings)) {
     let dynamic = args[i] !== undefined ? String(args[i]) : '';

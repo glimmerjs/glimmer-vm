@@ -1,3 +1,4 @@
+import type { DynamicScope } from '@glimmer/state';
 import type { SimpleElement } from '@simple-dom/interface';
 
 import type { Nullable } from '../core.js';
@@ -5,7 +6,7 @@ import type { AppendingBlock } from '../dom/attributes.js';
 import type { Cursor } from '../dom/bounds.js';
 import type { EvaluationContext } from '../program.js';
 import type { BlockMetadata } from '../template.js';
-import type { DynamicScope, Scope, ScopeSlot } from './scope.js';
+import type { Scope, ScopeSlot } from './scope.js';
 import type { UpdatingBlockOpcode, UpdatingOpcode } from './vm.js';
 
 export type MachineRegisters = [$pc: number, $ra: number, $fp: number, $sp: number];

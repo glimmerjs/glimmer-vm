@@ -28,9 +28,11 @@ module.exports = {
     'import/parsers': {
       '@typescript-eslint/parser': ['.js', '.cjs', '.mjs', '.mts', '.ts', '.d.ts'],
     },
-    'import/core-modules': ['@glimmer/debug'],
+    'import/core-modules': [],
     'import/resolver': {
-      typescript: {},
+      typescript: {
+        alwaysTryTypes: true,
+      },
     },
     node: {
       allowModules: ['@glimmer/debug', '@glimmer/local-debug-flags'],
@@ -63,6 +65,7 @@ module.exports = {
       ],
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
+        '@typescript-eslint/no-require-imports': 'off',
       },
     },
     {

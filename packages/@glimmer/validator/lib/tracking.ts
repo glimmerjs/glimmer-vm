@@ -96,7 +96,7 @@ function assertCache<T>(
   if (import.meta.env.DEV && !(typeof value === 'object' && value !== null && FN in value)) {
     throw new Error(
       `${fnName}() can only be used on an instance of a cache created with createCache(). Called with: ${String(
-        value
+        value === null ? 'null' : typeof value
       )}`
     );
   }

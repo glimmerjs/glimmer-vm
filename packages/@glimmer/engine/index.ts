@@ -27,7 +27,6 @@ export type {
   CompilableProgram,
   ComponentDefinition,
   ComponentManager,
-  CustomRenderNode,
   Destroyable,
   Dict,
   DynamicScope,

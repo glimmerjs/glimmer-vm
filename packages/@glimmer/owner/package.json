@@ -33,7 +33,8 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/util": "workspace:*"
+    "@glimmer/util": "workspace:*",
+    "@glimmer/state": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",

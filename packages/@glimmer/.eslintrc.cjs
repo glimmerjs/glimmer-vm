@@ -2,7 +2,6 @@ const { resolve } = require('path');
 
 const libTsconfig = resolve(__dirname, 'tsconfig.json');
 const testTsconfig = resolve(__dirname, 'tsconfig.test.json');
-const interfacesTsconfig = resolve(__dirname, 'interfaces/tsconfig.json');
 
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
@@ -12,7 +11,7 @@ module.exports = {
       files: ['*/index.{ts,js,d.ts}', '*/lib/**/*.{ts,js,d.ts}', '*/test/**/*.{ts,js,d.ts}'],
       parserOptions: {
         ecmaVersion: 'latest',
-        project: [libTsconfig, testTsconfig, interfacesTsconfig],
+        project: [libTsconfig, testTsconfig],
       },
       plugins: ['@glimmer-workspace'],
       extends: ['plugin:@glimmer-workspace/recommended'],

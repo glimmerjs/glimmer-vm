@@ -593,7 +593,7 @@ export class RenderTest implements IRenderTest {
     this.takeSnapshot();
   }
 
-  protected assertComponent(content: string, attrs: Object = {}) {
+  protected assertComponent(content: string, attrs: object = {}) {
     let element = assertingElement(this.element.firstChild);
 
     switch (this.testType) {

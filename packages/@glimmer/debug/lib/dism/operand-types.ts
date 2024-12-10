@@ -1,3 +1,5 @@
+import type { DebugOperandTypeNames } from '@glimmer/interfaces';
+
 // @note OPERAND_TYPES
 export const OPERAND_TYPES = [
   // imm means inline
@@ -41,7 +43,7 @@ export const OPERAND_TYPES = [
   'variable',
 
   'instruction/relative',
-] as const;
+] as const satisfies DebugOperandTypeNames;
 
 export function isOperandType(s: string): s is OperandType {
   return OPERAND_TYPES.includes(s as never) || OPERAND_TYPES.includes(`${s}?` as never);

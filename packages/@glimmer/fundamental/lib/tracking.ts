@@ -1,10 +1,12 @@
-import type { DebugTransaction, Optional, Tag } from '@glimmer/interfaces';
+import type { DebugTransaction, Tag } from '@glimmer/state';
 import { unwrap } from '@glimmer/debug-util';
 import state from '@glimmer/state';
 
 import { combineTags, CONSTANT_TAG, isConstTag } from './tag';
 
 const { tracking } = state;
+
+type Optional<T> = T | undefined;
 
 let trackingDebug: Optional<DebugTransaction>;
 

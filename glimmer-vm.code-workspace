@@ -157,10 +157,6 @@
       "path": "packages/@glimmer/vm"
     },
     {
-      "name": "📦 @glimmer/vm-babel-plugins",
-      "path": "packages/@glimmer/vm-babel-plugins"
-    },
-    {
       "name": "📦 @glimmer/wire-format",
       "path": "packages/@glimmer/wire-format"
     },

@@ -1,3 +1,4 @@
+import type { AnyFn } from '@glimmer/interfaces';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 import { keys } from '@glimmer/util';
 
@@ -207,10 +208,10 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
 }
 
 interface ComponentTests {
-  glimmer: Function[];
-  curly: Function[];
-  dynamic: Function[];
-  templateOnly: Function[];
+  glimmer: AnyFn[];
+  curly: AnyFn[];
+  dynamic: AnyFn[];
+  templateOnly: AnyFn[];
 }
 
 function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>(

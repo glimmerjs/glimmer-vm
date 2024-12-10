@@ -2,13 +2,13 @@ import type {
   CompilableProgram,
   LayoutWithContext,
   Nullable,
-  Owner,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
   Template,
   TemplateFactory,
   TemplateOk,
 } from '@glimmer/interfaces';
+import type { Owner } from '@glimmer/state';
 import { assign } from '@glimmer/util';
 
 import { compilable } from './compilable-template';

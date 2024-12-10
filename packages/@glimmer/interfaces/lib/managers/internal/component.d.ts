@@ -1,112 +1,22 @@
+import type {
+  CapturedArguments,
+  DynamicScope,
+  InternalComponentManager,
+  Owner,
+  Reference,
+} from '@glimmer/state';
+
 import type { ComponentInstanceState, PreparedArguments } from '../../components.js';
-import type { Destroyable, Nullable } from '../../core.js';
+import type { Nullable } from '../../core.js';
 import type { Bounds } from '../../dom/bounds.js';
 import type { SimpleElement } from '../../dom/simple.js';
 import type { ClassicResolver } from '../../program.js';
-import type { Reference } from '../../references.js';
-import type { Owner } from '../../runtime.js';
-import type { CapturedArguments, VMArguments } from '../../runtime/arguments.js';
+import type { VMArguments } from '../../runtime/arguments.js';
 import type { RenderNode } from '../../runtime/debug-render-tree.js';
 import type { ElementOperations } from '../../runtime/element.js';
 import type { Environment } from '../../runtime/environment.js';
-import type { DynamicScope } from '../../runtime/scope.js';
 import type { CompilableProgram } from '../../template.js';
 import type { ProgramSymbolTable } from '../../tier1/symbol-table.js';
-
-/**
- * Describes the capabilities of a particular component. The capabilities are
- * provided to the Glimmer compiler and VM via the ComponentDefinition, which
- * includes a ComponentCapabilities record.
- *
- * Certain features in the VM come with some overhead, so the compiler and
- * runtime use this information to skip unnecessary work for component types
- * that don't need it.
- *
- * For example, a component that is template-only (i.e., it does not have an
- * associated JavaScript class to instantiate) can skip invoking component
- * manager hooks related to lifecycle events by setting the `elementHook`
- * capability to `false`.
- */
-export interface InternalComponentCapabilities {
-  /**
-   * Whether a component's template is static across all instances of that
-   * component, or can vary per instance. This should usually be `false` except
-   * for cases of backwards-compatibility.
-   */
-  dynamicLayout: boolean;
-
-  /**
-   * Whether a "wrapped" component's root element can change after being
-   * rendered. This flag is only used by the WrappedBuilder and should be
-   * `false` except for cases of backwards-compatibility.
-   */
-  dynamicTag: boolean;
-
-  wrapped: boolean;
-
-  /**
-   * Setting the `prepareArgs` flag to true enables the `prepareArgs` hook on
-   * the component manager, which would otherwise not be called.
-   *
-   * The component manager's `prepareArgs` hook allows it to programmatically
-   * add or remove positional and named arguments for a component before the
-   * component is invoked. This flag should usually be `false` except for cases
-   * of backwards-compatibility.
-   */
-  prepareArgs: boolean;
-
-  /**
-   * Whether a reified `Arguments` object will get passed to the component
-   * manager's `create` hook. If a particular component does not access passed
-   * arguments from JavaScript (via the `this.args` property in Glimmer.js, for
-   * example), this flag can be set to `false` to avoid the work of
-   * instantiating extra data structures to expose the arguments to JavaScript.
-   */
-  createArgs: boolean;
-
-  /**
-   * Whether the component needs the caller component
-   */
-  createCaller: boolean;
-
-  /**
-   * Whether to call the `didSplatAttributes` hook on the component manager.
-   */
-  attributeHook: boolean;
-
-  /**
-   * Whether to call the `didCreateElement` hook on the component manager.
-   */
-  elementHook: boolean;
-
-  /**
-   * Whether the component manager has an update hook.
-   */
-  updateHook: boolean;
-
-  /**
-   * Whether the component needs an additional dynamic scope frame.
-   */
-  dynamicScope: boolean;
-
-  /**
-   * Whether there is a component instance to create. If this is false,
-   * the component is a "template only component"
-   */
-  createInstance: boolean;
-
-  /**
-   * Whether or not the component has a `willDestroy` hook that should fire
-   * prior to the component being removed from the DOM.
-   */
-  willDestroy: boolean;
-
-  /**
-   * Whether or not the component pushes an owner onto the owner stack. This is
-   * used for engines.
-   */
-  hasSubOwner: boolean;
-}
 
 /**
  * Enum used for bit flags version of the capabilities, used once the component
@@ -144,16 +54,6 @@ export type InternalComponentCapability =
   | HasSubOwnerCapability;
 
 ////////////
-
-export interface InternalComponentManager<
-  TComponentStateBucket = unknown,
-  TComponentDefinition = object,
-> {
-  getCapabilities(state: TComponentDefinition): InternalComponentCapabilities;
-  getSelf(state: TComponentStateBucket): Reference;
-  getDestroyable(state: TComponentStateBucket): Nullable<Destroyable>;
-  getDebugName(state: TComponentDefinition): string;
-}
 
 export interface CustomRenderNode extends RenderNode {
   bucket: object;

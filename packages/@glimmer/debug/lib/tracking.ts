@@ -1,10 +1,10 @@
 import type {
+  DebugState,
   DebugTransaction,
   DebugTransactionFrame,
   Tag,
   TransactionEnv,
-} from '@glimmer/interfaces';
-import type { DebugState } from '@glimmer/state';
+} from '@glimmer/state';
 import { asPresentArray, getLast, unwrap } from '@glimmer/debug-util';
 import { setTrackingDebug } from '@glimmer/fundamental';
 import { assert } from '@glimmer/global-context';
@@ -49,8 +49,10 @@ if (import.meta.env.DEV) {
       objName = `(an instance of ${className})`;
     } else if (obj === undefined) {
       objName = '(an unknown tag)';
+    } else if (obj === null) {
+      objName = '(null)';
     } else {
-      objName = String(obj);
+      objName = `(${typeof obj})`;
     }
 
     let dirtyString = keyName ? `\`${keyName}\` on \`${objName}\`` : `\`${objName}\``;

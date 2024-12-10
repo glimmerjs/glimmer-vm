@@ -36,8 +36,7 @@
   "dependencies": {
     "@glimmer/state": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
-    "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*"
+    "@glimmer/global-context": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",

@@ -22,7 +22,7 @@ function assertLogKeyword(node: GenericKeywordNode): Result<ASTv2.PositionalArgu
 }
 
 function translateLogKeyword(
-  { node, state }: { node: ASTv2.CallExpression; state: NormalizationState },
+  { node, state }: { node: GenericKeywordNode; state: NormalizationState },
   positional: ASTv2.PositionalArguments
 ): Result<mir.Log> {
   return VISIT_EXPRS.Positional(positional, state).mapOk(
@@ -30,11 +30,7 @@ function translateLogKeyword(
   );
 }
 
-export const logKeyword: KeywordDelegate<
-  ASTv2.CallExpression | ASTv2.AppendContent,
-  ASTv2.PositionalArguments,
-  mir.Log
-> = {
+export const logKeyword: KeywordDelegate<GenericKeywordNode, ASTv2.PositionalArguments, mir.Log> = {
   assert: assertLogKeyword,
   translate: translateLogKeyword,
 };

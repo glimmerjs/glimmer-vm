@@ -6,7 +6,7 @@ function parseArgs() {
   const options = {
     preserve: new Set(),
     help: false,
-    dryRun: false
+    dryRun: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -21,7 +21,9 @@ function parseArgs() {
         const items = value.split(',');
         for (const item of items) {
           if (!['node-modules', 'turbo'].includes(item)) {
-            console.error(`Error: Invalid preserve value: ${item}. Must be 'node-modules' or 'turbo'`);
+            console.error(
+              `Error: Invalid preserve value: ${item}. Must be 'node-modules' or 'turbo'`
+            );
             process.exit(1);
           }
           options.preserve.add(item);
@@ -87,7 +89,7 @@ async function main() {
   }
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

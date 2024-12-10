@@ -6,13 +6,9 @@
     "baseUrl": ".",
     "strict": true,
     "paths": {
-      "@glimmer/*": [
-        "../../@glimmer/*/dist/prod/index.d.ts"
-      ],
+      "@glimmer/*": ["../../@glimmer/*/dist/prod/index.d.ts"]
     },
     "skipLibCheck": true
   },
-  "files": [
-    "index.ts"
-  ]
+  "files": ["index.ts"]
 }

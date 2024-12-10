@@ -307,7 +307,7 @@ export function buildStatement(
       throw unimpl('dynamic component');
 
     default:
-      throw assertNever(normalized);
+      assertNever(normalized);
   }
 }
 
@@ -316,6 +316,7 @@ export function s(
   ...interpolated: unknown[]
 ): [BUILDER_LITERAL, string] {
   let result = arr.reduce(
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     (result, string, i) => result + `${string}${interpolated[i] ? String(interpolated[i]) : ''}`,
     ''
   );
@@ -325,6 +326,7 @@ export function s(
 
 export function c(arr: TemplateStringsArray, ...interpolated: unknown[]): BuilderComment {
   let result = arr.reduce(
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     (result, string, i) => result + `${string}${interpolated[i] ? String(interpolated[i]) : ''}`,
     ''
   );
@@ -390,7 +392,7 @@ function buildElement(
   } else if (block === null) {
     // do nothing
   } else {
-    throw assertNever(block);
+    assertNever(block);
   }
 
   out.push([Op.CloseElement]);

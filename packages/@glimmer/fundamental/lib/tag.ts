@@ -1,17 +1,14 @@
 import type {
   CombinatorTagId,
-  ConstantTag,
   ConstantTagId,
-  DirtyableTag,
   DirtyableTagId,
-  INITIAL_REVISION,
+  InitialRevision,
   Revision,
   Tag,
   TagId,
   TagTypeSymbol,
-  UpdatableTag,
   UpdatableTagId,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 import { assert, unwrap } from '@glimmer/debug-util';
 import { scheduleRevalidate } from '@glimmer/global-context';
 import state from '@glimmer/state';
@@ -42,9 +39,9 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
     return snapshot >= compute(tag as unknown as TagImpl<TagId>);
   }
 
-  revision = 1 satisfies INITIAL_REVISION;
-  lastChecked = 1 satisfies INITIAL_REVISION;
-  lastValue = 1 satisfies INITIAL_REVISION;
+  revision = 1 satisfies InitialRevision;
+  lastChecked = 1 satisfies InitialRevision;
+  lastValue = 1 satisfies InitialRevision;
 
   isUpdating = false;
   public subtag: Tag | Tag[] | null = null;
@@ -58,7 +55,7 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
     this.compute = compute;
   }
 
-  static update(this: void, _tag: UpdatableTag, _subtag: Tag) {
+  static update(this: void, _tag: Tag<UpdatableTagId>, _subtag: Tag) {
     assert(_tag[TYPE] === UPDATABLE_TAG_ID, `Attempted to update a tag that was not updatable`);
 
     // TODO: TS 3.7 should allow us to do this via assertion
@@ -93,7 +90,7 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
 
   static dirtyTag(
     this: void,
-    tag: DirtyableTag | UpdatableTag,
+    tag: Tag<DirtyableTagId> | Tag<UpdatableTagId>,
     disableConsumptionAssertion?: boolean
   ) {
     if (
@@ -163,7 +160,7 @@ function compute(tag: TagImpl<TagId>): Revision {
   return tag.lastValue;
 }
 
-export const CONSTANT_TAG: ConstantTag = new TagImpl(CONSTANT_TAG_ID);
+export const CONSTANT_TAG: Tag<ConstantTagId> = new TagImpl(CONSTANT_TAG_ID);
 
 export const combineTags = (tags: Tag[]): Tag => {
   switch (tags.length) {

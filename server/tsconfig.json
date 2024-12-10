@@ -4,7 +4,5 @@
     "composite": true,
     "skipLibCheck": true
   },
-  "include": [
-    "*.js"
-  ]
+  "include": ["*.js"]
 }

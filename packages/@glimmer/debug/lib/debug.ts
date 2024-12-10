@@ -271,7 +271,7 @@ export function debugOp(program: Program, op: OpSnapshot, meta: BlockMetadata | 
     return { name: metadata.name, params: fromRaw(out), meta };
   }
 
-  throw unreachable(`BUG: Don't try to debug opcodes while trace is disabled`);
+  unreachable(`BUG: Don't try to debug opcodes while trace is disabled`);
 }
 
 function normalizeOperand(operand: ShorthandOperand): NormalizedOperand {

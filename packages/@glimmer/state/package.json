@@ -32,11 +32,9 @@
     "test:publint": "publint",
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
-  "dependencies": {
-    "@glimmer/interfaces": "workspace:*"
-  },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@simple-dom/interface": "^1.4.0",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",
     "rollup": "^4.5.1",

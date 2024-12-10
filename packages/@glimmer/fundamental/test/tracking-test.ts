@@ -325,7 +325,7 @@ module('@glimmer/fundamental: tracking', () => {
         let foo = new Foo();
 
         assert.throws(() => {
-          unwrap(trackingDebug).runInTrackingTransaction!(() => {
+          unwrap(trackingDebug).runInTrackingTransaction(() => {
             track(() => {
               getter(foo);
               setter(foo, 789);
@@ -342,7 +342,7 @@ module('@glimmer/fundamental: tracking', () => {
         let tag = createTag();
 
         assert.throws(() => {
-          unwrap(trackingDebug).runInTrackingTransaction!(() => {
+          unwrap(trackingDebug).runInTrackingTransaction(() => {
             track(() => {
               consumeTag(tag);
               dirtyTag(tag);
@@ -355,7 +355,7 @@ module('@glimmer/fundamental: tracking', () => {
         let tag = createTag();
 
         assert.throws(() => {
-          unwrap(trackingDebug).runInTrackingTransaction!(() => {
+          unwrap(trackingDebug).runInTrackingTransaction(() => {
             track(() => {
               consumeTag(tag);
             });
@@ -371,7 +371,7 @@ module('@glimmer/fundamental: tracking', () => {
         assert.expect(0);
         let tag = createTag();
 
-        unwrap(trackingDebug).runInTrackingTransaction!(() => {
+        unwrap(trackingDebug).runInTrackingTransaction(() => {
           untrack(() => {
             consumeTag(tag);
           });
@@ -386,7 +386,7 @@ module('@glimmer/fundamental: tracking', () => {
         let tag = createTag();
 
         assert.throws(() => {
-          unwrap(trackingDebug).runInTrackingTransaction!(() => {
+          unwrap(trackingDebug).runInTrackingTransaction(() => {
             track(() => {
               consumeTag(tag);
             });

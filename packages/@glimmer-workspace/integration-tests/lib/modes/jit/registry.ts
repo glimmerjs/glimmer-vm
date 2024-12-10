@@ -1,13 +1,13 @@
 import type {
   CompilableProgram,
   HelperDefinitionState,
-  InternalComponentManager,
   Invocation,
   ModifierDefinitionState,
   Nullable,
   ResolvedComponentDefinition,
   Template,
 } from '@glimmer/interfaces';
+import type { InternalComponentManager } from '@glimmer/state';
 import { assert } from '@glimmer/debug-util';
 import { getComponentTemplate } from '@glimmer/manager';
 import { dict } from '@glimmer/util';

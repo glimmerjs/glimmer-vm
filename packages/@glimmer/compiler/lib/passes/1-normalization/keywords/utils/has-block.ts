@@ -42,7 +42,7 @@ function assertHasBlockKeyword(type: string) {
 
 function translateHasBlockKeyword(type: string) {
   return (
-    { node, state: { scope } }: { node: ASTv2.CallExpression; state: NormalizationState },
+    { node, state: { scope } }: { node: GenericKeywordNode; state: NormalizationState },
     target: SourceSlice
   ): Result<mir.HasBlock | mir.HasBlockParams> => {
     let block =
@@ -60,11 +60,7 @@ function translateHasBlockKeyword(type: string) {
 
 export function hasBlockKeyword(
   type: string
-): KeywordDelegate<
-  ASTv2.CallExpression | ASTv2.AppendContent,
-  SourceSlice,
-  mir.HasBlock | mir.HasBlockParams
-> {
+): KeywordDelegate<GenericKeywordNode, SourceSlice, mir.HasBlock | mir.HasBlockParams> {
   return {
     assert: assertHasBlockKeyword(type),
     translate: translateHasBlockKeyword(type),

@@ -1,4 +1,4 @@
-import type { TagMeta } from '@glimmer/fundamental';
+import type { TagMeta } from '@glimmer/state';
 import type { UpdatableTag } from '@glimmer/validator';
 import { consumeTag, upsertTagMetaFor } from '@glimmer/fundamental';
 import { dirtyTagFor, tagFor } from '@glimmer/validator';

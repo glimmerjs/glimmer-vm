@@ -1,4 +1,5 @@
-import type { Dict, Owner } from '@glimmer/interfaces';
+import type { Dict } from '@glimmer/interfaces';
+import type { Owner } from '@glimmer/state';
 
 import { GlimmerishComponent } from '../components';
 import { assertElementShape } from '../dom/assertions';

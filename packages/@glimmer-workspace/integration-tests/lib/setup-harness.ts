@@ -70,7 +70,7 @@ export async function setupQunit() {
   console.log(`[HARNESS] ci=${hasFlag('ci')}`);
 
   testing.testStart(() => {
-    unwrap(trackingDebug).resetTrackingTransaction!();
+    unwrap(trackingDebug).resetTrackingTransaction();
   });
 
   if (!hasFlag('ci')) {

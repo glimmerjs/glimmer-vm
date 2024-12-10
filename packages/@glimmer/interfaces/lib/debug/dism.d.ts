@@ -7,6 +7,7 @@ import type { DebugRegisters, ScopeSlot } from '../runtime';
 import type { BlockMetadata } from '../template';
 import type { Expand } from '../type-utils';
 import type { VmMachineOp, VmOp } from '../vm-opcodes';
+import type { NormalizedDebugOperand } from './operand';
 
 export type Primitive = undefined | null | boolean | number | string;
 
@@ -38,7 +39,7 @@ export type OperandOptionsA<O extends AnyOperand> = O extends [
   options: infer Options,
 ]
   ? Options
-  : {};
+  : object;
 
 export type NullableName<T extends string> = T extends `${infer N}?` ? N : never;
 
@@ -66,7 +67,7 @@ export type RawDynamicDisassembledOperand =
   | DefineOperand<'variable', number, { name?: string | null }>;
 
 export type RawStaticDisassembledOperand =
-  | DefineOperand<'error:operand', number, { label: NormalizedOperand }>
+  | DefineOperand<'error:operand', number, { label: NormalizedDebugOperand }>
   | DefineOperand<'error:opcode', number, { kind: number }>
   | DefineOperand<'number', number>
   | DefineOperand<'boolean', boolean>

@@ -16,6 +16,7 @@ export interface Unique<T> {
 
 export type Recast<T, U> = (T & U) | U;
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type AnyFn = Function;
 
 /**
@@ -32,6 +33,3 @@ export type RichIteratorResult<Tick, Return> =
       done: true;
       value: Return;
     };
-
-export type Destroyable = object;
-export type Destructor<T extends Destroyable> = (destroyable: T) => void;

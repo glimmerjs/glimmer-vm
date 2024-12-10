@@ -13,6 +13,7 @@ import { assert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { $fp, $pc, $ra, $sp } from '@glimmer/vm';
 
+import type { DebugState } from '../opcodes';
 import type { VM } from './append';
 
 import { APPEND_OPCODES } from '../opcodes';
@@ -45,9 +46,9 @@ export interface VmStack {
   snapshot?(): unknown[];
 }
 
-export interface Externs {
-  debugBefore(opcode: RuntimeOp): unknown;
-  debugAfter(state: unknown): void;
+export interface Externs<S> {
+  debugBefore: (opcode: RuntimeOp) => S;
+  debugAfter: (state: S) => void;
 }
 
 export class LowLevelVM {
@@ -58,7 +59,7 @@ export class LowLevelVM {
   constructor(
     public stack: VmStack,
     context: EvaluationContext,
-    public externs: Externs | undefined,
+    public externs: Externs<DebugState> | undefined,
     registers: LowLevelRegisters
   ) {
     this.context = context;

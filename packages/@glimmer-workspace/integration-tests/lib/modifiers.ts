@@ -1,12 +1,10 @@
+import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import type {
   CapturedArguments,
   Destroyable,
-  Dict,
   InternalModifierManager,
-  Nullable,
   Owner,
-  SimpleElement,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 import type { UpdatableTag } from '@glimmer/validator';
 import { registerDestructor } from '@glimmer/destroyable';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';

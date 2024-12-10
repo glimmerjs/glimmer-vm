@@ -1,5 +1,6 @@
+import type { Reference } from '@glimmer/state';
+
 import type { Nullable } from '../core.js';
-import type { Reference } from '../references.js';
 
 export interface ElementOperations {
   setAttribute(

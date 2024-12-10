@@ -1,6 +1,6 @@
 export type { InternalManager } from './lib/managers';
 export { COMPONENT_MANAGERS, HELPER_MANAGERS, MODIFIER_MANAGERS } from './lib/managers';
-export { valueForRef } from './lib/reference';
+export { type ReferenceInternals, valueForRef } from './lib/reference';
 export {
   combineTags,
   dirtyTag,

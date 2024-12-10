@@ -203,7 +203,7 @@ export class AppendOpcodes {
   }
 }
 
-export function externs(vm: VM): Externs | undefined {
+export function externs(vm: VM): Externs<DebugState> | undefined {
   return LOCAL_DEBUG
     ? {
         debugBefore: (opcode: RuntimeOp): DebugState => {

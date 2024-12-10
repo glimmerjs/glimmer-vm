@@ -231,6 +231,7 @@ function normalizeValue(value: unknown): Nullable<string> {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   return String(value);
 }
 

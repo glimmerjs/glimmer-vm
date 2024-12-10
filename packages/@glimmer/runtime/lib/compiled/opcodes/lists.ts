@@ -12,6 +12,7 @@ APPEND_OPCODES.add(VM_ENTER_LIST_OP, (vm, { op1: relativeStart, op2: elseTarget 
   let keyRef = check(stack.pop(), CheckReference);
 
   let keyValue = valueForRef(keyRef);
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   let key = keyValue === null ? '@identity' : String(keyValue);
 
   let iteratorRef = createIteratorRef(listRef, key);

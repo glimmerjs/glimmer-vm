@@ -1,23 +1,25 @@
 import type {
   Bounds,
-  CapturedNamedArguments,
   CompilableProgram,
-  Destroyable,
   Dict,
   DynamicScope,
   ElementOperations,
   Environment,
-  InternalComponentCapabilities,
   Nullable,
-  Owner,
   PreparedArguments,
-  Reference,
   Template,
   VMArguments,
   WithCreateInstance,
   WithDynamicLayout,
   WithDynamicTagName,
 } from '@glimmer/interfaces';
+import type {
+  CapturedNamedArguments,
+  Destroyable,
+  InternalComponentCapabilities,
+  Owner,
+  Reference,
+} from '@glimmer/state';
 import type { DirtyableTag } from '@glimmer/validator';
 import { unwrapTemplate } from '@glimmer/debug-util';
 import { registerDestructor } from '@glimmer/destroyable';

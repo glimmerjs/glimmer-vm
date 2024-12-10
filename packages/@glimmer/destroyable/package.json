@@ -36,7 +36,8 @@
     "@glimmer/env": "0.1.7",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*"
+    "@glimmer/util": "workspace:*",
+    "@glimmer/state": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",

@@ -1,4 +1,5 @@
-import type { CompilableTemplate, Optional, Reference, SimpleNode } from '@glimmer/interfaces';
+import type { CompilableTemplate, Optional, SimpleNode } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/state';
 import { IS_COMPILABLE_TEMPLATE } from '@glimmer/constants';
 import state from '@glimmer/state';
 import { isIndexable } from '@glimmer/util';

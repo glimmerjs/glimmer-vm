@@ -1,8 +1,9 @@
+import type { HelperDefinitionState, ModifierDefinitionState, Owner } from '@glimmer/state';
+
 import type { Encoder } from './compile/index.js';
 import type { ComponentDefinition, ComponentDefinitionState } from './components.js';
 import type { Nullable } from './core.js';
-import type { Environment, HelperDefinitionState, Owner, Program } from './runtime.js';
-import type { ModifierDefinitionState } from './runtime/modifier.js';
+import type { Environment, Program } from './runtime.js';
 import type { ResolvedComponentDefinition } from './serialize.js';
 import type { BlockMetadata, STDLib, Template } from './template.js';
 import type { SomeVmOp, VmMachineOp, VmOp } from './vm-opcodes.js';

@@ -4,7 +4,7 @@ import type {
   InternalHelperManager,
   InternalModifierManager,
   Owner,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 
 export type InternalManager<O extends Owner = Owner> =
   | InternalComponentManager

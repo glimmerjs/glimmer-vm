@@ -11,6 +11,7 @@ import type {
   Program,
   RegisterName,
   RuntimeOp,
+  SomeDisassembledOperand,
   VMArguments,
 } from '@glimmer/interfaces';
 import { dev, exhausted, getLocalDebugType } from '@glimmer/debug-util';
@@ -18,7 +19,6 @@ import { entries, isIndexable } from '@glimmer/util';
 
 import type { ValueRefOptions } from '../render/basic';
 import type { IntoFragment } from '../render/fragment';
-import type { SomeDisassembledOperand } from './dism';
 
 import { debugOp } from '../debug';
 import { empty, join, unknownValue, value } from '../render/basic';
@@ -30,7 +30,7 @@ export function describeOp(
   program: Program,
   meta: Nullable<BlockMetadata>
 ): Fragment {
-  const { name, params } = debugOp(program, op, meta)!;
+  const { name, params } = debugOp(program, op, meta);
 
   const block = new SerializeBlockContext(meta?.symbols ?? null);
 
@@ -102,6 +102,7 @@ export class SerializeBlockContext {
       case 'stringify':
         return JSON.stringify(value);
       case 'constant':
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         return `${this.#stringify(value, 'unknown')}`;
       case 'register':
         return value;

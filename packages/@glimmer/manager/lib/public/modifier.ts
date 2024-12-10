@@ -1,14 +1,16 @@
 import type {
+  ModifierCapabilitiesVersions,
+  ModifierManager,
+  SimpleElement,
+  UpdatableTag,
+} from '@glimmer/interfaces';
+import type {
   Arguments,
   CapturedArguments,
   InternalModifierManager,
   ModifierCapabilities,
-  ModifierCapabilitiesVersions,
-  ModifierManager,
   Owner,
-  SimpleElement,
-  UpdatableTag,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 import { castToBrowser } from '@glimmer/debug-util';
 import { registerDestructor } from '@glimmer/destroyable';
 import { valueForRef } from '@glimmer/reference';
@@ -19,6 +21,13 @@ import type { ManagerFactory } from '.';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
+
+export type {
+  CapturedArguments,
+  InternalModifierManager,
+  ModifierCapabilities,
+  Owner,
+} from '@glimmer/state';
 
 export function modifierCapabilities<Version extends keyof ModifierCapabilitiesVersions>(
   managerAPI: Version,

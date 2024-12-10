@@ -1,3 +1,5 @@
+/* eslint-disable no-debugger */
+/* eslint-disable no-console */
 import type { DebuggerInfo, Scope } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import { decodeHandle, VM_DEBUGGER_OP } from '@glimmer/constants';
@@ -10,16 +12,16 @@ export type DebugGet = (path: string) => unknown;
 
 export type DebugCallback = (context: unknown, get: DebugGet) => void;
 
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 function debugCallback(context: unknown, get: DebugGet): void {
-  // eslint-disable-next-line no-console
   console.info('Use `context`, and `get(<path>)` to debug this template.');
 
   // for example...
   context === get('this');
 
-  // eslint-disable-next-line no-debugger
   debugger;
 }
+/* eslint-enable @typescript-eslint/no-unused-expressions */
 
 let callback = debugCallback;
 
@@ -54,7 +56,7 @@ class ScopeInspector {
     if (head === 'this') {
       ref = scope.getSelf();
     } else if (symbols.locals[head]) {
-      ref = unwrap(scope.getSymbol(symbols.locals[head]!));
+      ref = unwrap(scope.getSymbol(symbols.locals[head]));
     } else {
       ref = this.scope.getSelf();
       tail = parts;

@@ -1,4 +1,4 @@
-import type { Revision } from '@glimmer/interfaces';
+import type { Revision } from '@glimmer/state';
 import state from '@glimmer/state';
 
 /**

@@ -9,10 +9,10 @@ module.exports = {
   configs: {
     recommended: {
       settings: {
-        'import/parsers': {
+        'import-x/parsers': {
           '@typescript-eslint/parser': ['.js', '.cjs', '.mjs', '.mts', '.ts', '.d.ts'],
         },
-        'import/resolver': {
+        'import-x/resolver': {
           typescript: {
             alwaysTryTypes: true,
           },
@@ -25,13 +25,14 @@ module.exports = {
       env: {
         es6: true,
       },
+
       plugins: [
         '@typescript-eslint',
         'prettier',
         'qunit',
         'simple-import-sort',
         'unused-imports',
-        'import',
+        'import-x',
         'prettier',
         'n',
       ],
@@ -39,8 +40,8 @@ module.exports = {
         'eslint:recommended',
         'plugin:@typescript-eslint/recommended',
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
-        'plugin:n/recommended-module',
-        'plugin:import/recommended',
+        'plugin:n/recommended',
+        'plugin:import-x/recommended',
         'plugin:qunit/recommended',
         'plugin:regexp/recommended',
         'plugin:deprecation/recommended',
@@ -68,6 +69,18 @@ module.exports = {
         'no-loop-func': 'error',
         'prefer-const': 'off',
         'no-fallthrough': 'off',
+        'import-x/no-relative-packages': 'error',
+        'import-x/default': 'off',
+        'import-x/first': 'error',
+        'import-x/newline-after-import': 'error',
+        'import-x/consistent-type-specifier-style': ['error', 'prefer-top-level'],
+        'import-x/no-duplicates': 'error',
+        'unused-imports/no-unused-imports': 'error',
+        'unused-imports/no-unused-vars': [
+          'error',
+          { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
+        ],
+        'n/no-unpublished-require': 'off',
 
         'qunit/require-expect': ['error', 'never-except-zero'],
         // we're using assert.step instead of this sort of thing
@@ -87,8 +100,18 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 'warn',
         '@typescript-eslint/ban-types': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
-        '@typescript-eslint/consistent-type-imports': 'error',
-        '@typescript-eslint/consistent-type-exports': 'error',
+        '@typescript-eslint/consistent-type-imports': [
+          'error',
+          {
+            fixStyle: 'separate-type-imports',
+          },
+        ],
+        '@typescript-eslint/consistent-type-exports': [
+          'error',
+          {
+            fixMixedExportsWithInlineTypeSpecifier: true,
+          },
+        ],
         '@typescript-eslint/no-import-type-side-effects': 'error',
         '@typescript-eslint/naming-convention': [
           'error',
@@ -125,17 +148,8 @@ module.exports = {
         '@typescript-eslint/restrict-template-expressions': 'off',
 
         'n/no-missing-import': 'off',
-        'unused-imports/no-unused-imports': 'error',
-        'unused-imports/no-unused-vars': [
-          'error',
-          { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
-        ],
-        'n/no-unpublished-require': 'off',
-        'import/consistent-type-specifier-style': 'error',
-        'import/no-relative-packages': 'error',
-        'import/default': 'off',
-        'import/no-unresolved': 'error',
-        'import/no-extraneous-dependencies': 'error',
+        'import-x/no-unresolved': 'error',
+        'import-x/no-extraneous-dependencies': ['error', { includeTypes: true }],
         'sort-imports': 'off',
         'simple-import-sort/imports': [
           'error',
@@ -179,9 +193,6 @@ module.exports = {
         ],
         'simple-import-sort/exports': 'error',
         'no-unused-private-class-members': 'error',
-        'import/first': 'error',
-        'import/newline-after-import': 'error',
-        'import/no-duplicates': 'error',
 
         'n/no-unsupported-features/es-syntax': 'off',
         'n/no-unsupported-features/node-builtins': 'off',

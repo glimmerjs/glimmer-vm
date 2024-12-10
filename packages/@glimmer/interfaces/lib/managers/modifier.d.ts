@@ -1,5 +1,4 @@
-import type { Arguments } from '../runtime.js';
-import type { Capabilities } from './capabilities.js';
+import type { Arguments, ModifierCapabilities } from '@glimmer/state';
 
 export interface ModifierCapabilitiesVersions {
   // passes factoryFor(...).class to `.createModifier`
@@ -7,10 +6,6 @@ export interface ModifierCapabilitiesVersions {
   '3.22': {
     disableAutoTracking?: boolean;
   };
-}
-
-export interface ModifierCapabilities extends Capabilities {
-  disableAutoTracking: boolean;
 }
 
 export interface ModifierManager<ModifierStateBucket> {

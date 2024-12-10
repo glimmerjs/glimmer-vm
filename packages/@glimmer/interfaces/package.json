@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@simple-dom/interface": "^1.4.0",
-    "ts-essentials": "^10.0.3"
+    "ts-essentials": "^10.0.3",
+    "@glimmer/state": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",

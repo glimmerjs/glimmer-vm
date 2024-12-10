@@ -4,7 +4,6 @@ import type {
   ClassicResolver,
   Expressions,
   Nullable,
-  Owner,
   ProgramConstants,
   ResolutionTimeConstants,
   ResolveComponentOp,
@@ -14,6 +13,7 @@ import type {
   ResolveOptionalComponentOrHelperOp,
   SexpOpcode,
 } from '@glimmer/interfaces';
+import type { Owner } from '@glimmer/state';
 import { assert, debugToString, expect, unwrap } from '@glimmer/debug-util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 

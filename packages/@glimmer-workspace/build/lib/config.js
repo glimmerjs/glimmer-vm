@@ -15,7 +15,6 @@ import { $, chalk } from 'zx';
 
 import inline from './inline.js';
 
-// eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
 
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
@@ -91,11 +90,12 @@ export function typescript(pkg, env) {
         jsc: {
           parser: {
             syntax: 'typescript',
-            // decorators: true,
           },
           target: 'es2022',
           transform: {
-            // legacyDecorator: true,
+            constModules: {
+              globals: { '@glimmer/env': { DEBUG: env === 'dev' ? 'true' : 'false' } },
+            },
           },
         },
       },

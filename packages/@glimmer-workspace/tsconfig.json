@@ -2,6 +2,7 @@
   "compilerOptions": {
     "composite": true,
     "incremental": true,
+    "declarationMap": true,
     "baseUrl": "..",
     "allowJs": true,
     "target": "esnext",
@@ -19,17 +20,9 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
+    "types": ["qunit", "node", "vite/client"]
   },
-  "include": [
-    "./*/index.*",
-    "./*/lib/**/*",
-    "./*/test/**/*"
-  ],
+  "include": ["./*/index.*", "./*/lib/**/*", "./*/test/**/*"],
   "references": [
     {
       "path": "../@glimmer/tsconfig.json"

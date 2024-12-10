@@ -126,7 +126,7 @@ export function checkBrowserNode<S extends SugaryNodeCheck>(
     } else if (Array.isArray(check)) {
       isMatch = check.some((c) => stringCheckNode(node, c));
     } else {
-      throw unreachable();
+      unreachable();
     }
   }
 

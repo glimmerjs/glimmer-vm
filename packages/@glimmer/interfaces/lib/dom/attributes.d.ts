@@ -32,7 +32,7 @@ export interface AppendingBlock extends Bounds {
  * change during the updating phase, and this may cause its *bounds* to change, but the block itself
  * remains stable.
  */
-export interface FixedBlock extends AppendingBlock {}
+export type FixedBlock = AppendingBlock;
 
 /**
  * A `ResettableBlock` can be reset during the updating phase and rendered again.

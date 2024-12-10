@@ -148,7 +148,7 @@ export function normalizeStatement(statement: BuilderStatement): NormalizedState
   } else if (typeof statement === 'string') {
     return normalizeAppendHead(normalizeDottedPath(statement), false);
   } else {
-    throw assertNever(statement);
+    assertNever(statement);
   }
 }
 
@@ -730,10 +730,10 @@ export function normalizeAppendExpression(
         };
 
       default:
-        throw assertNever(expression);
+        assertNever(expression);
     }
   } else {
-    throw assertNever(expression);
+    assertNever(expression);
   }
 }
 
@@ -798,10 +798,10 @@ export function normalizeExpression(expression: BuilderExpression): NormalizedEx
         return { type: LITERAL_EXPR, value: expression };
 
       default:
-        throw assertNever(expression);
+        assertNever(expression);
     }
   } else {
-    throw assertNever(expression);
+    assertNever(expression);
   }
 }
 

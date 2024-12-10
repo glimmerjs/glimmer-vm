@@ -1,14 +1,16 @@
 import type {
   Helper,
-  HelperCapabilities,
   HelperCapabilitiesVersions,
   HelperDefinitionState,
-  HelperManager,
   HelperManagerWithDestroyable,
   HelperManagerWithValue,
+} from '@glimmer/interfaces';
+import type {
+  HelperCapabilities,
+  HelperManager,
   InternalHelperManager,
   Owner,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 

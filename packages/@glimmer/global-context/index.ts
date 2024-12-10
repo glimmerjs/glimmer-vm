@@ -115,14 +115,12 @@ export let setPath: (obj: object, path: string, value: unknown) => unknown;
 export let warnIfStyleNotTrusted: (value: unknown) => void;
 
 /**
- * Hook to customize assertion messages in the VM. Usages can be stripped out
- * by using the @glimmer/vm-babel-plugins package.
+ * Hook to customize assertion messages in the VM.
  */
 export let assert: (test: unknown, msg: string, options?: { id: string }) => asserts test;
 
 /**
- * Hook to customize deprecation messages in the VM. Usages can be stripped out
- * by using the @glimmer/vm-babel-plugins package.
+ * Hook to customize deprecation messages in the VM.
  */
 export let deprecate: (
   msg: string,

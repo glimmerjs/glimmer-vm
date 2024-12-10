@@ -275,8 +275,8 @@ export class RehydrateTree extends NewTreeBuilder implements TreeBuilder {
     const candidateBounds = this.markerBounds();
 
     if (candidateBounds) {
-      const first = candidateBounds.firstNode()!;
-      const last = candidateBounds.lastNode()!;
+      const first = candidateBounds.firstNode();
+      const last = candidateBounds.lastNode();
 
       const newBounds = new ConcreteBounds(this.element, first.nextSibling!, last.previousSibling!);
 

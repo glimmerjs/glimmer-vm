@@ -1,13 +1,13 @@
 import type {
-  ComputeReference,
-  ConstantReference,
-  InvokableReference,
+  ComputeReferenceId,
+  ConstantReferenceId,
+  InvokableReferenceId,
   Nullable,
   Reference,
   ReferenceSymbol,
   ReferenceType,
   Revision,
-  UnboundReference,
+  UnboundReferenceId,
 } from '@glimmer/interfaces';
 import type { Tag } from '@glimmer/validator';
 import { expect } from '@glimmer/debug-util';
@@ -19,10 +19,10 @@ import { CONSTANT_TAG, INITIAL } from '@glimmer/validator';
 
 const REFERENCE: ReferenceSymbol = state.REFERENCE;
 
-const CONSTANT: ConstantReference = 0;
-const COMPUTE: ComputeReference = 1;
-const UNBOUND: UnboundReference = 2;
-const INVOKABLE: InvokableReference = 3;
+const CONSTANT: ConstantReferenceId = 0;
+const COMPUTE: ComputeReferenceId = 1;
+const UNBOUND: UnboundReferenceId = 2;
+const INVOKABLE: InvokableReferenceId = 3;
 
 export type { Reference as default, Reference };
 

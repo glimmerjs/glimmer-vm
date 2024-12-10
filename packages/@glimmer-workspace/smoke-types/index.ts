@@ -1,1 +1,1 @@
-import "@glimmer/runtime";
+import '@glimmer/runtime';

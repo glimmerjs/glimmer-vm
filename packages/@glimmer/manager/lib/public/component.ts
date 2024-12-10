@@ -1,5 +1,4 @@
 import type {
-  Arguments,
   ComponentCapabilities,
   ComponentCapabilitiesVersions,
   ComponentDefinitionState,
@@ -8,14 +7,17 @@ import type {
   ComponentManagerWithAsyncUpdateHook,
   ComponentManagerWithDestructors,
   ComponentManagerWithUpdateHook,
-  Destroyable,
-  InternalComponentCapabilities,
-  InternalComponentManager,
   Nullable,
-  Owner,
   VMArguments,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
+import type {
+  Arguments,
+  Destroyable,
+  InternalComponentCapabilities,
+  InternalComponentManager,
+  Owner,
+} from '@glimmer/state';
 import { registerDestructor } from '@glimmer/destroyable';
 import { createConstRef } from '@glimmer/reference';
 

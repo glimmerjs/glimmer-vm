@@ -1,4 +1,5 @@
 import type {
+  AnyFn,
   BlockSymbolTable,
   Dict,
   Maybe,
@@ -50,7 +51,7 @@ export function wrap<T>(checker: () => Checker<T>): Checker<T> {
   return new Wrapped();
 }
 
-export interface Constructor<T> extends Function {
+export interface Constructor<T> extends AnyFn {
   prototype: T;
 }
 
@@ -484,9 +485,9 @@ export function expectStackChange(stack: { sp: number }, expected: number, name:
 export const CheckPrimitive: Checker<Primitive> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new PrimitiveChecker();
-export const CheckFunction: Checker<Function> = !LOCAL_DEBUG
+export const CheckFunction: Checker<AnyFn> = !LOCAL_DEBUG
   ? new NoopChecker()
-  : new TypeofChecker<Function>('function');
+  : new TypeofChecker<AnyFn>('function');
 export const CheckNumber: Checker<number> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new TypeofChecker<number>('number');

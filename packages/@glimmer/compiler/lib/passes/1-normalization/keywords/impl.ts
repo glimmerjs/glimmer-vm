@@ -8,8 +8,8 @@ import type { NormalizationState } from '../context';
 import { Err } from '../../../shared/result';
 
 export interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
-  assert(options: Match, state: NormalizationState): Result<V>;
-  translate(options: { node: Match; state: NormalizationState }, param: V): Result<Out>;
+  assert: (options: Match, state: NormalizationState) => Result<V>;
+  translate: (options: { node: Match; state: NormalizationState }, param: V) => Result<Out>;
 }
 
 export interface Keyword<K extends KeywordType = KeywordType, Out = unknown> {
@@ -115,14 +115,6 @@ export type KeywordNode =
   | ASTv2.InvokeBlock
   | ASTv2.ElementModifier;
 
-export function keyword<
-  K extends KeywordType,
-  D extends KeywordDelegate<KeywordMatches[K], unknown, Out>,
-  Out = unknown,
->(keyword: string, type: K, delegate: D): Keyword<K, Out> {
-  return new KeywordImpl(keyword, type, delegate as KeywordDelegate<KeywordMatch, unknown, Out>);
-}
-
 export type PossibleKeyword = KeywordNode;
 type OutFor<K extends Keyword | BlockKeyword> = K extends BlockKeyword<infer Out>
   ? Out
@@ -159,11 +151,11 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
     this._type = type;
   }
 
-  kw<S extends string = string, Out = unknown>(
+  kw<V, S extends string = string, Out = unknown>(
     name: S,
-    delegate: KeywordDelegate<KeywordMatches[K], unknown, Out>
+    delegate: KeywordDelegate<KeywordMatches[K], V, Out>
   ): Keywords<K, KeywordList | Keyword<K, Out>> {
-    this._keywords.push(keyword(name, this._type, delegate));
+    this._keywords.push(new KeywordImpl(name, this._type, delegate));
 
     return this;
   }

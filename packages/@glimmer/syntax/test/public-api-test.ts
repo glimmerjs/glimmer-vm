@@ -23,7 +23,6 @@ QUnit.test('exports are not accidentally removed', (assert) => {
   assert.ok(syntax.WalkerPath);
   assert.ok(syntax.traverse);
   assert.ok(syntax.Walker);
-  assert.ok(syntax.ASTv1);
   assert.ok(syntax.builders);
   assert.ok(syntax.visitorKeys);
   assert.ok(syntax.getVoidTags);
@@ -33,6 +32,4 @@ QUnit.test('exports are not accidentally removed', (assert) => {
   assert.ok(syntax.node);
   // deprecated
   assert.ok(syntax.Path);
-  // deprecated
-  assert.ok(syntax.AST);
 });
