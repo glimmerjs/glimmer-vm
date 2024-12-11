@@ -1,7 +1,7 @@
 import { fn } from '@glimmer/runtime';
 import { createCell } from '@glimmer-workspace/benchmark-env';
 
-import type {Item} from '@/utils/data';
+import type { Item } from '@/utils/data';
 import { buildData, swapRows, updateData } from '@/utils/data';
 
 export default class Application {

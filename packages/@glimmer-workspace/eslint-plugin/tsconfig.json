@@ -1,8 +1,6 @@
 {
   "extends": "../tsconfig.shared.json",
-  "include": [
-    "lib/**/*.cjs"
-  ],
+  "include": ["lib/**/*.cjs"],
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer-workspace/eslint-plugin",
     "composite": true,

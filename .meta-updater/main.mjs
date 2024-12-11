@@ -53,6 +53,23 @@ export default function main(workspaceDir) {
         delete pkg.files;
       }
 
+      if (!pkg.private) {
+        pkg.devDependencies ??= {};
+        pkg.devDependencies['@glimmer-workspace/build-support'] = 'workspace:*';
+
+        if (pkg.devDependencies['publint'] !== 'catalog:*') {
+          pkg.devDependencies['publint'] = 'catalog:*';
+        }
+
+        if (pkg.devDependencies['rollup'] !== 'catalog:*') {
+          pkg.devDependencies['rollup'] = 'catalog:*';
+        }
+
+        pkg.scripts ??= {};
+        pkg.scripts['test:publint'] ??= 'publint';
+        pkg.scripts['build'] ??= 'rollup -c rollup.config.mjs';
+      }
+
       return pkg;
     },
     'tsconfig.json': (actual, options) => {

@@ -3,12 +3,7 @@
     "composite": true,
     "incremental": true,
     // Compilation Configuration
-    "lib": [
-      "esnext",
-      "DOM",
-      "DOM.Iterable",
-      "ES2015.Iterable"
-    ],
+    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
     "inlineSources": true,
     "inlineSourceMap": true,
     "isolatedDeclarations": true,
@@ -30,11 +25,7 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": false,
     "skipDefaultLibCheck": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
+    "types": ["qunit", "node", "vite/client"]
   },
   "references": [
     {

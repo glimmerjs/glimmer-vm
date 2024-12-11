@@ -11,10 +11,7 @@
     "outDir": "ts-dist",
     "incremental": true
   },
-  "files": [
-    "knip.config.ts",
-    "vite.config.mts"
-  ],
+  "files": ["knip.config.ts", "vite.config.mts"],
   "references": [
     {
       "path": "bin"

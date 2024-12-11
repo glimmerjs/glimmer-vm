@@ -18,10 +18,6 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
-  },
+    "types": ["qunit", "node", "vite/client"]
+  }
 }

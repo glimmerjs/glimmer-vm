@@ -6,13 +6,13 @@
   "[json][jsonc][markdown][yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[javascript][typescript]": {
+  "[javascript][typescript][json][jsonc]": {
     "editor.formatOnSave": false,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
       "source.unusedImports": "explicit",
       "source.fixAll": "explicit",
-      "source.formatDocument": "always"
+      "source.formatDocument": "never"
     }
   },
   "editor.formatOnSave": true,
@@ -29,12 +29,7 @@
     "bin",
     "benchmark/benchmarks/krausest"
   ],
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "json",
-    "jsonc"
-  ],
+  "eslint.validate": ["javascript", "typescript", "json", "jsonc"],
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.git": true,
@@ -61,15 +56,9 @@
   "eslint.problems.shortenToSingleLine": true,
   "typescript.experimental.expandableHover": true,
   "inline-bookmarks.expert.custom.words.mapping": {
-    "warn": [
-      "@premerge(\\s|$)"
-    ],
-    "active": [
-      "@active(\\s|$)"
-    ],
-    "fixme": [
-      "@fixme(\\s|$)"
-    ]
+    "warn": ["@premerge(\\s|$)"],
+    "active": ["@active(\\s|$)"],
+    "fixme": ["@fixme(\\s|$)"]
   },
   "inline-bookmarks.expert.custom.styles": {
     "active": {
