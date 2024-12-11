@@ -4,11 +4,11 @@ import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-bloc
 import type { CallFields } from './base';
 import type { ExpressionNode } from './expr';
 import type { NamedBlock, NamedBlocks } from './internal-node';
-import type { BaseNodeFields } from './node';
+import type { BaseNodeFields, NodeConstructor } from './node';
 
 import { SpanList } from '../../source/span-list';
 import { Args, NamedArguments } from './args';
-import { node } from './node';
+import { AstNode } from './node';
 
 /**
  * Content Nodes are allowed in content positions in templates. They correspond to behavior in the
@@ -25,15 +25,22 @@ export type ContentNode =
   | SimpleElement
   | GlimmerComment;
 
-export class GlimmerComment extends node('GlimmerComment').fields<{ text: SourceSlice }>() {}
-export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
-export class HtmlComment extends node('HtmlComment').fields<{ text: SourceSlice }>() {}
+export const GlimmerCommentFields: NodeConstructor<'GlimmerComment', { text: SourceSlice }> =
+  AstNode('GlimmerComment');
+export class GlimmerComment extends GlimmerCommentFields {}
 
-export class AppendContent extends node('AppendContent').fields<{
-  value: ExpressionNode;
-  trusting: boolean;
-  table: SymbolTable;
-}>() {
+export const HtmlTextFields: NodeConstructor<'HtmlText', { chars: string }> = AstNode('HtmlText');
+export class HtmlText extends HtmlTextFields {}
+
+export const HtmlCommentFields: NodeConstructor<'HtmlComment', { text: SourceSlice }> =
+  AstNode('HtmlComment');
+export class HtmlComment extends HtmlCommentFields {}
+
+export const AppendContentFields: NodeConstructor<
+  'AppendContent',
+  { value: ExpressionNode; trusting: boolean; table: SymbolTable }
+> = AstNode('AppendContent');
+export class AppendContent extends AppendContentFields {
   get callee(): ExpressionNode {
     if (this.value.type === 'Call') {
       return this.value.callee;
@@ -51,24 +58,28 @@ export class AppendContent extends node('AppendContent').fields<{
   }
 }
 
-export class InvokeBlock extends node('InvokeBlock').fields<
+export const InvokeBlockFields: NodeConstructor<
+  'InvokeBlock',
   CallFields & { blocks: NamedBlocks }
->() {}
-
-interface InvokeComponentFields {
-  callee: ExpressionNode;
-  blocks: NamedBlocks;
-  attrs: readonly HtmlOrSplatAttr[];
-  componentArgs: readonly ComponentArg[];
-  modifiers: readonly ElementModifier[];
-}
+> = AstNode('InvokeBlock');
+export class InvokeBlock extends InvokeBlockFields {}
 
 /**
  * Corresponds to a component invocation. When the content of a component invocation contains no
  * named blocks, `blocks` contains a single named block named `"default"`. When a component
  * invocation is self-closing, `blocks` is empty.
  */
-export class InvokeComponent extends node('InvokeComponent').fields<InvokeComponentFields>() {
+export const InvokeComponentFields: NodeConstructor<
+  'InvokeComponent',
+  {
+    callee: ExpressionNode;
+    blocks: NamedBlocks;
+    attrs: readonly HtmlOrSplatAttr[];
+    componentArgs: readonly ComponentArg[];
+    modifiers: readonly ElementModifier[];
+  }
+> = AstNode('InvokeComponent');
+export class InvokeComponent extends InvokeComponentFields {
   get args(): Args {
     let entries = this.componentArgs.map((a) => a.toNamedArgument());
 
@@ -93,7 +104,9 @@ interface SimpleElementOptions extends BaseNodeFields {
  * Corresponds to a simple HTML element. The AST allows component arguments and modifiers to support
  * future extensions.
  */
-export class SimpleElement extends node('SimpleElement').fields<SimpleElementOptions>() {
+export const SimpleElementFields: NodeConstructor<'SimpleElement', SimpleElementOptions> =
+  AstNode('SimpleElement');
+export class SimpleElement extends SimpleElementFields {
   get args(): Args {
     let entries = this.componentArgs.map((a) => a.toNamedArgument());
 

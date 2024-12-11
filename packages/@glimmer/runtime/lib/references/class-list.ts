@@ -3,7 +3,7 @@ import { createComputeRef, valueForRef } from '@glimmer/reference';
 
 import { normalizeStringValue } from '../dom/normalize';
 
-export default function createClassListRef(list: Reference[]) {
+export default function createClassListRef(list: Reference[]): Reference<string | null> {
   return createComputeRef(() => {
     let ret: string[] = [];
 

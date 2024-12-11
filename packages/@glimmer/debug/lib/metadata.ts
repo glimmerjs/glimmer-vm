@@ -18,7 +18,7 @@ export const OPERAND_TYPES = [
   'unknown',
   'symbol-table',
   'scope',
-];
+] as const;
 
 export type OperandType = (typeof OPERAND_TYPES)[number];
 
@@ -159,7 +159,7 @@ export function buildEnum(
   return { enumString, predicate };
 }
 
-export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
+export function strip(strings: TemplateStringsArray, ...args: unknown[]): string {
   let out = '';
   for (let i = 0; i < strings.length; i++) {
     let string = strings[i];
@@ -188,7 +188,7 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   return stripped;
 }
 
-export const META_KIND = ['METADATA', 'MACHINE_METADATA'];
+export const META_KIND = ['METADATA', 'MACHINE_METADATA'] as const;
 export type META_KIND = (typeof META_KIND)[number];
 
 export function buildSingleMeta<D extends Dict<NormalizedMetadata>>(

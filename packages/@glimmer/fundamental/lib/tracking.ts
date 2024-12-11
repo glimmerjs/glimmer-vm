@@ -14,14 +14,14 @@ export const setTrackingDebug: Optional<(debug: DebugTransaction) => void> = imp
   ? (d) => (trackingDebug = d)
   : undefined;
 
-export const getTrackingDebug = import.meta.env.DEV
+export const getTrackingDebug: (() => DebugTransaction) | undefined = import.meta.env.DEV
   ? () => trackingDebug as DebugTransaction
   : undefined;
 
 /**
  * An object that that tracks @tracked properties that were consumed.
  */
-export class Tracker {
+class Tracker {
   private tags = new Set<Tag>();
   private last: Tag | null = null;
 
@@ -48,11 +48,6 @@ export class Tracker {
       return combineTags(Array.from(this.tags));
     }
   }
-}
-
-export interface TrackerState {
-  current: Tracker | null;
-  stack: (Tracker | null)[];
 }
 
 /**

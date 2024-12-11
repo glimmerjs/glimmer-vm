@@ -3,6 +3,7 @@ import type {
   CapturedRenderNode,
   ComponentDefinition,
   DebugRenderTree,
+  InternalComponentManager,
   Nullable,
   RenderNode,
 } from '@glimmer/interfaces';
@@ -203,7 +204,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
 
 export function getDebugName(
   definition: ComponentDefinition,
-  manager = definition.manager
+  manager: InternalComponentManager<unknown, object> = definition.manager
 ): string {
   return definition.resolvedName ?? definition.debugName ?? manager.getDebugName(definition.state);
 }

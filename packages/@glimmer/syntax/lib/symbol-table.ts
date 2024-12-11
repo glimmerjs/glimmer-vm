@@ -72,8 +72,8 @@ export class ProgramSymbolTable extends SymbolTable {
   readonly upvars: string[] = [];
 
   private size = 1;
-  readonly named = dict<number>();
-  readonly blocks = dict<number>();
+  readonly named: Dict<number> = dict();
+  readonly blocks: Dict<number> = dict();
   readonly usedTemplateLocals: string[] = [];
 
   root(): ProgramSymbolTable {

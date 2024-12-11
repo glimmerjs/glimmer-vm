@@ -4,7 +4,7 @@ import { state } from './lib/state';
 
 export type TagMeta = Map<PropertyKey, Tag<UpdatableTagId>>;
 
-export { type DebugState } from './lib/state';
+export type { DebugState, State } from './lib/state';
 export type * from './lib/types';
 export default state;
 

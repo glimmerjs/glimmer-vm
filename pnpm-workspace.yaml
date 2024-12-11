@@ -9,3 +9,8 @@ packages:
   - 'packages/@glimmer-workspace/*'
   - 'packages/@glimmer-workspace/*/test'
   - 'packages/@types/*'
+catalog:
+  'typescript': '^5.7.2'
+  'rollup': '^4.28.1'
+  'publint': '^0.2.12'
+  'eslint': '^8.57.1'

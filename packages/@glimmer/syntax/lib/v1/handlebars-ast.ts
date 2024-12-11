@@ -37,7 +37,7 @@ export type Node<T extends NodeType = NodeType> = NodeMap[T]['input'];
 export type Output<T extends NodeType> = NodeMap[T]['output'];
 
 export interface SourceLocation {
-  source: string;
+  source?: string | undefined;
   start: Position;
   end: Position;
 }

@@ -103,19 +103,19 @@ export class ScopeImpl implements Scope {
     return block === UNDEFINED_REFERENCE ? null : (block as ScopeBlock);
   }
 
-  bind(symbol: number, value: ScopeSlot) {
+  bind(symbol: number, value: ScopeSlot): void {
     this.set(symbol, value);
   }
 
-  bindSelf(self: Reference<unknown>) {
+  bindSelf(self: Reference<unknown>): void {
     this.set<Reference<unknown>>(0, self);
   }
 
-  bindSymbol(symbol: number, value: Reference<unknown>) {
+  bindSymbol(symbol: number, value: Reference<unknown>): void {
     this.set(symbol, value);
   }
 
-  bindBlock(symbol: number, value: Nullable<ScopeBlock>) {
+  bindBlock(symbol: number, value: Nullable<ScopeBlock>): void {
     this.set<Nullable<ScopeBlock>>(symbol, value);
   }
 

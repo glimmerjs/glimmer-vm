@@ -24,7 +24,7 @@ abstract class ResultImpl<T> {
   abstract readonly isErr: boolean;
 }
 
-export const Result = ResultImpl;
+export const Result: typeof ResultImpl = ResultImpl;
 
 class OkImpl<T> extends ResultImpl<T> {
   readonly isOk = true;
@@ -98,18 +98,6 @@ class ErrImpl<T> extends ResultImpl<T> {
   }
 }
 
-export function isResult<T>(input: MaybeResult<T>): input is Result<T> {
-  return input instanceof ResultImpl;
-}
-
-export function intoResult<T>(input: MaybeResult<T>): Result<T> {
-  if (isResult(input)) {
-    return input;
-  } else {
-    return Ok(input);
-  }
-}
-
 export type Result<T> = OkImpl<T> | ErrImpl<T>;
 
 type MapAllOk<T extends Result<unknown>[]> = {
@@ -129,22 +117,6 @@ export function Err<T>(reason: GlimmerSyntaxError): Result<T> {
 }
 
 export type Err<T> = ErrImpl<T>;
-
-export type MaybeResult<T> = T | Result<T>;
-
-export class MapIntoResultArray<T> {
-  constructor(private items: T[]) {}
-
-  map<U>(mapper: (item: T) => Result<U>): Result<U[]> {
-    let out = new ResultArray<U>();
-
-    for (let item of this.items) {
-      out.add(mapper(item));
-    }
-
-    return out.toArray();
-  }
-}
 
 export class ResultArray<T> {
   constructor(private items: Result<T>[] = []) {}

@@ -28,7 +28,7 @@ class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   }
 }
 
-export class ContentEncoder {
+class ContentEncoder {
   list(statements: mir.Statement[]): WireFormat.Statement[] {
     let out: WireFormat.Statement[] = [];
 
@@ -234,9 +234,9 @@ export class ContentEncoder {
   }
 }
 
-export const CONTENT = new ContentEncoder();
+export const CONTENT: ContentEncoder = new ContentEncoder();
 
-export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
+type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
 
 function staticAttr({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs {
   let out: StaticAttrArgs = [deflateAttrName(name.chars), value.chars];
@@ -248,7 +248,7 @@ function staticAttr({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs 
   return out;
 }
 
-export type DynamicAttrArgs = [
+type DynamicAttrArgs = [
   name: string | WellKnownAttrName,
   value: WireFormat.Expression,
   namespace?: string,

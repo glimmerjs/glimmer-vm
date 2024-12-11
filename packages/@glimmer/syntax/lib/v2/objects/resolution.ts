@@ -18,20 +18,30 @@ import { COMPONENT_VAR_NS, HELPER_VAR_NS, MODIFIER_VAR_NS } from './constants';
  * 1. in a strict mode template
  * 2. in an local variable invocation with dot paths
  */
-export const STRICT_RESOLUTION = {
+interface Resolution {
+  readonly resolution: () => GetContextualFreeOpcode;
+  readonly serialize: () => SerializedResolution;
+  readonly isAngleBracket: boolean;
+}
+
+interface StrictResolution extends Resolution {
+  readonly isAngleBracket: false;
+}
+
+export const STRICT_RESOLUTION: StrictResolution = {
   resolution: (): GetContextualFreeOpcode => SexpOpcodes.GetStrictKeyword,
   serialize: (): SerializedResolution => 'Strict',
-  isAngleBracket: false as const,
+  isAngleBracket: false,
 };
 
-export type StrictResolution = typeof STRICT_RESOLUTION;
+interface HtmlResolution extends Resolution {
+  readonly isAngleBracket: true;
+}
 
-export const HTML_RESOLUTION = {
+export const HTML_RESOLUTION: HtmlResolution = {
   ...STRICT_RESOLUTION,
-  isAngleBracket: true as const,
+  isAngleBracket: true,
 };
-
-export type HtmlResolution = typeof HTML_RESOLUTION;
 
 export function isStrictResolution(value: unknown): value is StrictResolution {
   return value === STRICT_RESOLUTION;
@@ -121,9 +131,9 @@ export class LooseModeResolution {
   }
 }
 
-export const HELPER_NAMESPACE = HELPER_VAR_NS;
-export const MODIFIER_NAMESPACE = MODIFIER_VAR_NS;
-export const COMPONENT_NAMESPACE = COMPONENT_VAR_NS;
+export const HELPER_NAMESPACE: HELPER_VAR_NS = HELPER_VAR_NS;
+export const MODIFIER_NAMESPACE: MODIFIER_VAR_NS = MODIFIER_VAR_NS;
+export const COMPONENT_NAMESPACE: COMPONENT_VAR_NS = COMPONENT_VAR_NS;
 
 /**
  * A `Namespaced` must be resolved in one or more namespaces.

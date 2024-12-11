@@ -18,7 +18,7 @@ const DEFAULT_STRIP = {
  * 2. Mandating source locations
  */
 class Builders {
-  pos({ line, column }: { line: number; column: number }) {
+  pos({ line, column }: { line: number; column: number }): ASTv1.SourcePosition {
     return {
       line,
       column,
@@ -436,6 +436,6 @@ class Builders {
   }
 }
 
-const b = new Builders();
+const b: Builders = new Builders();
 
 export default b;

@@ -14,10 +14,16 @@ export type resolution =
   | ResolveAsModifierHeadResolution
   | StrictResolution;
 
-export const resolution = {
-  Strict: 0 satisfies StrictResolution,
-  ResolveAsComponentOrHelperHead: 1 satisfies ResolveAsComponentOrHelperHeadResolution,
-  ResolveAsHelperHead: 5 satisfies ResolveAsHelperHeadResolution,
-  ResolveAsModifierHead: 6 satisfies ResolveAsModifierHeadResolution,
-  ResolveAsComponentHead: 7 satisfies ResolveAsComponentHeadResolution,
+export const resolution: {
+  readonly Strict: StrictResolution;
+  readonly ResolveAsComponentOrHelperHead: ResolveAsComponentOrHelperHeadResolution;
+  readonly ResolveAsHelperHead: ResolveAsHelperHeadResolution;
+  readonly ResolveAsModifierHead: ResolveAsModifierHeadResolution;
+  readonly ResolveAsComponentHead: ResolveAsComponentHeadResolution;
+} = {
+  Strict: 0,
+  ResolveAsComponentOrHelperHead: 1,
+  ResolveAsHelperHead: 5,
+  ResolveAsModifierHead: 6,
+  ResolveAsComponentHead: 7,
 } as const;

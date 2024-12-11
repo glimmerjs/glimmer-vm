@@ -1,4 +1,4 @@
-import type { CapturedArguments } from '@glimmer/interfaces';
+import type { CapturedArguments, HelperDefinitionState } from '@glimmer/interfaces';
 import { getPath, setPath } from '@glimmer/global-context';
 import { createComputeRef, UNDEFINED_REFERENCE, valueForRef } from '@glimmer/reference';
 import { isDict } from '@glimmer/util';
@@ -82,7 +82,7 @@ import { internalHelper } from './internal-helper';
   @public
   @method get
  */
-export const get = internalHelper(({ positional }: CapturedArguments) => {
+export const get: HelperDefinitionState = internalHelper(({ positional }: CapturedArguments) => {
   let sourceRef = positional[0] ?? UNDEFINED_REFERENCE;
   let pathRef = positional[1] ?? UNDEFINED_REFERENCE;
 

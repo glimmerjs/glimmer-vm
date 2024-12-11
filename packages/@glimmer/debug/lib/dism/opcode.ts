@@ -41,7 +41,7 @@ export function describeOp(
   return frag`(${join([as.kw(name), ...args], ' ')})`;
 }
 
-export class SerializeBlockContext {
+class SerializeBlockContext {
   readonly #symbols: Nullable<BlockSymbolNames>;
 
   constructor(symbols: Nullable<BlockSymbolNames>) {
@@ -299,7 +299,3 @@ function labelledList(name: string, list: readonly unknown[]) {
     ? frag`(${as.dim('no')} ${as.dim(name)})`.subtle()
     : frag`${as.attrName(name)}=${array(list.map((v) => value(v)))}`;
 }
-
-export type SerializableKey<O, P extends keyof O> = {
-  [K in P]: O[P] extends IntoFragment ? K : never;
-}[P];

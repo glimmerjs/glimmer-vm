@@ -23,7 +23,11 @@ export default class RenderResultImpl implements RenderResult {
     registerDestructor(this, () => clear(this.bounds));
   }
 
-  rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
+  rerender({
+    alwaysRevalidate = false,
+  }: {
+    alwaysRevalidate?: false;
+  } = {}): void {
     let { env, updating } = this;
     let vm = new UpdatingVM(env, { alwaysRevalidate });
     vm.execute(updating, this);
@@ -41,7 +45,7 @@ export default class RenderResultImpl implements RenderResult {
     return this.bounds.lastNode();
   }
 
-  handleException() {
+  handleException(): never {
     unreachable('this should never happen');
   }
 }

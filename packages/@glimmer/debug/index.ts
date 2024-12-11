@@ -44,7 +44,6 @@ export {
   CheckSyscallRegister,
   CheckUndefined,
   CheckUnknown,
-  recordStackSize,
   satisfies,
   wrap,
 } from './lib/stack-check';

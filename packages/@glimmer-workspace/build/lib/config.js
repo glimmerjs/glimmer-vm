@@ -106,7 +106,7 @@ export function typescript(pkg, env) {
         const start = performance.now();
         await $({
           stdio: 'inherit',
-        })`pnpm tsc --declaration --declarationDir dist/${env} --emitDeclarationOnly --module esnext --moduleResolution bundler ${pkg.exports} --types vite/client,node --skipLibCheck --target esnext --strict`;
+        })`pnpm tsc --declaration --declarationDir dist/${env} --emitDeclarationOnly --isolatedDeclarations --module esnext --moduleResolution bundler ${pkg.exports} --types vite/client,node --skipLibCheck --target esnext --strict`;
         const duration = performance.now() - start;
         console.log(
           `${chalk.green('created')} ${chalk.green.bold(`dist/${env}/index.d.ts`)} ${chalk.green(

@@ -15,17 +15,22 @@
     "noUncheckedIndexedAccess": true,
     "baseUrl": ".",
     "paths": {
-      "@glimmer/interfaces": ["./packages/@glimmer/interfaces/index.d.ts"],
-      "@glimmer/*": ["./packages/@glimmer/*/dist/dev/index.d.ts"]
+      "@glimmer/interfaces": [
+        "./packages/@glimmer/interfaces/index.d.ts"
+      ],
+      "@glimmer/*": [
+        "./packages/@glimmer/*/dist/dev/index.d.ts"
+      ]
     }
   },
-  "include": ["packages/@glimmer/*/dist/**/*.d.ts"],
+  "include": [
+    "packages/@glimmer/*/dist/**/*.d.ts"
+  ],
   "exclude": [
     "@types/**",
     "packages/@glimmer/constants/**",
     "packages/@glimmer/debug/**",
     "packages/@glimmer/debug-util/**",
-    "packages/@glimmer/local-debug-babel-plugin/**",
-    "./packages/@glimmer/local-debug-flags"
+    "packages/@glimmer/local-debug-flags"
   ]
 }

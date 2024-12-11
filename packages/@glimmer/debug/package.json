@@ -21,15 +21,11 @@
     "@glimmer/global-context": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/fundamental": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
-    "eslint": "^8.52.0",
-    "publint": "^0.2.5",
-    "rollup": "^4.5.1",
-    "toml": "^3.0.0",
-    "typescript": "*"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

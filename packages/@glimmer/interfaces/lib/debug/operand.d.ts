@@ -42,6 +42,8 @@ export type DebugOperandTypeNames = [
   'instruction/relative',
 ];
 
+export type DebugOperandTypeName = DebugOperandTypeNames[number];
+
 export type NonNullableDebugOperandType = Exclude<DebugOperandTypeNames, `${string}?`>;
 export type NullableDebugOperandType = Extract<
   DebugOperandTypeNames,

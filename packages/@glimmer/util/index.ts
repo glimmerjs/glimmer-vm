@@ -7,6 +7,7 @@ export {
   isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/is-serialization-first-node';
+// eslint-disable-next-line deprecation/deprecation
 export { assign, entries, keys, values } from './lib/object-utils';
 export * from './lib/string';
 
@@ -20,7 +21,7 @@ export type FIXME<T, S extends string> = (T & S) | T;
  * It does not alleviate the need to check LOCAL_TRACE_LOGGING, which is used
  * for stripping.
  */
-export const LOCAL_LOGGER = console;
+export const LOCAL_LOGGER: Console = console;
 
 /**
  * This constant exists to make it easier to differentiate normal logs from
@@ -28,7 +29,7 @@ export const LOCAL_LOGGER = console;
  * and is meant to be used in the rare situation where a console.* call is
  * actually appropriate.
  */
-export const LOGGER = console;
+export const LOGGER: Console = console;
 
 export function assertNever(value: never, desc = 'unexpected unreachable branch'): never {
   LOGGER.log('unreachable', value);

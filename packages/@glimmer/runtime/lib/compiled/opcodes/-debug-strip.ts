@@ -1,5 +1,6 @@
 import type { Checker } from '@glimmer/debug';
 import type {
+  AnyFn,
   CapabilityMask,
   CapturedArguments,
   CompilableBlock,
@@ -84,7 +85,7 @@ export class UndefinedReferenceChecker implements Checker<Reference> {
   }
 }
 
-export const CheckUndefinedReference = new UndefinedReferenceChecker();
+export const CheckUndefinedReference: UndefinedReferenceChecker = new UndefinedReferenceChecker();
 
 export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface({
   positional: wrap(() => CheckArray(CheckReference)),
@@ -106,7 +107,10 @@ export const CheckComponentInstance: Checker<ComponentInstance> = CheckInterface
   table: CheckUnknown,
 });
 
-export const CheckCurriedComponentDefinition = CheckOr(CheckObject, CheckFunction);
+export const CheckCurriedComponentDefinition: Checker<object | AnyFn> = CheckOr(
+  CheckObject,
+  CheckFunction
+);
 
 export const CheckInvocation: Checker<Invocation> = CheckInterface({
   handle: CheckNumber,

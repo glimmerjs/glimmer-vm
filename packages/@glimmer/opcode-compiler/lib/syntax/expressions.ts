@@ -28,7 +28,10 @@ import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-buil
 import { HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
 import { Compilers } from './compilers';
 
-export const EXPRESSIONS = new Compilers<PushExpressionOp, ExpressionSexpOpcode>();
+export const EXPRESSIONS: Compilers<PushExpressionOp, ExpressionSexpOpcode> = new Compilers<
+  PushExpressionOp,
+  ExpressionSexpOpcode
+>();
 
 EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
   for (let part of parts) {

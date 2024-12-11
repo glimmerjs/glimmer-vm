@@ -51,7 +51,7 @@ export function wrap<T>(checker: () => Checker<T>): Checker<T> {
   return new Wrapped();
 }
 
-export interface Constructor<T> extends AnyFn {
+interface Constructor<T> extends AnyFn {
   prototype: T;
 }
 
@@ -105,18 +105,6 @@ class PrimitiveChecker implements Checker<Primitive> {
 
   expected(): string {
     return `a primitive`;
-  }
-}
-
-class NullChecker implements Checker<null> {
-  declare type: null;
-
-  validate(value: unknown): value is null {
-    return value === null;
-  }
-
-  expected(): string {
-    return `null`;
   }
 }
 
@@ -304,7 +292,7 @@ class ObjectChecker implements Checker<unknown> {
   }
 }
 
-export interface SafeString {
+interface SafeString {
   toHTML(): string;
 }
 
@@ -462,26 +450,6 @@ export function check<T>(
   }
 }
 
-let size = 0;
-
-export function recordStackSize(sp: number) {
-  size = sp;
-}
-
-export function expectStackChange(stack: { sp: number }, expected: number, name: string) {
-  if (LOCAL_DEBUG) {
-    return;
-  }
-
-  let actual = stack.sp - size;
-
-  if (actual === expected) return;
-
-  throw new Error(
-    `Expected stack to change by ${expected}, but it changed by ${actual} in ${name}`
-  );
-}
-
 export const CheckPrimitive: Checker<Primitive> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new PrimitiveChecker();
@@ -498,7 +466,6 @@ export const CheckHandle: Checker<number> = LOCAL_DEBUG ? CheckNumber : new Noop
 export const CheckString: Checker<string> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new TypeofChecker<string>('string');
-export const CheckNull: Checker<null> = !LOCAL_DEBUG ? new NoopChecker() : new NullChecker();
 export const CheckUndefined: Checker<undefined> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new UndefinedChecker();
@@ -517,11 +484,11 @@ export function CheckOr<T, U>(left: Checker<T>, right: Checker<U>): Checker<T | 
   return new OrChecker(left, right);
 }
 
-export function CheckValue<T>(value: T, desc = String(value)): Checker<T> {
+function CheckValue<T>(value: T, desc?: string): Checker<T> {
   if (!LOCAL_DEBUG) {
     return new NoopChecker<T>();
   }
-  return new ExactValueChecker(value, desc);
+  return new ExactValueChecker(value, desc ?? String(value));
 }
 
 export const CheckBlockSymbolTable: Checker<BlockSymbolTable> = LOCAL_DEBUG

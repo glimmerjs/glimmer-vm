@@ -21,10 +21,16 @@ function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.T
   return Array.isArray(opcode) && opcode.length === 2;
 }
 
-function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
-  return (
-    opcode: Expressions.Expression
-  ): opcode is Expressions.GetFree | Expressions.GetLexicalSymbol => {
+type ResolutionTypeVerifier<
+  T extends Expressions.GetFree | Expressions.GetLexicalSymbol =
+    | Expressions.GetFree
+    | Expressions.GetLexicalSymbol,
+> = (opcode: Expressions.Expression) => opcode is T;
+
+function makeResolutionTypeVerifier<T extends Expressions.GetFree | Expressions.GetLexicalSymbol>(
+  typeToVerify: SexpOpcode
+): ResolutionTypeVerifier {
+  return (opcode: Expressions.Expression): opcode is T => {
     if (!isGetLikeTuple(opcode)) return false;
 
     let type = opcode[0];
@@ -37,13 +43,19 @@ function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
   };
 }
 
-export const isGetFreeComponent = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsComponentHead);
+export const isGetFreeComponent: ResolutionTypeVerifier = makeResolutionTypeVerifier(
+  SexpOpcodes.GetFreeAsComponentHead
+);
 
-export const isGetFreeModifier = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsModifierHead);
+export const isGetFreeModifier: ResolutionTypeVerifier = makeResolutionTypeVerifier(
+  SexpOpcodes.GetFreeAsModifierHead
+);
 
-export const isGetFreeHelper = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsHelperHead);
+export const isGetFreeHelper: ResolutionTypeVerifier = makeResolutionTypeVerifier(
+  SexpOpcodes.GetFreeAsHelperHead
+);
 
-export const isGetFreeComponentOrHelper = makeResolutionTypeVerifier(
+export const isGetFreeComponentOrHelper: ResolutionTypeVerifier = makeResolutionTypeVerifier(
   SexpOpcodes.GetFreeAsComponentOrHelperHead
 );
 

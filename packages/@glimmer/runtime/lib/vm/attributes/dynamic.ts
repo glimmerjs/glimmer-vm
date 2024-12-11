@@ -132,7 +132,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
     }
   }
 
-  protected removeAttribute() {
+  protected removeAttribute(): void {
     // TODO this sucks but to preserve properties first and to meet current
     // semantics we must do this.
     const { element, namespace } = this.attribute;
@@ -174,11 +174,11 @@ export class SafeDynamicAttribute extends SimpleDynamicAttribute {
 }
 
 export class InputValueDynamicAttribute extends DefaultDynamicProperty {
-  override set(dom: TreeBuilder, value: unknown) {
+  override set(dom: TreeBuilder, value: unknown): void {
     dom.__setProperty('value', normalizeStringValue(value));
   }
 
-  override update(value: unknown) {
+  override update(value: unknown): void {
     const input = castToBrowser(this.attribute.element, ['input', 'textarea']);
     const currentValue = input.value;
     const normalizedValue = normalizeStringValue(value);

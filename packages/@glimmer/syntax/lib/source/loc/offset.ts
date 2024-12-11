@@ -1,6 +1,13 @@
 import type { SourcePosition } from '../location';
 import type { Source } from '../source';
-import type { BrokenKind, InternalSyntheticKind, NonExistentKind, OffsetKind } from './kinds';
+import type {
+  BrokenKind,
+  CharOffsetKind,
+  HbsPositionKind,
+  InternalSyntheticKind,
+  NonExistentKind,
+  OffsetKind,
+} from './kinds';
 import type { SourceSpan } from './span';
 
 import { UNKNOWN_POSITION } from '../location';
@@ -131,7 +138,7 @@ export class SourceOffset {
 }
 
 export class CharPosition implements PositionData {
-  readonly kind = CHAR_OFFSET_KIND;
+  readonly kind: CharOffsetKind = CHAR_OFFSET_KIND;
 
   /** Computed from char offset */
   _locPos: HbsPosition | BROKEN | null = null;
@@ -194,7 +201,7 @@ export class CharPosition implements PositionData {
 }
 
 export class HbsPosition implements PositionData {
-  readonly kind = HBS_POSITION_KIND;
+  readonly kind: HbsPositionKind = HBS_POSITION_KIND;
 
   _charPos: CharPosition | BROKEN | null;
 

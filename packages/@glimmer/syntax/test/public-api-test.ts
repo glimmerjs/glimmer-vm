@@ -29,7 +29,7 @@ QUnit.test('exports are not accidentally removed', (assert) => {
   assert.ok(syntax.isVoidTag);
   assert.ok(syntax.ASTv2);
   assert.ok(syntax.normalize);
-  assert.ok(syntax.node);
+  assert.ok(syntax.AstNode);
   // deprecated
   assert.ok(syntax.Path);
 });

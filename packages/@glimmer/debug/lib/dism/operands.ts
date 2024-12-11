@@ -24,20 +24,13 @@ interface DisassemblyState {
   readonly meta: BlockMetadata | null;
 }
 
-export type OperandDisassembler = (options: DisassemblyState) => RawDisassembledOperand;
+type OperandDisassembler = (options: DisassemblyState) => RawDisassembledOperand;
 
 const todo: OperandDisassembler = ({ label, value }) => ['error:operand', value, { label }];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Left<D extends Disassembler<any>> = D extends Disassembler<infer Added>
-  ? Exclude<OperandType, Added>
-  : never;
-
-type AllOperands = OperandType;
-
 class Disassembler<in out Added extends OperandType> {
   static build(
-    builder: (disassembler: Disassembler<never>) => Disassembler<AllOperands>
+    builder: (disassembler: Disassembler<never>) => Disassembler<OperandType>
   ): Record<OperandType, OperandDisassembler> {
     return builder(new Disassembler()).#disms as Record<OperandType, OperandDisassembler>;
   }
@@ -48,19 +41,19 @@ class Disassembler<in out Added extends OperandType> {
     this.#disms = {};
   }
 
-  addNullable<const K extends Left<this> & NullableOperandType>(
+  addNullable<const K extends Exclude<NullableOperandType, Added>>(
     names: K[],
     dism: OperandDisassembler
-  ): Disassembler<Added | K | `${K}?`> {
+  ): Disassembler<Added | K> {
     for (const name of names) {
       this.#disms[name] = dism;
       this.#disms[`${name}?`] = dism;
     }
 
-    return this as Disassembler<Added | K | `${K}?`>;
+    return this as Disassembler<Added | K>;
   }
 
-  add<const K extends Left<this> & NonNullableOperandType>(
+  add<const K extends Exclude<NonNullableOperandType, Added>>(
     names: K[],
     dism: OperandDisassembler
   ): Disassembler<Added | K> {
@@ -69,11 +62,11 @@ class Disassembler<in out Added extends OperandType> {
       add(name, dism);
     }
 
-    return this;
+    return this as Disassembler<Added | K>;
   }
 }
 
-export const OPERANDS = Disassembler.build((d) => {
+export const OPERANDS: Record<OperandType, OperandDisassembler> = Disassembler.build((d) => {
   return d
     .add(['imm/u32', 'imm/i32', 'imm/u32{todo}', 'imm/i32{todo}'], ({ value }) => ['number', value])
     .add(['const/i32[]'], ({ value, constants }) => [

@@ -32,4 +32,4 @@ export {
 } from './lib/reference';
 export { valueForRef } from '@glimmer/fundamental';
 
-export const REFERENCE = state.REFERENCE;
+export const REFERENCE: typeof state.REFERENCE = state.REFERENCE;

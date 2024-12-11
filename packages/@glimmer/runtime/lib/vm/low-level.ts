@@ -70,7 +70,7 @@ export class LowLevelVM {
     return this.registers[register];
   }
 
-  loadRegister(register: MachineRegister, value: number) {
+  loadRegister(register: MachineRegister, value: number): void {
     this.registers[register] = value;
   }
 
@@ -80,38 +80,38 @@ export class LowLevelVM {
   }
 
   // Start a new frame and save $ra and $fp on the stack
-  pushFrame() {
+  pushFrame(): void {
     this.stack.push(this.registers[$ra]);
     this.stack.push(this.registers[$fp]);
     this.registers[$fp] = this.registers[$sp] - 1;
   }
 
   // Restore $ra, $sp and $fp
-  popFrame() {
+  popFrame(): void {
     this.registers[$sp] = this.registers[$fp] - 1;
     this.registers[$ra] = this.stack.get(0);
     this.registers[$fp] = this.stack.get(1);
   }
 
-  pushSmallFrame() {
+  pushSmallFrame(): void {
     this.stack.push(this.registers[$ra]);
   }
 
-  popSmallFrame() {
+  popSmallFrame(): void {
     this.registers[$ra] = this.stack.pop();
   }
 
   // Jump to an address in `program`
-  goto(offset: number) {
+  goto(offset: number): void {
     this.setPc(this.target(offset));
   }
 
-  target(offset: number) {
+  target(offset: number): number {
     return this.registers[$pc] + offset - this.currentOpSize;
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
-  call(handle: number) {
+  call(handle: number): void {
     assert(handle < 0xffffffff, `Jumping to placeholder address`);
 
     this.registers[$ra] = this.registers[$pc];
@@ -119,12 +119,12 @@ export class LowLevelVM {
   }
 
   // Put a specific `program` address in $ra
-  returnTo(offset: number) {
+  returnTo(offset: number): void {
     this.registers[$ra] = this.target(offset);
   }
 
   // Return to the `program` address stored in $ra
-  return() {
+  return(): void {
     this.setPc(this.registers[$ra]);
   }
 
@@ -151,7 +151,7 @@ export class LowLevelVM {
     return opcode;
   }
 
-  evaluateOuter(opcode: RuntimeOp, vm: VM) {
+  evaluateOuter(opcode: RuntimeOp, vm: VM): void {
     if (LOCAL_DEBUG && this.externs) {
       let {
         externs: { debugBefore, debugAfter },
@@ -164,7 +164,7 @@ export class LowLevelVM {
     }
   }
 
-  evaluateInner(opcode: RuntimeOp, vm: VM) {
+  evaluateInner(opcode: RuntimeOp, vm: VM): void {
     if (opcode.isMachine) {
       this.evaluateMachine(opcode, vm);
     } else {
@@ -172,7 +172,7 @@ export class LowLevelVM {
     }
   }
 
-  evaluateMachine(opcode: RuntimeOp, vm: VM) {
+  evaluateMachine(opcode: RuntimeOp, vm: VM): void {
     switch (opcode.type) {
       case VM_PUSH_FRAME_OP:
         return this.pushFrame();
@@ -191,7 +191,7 @@ export class LowLevelVM {
     }
   }
 
-  evaluateSyscall(opcode: RuntimeOp, vm: VM) {
+  evaluateSyscall(opcode: RuntimeOp, vm: VM): void {
     APPEND_OPCODES.evaluate(vm, opcode, opcode.type);
   }
 }

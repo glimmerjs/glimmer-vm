@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-inferrable-types */
 /* eslint-disable no-console */
 
 declare global {
@@ -7,15 +8,17 @@ declare global {
 }
 
 // All of these flags are expected to become constant `false` in production builds.
-export const LOCAL_DEBUG = !!(import.meta.env.VM_LOCAL_DEV && !hasFlag('disable_local_debug'));
-export const LOCAL_TRACE_LOGGING = !!(
+export const LOCAL_DEBUG: boolean = !!(
+  import.meta.env.VM_LOCAL_DEV && !hasFlag('disable_local_debug')
+);
+export const LOCAL_TRACE_LOGGING: boolean = !!(
   import.meta.env.VM_LOCAL_DEV && hasFlag('enable_trace_logging')
 );
-export const LOCAL_EXPLAIN_LOGGING =
+export const LOCAL_EXPLAIN_LOGGING: boolean | undefined =
   import.meta.env.VM_LOCAL_DEV && hasFlag('enable_trace_explanations');
-export const LOCAL_INTERNALS_LOGGING =
+export const LOCAL_INTERNALS_LOGGING: boolean | undefined =
   import.meta.env.VM_LOCAL_DEV && hasFlag('enable_internals_logging');
-export const LOCAL_SUBTLE_LOGGING =
+export const LOCAL_SUBTLE_LOGGING: boolean | undefined =
   import.meta.env.VM_LOCAL_DEV && hasFlag('enable_subtle_logging');
 
 if (LOCAL_INTERNALS_LOGGING || LOCAL_EXPLAIN_LOGGING) {

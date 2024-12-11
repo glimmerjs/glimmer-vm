@@ -12,88 +12,62 @@ export interface BaseNodeFields {
  * options.
  *
  * ```ts
- * export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
+ * export const HtmlTextFields: NodeConstructor<'HtmlText', { chars: string }> = AstNode('HtmlText');
+ * export class HtmlText extends HtmlTextFields {}
  * ```
  *
  * This creates a new ASTv2 node with the name `'HtmlText'` and one field `chars: string` (in
  * addition to a `loc: SourceOffsets` field, which all nodes have).
  *
  * ```ts
- * export class Args extends node().fields<{
- *  positional: PositionalArguments;
- *  named: NamedArguments
- * }>() {}
+ * export const ArgsFields: NodeConstructor<{
+ *   positional: PositionalArguments;
+ *   named: NamedArguments
+ * }> = AstNode();
  * ```
  *
  * This creates a new un-named ASTv2 node with two fields (`positional: Positional` and `named:
  * Named`, in addition to the generic `loc: SourceOffsets` field).
  *
- * Once you create a node using `node`, it is instantiated with all of its fields (including `loc`):
+ * Once you create a node using `AstNode`, it is instantiated with all of its fields (including `loc`):
  *
  * ```ts
  * new HtmlText({ loc: offsets, chars: someString });
  * ```
  */
-export function node(): {
-  fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
-};
-export function node<T extends string>(
-  name: T
-): {
-  fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
-};
-
-export function node<T extends string>(
-  name?: T
+export function AstNode<T extends string, Fields extends object>(
+  type: T
+): NodeConstructor<T, BaseNodeFields & Fields>;
+export function AstNode<Fields extends object>(): AnonymousNodeConstructor<BaseNodeFields & Fields>;
+export function AstNode<T extends string, Fields extends object>(
+  type?: T
 ):
-  | {
-      fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
+  | NodeConstructor<string, BaseNodeFields & Fields>
+  | AnonymousNodeConstructor<BaseNodeFields & Fields> {
+  return class {
+    // SAFETY: initialized via `assign` in the constructor.
+    declare readonly loc: SourceSpan;
+    readonly type: string;
+
+    constructor(fields: BaseNodeFields & Fields) {
+      this.type = type ?? 'anonymous';
+      // eslint-disable-next-line deprecation/deprecation
+      assign(this, fields);
+
+      setLocalDebugType('syntax:mir:node', this);
     }
-  | {
-      fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
-    } {
-  if (name !== undefined) {
-    const type = name;
-    return {
-      fields<Fields extends object>(): TypedNodeConstructor<T, BaseNodeFields & Fields> {
-        return class {
-          // SAFETY: initialized via `assign` in the constructor.
-          declare readonly loc: SourceSpan;
-          readonly type: T;
-
-          constructor(fields: BaseNodeFields & Fields) {
-            this.type = type;
-            assign(this, fields);
-
-            setLocalDebugType('syntax:mir:node', this);
-          }
-        } as TypedNodeConstructor<T, BaseNodeFields & Fields>;
-      },
-    };
-  } else {
-    return {
-      fields<Fields>(): NodeConstructor<Fields & BaseNodeFields> {
-        return class {
-          // SAFETY: initialized via `assign` in the constructor.
-          declare readonly loc: SourceSpan;
-
-          constructor(fields: BaseNodeFields & Fields) {
-            assign(this, fields);
-          }
-        } as NodeConstructor<BaseNodeFields & Fields>;
-      },
-    };
-  }
-}
-
-export interface NodeConstructor<Fields> {
-  new (fields: Fields): Readonly<Fields>;
+  } as NodeConstructor<T, BaseNodeFields & Fields>;
 }
 
 type TypedNode<T extends string, Fields> = {
   type: T;
 } & Readonly<Fields>;
 
-export interface TypedNodeConstructor<T extends string, Fields> {
-  new (options: Fields): TypedNode<T, Fields>;
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface NodeConstructor<T extends string, Fields = {}> {
+  new (options: Fields & BaseNodeFields): TypedNode<T, Fields & BaseNodeFields>;
+}
+
+export interface AnonymousNodeConstructor<Fields> {
+  new (options: Fields & BaseNodeFields): Readonly<Fields & BaseNodeFields>;
 }

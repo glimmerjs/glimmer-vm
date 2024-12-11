@@ -20,7 +20,6 @@ import {
   describeOpcode,
   frag,
   opcodeMetadata,
-  recordStackSize,
   VmSnapshot,
 } from '@glimmer/debug';
 import { assert, dev, unwrap } from '@glimmer/debug-util';
@@ -105,7 +104,6 @@ export class AppendOpcodes {
           LOCAL_LOGGER.debug(...debugParams);
         }
 
-        recordStackSize(debug.registers[$sp]);
         return {
           op,
           closeGroup,
@@ -184,7 +182,7 @@ export class AppendOpcodes {
     } as Evaluate;
   }
 
-  evaluate(vm: VM, opcode: RuntimeOp, type: number) {
+  evaluate(vm: VM, opcode: RuntimeOp, type: number): void {
     let operation = unwrap(this.evaluateOpcode[type]);
 
     if (operation.syscall) {
@@ -217,4 +215,4 @@ export function externs(vm: VM): Externs<DebugState> | undefined {
     : undefined;
 }
 
-export const APPEND_OPCODES = new AppendOpcodes();
+export const APPEND_OPCODES: AppendOpcodes = new AppendOpcodes();

@@ -13,7 +13,7 @@ if (globalObj[GLIMMER_VALIDATOR_REGISTRATION] === true) {
 globalObj[GLIMMER_VALIDATOR_REGISTRATION] = true;
 
 export { dirtyTagFor, tagFor } from './lib/meta';
-export { trackedData } from './lib/tracked-data';
+export { type Getter, type Setter, trackedData } from './lib/tracked-data';
 export { type Cache, createCache, getValue, isConst, track, untrack } from './lib/tracking';
 export {
   CONSTANT,
@@ -21,9 +21,9 @@ export {
   createTag,
   createUpdatableTag,
   CURRENT_TAG,
-  DIRTY_TAG as dirtyTag,
+  dirtyTag as dirtyTag,
   INITIAL,
-  UPDATE_TAG as updateTag,
+  updateTag as updateTag,
 } from './lib/validators';
 export { combineTags } from '@glimmer/fundamental';
 export type {

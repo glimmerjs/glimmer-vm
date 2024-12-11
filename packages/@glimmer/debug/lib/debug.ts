@@ -9,7 +9,6 @@ import type {
   ProgramConstants,
   RawDisassembledOperand,
   RegisterName,
-  RuntimeOp,
   SomeDisassembledOperand,
 } from '@glimmer/interfaces';
 import {
@@ -32,7 +31,7 @@ import { opcodeMetadata } from './opcode-metadata';
 import { frag } from './render/fragment';
 import { DebugLogger } from './render/logger';
 
-export function logOpcodeSlice(context: CompilationContext, start: number, end: number) {
+export function logOpcodeSlice(context: CompilationContext, start: number, end: number): void {
   if (LOCAL_TRACE_LOGGING) {
     const logger = new DebugLogger(LOCAL_LOGGER, { showSubtle: !!LOCAL_SUBTLE_LOGGING });
     LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
@@ -171,7 +170,7 @@ function json(param: SomeDisassembledOperand): string | string[] | null {
   }
 }
 
-export class DisassembledOperand<R extends RawDisassembledOperand = RawDisassembledOperand> {
+class DisassembledOperand<R extends RawDisassembledOperand = RawDisassembledOperand> {
   static of(raw: RawDisassembledOperand): SomeDisassembledOperand {
     return new DisassembledOperand(raw) as never;
   }
@@ -193,17 +192,6 @@ export class DisassembledOperand<R extends RawDisassembledOperand = RawDisassemb
   get options(): R[2] {
     return this.#raw[2];
   }
-}
-
-export function getOpSnapshot(op: RuntimeOp): OpSnapshot {
-  return {
-    offset: op.offset,
-    size: op.size,
-    type: op.type,
-    op1: op.op1,
-    op2: op.op2,
-    op3: op.op3,
-  };
 }
 
 class DebugOperandInfo {

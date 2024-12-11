@@ -27,13 +27,16 @@ export function isCurriedType<T extends CurriedType>(
   return isCurriedValue(value) && value[TYPE] === type;
 }
 
-export class CurriedValue<T extends CurriedType = CurriedType> {
+export interface CurriedValue<T extends CurriedType = CurriedType> {
   [TYPE]: T;
   [INNER]: object | string | CurriedValue<T>;
   [OWNER]: Owner;
   [ARGS]: CapturedArguments | null;
   [RESOLVED]: boolean;
+}
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+export class CurriedValue<T extends CurriedType = CurriedType> {
   /** @internal */
   constructor(
     type: T,

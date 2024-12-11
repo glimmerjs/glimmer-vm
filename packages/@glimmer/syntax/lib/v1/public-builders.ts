@@ -483,7 +483,39 @@ function buildLoc(
   }
 }
 
-export default {
+interface Builders {
+  readonly mustache: typeof buildMustache;
+  readonly block: typeof buildBlock;
+  readonly comment: typeof buildComment;
+  readonly mustacheComment: typeof buildMustacheComment;
+  readonly element: typeof buildElement;
+  readonly elementModifier: typeof buildElementModifier;
+  readonly attr: typeof buildAttr;
+  readonly text: typeof buildText;
+  readonly sexpr: typeof buildSexpr;
+  readonly concat: typeof buildConcat;
+  readonly hash: typeof buildHash;
+  readonly pair: typeof buildPair;
+  readonly literal: typeof buildLiteral;
+  readonly program: typeof buildProgram;
+  readonly blockItself: typeof buildBlockItself;
+  readonly template: typeof buildTemplate;
+  readonly loc: typeof buildLoc;
+  readonly pos: typeof buildPosition;
+  readonly path: typeof buildPath;
+  readonly fullPath: typeof buildCleanPath;
+  readonly head: typeof buildHeadFromString;
+  readonly at: typeof buildAtName;
+  readonly var: typeof buildVar;
+  readonly this: typeof buildThis;
+  readonly string: (value: string) => ASTv1.StringLiteral;
+  readonly boolean: (value: boolean) => ASTv1.BooleanLiteral;
+  readonly number: (value: number) => ASTv1.NumberLiteral;
+  readonly undefined: () => ASTv1.UndefinedLiteral;
+  readonly null: () => ASTv1.NullLiteral;
+}
+
+const DEFAULT: Builders = {
   mustache: buildMustache,
   block: buildBlock,
   comment: buildComment,
@@ -521,7 +553,9 @@ export default {
   null(): ASTv1.NullLiteral {
     return buildLiteral('NullLiteral', null);
   },
-};
+} as const;
+
+export default DEFAULT;
 
 type BuildLiteral<T extends ASTv1.Literal> = (value: T['value']) => T;
 

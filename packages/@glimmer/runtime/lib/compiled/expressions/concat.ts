@@ -1,7 +1,7 @@
 import type { Reference } from '@glimmer/reference';
 import { createComputeRef, valueForRef } from '@glimmer/reference';
 
-export function createConcatRef(partsRefs: Reference[]) {
+export function createConcatRef(partsRefs: Reference[]): Reference<string | null> {
   return createComputeRef(() => {
     const parts: string[] = [];
 

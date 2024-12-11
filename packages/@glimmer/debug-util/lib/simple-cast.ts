@@ -1,4 +1,10 @@
-import type { Maybe, SimpleDocument, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type {
+  Maybe,
+  NodeType,
+  SimpleDocument,
+  SimpleElement,
+  SimpleNode,
+} from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 import { unreachable } from './platform-utils';
@@ -99,8 +105,8 @@ function checkError(from: string, check: SugaryNodeCheck): Error {
   return new Error(`cannot cast a ${from} into ${String(check)}`);
 }
 
-export const ELEMENT_NODE = 1;
-export const DOCUMENT_NODE = 9;
+const ELEMENT_NODE = 1 satisfies NodeType.ELEMENT_NODE;
+const DOCUMENT_NODE = 9 satisfies NodeType.DOCUMENT_NODE;
 
 function isDocument(node: Node | SimpleNode | SimpleDocument): node is Document | SimpleDocument {
   return node.nodeType === DOCUMENT_NODE;

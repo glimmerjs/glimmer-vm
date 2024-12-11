@@ -37,27 +37,21 @@ import {
 import { expect, isPresentArray } from '@glimmer/debug-util';
 import { assertNever, dict } from '@glimmer/util';
 
-export type BuilderParams = BuilderExpression[];
-export type BuilderHash = Nullable<Dict<BuilderExpression>>;
-export type BuilderBlockHash = BuilderHash | { as: string | string[] };
-export type BuilderBlocks = Dict<BuilderBlock>;
-export type BuilderAttrs = Dict<BuilderAttr>;
+type BuilderParams = BuilderExpression[];
+type BuilderHash = Nullable<Dict<BuilderExpression>>;
+type BuilderBlockHash = BuilderHash | { as: string | string[] };
+type BuilderBlocks = Dict<BuilderBlock>;
+type BuilderAttrs = Dict<BuilderAttr>;
 
 export type NormalizedParams = NormalizedExpression[];
 export type NormalizedHash = Dict<NormalizedExpression>;
 export type NormalizedBlock = NormalizedStatement[];
 export type NormalizedBlocks = Dict<NormalizedBlock>;
 export type NormalizedAttrs = Dict<NormalizedAttr>;
-export type NormalizedAttr = SPLAT_HEAD | NormalizedExpression;
+type NormalizedAttr = SPLAT_HEAD | NormalizedExpression;
 
 export interface NormalizedElement {
   name: string;
-  attrs: Nullable<NormalizedAttrs>;
-  block: Nullable<NormalizedBlock>;
-}
-
-export interface NormalizedAngleInvocation {
-  head: NormalizedExpression;
   attrs: Nullable<NormalizedAttrs>;
   block: Nullable<NormalizedBlock>;
 }
@@ -75,18 +69,18 @@ export interface Variable {
   mode: 'loose' | 'strict';
 }
 
-export interface Path {
+interface Path {
   head: Variable;
   tail: PresentArray<string>;
 }
 
-export interface AppendExpr {
+interface AppendExpr {
   kind: APPEND_EXPR_HEAD;
   expr: NormalizedExpression;
   trusted: boolean;
 }
 
-export interface AppendPath {
+interface AppendPath {
   kind: APPEND_PATH_HEAD;
   path: NormalizedPath;
   trusted: boolean;
@@ -152,10 +146,7 @@ export function normalizeStatement(statement: BuilderStatement): NormalizedState
   }
 }
 
-export function normalizeAppendHead(
-  head: NormalizedHead,
-  trusted: boolean
-): AppendExpr | AppendPath {
+function normalizeAppendHead(head: NormalizedHead, trusted: boolean): AppendExpr | AppendPath {
   if (head.type === GET_PATH_EXPR) {
     return {
       kind: APPEND_PATH_HEAD,
@@ -187,11 +178,9 @@ function isSugaryArrayStatement(statement: BuilderStatement): statement is Sugar
   return false;
 }
 
-export type SugaryArrayStatement = BuilderCallExpression | BuilderElement | BuilderBlockStatement;
+type SugaryArrayStatement = BuilderCallExpression | BuilderElement | BuilderBlockStatement;
 
-export function normalizeSugaryArrayStatement(
-  statement: SugaryArrayStatement
-): NormalizedStatement {
+function normalizeSugaryArrayStatement(statement: SugaryArrayStatement): NormalizedStatement {
   const name = statement[0];
 
   switch (name[0]) {
@@ -374,7 +363,7 @@ function normalizeDottedPath(whole: string): NormalizedHead {
   }
 }
 
-export function normalizePathHead(whole: string): Variable {
+function normalizePathHead(whole: string): Variable {
   let kind: VariableKind;
   let name: string;
 
@@ -410,12 +399,12 @@ export function normalizePathHead(whole: string): Variable {
   return { kind, name, mode: 'loose' };
 }
 
-export type BuilderBlockStatement =
+type BuilderBlockStatement =
   | [string, BuilderBlock | BuilderBlocks]
   | [string, BuilderParams | BuilderBlockHash, BuilderBlock | BuilderBlocks]
   | [string, BuilderParams, BuilderBlockHash, BuilderBlock | BuilderBlocks];
 
-export interface NormalizedBuilderBlockStatement {
+interface NormalizedBuilderBlockStatement {
   head: NormalizedHead;
   params: Nullable<NormalizedParams>;
   hash: Nullable<NormalizedHash>;
@@ -423,7 +412,7 @@ export interface NormalizedBuilderBlockStatement {
   blocks: NormalizedBlocks;
 }
 
-export function normalizeBuilderBlockStatement(
+function normalizeBuilderBlockStatement(
   statement: BuilderBlockStatement
 ): NormalizedBuilderBlockStatement {
   const head = statement[0];
@@ -480,7 +469,7 @@ function normalizeBlockHash(hash: BuilderBlockHash): {
   return { hash: out, blockParams };
 }
 
-export function entries<D extends Dict>(
+function entries<D extends Dict>(
   dict: D,
   callback: <K extends keyof D>(key: K, value: D[K]) => void
 ): void {
@@ -528,7 +517,7 @@ function mapObject<T extends Dict<unknown>, Out>(
   return out as { [P in keyof T]: Out };
 }
 
-export type BuilderElement =
+type BuilderElement =
   | [string]
   | [string, BuilderAttrs, BuilderBlock]
   | [string, BuilderBlock]
@@ -536,39 +525,13 @@ export type BuilderElement =
 
 export type BuilderComment = [BUILDER_COMMENT, string];
 
-export type InvocationElement =
-  | [string]
-  | [string, BuilderAttrs, BuilderBlock]
-  | [string, BuilderBlock]
-  | [string, BuilderAttrs];
-
-export function isElement(input: [string, ...unknown[]]): input is BuilderElement {
-  const match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input[0]);
-
-  return !!match && !!match[1];
-}
-
-export function extractElement(input: string): Nullable<string> {
+function extractElement(input: string): Nullable<string> {
   const match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input);
 
   return match?.[1] ?? null;
 }
 
-export function isAngleInvocation(input: [string, ...unknown[]]): input is InvocationElement {
-  // TODO Paths
-  const match = /^<(@[\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)>$/u.exec(input[0]);
-
-  return !!match && !!match[1];
-}
-
-export function isBlock(input: [string, ...unknown[]]): input is BuilderBlockStatement {
-  // TODO Paths
-  const match = /^#[\s\S]?([\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)$/u.exec(input[0]);
-
-  return !!match && !!match[1];
-}
-
-export type VerboseStatement =
+type VerboseStatement =
   | [BUILDER_LITERAL, string]
   | [BUILDER_COMMENT, string]
   | [BUILDER_APPEND, BuilderExpression, true]
@@ -582,9 +545,9 @@ export type BuilderStatement =
   | TupleBuilderExpression
   | string;
 
-export type BuilderAttr = 'splat' | BuilderExpression;
+type BuilderAttr = 'splat' | BuilderExpression;
 
-export type TupleBuilderExpression =
+type TupleBuilderExpression =
   | [BUILDER_LITERAL, string | boolean | null | undefined]
   | [BUILDER_GET, string]
   | [BUILDER_GET, string, string[]]
@@ -596,7 +559,7 @@ export type TupleBuilderExpression =
 type Params = BuilderParams;
 type Hash = Dict<BuilderExpression>;
 
-export interface NormalizedCallExpression {
+interface NormalizedCallExpression {
   type: CALL_EXPR;
   head: NormalizedHead;
   params: Nullable<NormalizedParams>;
@@ -608,14 +571,14 @@ export interface NormalizedPath {
   path: Path;
 }
 
-export interface NormalizedVar {
+interface NormalizedVar {
   type: GET_VAR_EXPR;
   variable: Variable;
 }
 
 export type NormalizedHead = NormalizedPath | NormalizedVar;
 
-export interface NormalizedConcat {
+interface NormalizedConcat {
   type: CONCAT_EXPR;
   params: [NormalizedExpression, ...NormalizedExpression[]];
 }
@@ -638,7 +601,7 @@ export type NormalizedExpression =
       name: string;
     };
 
-export function normalizeAppendExpression(
+function normalizeAppendExpression(
   expression: BuilderExpression,
   forceTrusted = false
 ): AppendExpr | AppendPath {
@@ -737,7 +700,7 @@ export function normalizeAppendExpression(
   }
 }
 
-export function normalizeExpression(expression: BuilderExpression): NormalizedExpression {
+function normalizeExpression(expression: BuilderExpression): NormalizedExpression {
   if (expression === null || expression === undefined) {
     return {
       type: LITERAL_EXPR,
@@ -811,7 +774,7 @@ export function normalizeExpression(expression: BuilderExpression): NormalizedEx
 // | [HAS_BLOCK, string]
 // | [HAS_BLOCK_PARAMS, string]
 
-export type BuilderExpression =
+type BuilderExpression =
   | TupleBuilderExpression
   | BuilderCallExpression
   | null
@@ -820,21 +783,7 @@ export type BuilderExpression =
   | string
   | number;
 
-export function isBuilderExpression(
-  expr: BuilderExpression | BuilderCallExpression
-): expr is TupleBuilderExpression | BuilderCallExpression {
-  return Array.isArray(expr);
-}
-
-export function isLiteral(
-  expr: BuilderExpression | BuilderCallExpression
-): expr is [BUILDER_LITERAL, string | boolean | undefined] {
-  return Array.isArray(expr) && expr[0] === 'literal';
-}
-
-export function statementIsExpression(
-  statement: BuilderStatement
-): statement is TupleBuilderExpression {
+function statementIsExpression(statement: BuilderStatement): statement is TupleBuilderExpression {
   if (!Array.isArray(statement)) {
     return false;
   }
@@ -861,28 +810,28 @@ export function statementIsExpression(
   return false;
 }
 
-export function isBuilderCallExpression(
+function isBuilderCallExpression(
   value: TupleBuilderExpression | BuilderCallExpression
 ): value is BuilderCallExpression {
   return typeof value[0] === 'string' && value[0][0] === '(';
 }
 
-export type MiniBuilderBlock = BuilderStatement[];
+type MiniBuilderBlock = BuilderStatement[];
 
-export type BuilderBlock = MiniBuilderBlock;
+type BuilderBlock = MiniBuilderBlock;
 
-export type BuilderCallExpression = [string] | [string, Params | Hash] | [string, Params, Hash];
+type BuilderCallExpression = [string] | [string, Params | Hash] | [string, Params, Hash];
 
-export function normalizeParams(input: Params): NormalizedParams {
+function normalizeParams(input: Params): NormalizedParams {
   return input.map(normalizeExpression);
 }
 
-export function normalizeHash(input: Nullable<Hash>): Nullable<NormalizedHash> {
+function normalizeHash(input: Nullable<Hash>): Nullable<NormalizedHash> {
   if (input === null) return null;
   return mapObject(input, normalizeExpression);
 }
 
-export function normalizeCallExpression(expr: BuilderCallExpression): NormalizedCallExpression {
+function normalizeCallExpression(expr: BuilderCallExpression): NormalizedCallExpression {
   switch (expr.length) {
     case 1:
       return {

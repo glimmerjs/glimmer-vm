@@ -2,7 +2,8 @@ import type { Nullable } from '@glimmer/interfaces';
 import { assert, setLocalDebugType } from '@glimmer/debug-util';
 
 import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
-import type { SourceLocation, SourcePosition } from './location';
+import type { SourceLocation } from '../v1/handlebars-ast';
+import type { SourcePosition } from './location';
 
 import { SourceOffset, SourceSpan } from './span';
 

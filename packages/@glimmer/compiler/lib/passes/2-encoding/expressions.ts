@@ -5,9 +5,9 @@ import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type * as mir from './mir';
 
-export type HashPair = [string, WireFormat.Expression];
+type HashPair = [string, WireFormat.Expression];
 
-export class ExpressionEncoder {
+class ExpressionEncoder {
   expr(expr: mir.ExpressionNode): WireFormat.Expression {
     switch (expr.type) {
       case 'Missing':
@@ -167,4 +167,4 @@ export class ExpressionEncoder {
   }
 }
 
-export const EXPR = new ExpressionEncoder();
+export const EXPR: ExpressionEncoder = new ExpressionEncoder();

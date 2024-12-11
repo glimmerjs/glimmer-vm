@@ -23,6 +23,11 @@ const UPDATABLE_TAG_ID: UpdatableTagId = 1;
 const COMBINATOR_TAG_ID: CombinatorTagId = 2;
 const CONSTANT_TAG_ID: ConstantTagId = 3;
 
+export interface TagImpl<T extends TagId> extends Tag<T> {
+  [TYPE]: T;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class TagImpl<const T extends TagId> implements Tag<T> {
   static value(this: void, tag: Tag): Revision {
     return compute(tag as unknown as TagImpl<TagId>);
@@ -39,23 +44,21 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
     return snapshot >= compute(tag as unknown as TagImpl<TagId>);
   }
 
-  revision = 1 satisfies InitialRevision;
-  lastChecked = 1 satisfies InitialRevision;
-  lastValue = 1 satisfies InitialRevision;
+  revision: Revision = 1 satisfies InitialRevision;
+  lastChecked: Revision = 1 satisfies InitialRevision;
+  lastValue: Revision = 1 satisfies InitialRevision;
 
   isUpdating = false;
   public subtag: Tag | Tag[] | null = null;
   subtagBufferCache: Revision | null = null;
   compute: undefined | ((this: void) => Revision);
 
-  [TYPE]: T;
-
   constructor(type: T, compute?: () => Revision) {
     this[TYPE] = type;
     this.compute = compute;
   }
 
-  static update(this: void, _tag: Tag<UpdatableTagId>, _subtag: Tag) {
+  static update(this: void, _tag: Tag<UpdatableTagId>, _subtag: Tag): void {
     assert(_tag[TYPE] === UPDATABLE_TAG_ID, `Attempted to update a tag that was not updatable`);
 
     // TODO: TS 3.7 should allow us to do this via assertion
@@ -92,7 +95,7 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
     this: void,
     tag: Tag<DirtyableTagId> | Tag<UpdatableTagId>,
     disableConsumptionAssertion?: boolean
-  ) {
+  ): void {
     if (
       import.meta.env.DEV &&
       !(tag[TYPE] === UPDATABLE_TAG_ID || tag[TYPE] === DIRYTABLE_TAG_ID)
@@ -182,9 +185,12 @@ export const combineTags = (tags: Tag[]): Tag => {
  * determine if the tag has changed at all since the time that `value` was
  * called.
  */
-export const valueForTag = TagImpl.value;
-export const validateTag = TagImpl.validate;
-export const dirtyTag = TagImpl.dirtyTag;
+export const valueForTag: (tag: Tag) => Revision = TagImpl.value;
+export const validateTag: (tag: Tag, snapshot: Revision) => boolean = TagImpl.validate;
+export const dirtyTag: (
+  tag: Tag<DirtyableTagId> | Tag<UpdatableTagId>,
+  disableConsumptionAssertion?: boolean
+) => void = TagImpl.dirtyTag;
 
 export const isTag = (value: unknown): value is Tag => {
   return !!(value && TYPE in (value as object));

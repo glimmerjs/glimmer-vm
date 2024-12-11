@@ -25,8 +25,8 @@ function translateLogKeyword(
   { node, state }: { node: GenericKeywordNode; state: NormalizationState },
   positional: ASTv2.PositionalArguments
 ): Result<mir.Log> {
-  return VISIT_EXPRS.Positional(positional, state).mapOk(
-    (positional) => new mir.Log({ positional, loc: node.loc })
+  return VISIT_EXPRS.Positional(positional, state).mapOk((positional) =>
+    mir.Log({ positional, loc: node.loc })
   );
 }
 

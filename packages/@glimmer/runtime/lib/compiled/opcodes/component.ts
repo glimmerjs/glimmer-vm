@@ -500,7 +500,7 @@ export class ComponentElementOperations implements ElementOperations {
     value: Reference<unknown>,
     trusting: boolean,
     namespace: Nullable<string>
-  ) {
+  ): void {
     let deferred = { value, namespace, trusting };
 
     if (name === 'class') {
@@ -929,7 +929,7 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
     private dynamicScope: Nullable<DynamicScope>
   ) {}
 
-  evaluate(_vm: UpdatingVM) {
+  evaluate(_vm: UpdatingVM): void {
     let { component, manager, dynamicScope } = this;
 
     manager.update(component, dynamicScope);
@@ -942,7 +942,7 @@ export class DidUpdateLayoutOpcode implements UpdatingOpcode {
     private bounds: Bounds
   ) {}
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { component, bounds } = this;
     let { manager, state } = component;
 

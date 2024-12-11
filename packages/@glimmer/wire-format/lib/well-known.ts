@@ -12,19 +12,32 @@ import type {
   ValueAttr,
 } from '@glimmer/interfaces';
 
-export const WellKnownAttrNames = {
-  class: 0 satisfies ClassAttr,
-  id: 1 satisfies IdAttr,
-  value: 2 satisfies ValueAttr,
-  name: 3 satisfies NameAttr,
-  type: 4 satisfies TypeAttr,
-  style: 5 satisfies StyleAttr,
-  href: 6 satisfies HrefAttr,
+export const WellKnownAttrNames: {
+  readonly class: ClassAttr;
+  readonly id: IdAttr;
+  readonly value: ValueAttr;
+  readonly name: NameAttr;
+  readonly type: TypeAttr;
+  readonly style: StyleAttr;
+  readonly href: HrefAttr;
+} = {
+  class: 0,
+  id: 1,
+  value: 2,
+  name: 3,
+  type: 4,
+  style: 5,
+  href: 6,
 } as const;
 
-export const WellKnownTagNames = {
-  div: 0 satisfies DivTag,
-  span: 1 satisfies SpanTag,
-  p: 2 satisfies PTag,
-  a: 3 satisfies ATag,
+export const WellKnownTagNames: {
+  readonly div: DivTag;
+  readonly span: SpanTag;
+  readonly p: PTag;
+  readonly a: ATag;
+} = {
+  div: 0,
+  span: 1,
+  p: 2,
+  a: 3,
 } as const;

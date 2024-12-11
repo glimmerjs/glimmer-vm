@@ -305,7 +305,7 @@ export class UpdateModifierOpcode implements UpdatingOpcode {
     this.lastUpdated = valueForTag(tag);
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { modifier, tag, lastUpdated } = this;
 
     consumeTag(tag);
@@ -328,7 +328,7 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
     this.lastUpdated = valueForTag(tag ?? CURRENT_TAG);
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { tag, lastUpdated, instance, instanceRef } = this;
 
     let newInstance = valueForRef(instanceRef);
@@ -413,7 +413,7 @@ export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
     valueForRef(this.updateRef);
   }
 
-  evaluate() {
+  evaluate(): void {
     valueForRef(this.updateRef);
   }
 }

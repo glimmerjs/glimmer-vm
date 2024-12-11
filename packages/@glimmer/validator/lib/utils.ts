@@ -1,14 +1,8 @@
-export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (
-  k: infer I
-) => void
-  ? I
-  : never;
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyKey = keyof any;
+type AnyKey = keyof any;
 export type Indexable = Record<AnyKey, unknown>;
 
-export function indexable<T extends object>(input: T): T & Indexable {
+function indexable<T extends object>(input: T): T & Indexable {
   return input as T & Indexable;
 }
 

@@ -1,12 +1,10 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { isPresentArray } from '@glimmer/debug-util';
 
+import type { SourceLocation } from '../v1/handlebars-ast';
 import type { SourceSpan } from './span';
 
-export interface SourceLocation {
-  start: SourcePosition;
-  end: SourcePosition;
-}
+export type { SourceLocation } from '../v1/handlebars-ast';
 
 export interface SourcePosition {
   /** >= 1 */
@@ -15,33 +13,33 @@ export interface SourcePosition {
   column: number;
 }
 
-export const UNKNOWN_POSITION = Object.freeze({
+export const UNKNOWN_POSITION: SourcePosition = Object.freeze({
   line: 1,
   column: 0,
 } as const);
 
-export const SYNTHETIC_LOCATION = Object.freeze({
+export const SYNTHETIC_LOCATION: SourceLocation = Object.freeze({
   source: '(synthetic)',
   start: UNKNOWN_POSITION,
   end: UNKNOWN_POSITION,
 } as const);
 
 /** @deprecated */
-export const SYNTHETIC = SYNTHETIC_LOCATION;
+export const SYNTHETIC: SourceLocation = SYNTHETIC_LOCATION;
 
-export const TEMPORARY_LOCATION = Object.freeze({
+export const TEMPORARY_LOCATION: SourceLocation = Object.freeze({
   source: '(temporary)',
   start: UNKNOWN_POSITION,
   end: UNKNOWN_POSITION,
 } as const);
 
-export const NON_EXISTENT_LOCATION = Object.freeze({
+export const NON_EXISTENT_LOCATION: SourceLocation = Object.freeze({
   source: '(nonexistent)',
   start: UNKNOWN_POSITION,
   end: UNKNOWN_POSITION,
 } as const);
 
-export const BROKEN_LOCATION = Object.freeze({
+export const BROKEN_LOCATION: SourceLocation = Object.freeze({
   source: '(broken)',
   start: UNKNOWN_POSITION,
   end: UNKNOWN_POSITION,

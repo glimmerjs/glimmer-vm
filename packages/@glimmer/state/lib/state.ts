@@ -91,4 +91,4 @@ if (!current) {
   Reflect.set(globalThis, STATE, current);
 }
 
-export const state = current;
+export const state: State = current;

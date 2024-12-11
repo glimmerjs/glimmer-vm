@@ -141,7 +141,7 @@ export function unregisterDestructor<T extends Destroyable>(
 
 ////////////
 
-export function destroy(destroyable: Destroyable) {
+export function destroy(destroyable: Destroyable): void {
   let meta = getDestroyableMeta(destroyable);
 
   if (meta.state >= DESTROYING_STATE) return;
@@ -174,25 +174,25 @@ function removeChildFromParent(child: Destroyable, parent: Destroyable) {
   }
 }
 
-export function destroyChildren(destroyable: Destroyable) {
+export function destroyChildren(destroyable: Destroyable): void {
   let { children } = getDestroyableMeta(destroyable);
 
   iterate(children, destroy);
 }
 
-export function _hasDestroyableChildren(destroyable: Destroyable) {
+export function _hasDestroyableChildren(destroyable: Destroyable): boolean {
   let meta = state.destroyables.get(destroyable);
 
   return meta === undefined ? false : meta.children !== null;
 }
 
-export function isDestroying(destroyable: Destroyable) {
+export function isDestroying(destroyable: Destroyable): boolean {
   let meta = state.destroyables.get(destroyable);
 
   return meta === undefined ? false : meta.state >= DESTROYING_STATE;
 }
 
-export function isDestroyed(destroyable: Destroyable) {
+export function isDestroyed(destroyable: Destroyable): boolean {
   let meta = state.destroyables.get(destroyable);
 
   return meta === undefined ? false : meta.state >= DESTROYED_STATE;

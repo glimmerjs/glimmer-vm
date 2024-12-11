@@ -158,7 +158,7 @@ export interface GlobalContext {
 
 let globalContextWasSet = false;
 
-export default function setGlobalContext(context: GlobalContext) {
+export default function setGlobalContext(context: GlobalContext): void {
   if (import.meta.env.DEV) {
     if (globalContextWasSet) {
       throw new Error('Attempted to set the global context twice. This should only be set once.');

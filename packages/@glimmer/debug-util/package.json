@@ -12,16 +12,11 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/env": "0.1.7",
     "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
-    "@types/qunit": "^2.19.9",
-    "eslint": "^8.52.0",
-    "publint": "^0.2.5",
-    "rollup": "^4.5.1",
-    "typescript": "*"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

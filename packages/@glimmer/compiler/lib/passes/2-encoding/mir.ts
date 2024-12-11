@@ -4,90 +4,206 @@ import type {
   BlockSymbolTable,
   ProgramSymbolTable,
   SourceSlice,
+  SourceSpan,
   SymbolTable,
 } from '@glimmer/syntax';
-import { node } from '@glimmer/syntax';
+import { setLocalDebugType } from '@glimmer/debug-util';
 
 import type { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 
-export class Template extends node('Template').fields<{
-  scope: ProgramSymbolTable;
-  body: Statement[];
-}>() {}
+type NodeFields<N extends ASTv2.BaseNodeFields> = Omit<N, 'type'>;
 
-export class InElement extends node('InElement').fields<{
-  guid: string;
-  insertBefore: ExpressionNode | Missing;
-  destination: ExpressionNode;
-  block: NamedBlock;
-}>() {}
+function build<const K extends string, F extends ASTv2.BaseNodeFields>(
+  type: K,
+  fields: F
+): F & { type: K } {
+  const node = {
+    ...fields,
+    type,
+  };
 
-export class Not extends node('Not').fields<{ value: ExpressionNode }>() {}
+  setLocalDebugType('syntax:mir:node', node);
 
-export class If extends node('If').fields<{
-  condition: ExpressionNode;
-  block: NamedBlock;
-  inverse: NamedBlock | null;
-}>() {}
+  return node;
+}
 
-export class IfInline extends node('IfInline').fields<{
-  condition: ExpressionNode;
-  truthy: ExpressionNode;
-  falsy: ExpressionNode | null;
-}>() {}
+type MirNode<T extends string, F> = F & { type: T; loc: SourceSpan };
 
-export class Each extends node('Each').fields<{
-  value: ExpressionNode;
-  key: ExpressionNode | null;
-  block: NamedBlock;
-  inverse: NamedBlock | null;
-}>() {}
+export type Template = MirNode<'Template', { scope: ProgramSymbolTable; body: Statement[] }>;
 
-export class Let extends node('Let').fields<{
-  positional: Positional;
-  block: NamedBlock;
-}>() {}
+export function Template(fields: NodeFields<Template>): Template {
+  return build('Template', fields);
+}
 
-export class WithDynamicVars extends node('WithDynamicVars').fields<{
-  named: NamedArguments;
-  block: NamedBlock;
-}>() {}
+export type InElement = MirNode<
+  'InElement',
+  {
+    guid: string;
+    insertBefore: ExpressionNode | Missing;
+    destination: ExpressionNode;
+    block: NamedBlock;
+  }
+>;
 
-export class GetDynamicVar extends node('GetDynamicVar').fields<{
-  name: ExpressionNode;
-}>() {}
+export function InElement(fields: NodeFields<InElement>): InElement {
+  return build('InElement', fields);
+}
 
-export class Log extends node('Log').fields<{
-  positional: Positional;
-}>() {}
+export type Not = MirNode<'Not', { value: ExpressionNode }>;
 
-export class InvokeComponent extends node('InvokeComponent').fields<{
-  definition: ExpressionNode;
-  args: Args;
-  blocks: NamedBlocks | null;
-}>() {}
+export function Not(fields: NodeFields<Not>): Not {
+  return build('Not', fields);
+}
 
-export class NamedBlocks extends node('NamedBlocks').fields<{
-  blocks: OptionalList<NamedBlock>;
-}>() {}
+export type If = MirNode<
+  'If',
+  {
+    condition: ExpressionNode;
+    block: NamedBlock;
+    inverse: NamedBlock | null;
+  }
+>;
 
-export class NamedBlock extends node('NamedBlock').fields<{
-  scope: BlockSymbolTable;
-  name: SourceSlice;
-  body: Statement[];
-}>() {}
-export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
-  html: ExpressionNode;
-}>() {}
-export class AppendTextNode extends node('AppendTextNode').fields<{ text: ExpressionNode }>() {}
-export class AppendComment extends node('AppendComment').fields<{ value: SourceSlice }>() {}
+export function If(fields: NodeFields<If>): If {
+  return build('If', fields);
+}
 
-export class Component extends node('Component').fields<{
-  tag: ExpressionNode;
-  params: ElementParameters;
-  args: NamedArguments;
-  blocks: NamedBlocks;
-}>() {}
+export type IfInline = MirNode<
+  'IfInline',
+  {
+    condition: ExpressionNode;
+    truthy: ExpressionNode;
+    falsy: ExpressionNode | null;
+  }
+>;
+
+export function IfInline(fields: NodeFields<IfInline>): IfInline {
+  return build('IfInline', fields);
+}
+
+export type Each = MirNode<
+  'Each',
+  {
+    value: ExpressionNode;
+    key: ExpressionNode | null;
+    block: NamedBlock;
+    inverse: NamedBlock | null;
+  }
+>;
+
+export function Each(fields: NodeFields<Each>): Each {
+  return build('Each', fields);
+}
+
+export type Let = MirNode<
+  'Let',
+  {
+    positional: Positional;
+    block: NamedBlock;
+  }
+>;
+
+export function Let(fields: NodeFields<Let>): Let {
+  return build('Let', fields);
+}
+
+export type WithDynamicVars = MirNode<
+  'WithDynamicVars',
+  {
+    named: NamedArguments;
+    block: NamedBlock;
+  }
+>;
+
+export function WithDynamicVars(fields: NodeFields<WithDynamicVars>): WithDynamicVars {
+  return build('WithDynamicVars', fields);
+}
+
+export type GetDynamicVar = MirNode<
+  'GetDynamicVar',
+  {
+    name: ExpressionNode;
+  }
+>;
+
+export function GetDynamicVar(fields: NodeFields<GetDynamicVar>): GetDynamicVar {
+  return build('GetDynamicVar', fields);
+}
+
+export type Log = MirNode<'Log', { positional: Positional }>;
+
+export function Log(fields: NodeFields<Log>): Log {
+  return build('Log', fields);
+}
+
+export type InvokeComponent = MirNode<
+  'InvokeComponent',
+  {
+    definition: ExpressionNode;
+    args: Args;
+    blocks: NamedBlocks | null;
+  }
+>;
+
+export function InvokeComponent(fields: NodeFields<InvokeComponent>): InvokeComponent {
+  return build('InvokeComponent', fields);
+}
+
+export type NamedBlocks = MirNode<
+  'NamedBlocks',
+  {
+    blocks: OptionalList<NamedBlock>;
+  }
+>;
+
+export function NamedBlocks(fields: NodeFields<NamedBlocks>): NamedBlocks {
+  return build('NamedBlocks', fields);
+}
+
+export type NamedBlock = MirNode<
+  'NamedBlock',
+  {
+    name: SourceSlice;
+    scope: BlockSymbolTable;
+    body: Statement[];
+  }
+>;
+
+export function NamedBlock(fields: NodeFields<NamedBlock>): NamedBlock {
+  return build('NamedBlock', fields);
+}
+
+export type AppendTrustedHTML = MirNode<'AppendTrustedHTML', { html: ExpressionNode }>;
+
+export function AppendTrustedHTML(fields: NodeFields<AppendTrustedHTML>): AppendTrustedHTML {
+  return build('AppendTrustedHTML', fields);
+}
+
+export type AppendTextNode = MirNode<'AppendTextNode', { text: ExpressionNode }>;
+
+export function AppendTextNode(fields: NodeFields<AppendTextNode>): AppendTextNode {
+  return build('AppendTextNode', fields);
+}
+
+export type AppendComment = MirNode<'AppendComment', { value: SourceSlice }>;
+
+export function AppendComment(fields: NodeFields<AppendComment>): AppendComment {
+  return build('AppendComment', fields);
+}
+
+export type Component = MirNode<
+  'Component',
+  {
+    tag: ExpressionNode;
+    params: ElementParameters;
+    args: NamedArguments;
+    blocks: NamedBlocks;
+  }
+>;
+
+export function Component(fields: NodeFields<Component>): Component {
+  return build('Component', fields);
+}
 
 export interface AttrKind {
   // triple-curly
@@ -99,84 +215,224 @@ export interface AttrKind {
   component: boolean;
 }
 
-export class StaticAttr extends node('StaticAttr').fields<{
-  kind: { component: boolean };
-  name: SourceSlice;
-  value: SourceSlice;
-  namespace?: string | undefined;
-}>() {}
+export type StaticAttr = MirNode<
+  'StaticAttr',
+  {
+    kind: AttrKind;
+    name: SourceSlice;
+    value: SourceSlice;
+    namespace?: string | undefined;
+  }
+>;
 
-export class DynamicAttr extends node('DynamicAttr').fields<{
-  kind: AttrKind;
-  name: SourceSlice;
-  value: ExpressionNode;
-  namespace?: string | undefined;
-}>() {}
+export function StaticAttr(fields: NodeFields<StaticAttr>): StaticAttr {
+  return build('StaticAttr', fields);
+}
 
-export class SimpleElement extends node('SimpleElement').fields<{
-  tag: SourceSlice;
-  params: ElementParameters;
-  body: Statement[];
-  dynamicFeatures: boolean;
-}>() {}
+export type DynamicAttr = MirNode<
+  'DynamicAttr',
+  {
+    kind: AttrKind;
+    name: SourceSlice;
+    value: ExpressionNode;
+    namespace?: string | undefined;
+  }
+>;
 
-export class ElementParameters extends node('ElementParameters').fields<{
-  body: AnyOptionalList<ElementParameter>;
-}>() {}
+export function DynamicAttr(fields: NodeFields<DynamicAttr>): DynamicAttr {
+  return build('DynamicAttr', fields);
+}
 
-export class Yield extends node('Yield').fields<{
-  target: SourceSlice;
-  to: number;
-  positional: Positional;
-}>() {}
-export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
+export type SimpleElement = MirNode<
+  'SimpleElement',
+  {
+    tag: SourceSlice;
+    params: ElementParameters;
+    body: Statement[];
+    dynamicFeatures: boolean;
+  }
+>;
 
-export class CallExpression extends node('CallExpression').fields<{
-  callee: ExpressionNode;
-  args: Args;
-}>() {}
+export function SimpleElement(fields: NodeFields<SimpleElement>): SimpleElement {
+  return build('SimpleElement', fields);
+}
 
-export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
-export class InvokeBlock extends node('InvokeBlock').fields<{
-  head: ExpressionNode;
-  args: Args;
-  blocks: NamedBlocks;
-}>() {}
-export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
-export class PathExpression extends node('PathExpression').fields<{
-  head: ExpressionNode;
-  tail: Tail;
-}>() {}
+export type ElementParameters = MirNode<
+  'ElementParameters',
+  {
+    body: AnyOptionalList<ElementParameter>;
+  }
+>;
 
-export class Missing extends node('Missing').fields() {}
-export class InterpolateExpression extends node('InterpolateExpression').fields<{
-  parts: PresentList<ExpressionNode>;
-}>() {}
-export class HasBlock extends node('HasBlock').fields<{ target: SourceSlice; symbol: number }>() {}
-export class HasBlockParams extends node('HasBlockParams').fields<{
-  target: SourceSlice;
-  symbol: number;
-}>() {}
-export class Curry extends node('Curry').fields<{
-  definition: ExpressionNode;
-  curriedType: CurriedType;
-  args: Args;
-}>() {}
-export class Positional extends node('Positional').fields<{
-  list: OptionalList<ExpressionNode>;
-}>() {}
-export class NamedArguments extends node('NamedArguments').fields<{
-  entries: OptionalList<NamedArgument>;
-}>() {}
-export class NamedArgument extends node('NamedArgument').fields<{
-  key: SourceSlice;
-  value: ExpressionNode;
-}>() {}
-export class Args extends node('Args').fields<{
-  positional: Positional;
-  named: NamedArguments;
-}>() {}
-export class Tail extends node('Tail').fields<{ members: PresentArray<SourceSlice> }>() {}
+export function ElementParameters(fields: NodeFields<ElementParameters>): ElementParameters {
+  return build('ElementParameters', fields);
+}
+
+export type Yield = MirNode<
+  'Yield',
+  {
+    target: SourceSlice;
+    to: number;
+    positional: Positional;
+  }
+>;
+
+export function Yield(fields: NodeFields<Yield>): Yield {
+  return build('Yield', fields);
+}
+
+export type Debugger = MirNode<'Debugger', { scope: SymbolTable }>;
+
+export function Debugger(fields: NodeFields<Debugger>): Debugger {
+  return build('Debugger', fields);
+}
+
+export type CallExpression = MirNode<
+  'CallExpression',
+  {
+    callee: ExpressionNode;
+    args: Args;
+  }
+>;
+
+export function CallExpression(fields: NodeFields<CallExpression>): CallExpression {
+  return build('CallExpression', fields);
+}
+
+export type Modifier = MirNode<'Modifier', { callee: ExpressionNode; args: Args }>;
+
+export function Modifier(fields: NodeFields<Modifier>): Modifier {
+  return build('Modifier', fields);
+}
+
+export type InvokeBlock = MirNode<
+  'InvokeBlock',
+  {
+    head: ExpressionNode;
+    args: Args;
+    blocks: NamedBlocks;
+  }
+>;
+
+export function InvokeBlock(fields: NodeFields<InvokeBlock>): InvokeBlock {
+  return build('InvokeBlock', fields);
+}
+
+export type SplatAttr = MirNode<'SplatAttr', { symbol: number }>;
+
+export function SplatAttr(fields: NodeFields<SplatAttr>): SplatAttr {
+  return build('SplatAttr', fields);
+}
+
+export type PathExpression = MirNode<
+  'PathExpression',
+  {
+    head: ExpressionNode;
+    tail: Tail;
+  }
+>;
+
+export function PathExpression(fields: NodeFields<PathExpression>): PathExpression {
+  return build('PathExpression', fields);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export type Missing = MirNode<'Missing', {}>;
+
+export function Missing(fields: NodeFields<Missing>): Missing {
+  return build('Missing', fields);
+}
+
+export type InterpolateExpression = MirNode<
+  'InterpolateExpression',
+  {
+    parts: PresentList<ExpressionNode>;
+  }
+>;
+
+export function InterpolateExpression(
+  fields: NodeFields<InterpolateExpression>
+): InterpolateExpression {
+  return build('InterpolateExpression', fields);
+}
+
+export type HasBlock = MirNode<
+  'HasBlock',
+  {
+    target: SourceSlice;
+    symbol: number;
+  }
+>;
+
+export function HasBlock(fields: NodeFields<HasBlock>): HasBlock {
+  return build('HasBlock', fields);
+}
+
+export type HasBlockParams = MirNode<
+  'HasBlockParams',
+  {
+    target: SourceSlice;
+    symbol: number;
+  }
+>;
+
+export function HasBlockParams(fields: NodeFields<HasBlockParams>): HasBlockParams {
+  return build('HasBlockParams', fields);
+}
+
+export type Curry = MirNode<
+  'Curry',
+  {
+    definition: ExpressionNode;
+    curriedType: CurriedType;
+    args: Args;
+  }
+>;
+
+export function Curry(fields: NodeFields<Curry>): Curry {
+  return build('Curry', fields);
+}
+
+export type Positional = MirNode<'Positional', { list: OptionalList<ExpressionNode> }>;
+
+export function Positional(fields: NodeFields<Positional>): Positional {
+  return build('Positional', fields);
+}
+
+export type NamedArguments = MirNode<'NamedArguments', { entries: OptionalList<NamedArgument> }>;
+
+export function NamedArguments(fields: NodeFields<NamedArguments>): NamedArguments {
+  return build('NamedArguments', fields);
+}
+
+export type NamedArgument = MirNode<'NamedArgument', { key: SourceSlice; value: ExpressionNode }>;
+
+export function NamedArgument(fields: NodeFields<NamedArgument>): NamedArgument {
+  return build('NamedArgument', fields);
+}
+
+export type Args = MirNode<
+  'Args',
+  {
+    positional: Positional;
+    named: NamedArguments;
+  }
+>;
+
+export function Args(fields: NodeFields<Args>): Args {
+  return build('Args', fields);
+}
+
+export type Tail = MirNode<
+  'Tail',
+  {
+    members: PresentArray<SourceSlice>;
+  }
+>;
+
+export function Tail(fields: NodeFields<Tail>): Tail {
+  return build('Tail', fields);
+}
 
 export type ExpressionNode =
   | ASTv2.LiteralExpression
@@ -196,16 +452,6 @@ export type ExpressionNode =
 
 export type ElementParameter = StaticAttr | DynamicAttr | Modifier | SplatAttr;
 
-export type Internal =
-  | Args
-  | Positional
-  | NamedArguments
-  | NamedArgument
-  | Tail
-  | NamedBlock
-  | NamedBlocks
-  | ElementParameters;
-export type ExprLike = ExpressionNode | Internal;
 export type Statement =
   | InElement
   | Debugger

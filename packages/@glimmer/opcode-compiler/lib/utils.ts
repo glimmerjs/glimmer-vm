@@ -39,7 +39,7 @@ export class NamedBlocksImpl implements NamedBlocks {
   }
 }
 
-export const EMPTY_BLOCKS = new NamedBlocksImpl(null);
+export const EMPTY_BLOCKS: NamedBlocks = new NamedBlocksImpl(null);
 
 export function namedBlocks(blocks: WireFormat.Core.Blocks): NamedBlocks {
   if (blocks === null) {

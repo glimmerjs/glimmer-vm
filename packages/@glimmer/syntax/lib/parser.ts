@@ -61,7 +61,7 @@ export abstract class Parser {
 
   constructor(
     source: src.Source,
-    entityParser = new EntityParser(namedCharRefs),
+    entityParser: EntityParser = new EntityParser(namedCharRefs),
     mode: 'precompile' | 'codemod' = 'precompile'
   ) {
     this.source = source;

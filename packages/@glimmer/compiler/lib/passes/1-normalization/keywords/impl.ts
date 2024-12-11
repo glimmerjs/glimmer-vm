@@ -16,7 +16,7 @@ export interface Keyword<K extends KeywordType = KeywordType, Out = unknown> {
   translate(node: KeywordCandidates[K], state: NormalizationState): Result<Out> | null;
 }
 
-export interface BlockKeyword<Out = unknown> {
+interface BlockKeyword<Out = unknown> {
   translate(node: ASTv2.InvokeBlock, state: NormalizationState): Result<Out> | null;
 }
 
@@ -78,30 +78,28 @@ class KeywordImpl<
   }
 }
 
-export const KEYWORD_NODES = {
+const KEYWORD_NODES = {
   Call: ['Call'],
   Block: ['InvokeBlock'],
   Append: ['AppendContent'],
   Modifier: ['ElementModifier'],
 } as const;
 
-export interface KeywordCandidates {
+interface KeywordCandidates {
   Call: ASTv2.ExpressionNode;
   Block: ASTv2.InvokeBlock;
   Append: ASTv2.AppendContent;
   Modifier: ASTv2.ElementModifier;
 }
 
-export type KeywordCandidate = KeywordCandidates[keyof KeywordCandidates];
-
-export interface KeywordMatches {
+interface KeywordMatches {
   Call: ASTv2.CallExpression;
   Block: ASTv2.InvokeBlock;
   Append: ASTv2.AppendContent;
   Modifier: ASTv2.ElementModifier;
 }
 
-export type KeywordMatch = KeywordMatches[keyof KeywordMatches];
+type KeywordMatch = KeywordMatches[keyof KeywordMatches];
 
 /**
  * A "generic" keyword is something like `has-block`, which makes sense in the context
@@ -109,13 +107,12 @@ export type KeywordMatch = KeywordMatches[keyof KeywordMatches];
  */
 export type GenericKeywordNode = ASTv2.AppendContent | ASTv2.CallExpression;
 
-export type KeywordNode =
+type KeywordNode =
   | GenericKeywordNode
   | ASTv2.CallExpression
   | ASTv2.InvokeBlock
   | ASTv2.ElementModifier;
 
-export type PossibleKeyword = KeywordNode;
 type OutFor<K extends Keyword | BlockKeyword> = K extends BlockKeyword<infer Out>
   ? Out
   : K extends Keyword<KeywordType, infer Out>

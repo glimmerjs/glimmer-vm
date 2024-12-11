@@ -37,20 +37,15 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/env": "^0.1.7",
     "@glimmer/fundamental": "workspace:*",
-    "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*"
+    "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
-    "@glimmer/debug-util": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
     "@glimmer/state": "workspace:*",
-    "eslint": "^8.52.0",
-    "publint": "^0.2.5",
-    "rollup": "^4.5.1",
-    "typescript": "*"
+    "eslint": "catalog:",
+    "publint": "catalog:",
+    "rollup": "catalog:",
+    "typescript": "catalog:"
   }
 }

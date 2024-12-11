@@ -12,7 +12,7 @@ import {
 
 //////////
 
-const CACHE_KEY = Symbol('CACHE_KEY');
+const CACHE_KEY: unique symbol = Symbol('CACHE_KEY');
 
 // public interface
 export interface Cache<T = unknown> {
@@ -96,7 +96,8 @@ function assertCache<T>(
   if (import.meta.env.DEV && !(typeof value === 'object' && value !== null && FN in value)) {
     throw new Error(
       `${fnName}() can only be used on an instance of a cache created with createCache(). Called with: ${String(
-        value === null ? 'null' : typeof value
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        value
       )}`
     );
   }

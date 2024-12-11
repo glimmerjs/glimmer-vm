@@ -10,6 +10,8 @@ import type {
   ResettableBlock,
   Scope,
   SimpleComment,
+  SimpleElement,
+  SimpleNode,
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
 } from '@glimmer/interfaces';
@@ -35,13 +37,20 @@ export class UpdatingVM implements IUpdatingVM {
 
   private frameStack: Stack<UpdatingVMFrame> = new Stack<UpdatingVMFrame>();
 
-  constructor(env: Environment, { alwaysRevalidate = false }) {
+  constructor(
+    env: Environment,
+    {
+      alwaysRevalidate = false,
+    }: {
+      alwaysRevalidate?: boolean | undefined;
+    }
+  ) {
     this.env = env;
     this.dom = env.getDOM();
     this.alwaysRevalidate = alwaysRevalidate;
   }
 
-  execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
+  execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler): void {
     if (import.meta.env.DEV) {
       let hasErrored = true;
       try {
@@ -85,15 +94,15 @@ export class UpdatingVM implements IUpdatingVM {
     return expect(this.frameStack.current, 'bug: expected a frame');
   }
 
-  goto(index: number) {
+  goto(index: number): void {
     this.frame.goto(index);
   }
 
-  try(ops: UpdatingOpcode[], handler: Nullable<ExceptionHandler>) {
+  try(ops: UpdatingOpcode[], handler: Nullable<ExceptionHandler>): void {
     this.frameStack.push(new UpdatingVMFrame(ops, handler));
   }
 
-  throw() {
+  throw(): void {
     this.frame.handleException();
     this.frameStack.pop();
   }
@@ -121,19 +130,19 @@ export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
     this.bounds = bounds;
   }
 
-  parentElement() {
+  parentElement(): SimpleElement {
     return this.bounds.parentElement();
   }
 
-  firstNode() {
+  firstNode(): SimpleNode {
     return this.bounds.firstNode();
   }
 
-  lastNode() {
+  lastNode(): SimpleNode {
     return this.bounds.lastNode();
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     vm.try(this.children, null);
   }
 }
@@ -143,11 +152,11 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
   protected declare bounds: ResettableBlock; // Shadows property on base class
 
-  override evaluate(vm: UpdatingVM) {
+  override evaluate(vm: UpdatingVM): void {
     vm.try(this.children, this);
   }
 
-  handleException() {
+  handleException(): void {
     let {
       state,
       bounds,
@@ -189,7 +198,7 @@ export class ListItemOpcode extends TryOpcode {
     return !this.retained;
   }
 
-  reset() {
+  reset(): void {
     this.retained = false;
   }
 }
@@ -215,12 +224,12 @@ export class ListBlockOpcode extends BlockOpcode {
     this.lastIterator = valueForRef(iterableRef);
   }
 
-  initializeChild(opcode: ListItemOpcode) {
+  initializeChild(opcode: ListItemOpcode): void {
     opcode.index = this.children.length - 1;
     this.opcodeMap.set(opcode.key, opcode);
   }
 
-  override evaluate(vm: UpdatingVM) {
+  override evaluate(vm: UpdatingVM): void {
     let iterator = valueForRef(this.iterableRef);
 
     if (this.lastIterator !== iterator) {

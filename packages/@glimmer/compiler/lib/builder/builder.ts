@@ -45,7 +45,6 @@ import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-form
 import type {
   BuilderComment,
   BuilderStatement,
-  NormalizedAngleInvocation,
   NormalizedAttrs,
   NormalizedBlock,
   NormalizedBlocks,
@@ -79,7 +78,7 @@ export class ProgramSymbols implements Symbols {
   _freeVariables: string[] = [];
   _symbols: string[] = ['this'];
 
-  top = this;
+  readonly top: ProgramSymbols = this;
 
   toSymbols(): string[] {
     return this._symbols.slice(1);
@@ -194,12 +193,6 @@ function addString(array: string[], item: string): number {
   }
 }
 
-export interface BuilderGetFree {
-  type: 'GetFree';
-  head: string;
-  tail: string[];
-}
-
 function unimpl(message: string): Error {
   return new Error(`unimplemented ${message}`);
 }
@@ -215,7 +208,7 @@ export function buildStatements(
   return out;
 }
 
-export function buildNormalizedStatements(
+function buildNormalizedStatements(
   statements: NormalizedStatement[],
   symbols: Symbols
 ): WireFormat.Statement[] {
@@ -406,32 +399,7 @@ function hasSplat(attrs: Nullable<NormalizedAttrs>): boolean {
   return Object.keys(attrs).some((a) => attrs[a] === SPLAT_HEAD);
 }
 
-export function buildAngleInvocation(
-  { attrs, block, head }: NormalizedAngleInvocation,
-  symbols: Symbols
-): WireFormat.Statements.Component {
-  let paramList: WireFormat.ElementParameter[] = [];
-  let args: WireFormat.Core.Hash = null;
-  let blockList: WireFormat.Statement[] = [];
-
-  if (attrs) {
-    let built = buildElementParams(attrs, symbols);
-    paramList = built.params;
-    args = built.args;
-  }
-
-  if (block) blockList = buildNormalizedStatements(block, symbols);
-
-  return [
-    Op.Component,
-    buildExpression(head, VariableResolutionContext.ResolveAsComponentHead, symbols),
-    isPresentArray(paramList) ? paramList : null,
-    args,
-    [['default'], [[blockList, []]]],
-  ];
-}
-
-export function buildElementParams(
+function buildElementParams(
   attrs: NormalizedAttrs,
   symbols: Symbols
 ): { params: WireFormat.ElementParameter[]; args: WireFormat.Core.Hash } {
@@ -461,7 +429,7 @@ export function buildElementParams(
   return { params, args: isPresentArray(keys) && isPresentArray(values) ? [keys, values] : null };
 }
 
-export function extractNamespace(name: string): Nullable<AttrNamespace> {
+function extractNamespace(name: string): Nullable<AttrNamespace> {
   if (name === 'xmlns') {
     return NS_XMLNS;
   }
@@ -486,7 +454,7 @@ export function extractNamespace(name: string): Nullable<AttrNamespace> {
   return null;
 }
 
-export function buildAttributeValue(
+function buildAttributeValue(
   name: string,
   value: NormalizedExpression,
   namespace: Nullable<AttrNamespace>,
@@ -540,7 +508,7 @@ function varContext(context: ExprResolution, bare: boolean): VarResolution {
   }
 }
 
-export function buildExpression(
+function buildExpression(
   expr: NormalizedExpression,
   context: ExprResolution,
   symbols: Symbols
@@ -605,7 +573,7 @@ export function buildExpression(
   }
 }
 
-export function buildCallHead(
+function buildCallHead(
   callHead: NormalizedHead,
   context: VarResolution,
   symbols: Symbols
@@ -617,7 +585,7 @@ export function buildCallHead(
   }
 }
 
-export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
+function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
   return buildVar(head.path.head, VariableResolutionContext.Strict, symbols, head.path.tail);
 }
 
@@ -632,18 +600,14 @@ type VarResolution =
   | 'SubExpression'
   | 'Strict';
 
-export function buildVar(
+function buildVar(
   head: Variable,
   context: VarResolution,
   symbols: Symbols,
   path: PresentArray<string>
 ): Expressions.GetPath;
-export function buildVar(
-  head: Variable,
-  context: VarResolution,
-  symbols: Symbols
-): Expressions.GetVar;
-export function buildVar(
+function buildVar(head: Variable, context: VarResolution, symbols: Symbols): Expressions.GetVar;
+function buildVar(
   head: Variable,
   context: VarResolution,
   symbols: Symbols,
@@ -702,7 +666,7 @@ function getSymbolForVar(kind: Exclude<VariableKind, FREE_VAR>, symbols: Symbols
   }
 }
 
-export function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOpcode {
+function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOpcode {
   switch (context) {
     case VariableResolutionContext.Strict:
       return Op.GetStrictKeyword;
@@ -719,7 +683,7 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
   }
 }
 
-export function buildParams(
+function buildParams(
   exprs: Nullable<NormalizedParams>,
   symbols: Symbols
 ): Nullable<WireFormat.Core.Params> {
@@ -728,14 +692,14 @@ export function buildParams(
   return exprs.map((e) => buildExpression(e, 'Strict', symbols)) as WireFormat.Core.ConcatParams;
 }
 
-export function buildConcat(
+function buildConcat(
   exprs: [NormalizedExpression, ...NormalizedExpression[]],
   symbols: Symbols
 ): WireFormat.Core.ConcatParams {
   return exprs.map((e) => buildExpression(e, 'AttrValue', symbols)) as WireFormat.Core.ConcatParams;
 }
 
-export function buildHash(exprs: Nullable<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
+function buildHash(exprs: Nullable<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
   if (exprs === null) return null;
 
   let out: [string[], WireFormat.Expression[]] = [[], []];
@@ -748,7 +712,7 @@ export function buildHash(exprs: Nullable<NormalizedHash>, symbols: Symbols): Wi
   return out as WireFormat.Core.Hash;
 }
 
-export function buildBlocks(
+function buildBlocks(
   blocks: NormalizedBlocks,
   blockParams: Nullable<string[]>,
   parent: Symbols

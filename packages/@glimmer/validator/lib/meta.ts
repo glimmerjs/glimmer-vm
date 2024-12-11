@@ -5,7 +5,7 @@ import { getTagMeta, getTrackingDebug, upsertTagMetaFor } from '@glimmer/fundame
 import type { Indexable } from './utils';
 
 import { unwrap } from './utils';
-import { createUpdatableTag, DIRTY_TAG } from './validators';
+import { createUpdatableTag, dirtyTag } from './validators';
 
 function isObjectLike<T>(u: T): u is Indexable & T {
   return (typeof u === 'object' && u !== null) || typeof u === 'function';
@@ -35,7 +35,7 @@ export function dirtyTagFor<T extends object>(
       unwrap(getTrackingDebug)().assertTagNotConsumed(propertyTag, obj, key);
     }
 
-    DIRTY_TAG(propertyTag, true);
+    dirtyTag(propertyTag, true);
   }
 }
 

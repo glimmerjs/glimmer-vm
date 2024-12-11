@@ -1,4 +1,5 @@
 import type {
+  CapturedNamedArguments,
   CapturedPositionalArguments,
   CurriedType,
   Helper,
@@ -47,7 +48,7 @@ import {
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
-import { assign, isIndexable } from '@glimmer/util';
+import { isIndexable, LOGGER } from '@glimmer/util';
 import { $v0 } from '@glimmer/vm';
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
@@ -109,11 +110,11 @@ APPEND_OPCODES.add(VM_DYNAMIC_HELPER_OP, (vm) => {
       let helper = resolveHelper(resolvedDef, ref);
 
       if (named !== undefined) {
-        args.named = assign({}, ...named, args.named);
+        args.named = { ...named, ...args.named } as unknown as CapturedNamedArguments;
       }
 
       if (positional !== undefined) {
-        args.positional = positional.concat(args.positional) as CapturedPositionalArguments;
+        args.positional = [...positional, ...args.positional] as CapturedPositionalArguments;
       }
 
       helperRef = helper(args, owner);
@@ -320,8 +321,7 @@ APPEND_OPCODES.add(VM_LOG_OP, (vm) => {
   vm.loadValue(
     $v0,
     createComputeRef(() => {
-      // eslint-disable-next-line no-console
-      console.log(...reifyPositional(positional));
+      LOGGER.log(...reifyPositional(positional));
     })
   );
 });

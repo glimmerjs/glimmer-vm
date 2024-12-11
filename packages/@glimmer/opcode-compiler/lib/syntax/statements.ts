@@ -71,7 +71,10 @@ import { debugSymbolsOperand, labelOperand, stdlibOperand } from '../opcode-buil
 import { namedBlocks } from '../utils';
 import { Compilers } from './compilers';
 
-export const STATEMENTS = new Compilers<PushStatementOp, StatementSexpOpcode>();
+export const STATEMENTS: Compilers<PushStatementOp, StatementSexpOpcode> = new Compilers<
+  PushStatementOp,
+  StatementSexpOpcode
+>();
 
 const INFLATE_ATTR_TABLE: {
   [I in WellKnownAttrName]: string;

@@ -87,7 +87,7 @@ export class ProgramHeapImpl implements ProgramHeap {
     return unwrap(this.heap[address]);
   }
 
-  setbyaddr(address: number, value: number) {
+  setbyaddr(address: number, value: number): void {
     this.heap[address] = value;
   }
 
@@ -164,7 +164,7 @@ export class ProgramHeapImpl implements ProgramHeap {
     this.offset = this.offset - compactedSize;
   }
 
-  capture(offset = this.offset): SerializedHeap {
+  capture(offset: number = this.offset): SerializedHeap {
     // Only called in eager mode
     let buffer = slice(this.heap, 0, offset).buffer;
     return {

@@ -1,9 +1,17 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';
 
-import type { SourceLocation, SourcePosition } from '../location';
+import type { SourceLocation } from '../../v1/handlebars-ast';
+import type { SourcePosition } from '../location';
 import type { Source } from '../source';
-import type { BrokenKind, InvisibleKind, NonExistentKind, OffsetKind } from './kinds';
+import type {
+  BrokenKind,
+  CharOffsetKind,
+  HbsPositionKind,
+  InvisibleKind,
+  NonExistentKind,
+  OffsetKind,
+} from './kinds';
 import type { MatchFn } from './match';
 import type { AnyPosition, SourceOffset } from './offset';
 
@@ -308,7 +316,7 @@ export class SourceSpan implements SourceLocation {
 type AnySpan = HbsSpan | CharPositionSpan | InvisibleSpan;
 
 class CharPositionSpan implements SpanData {
-  readonly kind = CHAR_OFFSET_KIND;
+  readonly kind: CharOffsetKind = CHAR_OFFSET_KIND;
 
   #locPosSpan: HbsSpan | BROKEN | null = null;
 
@@ -337,7 +345,7 @@ class CharPositionSpan implements SpanData {
     return this.charPositions.end;
   }
 
-  locDidUpdate() {
+  locDidUpdate(): void {
     if (LOCAL_DEBUG) {
       // eslint-disable-next-line no-console
       console.warn(
@@ -385,7 +393,7 @@ class CharPositionSpan implements SpanData {
 }
 
 export class HbsSpan implements SpanData {
-  readonly kind = HBS_POSITION_KIND;
+  readonly kind: HbsPositionKind = HBS_POSITION_KIND;
 
   #charPosSpan: CharPositionSpan | BROKEN | null = null;
 
@@ -511,7 +519,7 @@ class InvisibleSpan implements SpanData {
     return this.string || '';
   }
 
-  locDidUpdate({ start, end }: { start?: SourcePosition; end?: SourcePosition }) {
+  locDidUpdate({ start, end }: { start?: SourcePosition; end?: SourcePosition }): void {
     if (start !== undefined) {
       this.loc.start = start;
     }

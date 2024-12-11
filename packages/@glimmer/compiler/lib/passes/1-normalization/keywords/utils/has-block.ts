@@ -47,8 +47,8 @@ function translateHasBlockKeyword(type: string) {
   ): Result<mir.HasBlock | mir.HasBlockParams> => {
     let block =
       type === 'has-block'
-        ? new mir.HasBlock({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
-        : new mir.HasBlockParams({
+        ? mir.HasBlock({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
+        : mir.HasBlockParams({
             loc: node.loc,
             target,
             symbol: scope.allocateBlock(target.chars),

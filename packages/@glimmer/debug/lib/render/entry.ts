@@ -22,7 +22,7 @@ export interface LogLine {
  * LogGroup represents a group of log entries. It is logged by calling *either* `console.group` or
  * `console.groupCollapsed` (depending on the value of `collapsed`).
  */
-export interface LogGroup {
+interface LogGroup {
   type: 'group';
   collapsed: boolean;
   heading: unknown[];

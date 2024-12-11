@@ -158,7 +158,10 @@ function uniqueKeyFor(keyFor: KeyFor) {
   };
 }
 
-export function createIteratorRef(listRef: Reference, key: string) {
+export function createIteratorRef(
+  listRef: Reference,
+  key: string
+): Reference<ArrayIterator | IteratorWrapper> {
   return createComputeRef(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let iterable = valueForRef(listRef) as { [Symbol.iterator]: any } | null | false;
@@ -179,7 +182,7 @@ export function createIteratorRef(listRef: Reference, key: string) {
   });
 }
 
-export function createIteratorItemRef(_value: unknown) {
+export function createIteratorItemRef(_value: unknown): Reference {
   let value = _value;
   let tag = createTag();
 
@@ -203,11 +206,11 @@ class IteratorWrapper implements OpaqueIterator {
     private keyFor: KeyFor
   ) {}
 
-  isEmpty() {
+  isEmpty(): boolean {
     return this.inner.isEmpty();
   }
 
-  next() {
+  next(): OpaqueIterationItem {
     let nextValue = this.inner.next() as OpaqueIterationItem;
 
     if (nextValue !== null) {

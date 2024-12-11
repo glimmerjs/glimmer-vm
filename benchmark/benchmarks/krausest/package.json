@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.9.4",
-    "eslint": "^8.52.0",
+    "eslint": "catalog:",
     "vite": "^5.4.10"
   },
   "engines": {

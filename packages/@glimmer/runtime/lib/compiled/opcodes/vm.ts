@@ -288,7 +288,7 @@ export class Assert implements UpdatingOpcode {
     this.last = valueForRef(ref);
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { last, ref } = this;
     let current = valueForRef(ref);
 
@@ -308,7 +308,7 @@ export class AssertFilter<T, U> implements UpdatingOpcode {
     this.last = filter(valueForRef(ref));
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { last, ref, filter } = this;
     let current = filter(valueForRef(ref));
 
@@ -323,12 +323,12 @@ export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
   private lastRevision: Revision = INITIAL;
   private target?: number;
 
-  finalize(tag: Tag, target: number) {
+  finalize(tag: Tag, target: number): void {
     this.target = target;
     this.didModify(tag);
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { tag, target, lastRevision } = this;
 
     if (!vm.alwaysRevalidate && validateTag(tag, lastRevision)) {
@@ -337,7 +337,7 @@ export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
     }
   }
 
-  didModify(tag: Tag) {
+  didModify(tag: Tag): void {
     this.tag = tag;
     this.lastRevision = valueForTag(this.tag);
     consumeTag(tag);
@@ -347,7 +347,7 @@ export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
 export class BeginTrackFrameOpcode implements UpdatingOpcode {
   constructor(private debugLabel?: string) {}
 
-  evaluate() {
+  evaluate(): void {
     beginTrackFrame(this.debugLabel);
   }
 }
@@ -355,7 +355,7 @@ export class BeginTrackFrameOpcode implements UpdatingOpcode {
 export class EndTrackFrameOpcode implements UpdatingOpcode {
   constructor(private target: JumpIfNotModifiedOpcode) {}
 
-  evaluate() {
+  evaluate(): void {
     let tag = endTrackFrame();
     this.target.didModify(tag);
   }

@@ -1,4 +1,5 @@
-export let assign = Object.assign;
+/** @deprecated use spread */
+export let assign: typeof Object.assign = Object.assign;
 
 export function values<T>(obj: { [s: string]: T }): T[] {
   return Object.values(obj);

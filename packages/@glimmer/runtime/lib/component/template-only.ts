@@ -37,7 +37,8 @@ export class TemplateOnlyComponentManager implements InternalComponentManager {
   }
 }
 
-export const TEMPLATE_ONLY_COMPONENT_MANAGER = new TemplateOnlyComponentManager();
+export const TEMPLATE_ONLY_COMPONENT_MANAGER: TemplateOnlyComponentManager =
+  new TemplateOnlyComponentManager();
 
 // This is only exported for types, don't use this class directly
 export class TemplateOnlyComponentDefinition {
@@ -46,7 +47,7 @@ export class TemplateOnlyComponentDefinition {
     public name = '(unknown template-only component)'
   ) {}
 
-  toString() {
+  toString(): string {
     return this.moduleName;
   }
 }

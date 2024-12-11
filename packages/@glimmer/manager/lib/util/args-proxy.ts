@@ -14,7 +14,7 @@ export function getCustomTagFor(obj: object): ((obj: object, key: string) => Tag
   return CUSTOM_TAG_FOR.get(obj);
 }
 
-export function setCustomTagFor(obj: object, customTagFn: (obj: object, key: string) => Tag) {
+export function setCustomTagFor(obj: object, customTagFn: (obj: object, key: string) => Tag): void {
   CUSTOM_TAG_FOR.set(obj, customTagFn);
 }
 

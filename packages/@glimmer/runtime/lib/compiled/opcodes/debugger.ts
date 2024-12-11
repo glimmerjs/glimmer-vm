@@ -26,11 +26,11 @@ function debugCallback(context: unknown, get: DebugGet): void {
 let callback = debugCallback;
 
 // For testing purposes
-export function setDebuggerCallback(cb: DebugCallback) {
+export function setDebuggerCallback(cb: DebugCallback): void {
   callback = cb;
 }
 
-export function resetDebuggerCallback() {
+export function resetDebuggerCallback(): void {
   callback = debugCallback;
 }
 

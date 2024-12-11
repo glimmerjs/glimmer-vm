@@ -59,7 +59,7 @@ export default class EvaluationStackImpl implements EvaluationStack {
     this.stack[++this.registers[$sp]] = value;
   }
 
-  dup(position = this.registers[$sp]): void {
+  dup(position: number = this.registers[$sp]): void {
     this.stack[++this.registers[$sp]] = this.stack[position];
   }
 
@@ -77,11 +77,11 @@ export default class EvaluationStackImpl implements EvaluationStack {
     return this.stack[this.registers[$sp] - offset] as T;
   }
 
-  get<T>(offset: number, base = this.registers[$fp]): T {
+  get<T>(offset: number, base: number = this.registers[$fp]): T {
     return this.stack[base + offset] as T;
   }
 
-  set(value: unknown, offset: number, base = this.registers[$fp]) {
+  set(value: unknown, offset: number, base: number = this.registers[$fp]): void {
     this.stack[base + offset] = value;
   }
 
@@ -95,7 +95,7 @@ export default class EvaluationStackImpl implements EvaluationStack {
     return this.stack.slice(start, end);
   }
 
-  reset() {
+  reset(): void {
     this.stack.length = 0;
   }
 

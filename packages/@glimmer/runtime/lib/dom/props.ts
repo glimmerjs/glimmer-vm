@@ -6,7 +6,10 @@ import type { Dict, SimpleElement } from '@glimmer/interfaces';
  * @param slotName {String}
  * @returns {Object} { name, type }
  */
-export function normalizeProperty(element: SimpleElement, slotName: string) {
+export function normalizeProperty(
+  element: SimpleElement,
+  slotName: string
+): { normalized: string; type: string } {
   let type, normalized;
 
   if (slotName in element) {

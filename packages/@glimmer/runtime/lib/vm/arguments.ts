@@ -39,9 +39,9 @@ import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/op
 
 export class VMArgumentsImpl implements VMArguments {
   private stack: Nullable<EvaluationStack> = null;
-  public positional = new PositionalArgumentsImpl();
-  public named = new NamedArgumentsImpl();
-  public blocks = new BlockArgumentsImpl();
+  public positional: PositionalArgumentsImpl = new PositionalArgumentsImpl();
+  public named: NamedArgumentsImpl = new NamedArgumentsImpl();
+  public blocks: BlockArgumentsImpl = new BlockArgumentsImpl();
 
   constructor() {
     setLocalDebugType('args', this);
@@ -63,7 +63,7 @@ export class VMArgumentsImpl implements VMArguments {
     blockNames: readonly string[],
     positionalCount: number,
     atNames: boolean
-  ) {
+  ): void {
     this.stack = stack;
 
     /*
@@ -104,7 +104,7 @@ export class VMArgumentsImpl implements VMArguments {
     return this.positional.at(pos);
   }
 
-  realloc(offset: number) {
+  realloc(offset: number): void {
     let { stack } = this;
     if (offset > 0 && stack !== null) {
       let { positional, named } = this;
@@ -149,7 +149,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     setLocalDebugType('args:positional', this);
   }
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: EvaluationStack, base: number): void {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -157,7 +157,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     this._references = EMPTY_REFERENCES;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number) {
+  setup(stack: EvaluationStack, base: number, length: number): void {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -183,7 +183,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     return this.references as CapturedPositionalArguments;
   }
 
-  prepend(other: Reference[]) {
+  prepend(other: Reference[]): void {
     let additions = other.length;
 
     if (additions > 0) {
@@ -227,7 +227,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     setLocalDebugType('args:named', this);
   }
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: EvaluationStack, base: number): void {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -243,7 +243,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     length: number,
     names: readonly string[],
     atNames: boolean
-  ) {
+  ): void {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -324,7 +324,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     return map as CapturedNamedArguments;
   }
 
-  merge(other: Record<string, Reference>) {
+  merge(other: Record<string, Reference>): void {
     let keys = Object.keys(other);
 
     if (keys.length > 0) {
@@ -388,7 +388,7 @@ export class BlockArgumentsImpl implements BlockArguments {
     setLocalDebugType('args:blocks', this);
   }
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: EvaluationStack, base: number): void {
     this.stack = stack;
     this.names = EMPTY_STRING_ARRAY;
     this.base = base;
@@ -399,7 +399,7 @@ export class BlockArgumentsImpl implements BlockArguments {
     this.internalValues = EMPTY_BLOCK_VALUES;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number, names: readonly string[]) {
+  setup(stack: EvaluationStack, base: number, length: number, names: readonly string[]): void {
     this.stack = stack;
     this.names = names;
     this.base = base;
@@ -498,7 +498,7 @@ export function createCapturedArgs(named: Dict<Reference>, positional: Reference
   } as CapturedArguments;
 }
 
-export function reifyNamed(named: CapturedNamedArguments) {
+export function reifyNamed(named: CapturedNamedArguments): Dict {
   let reified = dict();
 
   for (const [key, value] of Object.entries(named)) {
@@ -508,11 +508,14 @@ export function reifyNamed(named: CapturedNamedArguments) {
   return reified;
 }
 
-export function reifyPositional(positional: CapturedPositionalArguments) {
+export function reifyPositional(positional: CapturedPositionalArguments): unknown[] {
   return positional.map(valueForRef);
 }
 
-export function reifyArgs(args: CapturedArguments) {
+export function reifyArgs(args: CapturedArguments): {
+  named: Dict;
+  positional: unknown[];
+} {
   return {
     named: reifyNamed(args.named),
     positional: reifyPositional(args.positional),
@@ -537,7 +540,7 @@ function ArgumentErrorImpl(error: any) {
   };
 }
 
-export function reifyNamedDebug(named: CapturedNamedArguments) {
+export function reifyNamedDebug(named: CapturedNamedArguments): Dict {
   let reified = dict();
   for (const [key, value] of Object.entries(named)) {
     try {
@@ -550,7 +553,7 @@ export function reifyNamedDebug(named: CapturedNamedArguments) {
   return reified;
 }
 
-export function reifyPositionalDebug(positional: CapturedPositionalArguments) {
+export function reifyPositionalDebug(positional: CapturedPositionalArguments): unknown[] {
   return positional.map((p) => {
     try {
       return valueForRef(p);
@@ -560,7 +563,10 @@ export function reifyPositionalDebug(positional: CapturedPositionalArguments) {
   });
 }
 
-export function reifyArgsDebug(args: CapturedArguments) {
+export function reifyArgsDebug(args: CapturedArguments): {
+  named: Dict;
+  positional: unknown[];
+} {
   let named = reifyNamedDebug(args.named);
   let positional = reifyPositionalDebug(args.positional);
   return {
@@ -571,4 +577,4 @@ export function reifyArgsDebug(args: CapturedArguments) {
 
 export const EMPTY_NAMED = Object.freeze(Object.create(null)) as CapturedNamedArguments;
 export const EMPTY_POSITIONAL = EMPTY_REFERENCES as CapturedPositionalArguments;
-export const EMPTY_ARGS = createCapturedArgs(EMPTY_NAMED, EMPTY_POSITIONAL);
+export const EMPTY_ARGS: CapturedArguments = createCapturedArgs(EMPTY_NAMED, EMPTY_POSITIONAL);

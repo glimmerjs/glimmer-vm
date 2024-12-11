@@ -156,7 +156,7 @@ export class VM {
    * [!] pop Eval Stack -> `value`
    * [$] $register <- `value`
    */
-  load(register: SyscallRegister) {
+  load(register: SyscallRegister): void {
     let value = this.stack.pop();
 
     this.loadValue(register, value);
@@ -195,7 +195,7 @@ export class VM {
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
-  call(handle: number | null) {
+  call(handle: number | null): void {
     if (handle !== null) {
       if (LOCAL_DEBUG) {
         dev(this.trace).willCall(handle);
@@ -206,7 +206,7 @@ export class VM {
   }
 
   // Return to the `program` address stored in $ra
-  return() {
+  return(): void {
     if (LOCAL_DEBUG) {
       dev(this.trace).return();
     }
@@ -263,7 +263,7 @@ export class VM {
     this.pushUpdating();
   }
 
-  static initial(context: EvaluationContext, options: InitialVmState) {
+  static initial(context: EvaluationContext, options: InitialVmState): VM {
     let scope = ScopeImpl.root(
       options.owner,
       options.scope ?? { self: UNDEFINED_REFERENCE, size: 0 }
@@ -309,7 +309,7 @@ export class VM {
     };
   }
 
-  capture(args: number, pc = this.lowlevel.fetchRegister($pc)): Closure {
+  capture(args: number, pc: number = this.lowlevel.fetchRegister($pc)): Closure {
     return new Closure(this.captureClosure(args, pc), this.context);
   }
 
@@ -327,7 +327,7 @@ export class VM {
    * [!] push Cache Stack <- `guard`
    * [!] push Tracking Stack
    */
-  beginCacheGroup(name?: string) {
+  beginCacheGroup(name?: string): void {
     let opcodes = this.updating();
     let guard = new JumpIfNotModifiedOpcode();
 
@@ -352,7 +352,7 @@ export class VM {
    * [ ] create `end` (`EndTrackFrameOpcode`) with `guard`
    * [-] consume `tag`
    */
-  commitCacheGroup() {
+  commitCacheGroup(): void {
     let opcodes = this.updating();
     let guard = expect(this.#stacks.cache.pop(), 'VM BUG: Expected a cache group');
 
@@ -378,7 +378,7 @@ export class VM {
    * [!] push Updating List <- `try`
    * [!] push Updating Stack <- `try.children`
    */
-  enter(args: number) {
+  enter(args: number): void {
     let updating: UpdatingOpcode[] = [];
 
     let state = this.capture(args);
@@ -432,7 +432,7 @@ export class VM {
     return opcode;
   }
 
-  registerItem(opcode: ListItemOpcode) {
+  registerItem(opcode: ListItemOpcode): void {
     this.listBlock().initializeChild(opcode);
   }
 
@@ -455,7 +455,7 @@ export class VM {
    * [!] push Updating List <- `list`
    * [!] push Updating Stack <- `list.children`
    */
-  enterList(iterableRef: Reference<OpaqueIterator>, offset: number) {
+  enterList(iterableRef: Reference<OpaqueIterator>, offset: number): void {
     let updating: ListItemOpcode[] = [];
 
     let addr = this.lowlevel.target(offset);
@@ -504,7 +504,7 @@ export class VM {
    * [!] pop Element Stack
    * [!] pop Updating Stack
    */
-  exit() {
+  exit(): void {
     this.#stacks.destroyable.pop();
     this.#tree.popBlock();
     this.popUpdating();
@@ -524,7 +524,7 @@ export class VM {
    *
    * [!] pop List Stack
    */
-  exitList() {
+  exitList(): void {
     this.exit();
     this.#stacks.list.pop();
   }
@@ -554,7 +554,7 @@ export class VM {
    *
    * [!] push Scope Stack <- `child` of current Scope
    */
-  pushChildScope() {
+  pushChildScope(): void {
     this.#stacks.scope.push(this.scope().child());
   }
 
@@ -567,7 +567,7 @@ export class VM {
    *
    * [!] push Scope Stack <- `scope`
    */
-  pushScope(scope: Scope) {
+  pushScope(scope: Scope): void {
     this.#stacks.scope.push(scope);
   }
 
@@ -580,7 +580,7 @@ export class VM {
    *
    * [!] pop Scope Stack
    */
-  popScope() {
+  popScope(): void {
     this.#stacks.scope.pop();
   }
 
@@ -608,7 +608,7 @@ export class VM {
    *
    * [!] pop Dynamic Scope Stack `names.length` times
    */
-  bindDynamicScope(names: string[]) {
+  bindDynamicScope(names: string[]): void {
     let scope = this.dynamicScope();
 
     for (const name of reverse(names)) {
@@ -645,7 +645,7 @@ export class VM {
    *
    * @utility
    */
-  updateWith(opcode: UpdatingOpcode) {
+  updateWith(opcode: UpdatingOpcode): void {
     this.updating().push(opcode);
   }
 
@@ -696,7 +696,7 @@ export class VM {
     );
   }
 
-  popDynamicScope() {
+  popDynamicScope(): void {
     this.#stacks.dynamicScope.pop();
   }
 

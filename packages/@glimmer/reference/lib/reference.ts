@@ -66,10 +66,10 @@ export function createPrimitiveRef<T extends string | symbol | number | boolean 
   return ref;
 }
 
-export const UNDEFINED_REFERENCE = createPrimitiveRef(undefined);
-export const NULL_REFERENCE = createPrimitiveRef(null);
-export const TRUE_REFERENCE = createPrimitiveRef(true as const);
-export const FALSE_REFERENCE = createPrimitiveRef(false as const);
+export const UNDEFINED_REFERENCE: Reference<undefined> = createPrimitiveRef(undefined);
+export const NULL_REFERENCE: Reference<null> = createPrimitiveRef(null);
+export const TRUE_REFERENCE: Reference<true> = createPrimitiveRef(true as const);
+export const FALSE_REFERENCE: Reference<false> = createPrimitiveRef(false as const);
 
 export function createConstRef<T>(value: T, debugLabel: false | string): Reference<T> {
   const ref = new ReferenceImpl<T>(CONSTANT);
@@ -120,7 +120,7 @@ export function createReadOnlyRef(ref: Reference): Reference {
   return createComputeRef(() => valueForRef(ref), null, ref.debugLabel);
 }
 
-export function isInvokableRef(ref: Reference) {
+export function isInvokableRef(ref: Reference): boolean {
   return ref[REFERENCE] === INVOKABLE;
 }
 
@@ -135,19 +135,19 @@ export function createInvokableRef(inner: Reference): Reference {
   return ref;
 }
 
-export function isConstRef(_ref: Reference) {
+export function isConstRef(_ref: Reference): boolean {
   const ref = _ref as ReferenceImpl;
 
   return ref.tag === CONSTANT_TAG;
 }
 
-export function isUpdatableRef(_ref: Reference) {
+export function isUpdatableRef(_ref: Reference): boolean {
   const ref = _ref as ReferenceImpl;
 
   return ref.update !== null;
 }
 
-export function updateRef(_ref: Reference, value: unknown) {
+export function updateRef(_ref: Reference, value: unknown): void {
   const ref = _ref as ReferenceImpl;
 
   const update = expect(ref.update, 'called update on a non-updatable reference');

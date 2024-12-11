@@ -26,7 +26,9 @@ import { check, CheckNumber } from '@glimmer/debug';
 import { InternalComponentCapabilities } from '@glimmer/vm';
 
 // @triage does this WeakMap need to be in @glimmer/state
-export const FROM_CAPABILITIES = import.meta.env.DEV ? new WeakSet() : undefined;
+export const FROM_CAPABILITIES: WeakSet<WeakKey> | undefined = import.meta.env.DEV
+  ? new WeakSet()
+  : undefined;
 
 export function buildCapabilities<T extends object>(capabilities: T): T & Capabilities {
   if (import.meta.env.DEV) {
