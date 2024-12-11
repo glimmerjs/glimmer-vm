@@ -17,7 +17,8 @@ function run(command, args = []) {
   });
 }
 
-(async function () {
+// @todo is it actually correct to not await here?
+void (async function () {
   await run('ember', ['browserstack:connect']);
 
   try {

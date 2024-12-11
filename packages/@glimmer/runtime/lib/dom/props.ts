@@ -36,14 +36,6 @@ export function normalizeProperty(
   return { normalized, type };
 }
 
-export function normalizePropertyValue(value: unknown): unknown {
-  if (value === '') {
-    return true;
-  }
-
-  return value;
-}
-
 // properties that MUST be set as attributes, due to:
 // * browser bug
 // * strange spec outlier

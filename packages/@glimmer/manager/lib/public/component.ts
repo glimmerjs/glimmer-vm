@@ -59,25 +59,25 @@ export function componentCapabilities<Version extends keyof ComponentCapabilitie
   });
 }
 
-export function hasAsyncLifeCycleCallbacks<ComponentInstance>(
+function hasAsyncLifeCycleCallbacks<ComponentInstance>(
   delegate: ComponentManager<ComponentInstance>
 ): delegate is ComponentManagerWithAsyncLifeCycleCallbacks<ComponentInstance> {
   return delegate.capabilities.asyncLifeCycleCallbacks;
 }
 
-export function hasUpdateHook<ComponentInstance>(
+function hasUpdateHook<ComponentInstance>(
   delegate: ComponentManager<ComponentInstance>
 ): delegate is ComponentManagerWithUpdateHook<ComponentInstance> {
   return delegate.capabilities.updateHook;
 }
 
-export function hasAsyncUpdateHook<ComponentInstance>(
+function hasAsyncUpdateHook<ComponentInstance>(
   delegate: ComponentManager<ComponentInstance>
 ): delegate is ComponentManagerWithAsyncUpdateHook<ComponentInstance> {
   return hasAsyncLifeCycleCallbacks(delegate) && hasUpdateHook(delegate);
 }
 
-export function hasDestructors<ComponentInstance>(
+function hasDestructors<ComponentInstance>(
   delegate: ComponentManager<ComponentInstance>
 ): delegate is ComponentManagerWithDestructors<ComponentInstance> {
   return delegate.capabilities.destructor;

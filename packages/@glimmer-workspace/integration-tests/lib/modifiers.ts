@@ -14,7 +14,7 @@ export interface TestModifierConstructor {
   new (): TestModifierInstance;
 }
 
-export interface TestModifierInstance {
+interface TestModifierInstance {
   element?: SimpleElement;
   didInsertElement?(_params: unknown[], _hash: Dict<unknown>): void;
   didUpdate?(_params: unknown[], _hash: Dict<unknown>): void;

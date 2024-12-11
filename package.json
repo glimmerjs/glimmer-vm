@@ -51,6 +51,7 @@
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer-workspace/integration-tests": "workspace:*",
     "@glimmer/env": "0.1.7",
+    "@pnpm/meta-updater": "^2.0.3",
     "@release-it-plugins/lerna-changelog": "^6.0.0",
     "@release-it-plugins/workspaces": "^4.0.0",
     "@rollup/plugin-sucrase": "^5.0.2",
@@ -74,11 +75,13 @@
     "ember-cli-browserstack": "^2.0.1",
     "ensure-posix-path": "^1.1.1",
     "eslint": "catalog:",
+    "eslint-plugin-jsonc": "^2.18.2",
     "esyes": "^1.0.2",
     "execa": "^7.1.1",
     "fast-glob": "^3.2.12",
     "glob": "^10.2.3",
     "js-yaml": "^4.1.0",
+    "jsonc-eslint-parser": "^2.4.0",
     "knip": "^5.39.2",
     "loader.js": "^4.7.0",
     "mkdirp": "^3.0.1",
@@ -86,7 +89,6 @@
     "prettier": "^3.1.0",
     "preval.macro": "^5.0.0",
     "puppeteer": "23.5.3",
-    "puppeteer-chromium-resolver": "^23.0.0",
     "qunit": "^2.19.4",
     "release-it": "^16.2.1",
     "release-plan": "^0.9.2",
@@ -136,6 +138,7 @@
       ],
       "allowedVersions": {
         "@rollup/pluginutils": "5",
+        "@typescript-eslint/eslint-plugin": "8",
         "rollup": "3",
         "typescript": "5"
       }

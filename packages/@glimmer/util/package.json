@@ -21,11 +21,11 @@
           }
         }
       }
-    }
+    },
+    "files": [
+      "dist"
+    ]
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
@@ -33,12 +33,10 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/env": "0.1.7",
     "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
-    "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
     "@types/qunit": "^2.19.9",

@@ -1,4 +1,4 @@
-export type Keywords = keyof typeof KEYWORDS;
+type Keywords = keyof typeof KEYWORDS;
 export type KeywordType = 'Call' | 'Modifier' | 'Append' | 'Block';
 
 export function isKeyword(word: string): word is Keywords;

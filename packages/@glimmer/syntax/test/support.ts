@@ -47,7 +47,7 @@ export function astEqual(
   expected: any | null | undefined,
   message?: string,
   parseOptions?: PreprocessOptions
-) {
+): void {
   if (typeof actual === 'string') {
     actual = parse(actual, parseOptions);
   }

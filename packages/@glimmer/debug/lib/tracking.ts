@@ -192,7 +192,7 @@ if (import.meta.env.DEV) {
           if (updateStackBegin !== -1) {
             let start = this.#nthIndex(e.stack, '\n', 1, updateStackBegin);
             let end = this.#nthIndex(e.stack, '\n', 4, updateStackBegin);
-            // eslint-disable-next-line deprecation/deprecation
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
             e.stack = e.stack.substr(0, start) + e.stack.substr(end);
           }
         }

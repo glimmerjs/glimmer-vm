@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+/* eslint-disable n/no-process-exit */
 import { rimraf } from 'rimraf';
 
 function parseArgs() {
@@ -12,7 +12,7 @@ function parseArgs() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     switch (arg) {
-      case '--preserve':
+      case '--preserve': {
         const value = args[++i];
         if (!value || value.startsWith('--')) {
           console.error('Error: --preserve requires a value (node-modules, turbo, or both)');
@@ -29,6 +29,7 @@ function parseArgs() {
           options.preserve.add(item);
         }
         break;
+      }
       case '--dry-run':
         options.dryRun = true;
         break;

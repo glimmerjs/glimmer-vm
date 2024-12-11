@@ -5,11 +5,6 @@ import { SexpOpcodes } from '@glimmer/wire-format';
 
 import * as ASTv2 from './v2/api';
 
-export interface Upvar {
-  readonly name: string;
-  readonly resolution: ASTv2.FreeVarResolution;
-}
-
 interface SymbolTableOptions {
   customizeComponentName: (input: string) => string;
   lexicalScope: (variable: string) => boolean;

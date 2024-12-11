@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "index.d.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/interfaces",
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    {
+      "path": "../state/tsconfig.json"
+    }
+  ]
+}

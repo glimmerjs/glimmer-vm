@@ -2,11 +2,11 @@
   "private": true,
   "name": "@glimmer-test/validator",
   "dependencies": {
+    "@glimmer/debug": "workspace:*",
     "@glimmer/fundamental": "workspace:*",
-    "@glimmer/validator": "workspace:*",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
-    "@glimmer/debug": "workspace:*"
+    "@glimmer/validator": "workspace:*"
   },
   "devDependencies": {
     "@glimmer/debug-util": "workspace:*",

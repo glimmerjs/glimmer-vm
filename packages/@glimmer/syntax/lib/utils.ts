@@ -1,7 +1,7 @@
 import type * as ASTv1 from './v1/api';
 import type * as HBS from './v1/handlebars-ast';
 
-export function childrenFor(
+function childrenFor(
   node: ASTv1.Block | ASTv1.Template | ASTv1.ElementNode
 ): ASTv1.TopLevelStatement[] {
   switch (node.type) {

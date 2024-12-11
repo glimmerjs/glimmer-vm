@@ -1,0 +1,62 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/runtime",
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    {
+      "path": "../destroyable/tsconfig.json"
+    },
+    {
+      "path": "../fundamental/tsconfig.json"
+    },
+    {
+      "path": "../global-context/tsconfig.json"
+    },
+    {
+      "path": "../interfaces/tsconfig.json"
+    },
+    {
+      "path": "../manager/tsconfig.json"
+    },
+    {
+      "path": "../owner/tsconfig.json"
+    },
+    {
+      "path": "../program/tsconfig.json"
+    },
+    {
+      "path": "../reference/tsconfig.json"
+    },
+    {
+      "path": "../util/tsconfig.json"
+    },
+    {
+      "path": "../validator/tsconfig.json"
+    },
+    {
+      "path": "../vm/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/build/tsconfig.json"
+    },
+    {
+      "path": "../constants/tsconfig.json"
+    },
+    {
+      "path": "../debug/tsconfig.json"
+    },
+    {
+      "path": "../debug-util/tsconfig.json"
+    },
+    {
+      "path": "../local-debug-flags/tsconfig.json"
+    }
+  ]
+}

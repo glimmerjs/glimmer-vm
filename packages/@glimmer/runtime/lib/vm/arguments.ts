@@ -540,7 +540,7 @@ function ArgumentErrorImpl(error: any) {
   };
 }
 
-export function reifyNamedDebug(named: CapturedNamedArguments): Dict {
+function reifyNamedDebug(named: CapturedNamedArguments): Dict {
   let reified = dict();
   for (const [key, value] of Object.entries(named)) {
     try {
@@ -553,7 +553,7 @@ export function reifyNamedDebug(named: CapturedNamedArguments): Dict {
   return reified;
 }
 
-export function reifyPositionalDebug(positional: CapturedPositionalArguments): unknown[] {
+function reifyPositionalDebug(positional: CapturedPositionalArguments): unknown[] {
   return positional.map((p) => {
     try {
       return valueForRef(p);

@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.js",
+    "lib/**/*.ts",
+    "index.d.ts",
+    "index.js"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer-workspace/build",
+    "composite": true,
+    "incremental": true
+  }
+}

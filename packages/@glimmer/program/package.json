@@ -20,11 +20,11 @@
           }
         }
       }
-    }
+    },
+    "files": [
+      "dist"
+    ]
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
@@ -32,8 +32,6 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/encoder": "workspace:*",
-    "@glimmer/env": "0.1.7",
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/manager": "workspace:*",
     "@glimmer/opcode-compiler": "workspace:*",

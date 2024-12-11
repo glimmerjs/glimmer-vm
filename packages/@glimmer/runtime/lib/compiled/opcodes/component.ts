@@ -4,7 +4,6 @@ import type {
   CapturedArguments,
   CompilableProgram,
   ComponentDefinition,
-  ComponentDefinitionState,
   ComponentInstance,
   ComponentInstanceState,
   ComponentInstanceWithCreate,
@@ -70,7 +69,7 @@ import { assert, debugToString, expect, unwrap, unwrapTemplate } from '@glimmer/
 import { registerDestructor } from '@glimmer/destroyable';
 import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
-import { assign, dict, EMPTY_STRING_ARRAY, enumerate } from '@glimmer/util';
+import { dict, EMPTY_STRING_ARRAY, enumerate } from '@glimmer/util';
 import { $s0, $t0, $t1, InternalComponentCapabilities } from '@glimmer/vm';
 
 import type { CurriedValue } from '../../curried-value';
@@ -107,7 +106,7 @@ import { UpdateDynamicAttributeOpcode } from './dom';
  * component type's ComponentDefinition.
  */
 
-export interface InitialComponentInstance {
+interface InitialComponentInstance {
   definition: ComponentDefinition;
   manager: Nullable<InternalComponentManager>;
   capabilities: Nullable<CapabilityMask>;
@@ -117,7 +116,7 @@ export interface InitialComponentInstance {
   lookup: Nullable<Dict<ScopeSlot>>;
 }
 
-export interface PopulatedComponentInstance {
+interface PopulatedComponentInstance {
   definition: ComponentDefinition;
   manager: InternalComponentManager;
   capabilities: CapabilityMask;
@@ -125,11 +124,6 @@ export interface PopulatedComponentInstance {
   handle: number;
   table: Nullable<ProgramSymbolTable>;
   lookup: Nullable<Dict<ScopeSlot>>;
-}
-
-export interface PartialComponentDefinition {
-  state: Nullable<ComponentDefinitionState>;
-  manager: InternalComponentManager;
 }
 
 APPEND_OPCODES.add(VM_PUSH_COMPONENT_DEFINITION_OP, (vm, { op1: handle }) => {
@@ -301,7 +295,7 @@ APPEND_OPCODES.add(VM_PREPARE_ARGS_OP, (vm, { op1: register }) => {
     }
 
     if (named !== undefined) {
-      args.named.merge(assign({}, ...named));
+      args.named.merge(Object.assign({}, ...named));
     }
 
     if (positional !== undefined) {
@@ -922,7 +916,7 @@ APPEND_OPCODES.add(VM_COMMIT_COMPONENT_TRANSACTION_OP, (vm) => {
   vm.commitCacheGroup();
 });
 
-export class UpdateComponentOpcode implements UpdatingOpcode {
+class UpdateComponentOpcode implements UpdatingOpcode {
   constructor(
     private component: ComponentInstanceState,
     private manager: WithUpdateHook,
@@ -936,7 +930,7 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
   }
 }
 
-export class DidUpdateLayoutOpcode implements UpdatingOpcode {
+class DidUpdateLayoutOpcode implements UpdatingOpcode {
   constructor(
     private component: ComponentInstanceWithCreate,
     private bounds: Bounds

@@ -1,14 +1,12 @@
 import type {
   AppendingBlock,
   Bounds,
-  DynamicScope,
   Environment,
   EvaluationContext,
   ExceptionHandler,
   GlimmerTreeChanges,
   Nullable,
   ResettableBlock,
-  Scope,
   SimpleComment,
   SimpleElement,
   SimpleNode,
@@ -106,13 +104,6 @@ export class UpdatingVM implements IUpdatingVM {
     this.frame.handleException();
     this.frameStack.pop();
   }
-}
-
-export interface VMState {
-  readonly pc: number;
-  readonly scope: Scope;
-  readonly dynamicScope: DynamicScope;
-  readonly stack: unknown[];
 }
 
 export abstract class BlockOpcode implements UpdatingOpcode, Bounds {

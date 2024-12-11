@@ -10,7 +10,6 @@ import type { CapturedArguments, InternalComponentManager, Owner } from '@glimme
 import { expect } from '@glimmer/debug-util';
 import { modifierCapabilities, setComponentTemplate, setModifierManager } from '@glimmer/manager';
 import { EMPTY_ARGS, templateOnlyComponent, TemplateOnlyComponentManager } from '@glimmer/runtime';
-import { assign } from '@glimmer/util';
 
 import type { EmberishCurlyComponent } from '..';
 
@@ -873,7 +872,5 @@ class DebugRenderTreeTest extends RenderTest {
 }
 
 suite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
-  env: assign({}, BaseEnv, {
-    enableDebugTooling: true,
-  }),
+  env: { ...BaseEnv, enableDebugTooling: true },
 });

@@ -33,7 +33,7 @@ interface Listener {
   options: AddEventListenerOptions | undefined;
 }
 
-export class OnModifierState {
+class OnModifierState {
   public tag: UpdatableTag = createUpdatableTag();
   public element: Element;
   public args: CapturedArguments;

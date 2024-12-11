@@ -391,6 +391,7 @@ export class RenderTest implements IRenderTest {
     dynamicScope?: DynamicScope
   ): void {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       QUnit.assert.ok(true, `Rendering ${String(component)} with ${JSON.stringify(args)}`);
     } catch {
       // couldn't stringify, possibly has a circular dependency

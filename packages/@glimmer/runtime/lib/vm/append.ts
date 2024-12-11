@@ -796,7 +796,7 @@ function closureState(pc: number, scope: Scope, dynamicScope: DynamicScope): Clo
   };
 }
 
-export interface InitialVmState {
+interface InitialVmState {
   /**
    * The address of the compiled template. This is converted into a
    * pc when the VM is created.
@@ -817,7 +817,7 @@ export interface InitialVmState {
   owner: Owner;
 }
 
-export interface ClosureState {
+interface ClosureState {
   /**
    * The program counter that subsequent evaluations should start from.
    */

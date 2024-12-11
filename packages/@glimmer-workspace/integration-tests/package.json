@@ -9,7 +9,6 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/state": "workspace:*",
     "@glimmer-workspace/test-utils": "workspace:*",
     "@glimmer/compiler": "workspace:*",
     "@glimmer/debug": "workspace:*",
@@ -24,10 +23,10 @@
     "@glimmer/program": "workspace:*",
     "@glimmer/reference": "workspace:*",
     "@glimmer/runtime": "workspace:*",
+    "@glimmer/state": "workspace:*",
     "@glimmer/syntax": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/validator": "workspace:*",
-    "@glimmer/vm": "workspace:*",
     "@glimmer/wire-format": "workspace:*",
     "@simple-dom/document": "^1.4.0",
     "@simple-dom/serializer": "^1.4.0",
@@ -42,6 +41,6 @@
     "@glimmer/local-debug-flags": "workspace:*",
     "@types/js-reporters": "workspace:*",
     "@types/qunit": "^2.19.9",
-    "eslint": "^8.52.0"
+    "eslint": "catalog:"
   }
 }

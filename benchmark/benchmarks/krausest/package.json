@@ -2,6 +2,10 @@
   "private": true,
   "name": "@glimmer-workspace/krausest",
   "type": "module",
+  "files": [
+    "lib",
+    "browser.js"
+  ],
   "scripts": {
     "start": "vite --mode production",
     "test:lint": "eslint .",
@@ -11,11 +15,10 @@
     "@glimmer-workspace/benchmark-env": "workspace:*",
     "@glimmer/compiler": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
-    "@simple-dom/document": "^1.4.0",
-    "@simple-dom/serializer": "^1.4.0",
-    "@simple-dom/void-map": "^1.4.0"
+    "@glimmer/runtime": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@types/node": "^20.9.4",
     "eslint": "catalog:",
     "vite": "^5.4.10"

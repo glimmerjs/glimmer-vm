@@ -83,11 +83,11 @@ const INFLATE_TAG_TABLE: {
   [I in WellKnownTagName]: string;
 } = ['div', 'span', 'p', 'a'];
 
-export function inflateTagName(tagName: string | WellKnownTagName): string {
+function inflateTagName(tagName: string | WellKnownTagName): string {
   return typeof tagName === 'string' ? tagName : INFLATE_TAG_TABLE[tagName];
 }
 
-export function inflateAttrName(attrName: string | WellKnownAttrName): string {
+function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
 

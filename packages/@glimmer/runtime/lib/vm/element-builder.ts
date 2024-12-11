@@ -28,12 +28,12 @@ import type { DynamicAttribute } from './attributes/dynamic';
 import { clear, ConcreteBounds, CursorImpl } from '../bounds';
 import { dynamicAttribute } from './attributes/dynamic';
 
-export interface FirstNode {
+interface FirstNode {
   debug?: { first: () => Nullable<SimpleNode> };
   firstNode(): SimpleNode;
 }
 
-export interface LastNode {
+interface LastNode {
   debug?: { last: () => Nullable<SimpleNode> };
   lastNode(): SimpleNode;
 }
@@ -51,26 +51,6 @@ class Last {
 
   lastNode(): SimpleNode {
     return this.node;
-  }
-}
-
-export class Fragment implements Bounds {
-  private bounds: Bounds;
-
-  constructor(bounds: Bounds) {
-    this.bounds = bounds;
-  }
-
-  parentElement(): SimpleElement {
-    return this.bounds.parentElement();
-  }
-
-  firstNode(): SimpleNode {
-    return this.bounds.firstNode();
-  }
-
-  lastNode(): SimpleNode {
-    return this.bounds.lastNode();
   }
 }
 
@@ -388,7 +368,7 @@ export class NewTreeBuilder implements TreeBuilder {
   }
 }
 
-export class AppendingBlockImpl implements AppendingBlock {
+class AppendingBlockImpl implements AppendingBlock {
   declare debug?: { first: () => Nullable<SimpleNode>; last: () => Nullable<SimpleNode> };
 
   protected first: Nullable<FirstNode> = null;

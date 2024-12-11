@@ -8,6 +8,9 @@
   "exports": "./index.ts",
   "publishConfig": {
     "access": "public",
+    "files": [
+      "dist"
+    ],
     "exports": {
       ".": {
         "default": {
@@ -23,9 +26,6 @@
       }
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
@@ -33,16 +33,13 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/env": "0.1.7",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*",
     "@glimmer/state": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
     "eslint": "catalog:",
     "publint": "catalog:",
     "rollup": "catalog:",

@@ -5,8 +5,8 @@
     "@glimmer/debug": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/fundamental": "workspace:*",
-    "@glimmer/state": "workspace:*",
     "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*"
+    "@glimmer/interfaces": "workspace:*",
+    "@glimmer/state": "workspace:*"
   }
 }

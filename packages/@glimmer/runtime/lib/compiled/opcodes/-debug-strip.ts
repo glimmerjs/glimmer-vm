@@ -7,14 +7,12 @@ import type {
   CompilableProgram,
   ComponentDefinition,
   ComponentInstance,
-  ElementOperations,
   Helper,
   InternalComponentManager,
   Invocation,
   Nullable,
   Scope,
   ScopeBlock,
-  Tag,
 } from '@glimmer/interfaces';
 import type { OpaqueIterator, Reference } from '@glimmer/reference';
 import {
@@ -32,17 +30,13 @@ import {
   CheckProgramSymbolTable,
   CheckString,
   CheckUnknown,
-  satisfies,
   wrap,
 } from '@glimmer/debug';
-import { isTag } from '@glimmer/fundamental';
 import { REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
 
 import { ScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { ComponentElementOperations } from './component';
-
-export const CheckTag: Checker<Tag> = satisfies((v) => isTag(v), 'Tag');
 
 export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wrap(() =>
   CheckNullable(CheckInstanceof(ComponentElementOperations))
@@ -73,7 +67,7 @@ export const CheckArguments: Checker<VMArgumentsImpl> = wrap(() =>
 
 export const CheckHelper: Checker<Helper> = CheckFunction as Checker<Helper>;
 
-export class UndefinedReferenceChecker implements Checker<Reference> {
+class UndefinedReferenceChecker implements Checker<Reference> {
   declare type: Reference;
 
   validate(value: unknown): value is Reference {
@@ -94,11 +88,11 @@ export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface
 
 export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(ScopeImpl));
 
-export const CheckComponentManager: Checker<InternalComponentManager<unknown>> = CheckInterface({
+const CheckComponentManager: Checker<InternalComponentManager<unknown>> = CheckInterface({
   getCapabilities: CheckFunction,
 });
 
-export const CheckCapabilities: Checker<CapabilityMask> = CheckNumber as Checker<CapabilityMask>;
+const CheckCapabilities: Checker<CapabilityMask> = CheckNumber as Checker<CapabilityMask>;
 
 export const CheckComponentInstance: Checker<ComponentInstance> = CheckInterface({
   definition: CheckUnknown,
@@ -117,10 +111,6 @@ export const CheckInvocation: Checker<Invocation> = CheckInterface({
   symbolTable: CheckProgramSymbolTable,
 });
 
-export const CheckElementOperations: Checker<ElementOperations> = CheckInterface({
-  setAttribute: CheckFunction,
-});
-
 export const CheckFinishedComponentInstance: Checker<ComponentInstance> = CheckInterface({
   definition: CheckUnknown,
   state: CheckUnknown,
@@ -133,7 +123,7 @@ export const CheckCompilableBlock: Checker<CompilableBlock> = CheckInterface({
   symbolTable: CheckBlockSymbolTable,
 });
 
-export const CheckCompilableProgram: Checker<CompilableProgram> = CheckInterface({
+const CheckCompilableProgram: Checker<CompilableProgram> = CheckInterface({
   compile: CheckFunction,
   symbolTable: CheckProgramSymbolTable,
 });

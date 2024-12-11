@@ -1,4 +1,4 @@
-import type { Dict, Nullable } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 import { asPresentArray, assert, deprecate, isPresentArray } from '@glimmer/debug-util';
 
 import type { SourceLocation, SourcePosition } from '../source/location';
@@ -24,8 +24,8 @@ function SOURCE(): Source {
 
 // Statements
 
-export type BuilderHead = string | ASTv1.CallableExpression;
-export type TagDescriptor =
+type BuilderHead = string | ASTv1.CallableExpression;
+type TagDescriptor =
   | string
   | ASTv1.PathExpression
   | { path: ASTv1.PathExpression; selfClosing?: boolean }
@@ -146,37 +146,7 @@ function buildConcat(
 
 // Nodes
 
-export type ElementParts =
-  | ['attrs', ...AttrSexp[]]
-  | ['modifiers', ...ModifierSexp[]]
-  | ['body', ...ASTv1.Statement[]]
-  | ['comments', ...ElementComment[]]
-  | ['as', ...string[]]
-  | ['loc', SourceLocation];
-
-export type PathSexp = string | ['path', string, LocSexp?];
-
-export type ModifierSexp =
-  | string
-  | [PathSexp, LocSexp?]
-  | [PathSexp, ASTv1.Expression[], LocSexp?]
-  | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
-
-export type AttrSexp = [string, ASTv1.AttrNode['value'] | string, LocSexp?];
-
-export type LocSexp = ['loc', SourceLocation];
-
-export type ElementComment = ASTv1.MustacheCommentStatement | SourceLocation | string;
-
-export type SexpValue =
-  | string
-  | ASTv1.Expression[]
-  | Dict<ASTv1.Expression>
-  | LocSexp
-  | PathSexp
-  | undefined;
-
-export interface BuildElementOptions {
+interface BuildElementOptions {
   attrs?: ASTv1.AttrNode[];
   modifiers?: ASTv1.ElementModifierStatement[];
   children?: ASTv1.Statement[];

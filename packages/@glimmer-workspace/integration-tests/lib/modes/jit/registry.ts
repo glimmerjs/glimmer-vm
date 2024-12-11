@@ -19,7 +19,7 @@ import { dict } from '@glimmer/util';
 const CIRCULAR_OBJECT: { inner: { outer?: object } } = { inner: {} };
 CIRCULAR_OBJECT.inner.outer = CIRCULAR_OBJECT;
 
-export interface Lookup {
+interface Lookup {
   helper: HelperDefinitionState;
   modifier: ModifierDefinitionState;
   component: ResolvedComponentDefinition;
@@ -28,8 +28,7 @@ export interface Lookup {
   'template-source': string;
 }
 
-export type LookupType = keyof Lookup;
-export type LookupValue = Lookup[LookupType];
+type LookupType = keyof Lookup;
 
 export class TypedRegistry<T> {
   private byName: { [key: string]: T } = dict<T>();
@@ -47,7 +46,7 @@ export class TypedRegistry<T> {
   }
 }
 
-export default class Registry {
+class Registry {
   helper = new TypedRegistry<HelperDefinitionState>();
   modifier = new TypedRegistry<ModifierDefinitionState>();
   component = new TypedRegistry<

@@ -17,7 +17,7 @@ import type { PushStatementOp } from '../../syntax/compilers';
 import { HighLevelBuilderOpcodes } from '../opcodes';
 import { labelOperand } from '../operands';
 
-export type When = (match: number, callback: () => void) => void;
+type When = (match: number, callback: () => void) => void;
 
 export function SwitchCases(
   op: PushStatementOp,

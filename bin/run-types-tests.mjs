@@ -7,7 +7,6 @@ import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const root = resolve(__dirname, '..');
 
 const PACKAGES_WITH_NO_PUBLISHED_TYPES = new Set(['@glimmer/debug']);
 
@@ -54,7 +53,8 @@ function getMessage(err) {
   return inspect(err);
 }
 
-main();
+// @todo is it ok to not await?
+void main();
 
 /** @typedef {{ name: string; version: string; path: string; main: string; private: boolean; }} PnpmPackage */
 

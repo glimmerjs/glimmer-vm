@@ -4,7 +4,6 @@ import type {
   DebugVmSnapshot,
   Dict,
   Maybe,
-  Nullable,
   Optional,
   RuntimeOp,
   SomeDisassembledOperand,
@@ -30,25 +29,10 @@ import { $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 import type { LowLevelVM, VM } from './vm';
 import type { Externs } from './vm/low-level';
 
-export interface OpcodeJSON {
-  type: number | string;
-  guid?: Nullable<number>;
-  deopted?: boolean;
-  args?: string[];
-  details?: Dict<Nullable<string>>;
-  children?: OpcodeJSON[];
-}
+type Syscall = (vm: VM, opcode: RuntimeOp) => void;
+type MachineOpcode = (vm: LowLevelVM, opcode: RuntimeOp) => void;
 
-export type Operand1 = number;
-export type Operand2 = number;
-export type Operand3 = number;
-
-export type Syscall = (vm: VM, opcode: RuntimeOp) => void;
-export type MachineOpcode = (vm: LowLevelVM, opcode: RuntimeOp) => void;
-
-export type Evaluate =
-  | { syscall: true; evaluate: Syscall }
-  | { syscall: false; evaluate: MachineOpcode };
+type Evaluate = { syscall: true; evaluate: Syscall } | { syscall: false; evaluate: MachineOpcode };
 
 export type DebugState = {
   opcode: {
@@ -63,7 +47,7 @@ export type DebugState = {
   snapshot: VmSnapshot;
 };
 
-export class AppendOpcodes {
+class AppendOpcodes {
   private evaluateOpcode: Evaluate[] = new Array(VM_SYSCALL_SIZE).fill(null);
 
   declare debugBefore?: (vm: DebugVmSnapshot, opcode: RuntimeOp) => DebugState;

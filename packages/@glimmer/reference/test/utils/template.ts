@@ -17,7 +17,10 @@ abstract class BoundedIterator implements IteratorDelegate {
     return position;
   }
 
-  next() {
+  next(): {
+    value: unknown;
+    memo: unknown;
+  } | null {
     let { length, position } = this;
 
     if (position >= length) {
@@ -38,7 +41,7 @@ interface Indexable {
 }
 
 class ObjectIterator extends BoundedIterator {
-  static fromIndexable(obj: Indexable) {
+  static fromIndexable(obj: Indexable): ObjectIterator {
     let keys = Object.keys(obj);
     let values = objectValues(obj);
 
@@ -62,22 +65,22 @@ class ObjectIterator extends BoundedIterator {
 }
 
 export const TestContext = {
-  getProp(obj: unknown, path: string) {
+  getProp(obj: unknown, path: string): unknown {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (obj as any)[path];
   },
 
-  getPath(obj: unknown, path: string) {
+  getPath(obj: unknown, path: string): unknown {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (obj as any)[path];
   },
 
-  setProp(obj: unknown, path: string, value: unknown) {
+  setProp(obj: unknown, path: string, value: unknown): unknown {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return ((obj as any)[path] = value);
   },
 
-  toIterator(obj: unknown) {
+  toIterator(obj: unknown): ObjectIterator | null {
     if (typeof obj === 'object' && obj !== null) {
       return ObjectIterator.fromIndexable(obj as Indexable);
     }

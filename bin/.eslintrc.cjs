@@ -1,7 +1,3 @@
-const { resolve } = require('path');
-
-const tsconfig = resolve(__dirname, 'tsconfig.json');
-
 // node files
 module.exports = {
   root: false,
@@ -10,17 +6,14 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['*.{ts,js,d.ts}'],
-      parserOptions: {
-        ecmaVersion: 'latest',
-        project: [tsconfig],
-      },
-      extends: ['plugin:@typescript-eslint/recommended'],
+      files: ['*.{ts,mts,js,mjs,d.ts}'],
+      extends: ['plugin:@glimmer-workspace/recommended'],
 
       rules: {
         'dot-notation': 'off',
         'no-console': 'off',
         'no-continue': 'off',
+        'no-undef': 'off',
         'n/no-unsupported-features/es-syntax': [
           'error',
           {

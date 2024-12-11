@@ -10,12 +10,9 @@ import rollupSWC from '@rollup/plugin-swc';
 import terser from '@rollup/plugin-terser';
 import ms from 'ms';
 import * as insert from 'rollup-plugin-insert';
-import ts from 'typescript';
 import { $, chalk } from 'zx';
 
-import inline from './inline.js';
-
-const { ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
+import { inline } from './inline.js';
 
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
 const { default: postcss } = await import('rollup-plugin-postcss');
@@ -24,20 +21,9 @@ const { default: fonts } = await import('unplugin-fonts/vite');
 
 /**
  * @import { PartialCompilerOptions } from "@rollup/plugin-typescript";
- */
-/** @typedef {import("typescript").CompilerOptions} CompilerOptions */
-/** @typedef {import("./config.js").ExternalOption} ExternalOption */
-/** @typedef {import("./config.js").PackageInfo} PackageInfo */
-/** @typedef {import("./config.js").PackageJSON} PackageJSON */
-/** @typedef {import("./config.js").PackageJsonInline} PackageJsonInline */
-/** @typedef {import("rollup").Plugin} RollupPlugin */
-/** @typedef {import("rollup").RollupOptions} RollupOptions */
-/**
- * @typedef {import("./config.js").ViteConfig} ViteConfig
- * @typedef {import("./config.js").JsonValue} JsonValue
- * @typedef {import("./config.js").JsonObject} JsonObject
- * @typedef {import("./config.js").JsonArray} JsonArray
- * @typedef {import("./config.js").PackageJSON} PackageJson
+ * @import { ExternalOption, PackageInfo, PackageJSON, PackageJsonInline, ViteConfig, JsonValue, JsonObject, JsonArray, RollupExport } from "./types.d.js";
+ * @import { CompilerOptions } from "typescript";
+ * @import { Plugin as RollupPlugin, RollupOptions } from "rollup";
  */
 
 /**
@@ -58,32 +44,11 @@ const INLINE = false;
 const EXTERNAL = true;
 
 /**
- * @param {CompilerOptions} updates
- * @returns {PartialCompilerOptions & ts.CompilerOptions}
- */
-export function tsconfig(updates) {
-  return {
-    declaration: true,
-    emitDeclarationOnly: true,
-    rewriteRelativeImportExtensions: true,
-    // verbatimModuleSyntax: true,
-    isolatedModules: true,
-    module: ModuleKind.ESNext,
-    moduleResolution: ModuleResolutionKind.Bundler,
-    // experimentalDecorators: true,
-    target: ScriptTarget.ESNext,
-    noEmit: true,
-    declarationDir: 'dist',
-    ...updates,
-  };
-}
-
-/**
  * @param {PackageInfo} pkg
  * @param {'dev' | 'prod'} env
  * @returns {RollupPlugin[]}
  */
-export function typescript(pkg, env) {
+function typescript(pkg, env) {
   return [
     rollupSWC({
       swc: {
@@ -221,7 +186,7 @@ export class Package {
 
   /**
    * @param {ImportMeta | string} meta
-   * @returns {import("./config.js").RollupExport}
+   * @returns {RollupExport}
    */
   static config(meta) {
     const pkg = Package.at(meta);
@@ -291,7 +256,7 @@ export class Package {
   }
 
   /**
-   * @returns {Promise<import("./config.js").ViteConfig>}
+   * @returns {Promise<ViteConfig>}
    */
   async #viteConfig() {
     return viteConfig({
@@ -493,7 +458,8 @@ export class Package {
 }
 
 /**
- * @param {import("./config.js").ViteConfig} config
+ * @param {ViteConfig} config
+ * @returns {Promise<ViteConfig>}
  */
 async function viteConfig(config) {
   return Promise.resolve(config);

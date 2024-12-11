@@ -1,9 +1,10 @@
 import fs from 'node:fs';
-
-import { precompile } from '@glimmer/compiler';
-import { defineConfig, type Plugin } from 'vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import type { Plugin } from 'vite';
+import { precompile } from '@glimmer/compiler';
+import { defineConfig } from 'vite';
 
 const self = import.meta.url;
 
@@ -32,9 +33,9 @@ export default defineConfig({
 function importMeta(): Plugin {
   return {
     name: 'define custom import.meta.env',
-    async transform(code) {
+    transform(code) {
       if (code.includes('import.meta.env.VM_LOCAL_DEV')) {
-        return code.replace(/import.meta.env.VM_LOCAL_DEV/g, 'false');
+        return code.replace(/import\.meta\.env\.VM_LOCAL_DEV/gu, 'false');
       }
       return undefined;
     },

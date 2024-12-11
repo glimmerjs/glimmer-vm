@@ -8,7 +8,7 @@ import { childRefFor, valueForRef } from '@glimmer/reference';
 
 import { APPEND_OPCODES } from '../../opcodes';
 
-export type DebugGet = (path: string) => unknown;
+type DebugGet = (path: string) => unknown;
 
 export type DebugCallback = (context: unknown, get: DebugGet) => void;
 

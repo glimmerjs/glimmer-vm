@@ -3,10 +3,10 @@
   "name": "@glimmer-test/reference",
   "dependencies": {
     "@glimmer/fundamental": "workspace:*",
+    "@glimmer/global-context": "workspace:*",
     "@glimmer/reference": "workspace:*",
-    "@glimmer/validator": "workspace:*",
     "@glimmer/util": "workspace:*",
-    "@glimmer/global-context": "workspace:*"
+    "@glimmer/validator": "workspace:*"
   },
   "devDependencies": {
     "@glimmer/debug-util": "workspace:*",

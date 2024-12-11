@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/global-context",
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    {
+      "path": "../../@glimmer-workspace/build/tsconfig.json"
+    }
+  ]
+}

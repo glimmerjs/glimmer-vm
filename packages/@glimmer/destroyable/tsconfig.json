@@ -1,0 +1,29 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "test/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/destroyable",
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    {
+      "path": "../global-context/tsconfig.json"
+    },
+    {
+      "path": "../interfaces/tsconfig.json"
+    },
+    {
+      "path": "../state/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/build/tsconfig.json"
+    },
+    {
+      "path": "../debug-util/tsconfig.json"
+    }
+  ]
+}

@@ -103,7 +103,7 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
   }
 }
 
-export class DefaultDynamicProperty extends DynamicAttribute {
+class DefaultDynamicProperty extends DynamicAttribute {
   constructor(
     private normalizedName: string,
     attribute: AttributeCursor
@@ -145,7 +145,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
   }
 }
 
-export class SafeDynamicProperty extends DefaultDynamicProperty {
+class SafeDynamicProperty extends DefaultDynamicProperty {
   override set(dom: TreeBuilder, value: unknown, env: Environment): void {
     const { element, name } = this.attribute;
     const sanitized = sanitizeAttributeValue(element, name, value);
@@ -159,7 +159,7 @@ export class SafeDynamicProperty extends DefaultDynamicProperty {
   }
 }
 
-export class SafeDynamicAttribute extends SimpleDynamicAttribute {
+class SafeDynamicAttribute extends SimpleDynamicAttribute {
   override set(dom: TreeBuilder, value: unknown, env: Environment): void {
     const { element, name } = this.attribute;
     const sanitized = sanitizeAttributeValue(element, name, value);
@@ -173,7 +173,7 @@ export class SafeDynamicAttribute extends SimpleDynamicAttribute {
   }
 }
 
-export class InputValueDynamicAttribute extends DefaultDynamicProperty {
+class InputValueDynamicAttribute extends DefaultDynamicProperty {
   override set(dom: TreeBuilder, value: unknown): void {
     dom.__setProperty('value', normalizeStringValue(value));
   }
@@ -188,7 +188,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
   }
 }
 
-export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
+class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   override set(dom: TreeBuilder, value: unknown): void {
     if (value !== null && value !== undefined && value !== false) {
       dom.__setProperty('selected', true);

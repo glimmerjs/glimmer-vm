@@ -3,7 +3,7 @@
     "composite": true,
     "incremental": true,
     "declarationMap": true,
-    "baseUrl": "..",
+    "baseUrl": ".",
     "allowJs": true,
     "target": "esnext",
     "module": "esnext",
@@ -11,7 +11,6 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "verbatimModuleSyntax": true,
-    "outDir": "../../ts-dist/@glimmer-workspace",
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
     "useDefineForClassFields": false,
@@ -19,13 +18,10 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true,
-    "types": ["qunit", "node", "vite/client"]
+    "types": [
+      "qunit",
+      "node",
+      "vite/client"
+    ]
   },
-  "include": ["./*/index.*", "./*/lib/**/*", "./*/test/**/*"],
-  "references": [
-    {
-      "path": "../@glimmer/tsconfig.json"
-    }
-  ]
 }

@@ -8,11 +8,11 @@
 
 import type * as ASTv1 from './api';
 
-export interface CommonNode {
+interface CommonNode {
   loc: SourceLocation;
 }
 
-export interface NodeMap {
+interface NodeMap {
   Program: { input: Program; output: ASTv1.Block };
   MustacheStatement: { input: MustacheStatement; output: ASTv1.MustacheStatement | void };
   Decorator: { input: Decorator; output: never };
@@ -42,7 +42,7 @@ export interface SourceLocation {
   end: Position;
 }
 
-export interface Position {
+interface Position {
   line: number;
   column: number;
 }
@@ -54,7 +54,7 @@ export interface Program extends CommonNode {
   chained?: boolean;
 }
 
-export type Statement =
+type Statement =
   | MustacheStatement
   | BlockStatement
   | DecoratorBlock
@@ -63,7 +63,7 @@ export type Statement =
   | ContentStatement
   | CommentStatement;
 
-export interface CommonMustache extends CommonNode {
+interface CommonMustache extends CommonNode {
   path: Expression;
   params: Expression[];
   hash: Hash;
@@ -79,7 +79,7 @@ export interface Decorator extends CommonMustache {
   type: 'DecoratorStatement';
 }
 
-export interface CommonBlock extends CommonNode {
+interface CommonBlock extends CommonNode {
   chained: boolean;
   path: PathExpression | SubExpression;
   params: Expression[];
@@ -184,7 +184,7 @@ export interface Hash extends CommonNode {
   pairs: HashPair[];
 }
 
-export interface HashPair extends CommonNode {
+interface HashPair extends CommonNode {
   key: string;
   value: Expression;
 }

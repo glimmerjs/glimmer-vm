@@ -20,7 +20,7 @@ import DebugRenderTree from './debug-render-tree';
 import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
 import { isArgumentError } from './vm/arguments';
 
-export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
+const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
 
 class TransactionImpl implements Transaction {
   public scheduledInstallModifiers: ModifierInstance[] = [];
@@ -227,5 +227,3 @@ export function inTransaction(env: Environment, block: () => void): void {
     block();
   }
 }
-
-export default EnvironmentImpl;

@@ -33,7 +33,7 @@ import {
   valueForRef,
 } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
-import { assign, EMPTY_ARRAY, keys } from '@glimmer/util';
+import { EMPTY_ARRAY, keys } from '@glimmer/util';
 import { createTag, dirtyTag, dirtyTagFor } from '@glimmer/validator';
 
 import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
@@ -183,7 +183,7 @@ export class EmberishCurlyComponentManager
 
       return { positional: EMPTY_ARRAY, named } as PreparedArguments;
     } else if (Array.isArray(positionalParams)) {
-      let named = assign({}, args.named.capture());
+      let named = { ...args.named.capture() };
       let count = Math.min(positionalParams.length, args.positional.length);
 
       for (let i = 0; i < count; i++) {
@@ -217,14 +217,7 @@ export class EmberishCurlyComponentManager
     let self = valueForRef(callerSelf);
     let args = _args.named.capture();
     let attrs = reifyNamed(args);
-    let merged = assign(
-      {},
-      attrs,
-      { attrs },
-      { args },
-      { targetObject: self },
-      { HAS_BLOCK: hasDefaultBlock }
-    );
+    let merged = { ...attrs, attrs, args, targetObject: self, HAS_BLOCK: hasDefaultBlock };
     let component = klass.create(merged);
 
     component.args = args;
@@ -301,7 +294,7 @@ export class EmberishCurlyComponentManager
   update({ component }: EmberishCurlyComponentState): void {
     let oldAttrs = component.attrs;
     let newAttrs = reifyNamed(component.args);
-    let merged = assign({}, newAttrs, { attrs: newAttrs });
+    let merged = { ...newAttrs, attrs: newAttrs };
 
     consumeTag(component.dirtinessTag);
 

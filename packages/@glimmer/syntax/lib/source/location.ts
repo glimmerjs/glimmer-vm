@@ -1,8 +1,4 @@
-import type { PresentArray } from '@glimmer/interfaces';
-import { isPresentArray } from '@glimmer/debug-util';
-
 import type { SourceLocation } from '../v1/handlebars-ast';
-import type { SourceSpan } from './span';
 
 export type { SourceLocation } from '../v1/handlebars-ast';
 
@@ -24,15 +20,6 @@ export const SYNTHETIC_LOCATION: SourceLocation = Object.freeze({
   end: UNKNOWN_POSITION,
 } as const);
 
-/** @deprecated */
-export const SYNTHETIC: SourceLocation = SYNTHETIC_LOCATION;
-
-export const TEMPORARY_LOCATION: SourceLocation = Object.freeze({
-  source: '(temporary)',
-  start: UNKNOWN_POSITION,
-  end: UNKNOWN_POSITION,
-} as const);
-
 export const NON_EXISTENT_LOCATION: SourceLocation = Object.freeze({
   source: '(nonexistent)',
   start: UNKNOWN_POSITION,
@@ -44,31 +31,3 @@ export const BROKEN_LOCATION: SourceLocation = Object.freeze({
   start: UNKNOWN_POSITION,
   end: UNKNOWN_POSITION,
 } as const);
-
-export type LocatedWithSpan = { offsets: SourceSpan };
-export type LocatedWithOptionalSpan = { offsets: SourceSpan | null };
-
-export type LocatedWithPositions = { loc: SourceLocation };
-export type LocatedWithOptionalPositions = { loc?: SourceLocation };
-
-export function isLocatedWithPositionsArray(
-  location: LocatedWithOptionalPositions[]
-): location is PresentArray<LocatedWithPositions> {
-  return isPresentArray(location) && location.every(isLocatedWithPositions);
-}
-
-export function isLocatedWithPositions(
-  location: LocatedWithOptionalPositions
-): location is LocatedWithPositions {
-  return location.loc !== undefined;
-}
-
-export type HasSourceLocation =
-  | SourceLocation
-  | LocatedWithPositions
-  | PresentArray<LocatedWithPositions>;
-
-export type MaybeHasSourceLocation =
-  | null
-  | LocatedWithOptionalPositions
-  | LocatedWithOptionalPositions[];

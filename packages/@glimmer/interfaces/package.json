@@ -15,15 +15,12 @@
     "test:types": "tsc --noEmit"
   },
   "dependencies": {
-    "@simple-dom/interface": "^1.4.0",
-    "ts-essentials": "^10.0.3",
-    "@glimmer/state": "workspace:*"
+    "@glimmer/state": "workspace:*",
+    "@simple-dom/interface": "^1.4.0"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
     "eslint": "catalog:",
     "publint": "catalog:",
-    "rollup": "catalog:",
     "typescript": "catalog:"
   }
 }

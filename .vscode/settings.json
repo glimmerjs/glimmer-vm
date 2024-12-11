@@ -20,15 +20,21 @@
   "eslint.codeAction.showDocumentation": {
     "enable": true
   },
-  "eslint.codeActionsOnSave.mode": "all",
+  "eslint.codeActionsOnSave.mode": "problems",
   "eslint.lintTask.enable": true,
   "eslint.onIgnoredFiles": "warn",
   "eslint.workingDirectories": [
-    {
-      "mode": "auto"
-    }
+    "packages/*/*",
+    "packages/*/*/test",
+    "bin",
+    "benchmark/benchmarks/krausest"
   ],
-  "eslint.validate": ["javascript", "typescript", "json", "jsonc"],
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "json",
+    "jsonc"
+  ],
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.git": true,
@@ -55,9 +61,15 @@
   "eslint.problems.shortenToSingleLine": true,
   "typescript.experimental.expandableHover": true,
   "inline-bookmarks.expert.custom.words.mapping": {
-    "warn": ["@premerge(\\s|$)"],
-    "active": ["@active(\\s|$)"],
-    "fixme": ["@fixme(\\s|$)"]
+    "warn": [
+      "@premerge(\\s|$)"
+    ],
+    "active": [
+      "@active(\\s|$)"
+    ],
+    "fixme": [
+      "@fixme(\\s|$)"
+    ]
   },
   "inline-bookmarks.expert.custom.styles": {
     "active": {
@@ -242,5 +254,7 @@
     "watchFile": "useFsEventsOnParentDirectory",
     "watchDirectory": "useFsEvents",
     "fallbackPolling": "dynamicPriorityPolling"
-  }
+  },
+  "eslint.debug": true,
+  "eslint.useESLintClass": true
 }

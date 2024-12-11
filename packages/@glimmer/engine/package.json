@@ -8,6 +8,9 @@
   "exports": "./index.ts",
   "publishConfig": {
     "access": "public",
+    "files": [
+      "dist"
+    ],
     "exports": {
       ".": {
         "default": {
@@ -23,9 +26,6 @@
       }
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",

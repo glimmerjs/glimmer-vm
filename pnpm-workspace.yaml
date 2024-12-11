@@ -1,8 +1,7 @@
 packages:
   - 'bin'
+  - '.meta-updater'
   - 'build'
-  - 'packages'
-  - 'benchmark'
   - 'benchmark/benchmarks/krausest'
   - 'packages/@glimmer/*'
   - 'packages/@glimmer/*/test'

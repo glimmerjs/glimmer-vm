@@ -10,7 +10,6 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/state": "workspace:*",
     "@glimmer/fundamental": "workspace:*",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
@@ -19,12 +18,11 @@
     "@glimmer/program": "workspace:*",
     "@glimmer/reference": "workspace:*",
     "@glimmer/runtime": "workspace:*",
-    "@glimmer/util": "workspace:*",
+    "@glimmer/state": "workspace:*",
     "@glimmer/validator": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer/debug-util": "workspace:*",
-    "eslint": "^8.52.0"
+    "@glimmer/debug-util": "workspace:*"
   },
   "engines": {
     "node": ">=16"

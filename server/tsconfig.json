@@ -1,8 +1,0 @@
-{
-  "extends": "../tsconfig.cjs.json",
-  "compilerOptions": {
-    "composite": true,
-    "skipLibCheck": true
-  },
-  "include": ["*.js"]
-}

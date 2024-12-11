@@ -7,7 +7,6 @@ export {
   isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/is-serialization-first-node';
-// eslint-disable-next-line deprecation/deprecation
 export { assign, entries, keys, values } from './lib/object-utils';
 export * from './lib/string';
 

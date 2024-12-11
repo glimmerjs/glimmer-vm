@@ -14,8 +14,6 @@
     "isolatedDeclarations": true,
     "declaration": true,
     "declarationMap": true,
-    "baseUrl": "..",
-    "outDir": "../../ts-dist/packages",
     "verbatimModuleSyntax": true,
     // Environment Configuration
     "experimentalDecorators": true,
@@ -38,12 +36,9 @@
       "vite/client"
     ]
   },
-  "include": [
-    "*/lib/**/*",
-    "*/index.ts"
-  ],
-  "exclude": [
-    "**/fixtures",
-    "**/node_modules"
+  "references": [
+    {
+      "path": "../@glimmer-workspace/tsconfig.json"
+    }
   ]
 }

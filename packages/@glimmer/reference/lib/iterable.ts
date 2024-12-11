@@ -4,7 +4,7 @@ import { getPath, toIterator } from '@glimmer/global-context';
 import { EMPTY_ARRAY, isIndexable } from '@glimmer/util';
 import { createTag, dirtyTag } from '@glimmer/validator';
 
-import type { Reference, ReferenceEnvironment } from './reference';
+import type { Reference } from './reference';
 
 import { createComputeRef } from './reference';
 
@@ -25,11 +25,6 @@ export type OpaqueIterator = AbstractIterator<unknown, unknown, OpaqueIterationI
 export interface IteratorDelegate {
   isEmpty(): boolean;
   next(): { value: unknown; memo: unknown } | null;
-}
-
-export interface IteratorReferenceEnvironment extends ReferenceEnvironment {
-  getPath(obj: unknown, path: string): unknown;
-  toIterator(obj: unknown): Nullable<IteratorDelegate>;
 }
 
 type KeyFor = (item: unknown, index: unknown) => unknown;

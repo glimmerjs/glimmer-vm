@@ -1,6 +1,7 @@
 import type {
   ConstantTag,
   ConstantTagId,
+  CurrentTag,
   CurrentTagId,
   DirtyableTag,
   DirtyableTagId,
@@ -24,15 +25,15 @@ import {
   upsertTagMetaFor,
 } from '@glimmer/fundamental';
 
-export const module = QUnit.module;
-export const test = QUnit.test;
+export const module: typeof QUnit.module = QUnit.module;
+export const test: typeof QUnit.test = QUnit.test;
 
 //// This file implements higher-level APIs and constructs from `@glimmer/validator`
 //// in terms of `@glimmer/fundamental` to validate the `@glimmer/fundamental` APIs
 //// in terms of the intended use case. TL;DR they're used in integration-style tests.
 
-export const CONSTANT_TAG = new TagImpl(3 satisfies ConstantTagId) as ConstantTag;
-export const CURRENT_TAG = new TagImpl(101 satisfies CurrentTagId, now);
+export const CONSTANT_TAG: ConstantTag = new TagImpl(3 satisfies ConstantTagId);
+export const CURRENT_TAG: CurrentTag = new TagImpl(101 satisfies CurrentTagId, now);
 
 export function createTag(): DirtyableTag {
   return new TagImpl(0 satisfies DirtyableTagId);
@@ -88,8 +89,8 @@ export function untrack<T>(callback: () => T): T {
   }
 }
 
-export type Getter<T, K extends keyof T> = (self: T) => T[K] | undefined;
-export type Setter<T, K extends keyof T> = (self: T, value: T[K]) => void;
+type Getter<T, K extends keyof T> = (self: T) => T[K] | undefined;
+type Setter<T, K extends keyof T> = (self: T, value: T[K]) => void;
 
 /**
  * This utility is used to test

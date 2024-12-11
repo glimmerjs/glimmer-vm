@@ -1,4 +1,4 @@
-import type { CurriedType, NonSmallIntOperand, Nullable, WireFormat } from '@glimmer/interfaces';
+import type { CurriedType, NonSmallIntOperand, WireFormat } from '@glimmer/interfaces';
 import {
   encodeImmediate,
   isSmallInt,
@@ -25,13 +25,7 @@ import { isStrictMode, nonSmallIntOperand } from '../operands';
 import { expr } from './expr';
 import { SimpleArgs } from './shared';
 
-export type Primitive = undefined | null | boolean | number | string;
-
-export interface CompileHelper {
-  handle: number;
-  positional: Nullable<WireFormat.Core.Params>;
-  named: WireFormat.Core.Hash;
-}
+type Primitive = undefined | null | boolean | number | string;
 
 /**
  * Push a reference onto the stack corresponding to a statically known primitive

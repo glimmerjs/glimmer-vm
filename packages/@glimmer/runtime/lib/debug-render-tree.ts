@@ -8,7 +8,7 @@ import type {
   RenderNode,
 } from '@glimmer/interfaces';
 import { expect } from '@glimmer/debug-util';
-import { assign, Stack } from '@glimmer/util';
+import { Stack } from '@glimmer/util';
 
 import { reifyArgsDebug } from './vm/arguments';
 
@@ -70,10 +70,11 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   create(state: TBucket, node: RenderNode): void {
-    let internalNode: InternalRenderNode<TBucket> = assign({}, node, {
+    let internalNode: InternalRenderNode<TBucket> = {
+      ...node,
       bounds: null,
       refs: new Set<Ref<TBucket>>(),
-    });
+    };
     this.nodes.set(state, internalNode);
     this.appendChild(internalNode, state);
     this.enter(state);

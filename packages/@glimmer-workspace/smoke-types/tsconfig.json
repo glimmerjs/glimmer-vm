@@ -1,14 +1,16 @@
 {
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "index.ts"
+  ],
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "baseUrl": ".",
-    "strict": true,
-    "paths": {
-      "@glimmer/*": ["../../@glimmer/*/dist/prod/index.d.ts"]
-    },
-    "skipLibCheck": true
+    "outDir": "../../../ts-dist/packages/@glimmer-workspace/smoke-types",
+    "composite": true,
+    "incremental": true
   },
-  "files": ["index.ts"]
+  "references": [
+    {
+      "path": "../../@glimmer/runtime/tsconfig.json"
+    }
+  ]
 }

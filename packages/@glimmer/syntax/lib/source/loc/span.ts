@@ -593,7 +593,7 @@ export const span: MatchFn<SourceSpan> = match((m) =>
     )
 );
 
-export type SerializedConcreteSourceSpan =
+type SerializedConcreteSourceSpan =
   | /** collapsed */ number
   | /** normal */ [start: number, size: number]
   | /** synthetic */ string;

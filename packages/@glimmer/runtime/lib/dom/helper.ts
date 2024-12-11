@@ -10,7 +10,7 @@ import { castToSimple } from '@glimmer/debug-util';
 
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';
 import { applyTextNodeMergingFix } from '../compat/text-node-merging-fix';
-import { DOMOperations,INVALID_SVG_TAGS } from './operations';
+import { DOMOperations, INVALID_SVG_TAGS } from './operations';
 
 [
   'b',

@@ -1,7 +1,9 @@
+/* eslint-disable n/no-process-exit */
 import 'zx/globals';
+
+import { readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import { join } from 'node:path';
-import { readFile, writeFile } from 'node:fs/promises';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 $.verbose = true;
@@ -147,8 +149,8 @@ await buildRepo(CONTROL_DIR, controlRef, REUSE_CONTROL);
 await buildRepo(EXPERIMENT_DIR, experimentRef, REUSE_EXPERIMENT);
 
 // start build assets
-$`cd ${CONTROL_BENCH_DIR} && pnpm vite preview --port ${CONTROL_PORT}`;
-$`cd ${EXPERIMENT_BENCH_DIR} && pnpm vite preview --port ${EXPERIMENT_PORT}`;
+await $`cd ${CONTROL_BENCH_DIR} && pnpm vite preview --port ${CONTROL_PORT}`;
+await $`cd ${EXPERIMENT_BENCH_DIR} && pnpm vite preview --port ${EXPERIMENT_PORT}`;
 
 await new Promise((resolve) => {
   // giving 5 seconds for the server to start
@@ -187,7 +189,7 @@ async function buildRepo(directory, ref, reuse) {
     // experiment and control checkouts
     const benchDir = join(directory, 'benchmark', 'benchmarks', 'krausest');
 
-    await cd(directory);
+    cd(directory);
 
     // write the `pwd` to the output to make it easier to debug if something goes wrong
     await $`pwd`;
@@ -215,7 +217,7 @@ async function buildRepo(directory, ref, reuse) {
     await rewritePackageJson();
 
     // build the benchmarks using vite
-    await cd(benchDir);
+    cd(benchDir);
     await $`pnpm vite build`;
   });
 }

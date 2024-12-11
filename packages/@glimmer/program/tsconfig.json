@@ -1,0 +1,45 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "test/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/program",
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    {
+      "path": "../interfaces/tsconfig.json"
+    },
+    {
+      "path": "../manager/tsconfig.json"
+    },
+    {
+      "path": "../opcode-compiler/tsconfig.json"
+    },
+    {
+      "path": "../util/tsconfig.json"
+    },
+    {
+      "path": "../vm/tsconfig.json"
+    },
+    {
+      "path": "../wire-format/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/build/tsconfig.json"
+    },
+    {
+      "path": "../constants/tsconfig.json"
+    },
+    {
+      "path": "../debug-util/tsconfig.json"
+    },
+    {
+      "path": "../local-debug-flags/tsconfig.json"
+    }
+  ]
+}

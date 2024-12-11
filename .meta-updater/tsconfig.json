@@ -1,0 +1,14 @@
+{
+  "extends": "../packages/@glimmer/tsconfig.shared.json",
+  "compilerOptions": {
+    "composite": true,
+    "allowJs": true,
+    "isolatedDeclarations": false,
+    "checkJs": true,
+    "outDir": "../ts-dist/.meta-updater",
+    "incremental": true
+  },
+  "include": [
+    "main.mjs"
+  ]
+}

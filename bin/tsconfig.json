@@ -5,8 +5,7 @@
     "baseUrl": ".",
     "allowJs": true,
     "checkJs": true,
-    "outDir": "../ts-dist/bin",
-    "target": "es2020",
+    "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
@@ -17,7 +16,31 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "outDir": "../ts-dist/bin",
+    "incremental": true
   },
-  "include": ["*.mjs", "*.mts", "*.ts", "*/*.mjs", "*/*.mts", "*/*.ts"]
+  "include": [
+    "opcodes/**/*.mts",
+    "build-verify.mjs",
+    "clean.mjs",
+    "patch-all.mjs",
+    "run-browserstack-tests.mjs",
+    "run-node-tests.mjs",
+    "run-tests.mjs",
+    "run-types-tests.mjs",
+    "setup-bench.mjs",
+    "sync-npm-owners.mjs",
+    "link-all.mts",
+    "opcodes.mts",
+    "packages.mts",
+    "published-packages.mts",
+    "unlink-all.mts",
+    "update-package-json.mts"
+  ],
+  "references": [
+    {
+      "path": "../packages/@glimmer-workspace/eslint-plugin/tsconfig.json"
+    }
+  ]
 }

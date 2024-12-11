@@ -25,11 +25,11 @@
           }
         }
       }
-    }
+    },
+    "files": [
+      "dist"
+    ]
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
@@ -37,18 +37,16 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/state": "workspace:*",
     "@glimmer/fundamental": "workspace:*",
-    "@glimmer/env": "^0.1.7",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
+    "@glimmer/state": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/validator": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
     "eslint": "catalog:",
     "publint": "catalog:",
     "rollup": "catalog:",

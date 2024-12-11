@@ -1,5 +1,4 @@
 import { setLocalDebugType } from '@glimmer/debug-util';
-import { assign } from '@glimmer/util';
 
 import type { SourceSpan } from '../../source/span';
 
@@ -51,8 +50,7 @@ export function AstNode<T extends string, Fields extends object>(
 
     constructor(fields: BaseNodeFields & Fields) {
       this.type = type ?? 'anonymous';
-      // eslint-disable-next-line deprecation/deprecation
-      assign(this, fields);
+      Object.assign(this, fields);
 
       setLocalDebugType('syntax:mir:node', this);
     }

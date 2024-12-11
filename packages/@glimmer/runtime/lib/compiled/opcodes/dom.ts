@@ -295,7 +295,7 @@ APPEND_OPCODES.add(VM_DYNAMIC_MODIFIER_OP, (vm) => {
   }
 });
 
-export class UpdateModifierOpcode implements UpdatingOpcode {
+class UpdateModifierOpcode implements UpdatingOpcode {
   private lastUpdated: Revision;
 
   constructor(
@@ -317,7 +317,7 @@ export class UpdateModifierOpcode implements UpdatingOpcode {
   }
 }
 
-export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
+class UpdateDynamicModifierOpcode implements UpdatingOpcode {
   private lastUpdated: Revision;
 
   constructor(

@@ -16,7 +16,7 @@ import { DOMOperations } from './operations';
 const doc: Nullable<SimpleDocument> =
   typeof document === 'undefined' ? null : castToSimple(document);
 
-export class TreeConstruction extends DOMOperations implements GlimmerTreeConstruction {
+class TreeConstruction extends DOMOperations implements GlimmerTreeConstruction {
   createElementNS(namespace: ElementNamespace, tag: string): SimpleElement {
     return this.document.createElementNS(namespace, tag);
   }

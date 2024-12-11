@@ -12,12 +12,6 @@ export type JsonObject = Record<string, JsonValue>;
 
 export type JsonValue = string | number | boolean | null | JsonArray | { [key: string]: JsonValue };
 
-// importing from typescript using a static import massively slows down eslint for some reason.
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-export type CompilerOptions = import('typescript').CompilerOptions;
-
-export type Setting<T extends keyof CompilerOptions> = CompilerOptions[T] & string;
-
 export type PackageJsonInline = string | [ExternalOperator, string];
 
 export interface PackageJSON {
@@ -40,7 +34,6 @@ export type ExternalOption =
 
 export type RollupExport = rollup.RollupOptions | rollup.RollupOptions[];
 export type ViteConfig = Pick<vite.UserConfig, 'plugins' | 'esbuild' | 'optimizeDeps' | 'build'>;
-export type ViteExport = ViteConfig | Promise<ViteConfig>;
 
 export class Package {
   static root(meta: ImportMeta): string;

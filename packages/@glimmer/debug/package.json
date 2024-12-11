@@ -13,12 +13,12 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
+    "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*",
-    "@glimmer/vm": "workspace:*",
     "@glimmer/reference": "workspace:*",
     "@glimmer/state": "workspace:*",
-    "@glimmer/global-context": "workspace:*"
+    "@glimmer/util": "workspace:*",
+    "@glimmer/vm": "workspace:*"
   },
   "devDependencies": {
     "@glimmer/constants": "workspace:*",

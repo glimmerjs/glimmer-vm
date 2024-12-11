@@ -13,8 +13,6 @@ import type {
 } from '@glimmer/state';
 import { castToBrowser } from '@glimmer/debug-util';
 import { registerDestructor } from '@glimmer/destroyable';
-import { valueForRef } from '@glimmer/reference';
-import { dict } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
 
 import type { ManagerFactory } from '.';
@@ -42,7 +40,7 @@ export function modifierCapabilities<Version extends keyof ModifierCapabilitiesV
   });
 }
 
-export interface CustomModifierState<ModifierInstance> {
+interface CustomModifierState<ModifierInstance> {
   tag: UpdatableTag;
   element: SimpleElement;
   modifier: ModifierInstance;
@@ -174,22 +172,4 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
   ): CustomModifierState<ModifierInstance> {
     return state;
   }
-}
-
-export function reifyArgs({ named, positional }: CapturedArguments): {
-  named: Record<string, unknown>;
-  positional: unknown[];
-} {
-  let reifiedNamed = dict();
-
-  for (const [key, value] of Object.entries(named)) {
-    reifiedNamed[key] = valueForRef(value);
-  }
-
-  let reifiedPositional = positional.map(valueForRef);
-
-  return {
-    named: reifiedNamed,
-    positional: reifiedPositional,
-  };
 }

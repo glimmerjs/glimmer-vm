@@ -9,10 +9,6 @@ module.exports = {
     {
       files: ['*.d.ts'],
       excludedFiles: ['*/node_modules'],
-      parserOptions: {
-        ecmaVersion: 'latest',
-        project: [tsconfig],
-      },
       extends: ['plugin:@typescript-eslint/recommended-requiring-type-checking'],
       rules: {
         '@typescript-eslint/consistent-type-imports': [

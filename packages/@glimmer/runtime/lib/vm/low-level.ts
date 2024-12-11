@@ -20,23 +20,11 @@ import { APPEND_OPCODES } from '../opcodes';
 
 export type LowLevelRegisters = [$pc: number, $ra: number, $sp: number, $fp: number];
 
-export function initializeRegisters(): LowLevelRegisters {
-  return [0, -1, 0, 0];
-}
-
-export function restoreRegisters(pc: number, sp: number): LowLevelRegisters {
-  return [pc, -1, sp, 0];
-}
-
 export function initializeRegistersWithSP(sp: number): LowLevelRegisters {
   return [0, -1, sp, 0];
 }
 
-export function initializeRegistersWithPC(pc: number): LowLevelRegisters {
-  return [pc, -1, 0, 0];
-}
-
-export interface VmStack {
+interface VmStack {
   readonly registers: LowLevelRegisters;
 
   push(value: unknown): void;

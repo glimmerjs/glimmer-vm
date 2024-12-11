@@ -72,7 +72,7 @@ function capability(
   return capabilities[capability] ? InternalComponentCapabilities[capability] : EMPTY;
 }
 
-export type InternalComponentCapabilityFor<C extends InternalComponentCapability> =
+type InternalComponentCapabilityFor<C extends InternalComponentCapability> =
   C extends DynamicLayoutCapability
     ? WithDynamicLayout
     : C extends DynamicTagCapability

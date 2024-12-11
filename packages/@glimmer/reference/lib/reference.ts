@@ -24,7 +24,7 @@ const COMPUTE: ComputeReferenceId = 1;
 const UNBOUND: UnboundReferenceId = 2;
 const INVOKABLE: InvokableReferenceId = 3;
 
-export type { Reference as default, Reference };
+export type { Reference };
 
 //////////
 
