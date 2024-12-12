@@ -27,14 +27,15 @@
     },
     "lint": {
       "cache": false,
-      "dependsOn": ["test:lint", "test:publint", "lint:types"]
+      "dependsOn": ["test:lint", "test:publint", "test:types"]
     },
     "test:lint": {},
+    "test:types": {},
     "test:publint": {
       "dependsOn": ["build"]
     },
     "lint:types": {},
-    "//#test:types": {
+    "//#test:types:published": {
       "inputs": ["**/dist/**"],
       "dependsOn": ["^build"]
     }

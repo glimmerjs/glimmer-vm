@@ -8,7 +8,12 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer-workspace/integration-tests",
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "node",
+      "vite/client",
+      "qunit"
+    ]
   },
   "references": [
     {

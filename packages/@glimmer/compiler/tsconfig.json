@@ -10,7 +10,9 @@
     "composite": true,
     "incremental": true,
     "types": [
-      "node"
+      "node",
+      "vite/client",
+      "qunit"
     ]
   },
   "references": [

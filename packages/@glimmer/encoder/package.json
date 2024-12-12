@@ -4,7 +4,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
     "directory": "packages/@glimmer/encoder"
   },
   "type": "module",
@@ -31,9 +31,7 @@
   },
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
-    "test:lint": "eslint .",
-    "test:publint": "publint",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:publint": "publint"
   },
   "dependencies": {
     "@glimmer/interfaces": "workspace:*",

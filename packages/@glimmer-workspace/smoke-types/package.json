@@ -2,13 +2,10 @@
   "private": true,
   "name": "@glimmer-workspace/smoke-types",
   "main": "index.ts",
-  "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
-  },
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/runtime": "workspace:*",
-    "eslint": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -13,3 +13,4 @@ catalog:
   'rollup': '^4.28.1'
   'publint': '^0.2.12'
   'eslint': '^8.57.1'
+  '@types/qunit': '^2.19.12'

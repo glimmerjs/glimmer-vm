@@ -7,12 +7,7 @@ function indexable<T extends object>(input: T): T & Indexable {
 }
 
 export function getGlobal(): Indexable {
-  if (typeof globalThis !== 'undefined') return indexable(globalThis);
-  if (typeof self !== 'undefined') return indexable(self);
-  if (typeof window !== 'undefined') return indexable(window);
-  if (typeof global !== 'undefined') return indexable(global);
-
-  throw new Error('unable to locate global object');
+  return indexable(globalThis);
 }
 
 export function unwrap<T>(val: T | null | undefined): T {

@@ -6,7 +6,10 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/engine",
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "vite/client"
+    ]
   },
   "references": [
     {

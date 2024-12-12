@@ -3,7 +3,10 @@
 	"compilerOptions": {
 		"outDir": "../../../ts-dist/packages/@types/js-reporters",
 		"composite": true,
-		"incremental": true
+		"incremental": true,
+		"types": [
+			"vite/client"
+		]
 	},
 	"include": [
 		"index.d.ts"

@@ -12,7 +12,8 @@
     "incremental": true,
     "types": [
       "node",
-      "vite/client"
+      "vite/client",
+      "qunit"
     ]
   },
   "files": [

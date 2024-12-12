@@ -8,7 +8,7 @@
   "exports": "./index.ts",
   "scripts": {
     "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:types": "tsc --noEmit -p ./tsconfig.json"
   },
   "dependencies": {
     "@glimmer/interfaces": "workspace:*"
@@ -16,6 +16,7 @@
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
+    "@types/qunit": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:"
   }

@@ -4,9 +4,6 @@
   "files": [
     "*.mjs"
   ],
-  "scripts": {
-    "test:lint": "eslint ."
-  },
   "dependencies": {
     "@node-kit/pnpm-workspace-info": "^3.3.1",
     "@pnpm/find-workspace-dir": "^900.0.1",
@@ -26,6 +23,7 @@
     "@pnpm/types": "^1000.0.0",
     "@pnpm/workspace.find-packages": "^900.0.1",
     "@types/ramda": "^0.30.2",
-    "eslint": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -4,10 +4,6 @@
   "private": true,
   "type": "module",
   "main": "index.ts",
-  "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
-  },
   "dependencies": {
     "@glimmer/fundamental": "workspace:*",
     "@glimmer/global-context": "workspace:*",
@@ -23,7 +19,8 @@
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
-    "eslint": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=16"

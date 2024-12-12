@@ -8,9 +8,7 @@
     "vite.config.mts"
   ],
   "scripts": {
-    "start": "vite --mode production",
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../../tsconfig.json"
+    "start": "vite --mode production"
   },
   "dependencies": {
     "@glimmer-workspace/benchmark-env": "workspace:*",
@@ -21,7 +19,8 @@
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@types/node": "^20.9.4",
-    "eslint": "catalog:",
+    "eslint": "^8.57.1",
+    "typescript": "^5.7.1",
     "vite": "^5.4.10"
   },
   "engines": {

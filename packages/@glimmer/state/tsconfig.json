@@ -7,11 +7,10 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/state",
     "composite": true,
-    "incremental": true
-  },
-  "references": [
-    {
-      "path": "../../@glimmer-workspace/build/tsconfig.json"
-    }
-  ]
+    "incremental": true,
+    "types": [
+      "vite/client",
+      "qunit"
+    ]
+  }
 }

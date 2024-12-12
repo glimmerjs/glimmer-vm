@@ -6,6 +6,9 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/local-debug-flags",
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "vite/client"
+    ]
   }
 }

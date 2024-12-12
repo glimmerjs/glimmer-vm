@@ -7,10 +7,6 @@
   "sideEffects": false,
   "type": "module",
   "exports": "./index.ts",
-  "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
-  },
   "dependencies": {
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",

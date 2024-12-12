@@ -5,7 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:types": "tsc --noEmit -p ./tsconfig.json"
   },
   "dependencies": {
     "@glimmer-workspace/test-utils": "workspace:*",
@@ -40,7 +40,9 @@
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
     "@types/js-reporters": "workspace:*",
-    "@types/qunit": "^2.19.9",
-    "eslint": "catalog:"
+    "@types/node": "catalog:",
+    "@types/qunit": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

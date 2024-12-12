@@ -96,6 +96,7 @@ const EXTERNAL_OPTIONS = /** @type {const} */ ([
       '@glimmer/debug',
       '@glimmer/debug-util',
       '@glimmer/fundamental',
+      '@glimmer/state',
       '@glimmer/interfaces',
     ],
     'inline',

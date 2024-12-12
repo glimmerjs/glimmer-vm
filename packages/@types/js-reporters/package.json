@@ -2,11 +2,9 @@
   "private": true,
   "name": "@types/js-reporters",
   "types": "index.d.ts",
-  "scripts": {
-    "test:lint": "eslint ."
-  },
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
-    "eslint": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

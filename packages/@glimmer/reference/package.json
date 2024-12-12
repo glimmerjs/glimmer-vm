@@ -5,7 +5,7 @@
   "description": "Objects used to track values and their dirtiness in Glimmer",
   "repository": {
     "type": "git",
-    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
     "directory": "packages/@glimmer/reference"
   },
   "type": "module",
@@ -34,7 +34,7 @@
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
     "test:publint": "publint",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:types": "tsc --noEmit -p ./tsconfig.json"
   },
   "dependencies": {
     "@glimmer/fundamental": "workspace:*",
@@ -48,6 +48,7 @@
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
+    "@types/qunit": "catalog:",
     "eslint": "catalog:",
     "publint": "catalog:",
     "rollup": "catalog:",

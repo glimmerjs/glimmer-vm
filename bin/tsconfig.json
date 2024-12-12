@@ -20,7 +20,8 @@
     "outDir": "../ts-dist/bin",
     "incremental": true,
     "types": [
-      "node"
+      "node",
+      "vite/client"
     ]
   },
   "include": [

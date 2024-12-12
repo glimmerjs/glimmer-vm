@@ -8,7 +8,11 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/program",
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "vite/client",
+      "qunit"
+    ]
   },
   "references": [
     {

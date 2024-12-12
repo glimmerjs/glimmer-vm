@@ -6,12 +6,9 @@
   "type": "module",
   "private": true,
   "exports": "./index.ts",
-  "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
-  },
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
-    "eslint": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

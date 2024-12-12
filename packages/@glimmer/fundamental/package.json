@@ -28,7 +28,7 @@
   },
   "scripts": {
     "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:types": "tsc --noEmit -p ./tsconfig.json"
   },
   "dependencies": {
     "@glimmer/debug-util": "workspace:*",
@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
+    "@types/qunit": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:"
   }

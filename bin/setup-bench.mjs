@@ -210,7 +210,8 @@ async function buildRepo(directory, ref, reuse) {
     await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
     // `pnpm install` and build the repo
-    await $`pnpm install --no-frozen-lockfile`;
+    await $`pnpm install --no-frozen-lockfile --color --no-strict-peer-dependencies`;
+
     await $`pnpm build`;
 
     // rewrite all `package.json`s to behave like published packages
@@ -218,6 +219,11 @@ async function buildRepo(directory, ref, reuse) {
 
     // build the benchmarks using vite
     cd(benchDir);
+
+    const tsconfig = JSON.parse(await readFile('tsconfig.json', { encoding: 'utf8' }));
+    delete tsconfig['references'];
+    await writeFile('tsconfig.json', JSON.stringify(tsconfig, null, 2), { encoding: 'utf8' });
+
     await $`pnpm vite build`;
   });
 }

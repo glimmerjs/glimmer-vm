@@ -4,7 +4,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
     "directory": "packages/@glimmer/interfaces"
   },
   "type": "module",
@@ -14,9 +14,7 @@
     "index.d.ts"
   ],
   "scripts": {
-    "test:lint": "eslint .",
-    "test:publint": "publint",
-    "test:types": "tsc --noEmit"
+    "test:publint": "publint"
   },
   "dependencies": {
     "@glimmer/state": "workspace:*",

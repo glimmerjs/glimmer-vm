@@ -1,6 +1,5 @@
 // @ts-check
 import { existsSync, statSync } from 'node:fs';
-import { type } from 'node:os';
 import { basename, join, relative, resolve } from 'node:path';
 
 import { findWorkspaceDir } from '@pnpm/find-workspace-dir';
@@ -70,8 +69,32 @@ export default function main(workspaceDir) {
         pkg.scripts ??= {};
         pkg.devDependencies ??= {};
 
+        const needsTsConfig = pkgNeedsTsConfig(pkg);
         const needsBuild = packageNeedsBuild(pkg);
         const isPublished = !pkg.private;
+        const hasTests = existsSync(join(options.dir, 'test'));
+        const isRoot = options.dir === workspaceDir;
+        const isBench = options.manifest.name === '@glimmer-workspace/krausest';
+
+        updateAll(pkg.devDependencies, { '@types/qunit': 'catalog:' }, hasTests);
+
+        // Don't use catalog: dependencies in the benchmark package
+        // until the base branch has been updated
+        if (!isBench) {
+          updateAll(
+            pkg.devDependencies,
+            { eslint: 'catalog:', typescript: 'catalog:' },
+            needsTsConfig || isRoot
+          );
+        }
+
+        if (!isRoot) {
+          updateAll(
+            pkg.scripts,
+            { 'test:lint': 'eslint .', 'test:types': 'tsc --noEmit -p ./tsconfig.json' },
+            hasTests
+          );
+        }
 
         // If the package needs to be built, add `@glimmer-workspace/build-support`
         // and `rollup` as devDependencies.
@@ -84,9 +107,12 @@ export default function main(workspaceDir) {
           needsBuild
         );
 
-        // If the package needs to be built, add a `build` script that
-        // builds the package using rollup.
-        updateAll(pkg.scripts, { build: 'rollup -c rollup.config.mjs' }, needsBuild);
+        // Leave the build script in the root package alone
+        if (!isRoot) {
+          // If the package needs to be built, add a `build` script that
+          // builds the package using rollup.
+          updateAll(pkg.scripts, { build: 'rollup -c rollup.config.mjs' }, needsBuild);
+        }
 
         // If the package is published, add `publint` as a devDependency
         // and a `test:publint` script that runs `publint`.
@@ -98,7 +124,7 @@ export default function main(workspaceDir) {
           {
             repository: {
               type: 'git',
-              url: 'https://github.com/glimmerjs/glimmer-vm.git',
+              url: 'git+https://github.com/glimmerjs/glimmer-vm.git',
               directory: relative(workspaceDir, options.dir),
             },
           },
@@ -108,6 +134,10 @@ export default function main(workspaceDir) {
         // If there are no scripts, remove the `scripts` field
         if (Object.keys(pkg.scripts).length === 0) {
           delete pkg.scripts;
+        }
+
+        if (Object.keys(pkg.devDependencies).length === 0) {
+          delete pkg.devDependencies;
         }
 
         return pkg;
@@ -120,7 +150,7 @@ export default function main(workspaceDir) {
         }
 
         // If the package doesn't need a tsconfig, remove it
-        if (!needsTsConfig(pkg)) {
+        if (!pkgNeedsTsConfig(pkg)) {
           return null;
         }
 
@@ -128,8 +158,8 @@ export default function main(workspaceDir) {
           extends: '../tsconfig.shared.json',
         };
 
-        const types = typesList(options);
         const include = includesList(options);
+        const types = typesList(options);
 
         const relativeDir = relative(workspaceDir, options.dir);
         const distDir = join(workspaceDir, 'ts-dist', relativeDir);
@@ -183,7 +213,7 @@ export default function main(workspaceDir) {
  *
  * @param {ProjectManifest} pkg
  */
-function needsTsConfig(pkg) {
+function pkgNeedsTsConfig(pkg) {
   return (
     !pkg.name ||
     (!pkg.name.startsWith('@glimmer-test/') && pkg.name !== '@glimmer-workspace/eslint-plugin')
@@ -267,6 +297,8 @@ function typesList(options) {
   const manifest = options.manifest;
   const devDeps = Object.keys(manifest.devDependencies ?? {});
 
+  const hasTests = existsSync(join(options.dir, 'test'));
+
   /** @type {string[]} */
   const types = [];
 
@@ -274,8 +306,10 @@ function typesList(options) {
     types.push('node');
   }
 
-  if (devDeps.includes('vite')) {
-    types.push('vite/client');
+  types.push('vite/client');
+
+  if (hasTests) {
+    types.push('qunit');
   }
 
   return types;
@@ -478,7 +512,7 @@ async function workspacePackages(root) {
     return Promise.all(
       packages.map(async (pkg) => {
         const packageJson = await readPackageJson(resolve(pkg.rootDir, 'package.json'));
-        const tsconfig = needsTsConfig(packageJson)
+        const tsconfig = pkgNeedsTsConfig(packageJson)
           ? resolve(pkg.rootDir, 'tsconfig.json')
           : undefined;
         return {

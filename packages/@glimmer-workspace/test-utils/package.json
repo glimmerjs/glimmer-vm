@@ -2,16 +2,13 @@
   "private": true,
   "name": "@glimmer-workspace/test-utils",
   "main": "index.ts",
-  "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
-  },
   "dependencies": {
     "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
-    "eslint": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -6,10 +6,6 @@
     "*.mts",
     "opcodes"
   ],
-  "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ./tsconfig.json"
-  },
   "dependencies": {
     "chalk": "^5.3.0",
     "execa": "^7.2.0",
@@ -31,7 +27,8 @@
     "@types/node": "^20.9.4",
     "@types/puppeteer-chromium-resolver": "workspace:*",
     "@types/tar": "^6.1.10",
-    "eslint": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"
