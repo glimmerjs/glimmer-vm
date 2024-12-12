@@ -32,6 +32,7 @@
     "zx": "^8.2.2"
   },
   "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@types/ms": "^0.7.34",
     "@types/node": "^20.9.4",
     "eslint": "catalog:",

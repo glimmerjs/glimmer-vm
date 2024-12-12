@@ -10,6 +10,7 @@
     "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "eslint": "catalog:"
   }

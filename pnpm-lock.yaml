@@ -152,6 +152,9 @@ importers:
       glob:
         specifier: ^10.2.3
         version: 10.2.3
+      globby:
+        specifier: ^14.0.2
+        version: 14.0.2
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.0
@@ -224,9 +227,6 @@ importers:
       xo:
         specifier: ^0.54.2
         version: 0.54.2(webpack@5.96.1(@swc/core@1.9.3))
-      zx:
-        specifier: ^8.1.9
-        version: 8.1.9
 
   .meta-updater:
     dependencies:
@@ -257,16 +257,31 @@ importers:
       strip-json-comments:
         specifier: ^5.0.1
         version: 5.0.1
+      workspace-root:
+        specifier: ^3.3.1
+        version: 3.3.1
       write-json-file:
         specifier: ^6.0.0
         version: 6.0.0
+      zx:
+        specifier: ^8.2.4
+        version: 8.2.4
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../packages/@glimmer-workspace/eslint-plugin
       '@pnpm/types':
         specifier: ^1000.0.0
         version: 1000.0.0
+      '@pnpm/workspace.find-packages':
+        specifier: ^900.0.1
+        version: 900.0.1(@pnpm/logger@5.2.0)
       '@types/ramda':
         specifier: ^0.30.2
         version: 0.30.2
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
 
   benchmark/benchmarks/krausest:
     dependencies:
@@ -390,9 +405,15 @@ importers:
         specifier: workspace:*
         version: link:../../@glimmer/validator
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../eslint-plugin
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../../@glimmer/debug-util
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
 
   packages/@glimmer-workspace/build:
     dependencies:
@@ -445,6 +466,9 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../eslint-plugin
       '@types/ms':
         specifier: ^0.7.34
         version: 0.7.34
@@ -579,6 +603,9 @@ importers:
         specifier: ^0.5.11
         version: 0.5.11
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../eslint-plugin
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../../@glimmer/constants
@@ -600,6 +627,9 @@ importers:
 
   packages/@glimmer-workspace/smoke-types:
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../eslint-plugin
       '@glimmer/runtime':
         specifier: workspace:*
         version: link:../../@glimmer/runtime
@@ -613,6 +643,9 @@ importers:
         specifier: workspace:*
         version: link:../../@glimmer/interfaces
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../eslint-plugin
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../../@glimmer/debug-util
@@ -638,6 +671,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../constants
@@ -691,6 +727,9 @@ importers:
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../debug-util
@@ -744,6 +783,9 @@ importers:
         specifier: workspace:*
         version: link:../vm
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../constants
@@ -769,6 +811,9 @@ importers:
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/local-debug-flags':
         specifier: workspace:*
         version: link:../local-debug-flags
@@ -810,6 +855,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../debug-util
@@ -854,6 +902,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -872,6 +923,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../constants
@@ -948,6 +1002,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -987,6 +1044,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -1009,18 +1069,30 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
     devDependencies:
+      '@glimmer-workspace/build-support':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
       publint:
         specifier: 'catalog:'
         version: 0.2.12
+      rollup:
+        specifier: 'catalog:'
+        version: 4.28.1
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
 
   packages/@glimmer/local-debug-flags:
     devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -1052,6 +1124,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/debug':
         specifier: workspace:*
         version: link:../debug
@@ -1104,6 +1179,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -1144,6 +1222,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../constants
@@ -1178,6 +1259,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -1221,6 +1305,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../constants
@@ -1273,6 +1360,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../debug-util
@@ -1353,6 +1443,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/constants':
         specifier: workspace:*
         version: link:../constants
@@ -1383,6 +1476,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@simple-dom/interface':
         specifier: ^1.4.0
         version: 1.4.0
@@ -1435,6 +1531,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../debug-util
@@ -1485,6 +1584,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/debug-util':
         specifier: workspace:*
         version: link:../debug-util
@@ -1525,6 +1627,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       '@glimmer/state':
         specifier: workspace:*
         version: link:../state
@@ -1575,6 +1680,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -1597,6 +1705,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -1610,13 +1721,27 @@ importers:
         specifier: ^5.7.2
         version: 5.7.2
 
-  packages/@types/js-reporters: {}
+  packages/@types/js-reporters:
+    devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
 
   packages/@types/puppeteer-chromium-resolver:
     dependencies:
       puppeteer:
         specifier: 23.5.3
         version: 23.5.3(typescript@5.7.2)
+    devDependencies:
+      '@glimmer-workspace/eslint-plugin':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/eslint-plugin
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
 
 packages:
 
@@ -2656,12 +2781,20 @@ packages:
     resolution: {integrity: sha512-TUtb7jI+dBpxri+ui+ZP2ek4xUm4MxT9LCgLTWXe8xB+NLIO7Xao7RH2SnMpFnMTHZ70/TnU9/C41k/vS7u4XQ==}
     hasBin: true
 
+  '@node-kit/lerna-workspace-root@3.3.1':
+    resolution: {integrity: sha512-NoQ2+L13iqRLx3J8uyW7+05x/POMGwYcF8mzLpYvfrKFTPPh8XdN7YNuHguba0jXZwV6X2VDn8dAGdMhNERcNg==}
+    hasBin: true
+
   '@node-kit/pnpm-workspace-info@3.3.1':
     resolution: {integrity: sha512-rz8MkI6hO6FrRTGlpADENZBXnsU1CRAD+j+Mv9fIwzwIOIaPxGEBmWolWbB5Av1ZF8qhin+VNFUqutZG1v257w==}
     hasBin: true
 
   '@node-kit/pnpm-workspace-root@3.3.1':
     resolution: {integrity: sha512-IBvLeY+X3CgvS7aLQnn4AZDRTguFs5W/WxZJNi4YWlvAIdua1N8GTCjQQps3f6NUnV83IPrZkTJh5HTzYTMY2w==}
+    hasBin: true
+
+  '@node-kit/yarn-workspace-root@3.3.1':
+    resolution: {integrity: sha512-9PmP3y9814aPOsB4CFnYDbIcJ7/nPZZolbFhJ0f0gqYG3aySFrBTL1o2RRq9KlBct19HfceyT80Ut4c/Q+UVpA==}
     hasBin: true
 
   '@nodelib/fs.scandir@2.1.5':
@@ -2816,20 +2949,40 @@ packages:
     resolution: {integrity: sha512-9djTcIYTeK3JpqB1EO57Bbd7hJyMhvYXCGzfMqypWgpJlpjKSgta6XrmcmqN+/NRhLO/l3AbF5hvfnXApYTq7Q==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/catalogs.config@900.0.1':
+    resolution: {integrity: sha512-5u15Uwyuer3ll8hZrDGg3brCWLffz+F4FcuNfzb1pNTg9d/xUMLzKVe76FbelA1VD0D+O440xl1leZkygf28EA==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/catalogs.protocol-parser@0.1.0':
     resolution: {integrity: sha512-T3WvT+IBHsoDwv8RBQo3b+SBnXTQMpHZ1Yo7tJWcImBzrkuc4eP7KYB/yGP240PNgyrvCTrnuImRX9MNZD5flg==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/catalogs.protocol-parser@900.0.0':
+    resolution: {integrity: sha512-212bfJVGDyy05eyh9Oa9h4uBBjVF+gQVAU6XTg6XWZzJ3AdCe6nPCBENYj36v2Eu4EkTJnhCQqISgy9c0sYVHw==}
     engines: {node: '>=18.12'}
 
   '@pnpm/catalogs.resolver@0.1.1':
     resolution: {integrity: sha512-xg7dOTLEcD8d5AcZMRYWrkSkQsl5lElCxdkeQpCEg6964H9oG71gU6gBJeJiNcaqY3RF8bWLo58ArvYWruNyrQ==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/catalogs.resolver@900.0.1':
+    resolution: {integrity: sha512-Vgetg+TUyZ3VpJnKFR+v9AG5LkVUmU/9g34aPe9BBtrHk68YBiFJxWaaT7rQUOTEhwyH8Vnft90UEBxrw60jwQ==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/catalogs.types@0.1.0':
     resolution: {integrity: sha512-i52GQCj77GqebPBmmxxTcBRYch8eIdXGC+1REkv//272YNMt5bv5Okq0DvtE8A8RkPurGxFdYVXuqqrTdgBZEw==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/catalogs.types@900.0.0':
+    resolution: {integrity: sha512-c/TOXg0/UTLJz3H7HZOyTawEsy/w36tzFsh1XSHyIi5Bk293P9rU3LPwYPG8WTJkbycnltjZEE39R4aKXauSaQ==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/cli-meta@6.2.2':
     resolution: {integrity: sha512-0U0F2/ycStOJcO62/Ut7cjTtrioSB2luj3O/ozvs2THJsMlxKBcUYUeD4KMUVkcQoe5f7BKWxcYyBkYGPD8isQ==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/cli-meta@900.0.0':
+    resolution: {integrity: sha512-ALLOh3ObQD+DsHYT+xtdVtH6Kg1fPX+YwzpVjZ68A3PL62Od5ND5mysd8nPnN23FZkR0lK6jJ8DtiXz6SfUvdw==}
     engines: {node: '>=18.12'}
 
   '@pnpm/cli-utils@4.0.9':
@@ -2837,6 +2990,12 @@ packages:
     engines: {node: '>=18.12'}
     peerDependencies:
       '@pnpm/logger': ^5.1.0
+
+  '@pnpm/cli-utils@900.0.1':
+    resolution: {integrity: sha512-3bWmwiLz+i7L9HbNIQsHSXy/EpNUzWGZRcabBl6B1fUmJOi9jpFU+xLF/vDLOLVt4JTa5moLFpZvAQpmuCikVQ==}
+    engines: {node: '>=18.12'}
+    peerDependencies:
+      '@pnpm/logger': '>=5.1.0 <901.0.0'
 
   '@pnpm/config.env-replace@1.1.0':
     resolution: {integrity: sha512-htyl8TWnKL7K/ESFa1oW2UB5lVDxuF5DpM7tBi6Hu2LNL3mWkIzNLG6N4zoCUP1lCKNxWy/3iu8mS8MvToGd6w==}
@@ -2848,6 +3007,10 @@ packages:
 
   '@pnpm/config@21.8.6':
     resolution: {integrity: sha512-IuZPHRkW136FrNfrdwTkw2wzekxMHDnhC/9sjkSz4HrCez2zfIOtDr0dqkkpAfCtruoPim9hi1YovMkhue6Mzg==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/config@900.0.1':
+    resolution: {integrity: sha512-PUepPQXKR+CPIK7RwQCcM3YYTvGoylGPvJDQgT9MuLosknS9kVXxsTj4si73V/tA8jHEjXI1+wQYaiFjVVRTSg==}
     engines: {node: '>=18.12'}
 
   '@pnpm/constants@10.0.0':
@@ -2872,20 +3035,42 @@ packages:
     peerDependencies:
       '@pnpm/logger': ^5.1.0
 
+  '@pnpm/core-loggers@900.0.0':
+    resolution: {integrity: sha512-UNQX1EwuatY3HEHmqlKkR8GRPYhW1+NrLUnkeEeu2oadnn9mFFDwtFUkBNyLRg9e7nNGRQ/DNiEi6BPwlzJC3w==}
+    engines: {node: '>=18.12'}
+    peerDependencies:
+      '@pnpm/logger': '>=5.1.0 <901.0.0'
+
   '@pnpm/crypto.base32-hash@3.0.1':
     resolution: {integrity: sha512-DM4RR/tvB7tMb2FekL0Q97A5PCXNyEC+6ht8SaufAUFSJNxeozqHw9PHTZR03mzjziPzNQLOld0pNINBX3srtw==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/crypto.base32-hash@900.0.0':
+    resolution: {integrity: sha512-lmgFx4HH59e0erISeKpiqovNMmeAedDe9N3gYfsDkkMMULgZF7Y/DAfsOkd9owX73LZT7Vr5zk2dL/S0R6I2yA==}
     engines: {node: '>=18.12'}
 
   '@pnpm/crypto.polyfill@1.0.0':
     resolution: {integrity: sha512-WbmsqqcUXKKaAF77ox1TQbpZiaQcr26myuMUu+WjUtoWYgD3VP6iKYEvSx35SZ6G2L316lu+pv+40A2GbWJc1w==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/crypto.polyfill@900.0.0':
+    resolution: {integrity: sha512-W9y0Y76fgxh3dp053+wgAD+qT4rWmIQseCspENea/NqFnk+3InRpBES+BjfZH0rktEWOocaVMsU7zd377HqV8Q==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/dedupe.issues-renderer@2.0.0':
     resolution: {integrity: sha512-UFKcCGUtL+2vbjXPCdw5H3Y/xj6iqVS86ChJSZj6GVODNR+gWO9j0HYMYVBFiQVOIm/7p86Rudyrm3cxmIEmWw==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/dedupe.issues-renderer@900.0.0':
+    resolution: {integrity: sha512-QnjOLCi/OYOqvGY6eJbkbgsy/8ktZOQ5ESeomZRAE2qq9iyZK/w0xFLWaPXZVYgt3ZS2KWA25irgqMuixGiRIA==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/dedupe.types@2.0.0':
     resolution: {integrity: sha512-iCv/dc5dyXN/egiIu89qQn6yuLsQhiFjn0t1N+UKf4jSdMp59WFHjGh04jSsbxbGG91s6K9SQghOBW8BbZjinw==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/dedupe.types@900.0.0':
+    resolution: {integrity: sha512-/YAUmtBmRLBsqa2Nh/j8QVUrBj7+BUhZX5CV07qyxkSDGA9biunwhnJEKJpC3XqmJGzSxS7QFz7wj/wMVxoShA==}
     engines: {node: '>=18.12'}
 
   '@pnpm/default-reporter@14.0.6':
@@ -2894,8 +3079,18 @@ packages:
     peerDependencies:
       '@pnpm/logger': ^5.1.0
 
+  '@pnpm/default-reporter@900.0.1':
+    resolution: {integrity: sha512-y3SsDwwnmi1/2CrdZP+4YumZwBjdoLm1WMvr5BXsChfeLISjhzmlhDTZLZayYcFJ9+ES9ldmMZDU/yTmu9soDw==}
+    engines: {node: '>=18.12'}
+    peerDependencies:
+      '@pnpm/logger': '>=5.1.0 <901.0.0'
+
   '@pnpm/env.system-node-version@1.0.1':
     resolution: {integrity: sha512-oRNq2uMkKye/8ujRAVbcW4qGL99E6bXP6BTjpN7o3IN1nBHuQ4uj/8g3PFJJMzw+80vH3QDMQUF41ABXJN0sRQ==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/env.system-node-version@900.0.0':
+    resolution: {integrity: sha512-4H23LkQphUO5YI4YeaDFdmMsgt5OIF0P7lQJ5rNiFFKNb4kyWvGjn6FWoksz1TcJZf5tHgihOy3zgsGObbWimg==}
     engines: {node: '>=18.12'}
 
   '@pnpm/error@5.0.3':
@@ -2918,6 +3113,10 @@ packages:
     resolution: {integrity: sha512-rIbfSa0XB9x75LRJsrMknmngwaxVHSSU9FL6IC2MwIE6dcrC240Daue4kzhwE/T9Iyzph6Egi/SR0VGzyBzcVA==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/fetcher-base@900.0.0':
+    resolution: {integrity: sha512-PPa9zFiZZCe66iTg0kcUHESTLyWCamAxfNhK9gtCjeNrbP2GD8ffHtinpolhIJN++PjbKgK1zcIVznhNVACAJA==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/find-workspace-dir@7.0.3':
     resolution: {integrity: sha512-eGjkyHSufkHyZ66WpygWnslcRePB0U1lJg1dF3rgWqTChpregYoDyNGDzK7l9Gk+CHVgGZZS5aWp7uKKVmAAEg==}
     engines: {node: '>=18.12'}
@@ -2930,20 +3129,40 @@ packages:
     resolution: {integrity: sha512-k1OUvdId9p2SFYsZajxNF6W3BT0HTCq/jcUJ6Yseu+pI2hSnMxhufOpQkHXvdPNK4Bqw0UtbbYEjb8t+k85Hag==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/fs.find-packages@900.0.1':
+    resolution: {integrity: sha512-15loqEn3bkrtidgbvjNLUS0zcmlnaGZ7y399/ihUtMwmjavGovHKjffWAD2sYNxNKvDrOuRRTFGJrXCjsGFe1Q==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/git-utils@2.0.0':
     resolution: {integrity: sha512-k1rv4Zvno/5zJAqE/Mh9V0ehlm14NsYwpXTdaGMtyhkoHvlSckRfr23OIOIM7Q/TRX+LhqyJ2kep50SY2TsZ+g==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/git-utils@900.0.0':
+    resolution: {integrity: sha512-56CyFyWZ8F/N6bgKqZng+vLIxr2RejX7Tt1Fq1im6sF3IfE1OxAEkEPVMI4L6TNlxYscC6WGJAiVAN7k1C5aBg==}
     engines: {node: '>=18.12'}
 
   '@pnpm/graceful-fs@4.0.0':
     resolution: {integrity: sha512-933nhV2Prp51522poxX6Chvb7kEW3U3kzVWoqDU1+icB+QE7z/2qQ8wYHsBt4jm0Uil/sF67t77ugOr8bR63kg==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/graceful-fs@900.0.0':
+    resolution: {integrity: sha512-06NoSU3nskpqmde/nN1gRyVlNFxYhOrmZpHal3jk5DJz7+UaCqmmMgQ6EHkk60RaLG53zOAOlfZuSRfVNILBZA==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/hooks.types@2.0.9':
     resolution: {integrity: sha512-tiDFwNcqeFwXi+PIImZOaPxWc4fpS6msXTua+4vHQTit7xrRoUAJSq0cHzoAzRc1XaoHrlhl4D4nvCBU7rx4Aw==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/hooks.types@900.0.0':
+    resolution: {integrity: sha512-w5MN63Gwy2Xa5FV2Hfy5IS+/00Fkqck32tRvD3+0MxQAunz8v5gXpH1xXm3ORnqVq7gylo5lP+aS7SHNDgOsIg==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/lockfile.types@1.0.3':
     resolution: {integrity: sha512-A7vUWktnhDkrIs+WmXm7AdffJVyVYJpQUEouya/DYhB+Y+tQ3BXjZ6CV0KybqLgI/8AZErgCJqFxA0GJH6QDjA==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/lockfile.types@900.0.0':
+    resolution: {integrity: sha512-/4+3CAu4uIjx0ln1DYXNdj0qKJ3wyRDY+RS+eFzV6OHjreaTKWsF2WcjigYp1M5mxL4kj2RsRGgBGEyKtCfEWg==}
     engines: {node: '>=18.12'}
 
   '@pnpm/logger@5.2.0':
@@ -2954,8 +3173,16 @@ packages:
     resolution: {integrity: sha512-UVWhZezZs5as/IHdX79b4j/e7rECuiazdigiutZw9O2OVLAaoKmNb4ThWxV1m45vRo41c5XS4Tannmns5IRRXQ==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/manifest-utils@900.0.1':
+    resolution: {integrity: sha512-5AsNN6Tl+DRCzOAPM1YPDJs57ps/Sj1d8g6nz+lMA0diAYMEUNBgrYkVmskJa78bpsHrWDx5vbQYGo4PKRArjg==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/matcher@6.0.0':
     resolution: {integrity: sha512-c2diPZzejRYnL6b00Ko70TnOlbsqydUOvAjOZ7THTs0ptXG/AARcwNp9YO5EXFq775TTmsSUBo99qisYF1ogNA==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/matcher@900.0.0':
+    resolution: {integrity: sha512-a8X/tMbeR2cvx7BiIvmEli1asBudwXC2D/hx/asOXQw20K0XI1A8z5IM9Nth65miLm9f6VKBkVv5PNvwr1QZig==}
     engines: {node: '>=18.12'}
 
   '@pnpm/meta-updater@2.0.3':
@@ -2977,16 +3204,34 @@ packages:
     peerDependencies:
       '@pnpm/logger': ^5.1.0
 
+  '@pnpm/package-is-installable@900.0.1':
+    resolution: {integrity: sha512-snjjlQoEUPDnnG9V0NCicy6gF50mVfY1tdZAY2INg/3KccNTyUFItbjllNldZoBNEbsRQ95WU1LHgLR5hYscZQ==}
+    engines: {node: '>=18.12'}
+    peerDependencies:
+      '@pnpm/logger': '>=5.1.0 <901.0.0'
+
   '@pnpm/parse-overrides@5.1.1':
     resolution: {integrity: sha512-r5rYru63Gm33Q4qx3pbXOUnjE7IjJRQ2NJT6QGJpKe2PaqArFw3WGprZIGzApXXERRm88Lux6ofQKet28Gt1pQ==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/parse-overrides@900.0.1':
+    resolution: {integrity: sha512-4V4vR/4sIOLw71wYdK6gC88BI0xPTDsND64yiVDJIKsWMMPSC+CDa+Oho9ZqPUQD4YQyV2XuWr6lGEDketnGpQ==}
     engines: {node: '>=18.12'}
 
   '@pnpm/parse-wanted-dependency@6.0.0':
     resolution: {integrity: sha512-01hKf1qHKREZDOwa5wRXk01P+xBGOeZf/idg17si8ji7UWpdWEQkrUVmGfv3sT04XoiwIb7kaRiKPQT7ooB4fA==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/parse-wanted-dependency@900.0.0':
+    resolution: {integrity: sha512-GJGP2xDOm3qGDaXP/mRDK8iGPV0PNvvjB2ZUfm3QVtYtoBd3hOUmvssX5w/lE2RD0H3stSpNRpGFt19id0+rKg==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/patching.types@1.0.0':
     resolution: {integrity: sha512-juCdQCC1USqLcOhVPl1tYReoTO9YH4fTullMnFXXcmpsDM7Dkn3tzuOQKC3oPoJ2ozv+0EeWWMtMGqn2+IM3pQ==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/patching.types@900.0.0':
+    resolution: {integrity: sha512-A/3kgRD4Xy2tBMPjOBdx5ZdgmpUobphzWkqDB72S5SIB6gdyCg32AUV0/aO12DwMxpT7kyqMhkkynUOPBfdlUQ==}
     engines: {node: '>=18.12'}
 
   '@pnpm/pnpmfile@6.0.13':
@@ -2994,6 +3239,12 @@ packages:
     engines: {node: '>=18.12'}
     peerDependencies:
       '@pnpm/logger': ^5.1.0
+
+  '@pnpm/pnpmfile@900.0.1':
+    resolution: {integrity: sha512-EFQdqRSuFBpOI2GqIaphblC63g1tZxWA6XI/sBqt9qiKr0Ay4s8t3xRA8vfWZ/q8k4R1D4t4D02YwUMnm/c8YA==}
+    engines: {node: '>=18.12'}
+    peerDependencies:
+      '@pnpm/logger': '>=5.1.0 <901.0.0'
 
   '@pnpm/ramda@0.28.1':
     resolution: {integrity: sha512-zcAG+lvU0fMziNeGXpPyCyCJYp5ZVrPElEE4t14jAmViaihohocZ+dDkcRIyAomox8pQsuZnv1EyHR+pOhmUWw==}
@@ -3006,20 +3257,40 @@ packages:
     resolution: {integrity: sha512-baFgIFtnGCGcWYzwDmGbRSPoolmC6l47uMXuJBRgmTVDDI/x9qJFZ8hFBugVVz4ALbPxA8ajS618WZ+gLla4/A==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/read-project-manifest@900.0.1':
+    resolution: {integrity: sha512-zrkV6E2Hq923FuIFPKC2T3yUbYc4Wa5WtiZfYR40j6GPMxZ+3IIV6/tg3h+GP/6GEVb7lYjWKvZEYX4VEB3EZQ==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/render-peer-issues@5.0.10':
     resolution: {integrity: sha512-+w/ZSaCEOToZtQXniZoQnxwjgs6bL8R/8S1UOl6jnXrPr70ZtgAORfZle/vXVdbqef3T63ZiX9F9uGOMCNTghA==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/render-peer-issues@900.0.1':
+    resolution: {integrity: sha512-g1gFgYk4vlbesAzAtGqT0fB0h97RApps1Uog7YboFmLI/eleIm+M16AVer5EtX+HLawEmqCV/1BNADfW2TOgFA==}
     engines: {node: '>=18.12'}
 
   '@pnpm/resolver-base@13.0.4':
     resolution: {integrity: sha512-d6GtsaXDN1VmVdeB6ohrhwGwQfvYpEX/XkBZyRT0Hp772WabWVfaulvicwdh/8o7Rpzy7IV/2hKnDpodUY00lw==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/resolver-base@900.0.0':
+    resolution: {integrity: sha512-ibxRvb8Nij336oMw1MCFkdcVdseXHy54ezU2suapoQ3xR97L365tm/2EHkFw37l1GkZPMy5Mlcc/znJZ+NAxqg==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/store-controller-types@18.1.6':
     resolution: {integrity: sha512-XmNJkoprEg4m8enIJWF0aZHTH+vodl040z8V8Tww3ednxwcbd+JI15O6VzQN+c9E3UJfUa5U8iaTpndLaOTDTQ==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/store-controller-types@900.0.0':
+    resolution: {integrity: sha512-QQf1cH9WVrJ6coPnHAk6iEO8pKwFzwBwWVWE3JDorK2pwXG8I9tM97whf8Zmj/w+tlPRUAGc7F9Sxgc1gJBp4Q==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/text.comments-parser@3.0.0':
     resolution: {integrity: sha512-BSGvYd59kPKVTUk1InekEp+TiPnJ8650/bQyiOUFSvqHi61YipcR+E4H2i3xTnk2e+GHdGbXvEtAZbQmyxb0/g==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/text.comments-parser@900.0.0':
+    resolution: {integrity: sha512-V+h92R8z8rH2sTqACwaQxOP0OZCbaEjernWVUvRY033SdMht5qcBTbMetcLLP9tc51ocaEvRGmhNi5DTT+NhQg==}
     engines: {node: '>=18.12'}
 
   '@pnpm/types@1000.0.0':
@@ -3053,6 +3324,12 @@ packages:
     peerDependencies:
       '@pnpm/logger': ^5.1.0
 
+  '@pnpm/workspace.find-packages@900.0.1':
+    resolution: {integrity: sha512-yvPcN1Y9wiTzdR1ETL0X0r4A1U4/xS/njairiMOChugw531sIBsq95HRmrLiAbEpG9q7T+A1QZzn/TD/pKOaxg==}
+    engines: {node: '>=18.12'}
+    peerDependencies:
+      '@pnpm/logger': '>=5.1.0 <901.0.0'
+
   '@pnpm/workspace.read-manifest@2.2.1':
     resolution: {integrity: sha512-HdS8Q0nhOO5kBqDYbUFFRv6Zp2TMlaf7Zne8nmrp7xL3k2gi2UU16kmmV+cY5dmINsKslulHDHJIC59J7I+xZg==}
     engines: {node: '>=18.12'}
@@ -3061,8 +3338,16 @@ packages:
     resolution: {integrity: sha512-ryiFUKQfu5sYAtX/jsYRHsTHoB6p6rNBZQkXODlmMczcGeIE78cuz1xf5+xS6Dq2CayiqImuSmCiWbT5uT90Nw==}
     engines: {node: '>=18.12'}
 
+  '@pnpm/workspace.read-manifest@900.0.1':
+    resolution: {integrity: sha512-JZZmOQS94fXui+stIC/c2zHUnnwoVjaJ3xVKa+pc9PoRMo2e0aA/lS/csN0Pb2oI/kX1bZcKXanHLphpPpfN7Q==}
+    engines: {node: '>=18.12'}
+
   '@pnpm/write-project-manifest@6.0.7':
     resolution: {integrity: sha512-UbY9aXp39wVffFX4FZ35NwF9pnl+ccq5i1yaBKamNB1kC8dU7oB/FgFrCva5cC6ox1y5ynze2SB8fj7uF7+kCw==}
+    engines: {node: '>=18.12'}
+
+  '@pnpm/write-project-manifest@900.0.0':
+    resolution: {integrity: sha512-hsnmCbSQGlz/qVueGh0V6kcgXJsJ3HYIoQb/VRZK7U8XE2m3ZL7OzFRHeS8fyXTgkgbeKHRZk/166j2bfmuDfA==}
     engines: {node: '>=18.12'}
 
   '@puppeteer/browsers@2.4.0':
@@ -10586,6 +10871,10 @@ packages:
   workerpool@6.5.1:
     resolution: {integrity: sha512-Fs4dNYcsdpYSAfVxhnl1L5zTksjvOJxtC5hzMNl+1t9B8hTJTdKDyZ5ju7ztgPy+ft9tBFXoOlDNiOT9WUXZlA==}
 
+  workspace-root@3.3.1:
+    resolution: {integrity: sha512-t/KqdJ8+Fa6ovo2o0tV2+WKfd+5gg2SP59MicW8dnwiN6A2huw73yQrnFyrFokJLPJ+ItwJHUjjhNvabUvl/gg==}
+    hasBin: true
+
   wrap-ansi@3.0.1:
     resolution: {integrity: sha512-iXR3tDXpbnTpzjKSylUJRkLuOrEC7hwEB221cgn6wtF8wpmz28puFXAEfPT5zrjM3wahygB//VuWEr1vTkDcNQ==}
     engines: {node: '>=4'}
@@ -10756,11 +11045,6 @@ packages:
 
   zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-
-  zx@8.1.9:
-    resolution: {integrity: sha512-UHuLHphHmsBYKkAchkSrEN4nzDyagafqC9HUxtc1J7eopaScW6H9dsLJ1lmkAntnLtDTGoM8fa+jrJrXiIfKFA==}
-    engines: {node: '>= 12.17.0'}
-    hasBin: true
 
   zx@8.2.2:
     resolution: {integrity: sha512-HSIdpU5P2ONI0nssnhsUZNCH9Sd/Z8LIFk9n8QTbu6JufzJx7qR7ajrMN21s06JqWSApcN012377iWsv8Vs5bg==}
@@ -11909,6 +12193,11 @@ snapshots:
 
   '@node-kit/extra.path@3.3.1': {}
 
+  '@node-kit/lerna-workspace-root@3.3.1':
+    dependencies:
+      '@node-kit/extra.fs': 3.3.1
+      find-up: 5.0.0
+
   '@node-kit/pnpm-workspace-info@3.3.1':
     dependencies:
       '@node-kit/extra.path': 3.3.1
@@ -11921,6 +12210,12 @@ snapshots:
       '@node-kit/extra.fs': 3.3.1
       '@pnpm/error': 5.0.3
       find-up: 5.0.0
+
+  '@node-kit/yarn-workspace-root@3.3.1':
+    dependencies:
+      '@node-kit/extra.fs': 3.3.1
+      find-up: 5.0.0
+      micromatch: 4.0.8
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -12190,18 +12485,36 @@ snapshots:
     dependencies:
       '@pnpm/error': 6.0.2
 
+  '@pnpm/catalogs.config@900.0.1':
+    dependencies:
+      '@pnpm/error': 900.0.1
+
   '@pnpm/catalogs.protocol-parser@0.1.0': {}
+
+  '@pnpm/catalogs.protocol-parser@900.0.0': {}
 
   '@pnpm/catalogs.resolver@0.1.1':
     dependencies:
       '@pnpm/catalogs.protocol-parser': 0.1.0
       '@pnpm/error': 6.0.3
 
+  '@pnpm/catalogs.resolver@900.0.1':
+    dependencies:
+      '@pnpm/catalogs.protocol-parser': 900.0.0
+      '@pnpm/error': 900.0.1
+
   '@pnpm/catalogs.types@0.1.0': {}
+
+  '@pnpm/catalogs.types@900.0.0': {}
 
   '@pnpm/cli-meta@6.2.2':
     dependencies:
       '@pnpm/types': 12.2.0
+      load-json-file: 6.2.0
+
+  '@pnpm/cli-meta@900.0.0':
+    dependencies:
+      '@pnpm/types': 900.0.0
       load-json-file: 6.2.0
 
   '@pnpm/cli-utils@4.0.9(@pnpm/logger@5.2.0)':
@@ -12215,6 +12528,20 @@ snapshots:
       '@pnpm/package-is-installable': 9.0.12(@pnpm/logger@5.2.0)
       '@pnpm/read-project-manifest': 6.0.9
       '@pnpm/types': 12.2.0
+      chalk: 4.1.2
+      load-json-file: 6.2.0
+
+  '@pnpm/cli-utils@900.0.1(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/cli-meta': 900.0.0
+      '@pnpm/config': 900.0.1(@pnpm/logger@5.2.0)
+      '@pnpm/default-reporter': 900.0.1(@pnpm/logger@5.2.0)
+      '@pnpm/error': 900.0.1
+      '@pnpm/logger': 5.2.0
+      '@pnpm/manifest-utils': 900.0.1(@pnpm/logger@5.2.0)
+      '@pnpm/package-is-installable': 900.0.1(@pnpm/logger@5.2.0)
+      '@pnpm/read-project-manifest': 900.0.1
+      '@pnpm/types': 900.0.0
       chalk: 4.1.2
       load-json-file: 6.2.0
 
@@ -12252,6 +12579,36 @@ snapshots:
     transitivePeerDependencies:
       - '@pnpm/logger'
 
+  '@pnpm/config@900.0.1(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/catalogs.config': 900.0.1
+      '@pnpm/catalogs.types': 900.0.0
+      '@pnpm/config.env-replace': 3.0.0
+      '@pnpm/constants': 901.0.0
+      '@pnpm/error': 900.0.1
+      '@pnpm/git-utils': 900.0.0
+      '@pnpm/matcher': 900.0.0
+      '@pnpm/npm-conf': 2.3.1
+      '@pnpm/pnpmfile': 900.0.1(@pnpm/logger@5.2.0)
+      '@pnpm/read-project-manifest': 900.0.1
+      '@pnpm/types': 900.0.0
+      '@pnpm/workspace.read-manifest': 900.0.1
+      better-path-resolve: 1.0.0
+      camelcase: 6.3.0
+      camelcase-keys: 6.2.2
+      can-write-to-dir: 1.1.1
+      is-subdir: 1.2.0
+      is-windows: 1.0.2
+      normalize-registry-url: 2.0.0
+      path-absolute: 1.0.1
+      path-name: 1.0.0
+      ramda: '@pnpm/ramda@0.28.1'
+      read-ini-file: 4.0.0
+      realpath-missing: 1.1.0
+      which: '@pnpm/which@3.0.1'
+    transitivePeerDependencies:
+      - '@pnpm/logger'
+
   '@pnpm/constants@10.0.0': {}
 
   '@pnpm/constants@7.1.1': {}
@@ -12265,12 +12622,24 @@ snapshots:
       '@pnpm/logger': 5.2.0
       '@pnpm/types': 12.2.0
 
+  '@pnpm/core-loggers@900.0.0(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/logger': 5.2.0
+      '@pnpm/types': 900.0.0
+
   '@pnpm/crypto.base32-hash@3.0.1':
     dependencies:
       '@pnpm/crypto.polyfill': 1.0.0
       rfc4648: 1.5.4
 
+  '@pnpm/crypto.base32-hash@900.0.0':
+    dependencies:
+      '@pnpm/crypto.polyfill': 900.0.0
+      rfc4648: 1.5.4
+
   '@pnpm/crypto.polyfill@1.0.0': {}
+
+  '@pnpm/crypto.polyfill@900.0.0': {}
 
   '@pnpm/dedupe.issues-renderer@2.0.0':
     dependencies:
@@ -12278,7 +12647,15 @@ snapshots:
       archy: 1.0.0
       chalk: 4.1.2
 
+  '@pnpm/dedupe.issues-renderer@900.0.0':
+    dependencies:
+      '@pnpm/dedupe.types': 900.0.0
+      archy: 1.0.0
+      chalk: 4.1.2
+
   '@pnpm/dedupe.types@2.0.0': {}
+
+  '@pnpm/dedupe.types@900.0.0': {}
 
   '@pnpm/default-reporter@14.0.6(@pnpm/logger@5.2.0)':
     dependencies:
@@ -12304,9 +12681,39 @@ snapshots:
       stacktracey: 2.1.8
       string-length: 4.0.2
 
+  '@pnpm/default-reporter@900.0.1(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/cli-meta': 900.0.0
+      '@pnpm/config': 900.0.1(@pnpm/logger@5.2.0)
+      '@pnpm/core-loggers': 900.0.0(@pnpm/logger@5.2.0)
+      '@pnpm/dedupe.issues-renderer': 900.0.0
+      '@pnpm/dedupe.types': 900.0.0
+      '@pnpm/error': 900.0.1
+      '@pnpm/logger': 5.2.0
+      '@pnpm/render-peer-issues': 900.0.1
+      '@pnpm/types': 900.0.0
+      ansi-diff: 1.2.0
+      boxen: 5.1.2
+      chalk: 4.1.2
+      cli-truncate: 2.1.0
+      normalize-path: 3.0.0
+      pretty-bytes: 5.6.0
+      pretty-ms: 7.0.1
+      ramda: '@pnpm/ramda@0.28.1'
+      rxjs: 7.8.1
+      semver: 7.6.3
+      stacktracey: 2.1.8
+      string-length: 4.0.2
+
   '@pnpm/env.system-node-version@1.0.1':
     dependencies:
       '@pnpm/cli-meta': 6.2.2
+      execa: safe-execa@0.1.2
+      mem: 8.1.1
+
+  '@pnpm/env.system-node-version@900.0.0':
+    dependencies:
+      '@pnpm/cli-meta': 900.0.0
       execa: safe-execa@0.1.2
       mem: 8.1.1
 
@@ -12332,6 +12739,12 @@ snapshots:
       '@pnpm/types': 12.2.0
       '@types/ssri': 7.1.5
 
+  '@pnpm/fetcher-base@900.0.0':
+    dependencies:
+      '@pnpm/resolver-base': 900.0.0
+      '@pnpm/types': 900.0.0
+      '@types/ssri': 7.1.5
+
   '@pnpm/find-workspace-dir@7.0.3':
     dependencies:
       '@pnpm/error': 6.0.3
@@ -12350,11 +12763,27 @@ snapshots:
       fast-glob: 3.3.2
       p-filter: 2.1.0
 
+  '@pnpm/fs.find-packages@900.0.1':
+    dependencies:
+      '@pnpm/read-project-manifest': 900.0.1
+      '@pnpm/types': 900.0.0
+      '@pnpm/util.lex-comparator': 3.0.0
+      fast-glob: 3.3.2
+      p-filter: 2.1.0
+
   '@pnpm/git-utils@2.0.0':
     dependencies:
       execa: safe-execa@0.1.2
 
+  '@pnpm/git-utils@900.0.0':
+    dependencies:
+      execa: safe-execa@0.1.2
+
   '@pnpm/graceful-fs@4.0.0':
+    dependencies:
+      graceful-fs: 4.2.11
+
+  '@pnpm/graceful-fs@900.0.0':
     dependencies:
       graceful-fs: 4.2.11
 
@@ -12363,10 +12792,20 @@ snapshots:
       '@pnpm/lockfile.types': 1.0.3
       '@pnpm/types': 12.2.0
 
+  '@pnpm/hooks.types@900.0.0':
+    dependencies:
+      '@pnpm/lockfile.types': 900.0.0
+      '@pnpm/types': 900.0.0
+
   '@pnpm/lockfile.types@1.0.3':
     dependencies:
       '@pnpm/patching.types': 1.0.0
       '@pnpm/types': 12.2.0
+
+  '@pnpm/lockfile.types@900.0.0':
+    dependencies:
+      '@pnpm/patching.types': 900.0.0
+      '@pnpm/types': 900.0.0
 
   '@pnpm/logger@5.2.0':
     dependencies:
@@ -12381,7 +12820,19 @@ snapshots:
     transitivePeerDependencies:
       - '@pnpm/logger'
 
+  '@pnpm/manifest-utils@900.0.1(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/core-loggers': 900.0.0(@pnpm/logger@5.2.0)
+      '@pnpm/error': 900.0.1
+      '@pnpm/types': 900.0.0
+    transitivePeerDependencies:
+      - '@pnpm/logger'
+
   '@pnpm/matcher@6.0.0':
+    dependencies:
+      escape-string-regexp: 4.0.0
+
+  '@pnpm/matcher@900.0.0':
     dependencies:
       escape-string-regexp: 4.0.0
 
@@ -12421,6 +12872,19 @@ snapshots:
       mem: 8.1.1
       semver: 7.6.3
 
+  '@pnpm/package-is-installable@900.0.1(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/cli-meta': 900.0.0
+      '@pnpm/core-loggers': 900.0.0(@pnpm/logger@5.2.0)
+      '@pnpm/env.system-node-version': 900.0.0
+      '@pnpm/error': 900.0.1
+      '@pnpm/logger': 5.2.0
+      '@pnpm/types': 900.0.0
+      detect-libc: 2.0.3
+      execa: safe-execa@0.1.2
+      mem: 8.1.1
+      semver: 7.6.3
+
   '@pnpm/parse-overrides@5.1.1':
     dependencies:
       '@pnpm/catalogs.resolver': 0.1.1
@@ -12428,11 +12892,24 @@ snapshots:
       '@pnpm/error': 6.0.2
       '@pnpm/parse-wanted-dependency': 6.0.0
 
+  '@pnpm/parse-overrides@900.0.1':
+    dependencies:
+      '@pnpm/catalogs.resolver': 900.0.1
+      '@pnpm/catalogs.types': 900.0.0
+      '@pnpm/error': 900.0.1
+      '@pnpm/parse-wanted-dependency': 900.0.0
+
   '@pnpm/parse-wanted-dependency@6.0.0':
     dependencies:
       validate-npm-package-name: 5.0.0
 
+  '@pnpm/parse-wanted-dependency@900.0.0':
+    dependencies:
+      validate-npm-package-name: 5.0.0
+
   '@pnpm/patching.types@1.0.0': {}
+
+  '@pnpm/patching.types@900.0.0': {}
 
   '@pnpm/pnpmfile@6.0.13(@pnpm/logger@5.2.0)':
     dependencies:
@@ -12444,6 +12921,19 @@ snapshots:
       '@pnpm/logger': 5.2.0
       '@pnpm/store-controller-types': 18.1.6
       '@pnpm/types': 12.2.0
+      chalk: 4.1.2
+      path-absolute: 1.0.1
+
+  '@pnpm/pnpmfile@900.0.1(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/core-loggers': 900.0.0(@pnpm/logger@5.2.0)
+      '@pnpm/crypto.base32-hash': 900.0.0
+      '@pnpm/error': 900.0.1
+      '@pnpm/hooks.types': 900.0.0
+      '@pnpm/lockfile.types': 900.0.0
+      '@pnpm/logger': 5.2.0
+      '@pnpm/store-controller-types': 900.0.0
+      '@pnpm/types': 900.0.0
       chalk: 4.1.2
       path-absolute: 1.0.1
 
@@ -12473,6 +12963,23 @@ snapshots:
       sort-keys: 4.2.0
       strip-bom: 4.0.0
 
+  '@pnpm/read-project-manifest@900.0.1':
+    dependencies:
+      '@gwhitney/detect-indent': 7.0.1
+      '@pnpm/error': 900.0.1
+      '@pnpm/graceful-fs': 900.0.0
+      '@pnpm/text.comments-parser': 900.0.0
+      '@pnpm/types': 900.0.0
+      '@pnpm/write-project-manifest': 900.0.0
+      fast-deep-equal: 3.1.3
+      is-windows: 1.0.2
+      json5: 2.2.3
+      lodash.clonedeep: 4.5.0
+      parse-json: 5.2.0
+      read-yaml-file: 2.1.0
+      sort-keys: 4.2.0
+      strip-bom: 4.0.0
+
   '@pnpm/render-peer-issues@5.0.10':
     dependencies:
       '@pnpm/error': 6.0.2
@@ -12484,9 +12991,24 @@ snapshots:
       cli-columns: 4.0.0
       semver: 7.6.3
 
+  '@pnpm/render-peer-issues@900.0.1':
+    dependencies:
+      '@pnpm/error': 900.0.1
+      '@pnpm/matcher': 900.0.0
+      '@pnpm/parse-overrides': 900.0.1
+      '@pnpm/types': 900.0.0
+      archy: 1.0.0
+      chalk: 4.1.2
+      cli-columns: 4.0.0
+      semver: 7.6.3
+
   '@pnpm/resolver-base@13.0.4':
     dependencies:
       '@pnpm/types': 12.2.0
+
+  '@pnpm/resolver-base@900.0.0':
+    dependencies:
+      '@pnpm/types': 900.0.0
 
   '@pnpm/store-controller-types@18.1.6':
     dependencies:
@@ -12494,7 +13016,17 @@ snapshots:
       '@pnpm/resolver-base': 13.0.4
       '@pnpm/types': 12.2.0
 
+  '@pnpm/store-controller-types@900.0.0':
+    dependencies:
+      '@pnpm/fetcher-base': 900.0.0
+      '@pnpm/resolver-base': 900.0.0
+      '@pnpm/types': 900.0.0
+
   '@pnpm/text.comments-parser@3.0.0':
+    dependencies:
+      strip-comments-strings: 1.2.0
+
+  '@pnpm/text.comments-parser@900.0.0':
     dependencies:
       strip-comments-strings: 1.2.0
 
@@ -12520,6 +13052,14 @@ snapshots:
       '@pnpm/types': 12.2.0
       '@pnpm/util.lex-comparator': 3.0.0
 
+  '@pnpm/workspace.find-packages@900.0.1(@pnpm/logger@5.2.0)':
+    dependencies:
+      '@pnpm/cli-utils': 900.0.1(@pnpm/logger@5.2.0)
+      '@pnpm/fs.find-packages': 900.0.1
+      '@pnpm/logger': 5.2.0
+      '@pnpm/types': 900.0.0
+      '@pnpm/util.lex-comparator': 3.0.0
+
   '@pnpm/workspace.read-manifest@2.2.1':
     dependencies:
       '@pnpm/constants': 9.0.0
@@ -12532,10 +13072,24 @@ snapshots:
       '@pnpm/error': 6.0.3
       read-yaml-file: 2.1.0
 
+  '@pnpm/workspace.read-manifest@900.0.1':
+    dependencies:
+      '@pnpm/constants': 901.0.0
+      '@pnpm/error': 900.0.1
+      read-yaml-file: 2.1.0
+
   '@pnpm/write-project-manifest@6.0.7':
     dependencies:
       '@pnpm/text.comments-parser': 3.0.0
       '@pnpm/types': 12.2.0
+      json5: 2.2.3
+      write-file-atomic: 5.0.1
+      write-yaml-file: 5.0.0
+
+  '@pnpm/write-project-manifest@900.0.0':
+    dependencies:
+      '@pnpm/text.comments-parser': 900.0.0
+      '@pnpm/types': 900.0.0
       json5: 2.2.3
       write-file-atomic: 5.0.1
       write-yaml-file: 5.0.0
@@ -21495,6 +22049,12 @@ snapshots:
 
   workerpool@6.5.1: {}
 
+  workspace-root@3.3.1:
+    dependencies:
+      '@node-kit/lerna-workspace-root': 3.3.1
+      '@node-kit/pnpm-workspace-root': 3.3.1
+      '@node-kit/yarn-workspace-root': 3.3.1
+
   wrap-ansi@3.0.1:
     dependencies:
       string-width: 2.1.1
@@ -21671,11 +22231,6 @@ snapshots:
       zod: 3.23.8
 
   zod@3.23.8: {}
-
-  zx@8.1.9:
-    optionalDependencies:
-      '@types/fs-extra': 11.0.4
-      '@types/node': 20.17.9
 
   zx@8.2.2:
     optionalDependencies:

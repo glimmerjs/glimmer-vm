@@ -1,6 +1,10 @@
 {
   "extends": "../tsconfig.shared.json",
-  "include": ["lib/**/*.ts", "test/**/*.ts", "index.ts"],
+  "include": [
+    "lib/**/*.ts",
+    "test/**/*.ts",
+    "index.ts"
+  ],
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/fundamental",
     "composite": true,
@@ -15,9 +19,6 @@
     },
     {
       "path": "../state/tsconfig.json"
-    },
-    {
-      "path": "../../@glimmer-workspace/build/tsconfig.json"
     }
   ]
 }

@@ -3,7 +3,11 @@
   "version": "0.92.5",
   "license": "MIT",
   "description": "Implementation for the owner in Glimmer apps",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/owner",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/owner"
+  },
   "type": "module",
   "exports": "./index.ts",
   "publishConfig": {
@@ -37,6 +41,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "eslint": "catalog:",
     "publint": "catalog:",
     "rollup": "catalog:",

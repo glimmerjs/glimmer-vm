@@ -4,7 +4,6 @@
   "version": "0.92.3",
   "license": "MIT",
   "description": "Common utilities used in Glimmer with debug-specific behavior",
-  "repository": "https://github.com/tildeio/glimmer/tree/main/packages/@glimmer/debug-util",
   "type": "module",
   "exports": "./index.ts",
   "scripts": {
@@ -15,6 +14,7 @@
     "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:"

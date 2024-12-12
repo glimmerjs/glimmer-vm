@@ -18,7 +18,10 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "outDir": "../ts-dist/bin",
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "opcodes/**/*.mts",
@@ -40,7 +43,7 @@
   ],
   "references": [
     {
-      "path": "../packages/@glimmer-workspace/eslint-plugin/tsconfig.json"
+      "path": "../packages/@types/puppeteer-chromium-resolver/tsconfig.json"
     }
   ]
 }

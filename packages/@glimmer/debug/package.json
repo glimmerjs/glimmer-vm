@@ -5,7 +5,6 @@
   "license": "MIT",
   "description": "Utilities for helping make working in the vm easier. these should be inlined and stripped for ember usage.",
   "sideEffects": false,
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/debug",
   "type": "module",
   "exports": "./index.ts",
   "scripts": {
@@ -21,6 +20,7 @@
     "@glimmer/vm": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/fundamental": "workspace:*",

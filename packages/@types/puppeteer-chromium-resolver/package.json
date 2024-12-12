@@ -2,7 +2,14 @@
   "private": true,
   "name": "@types/puppeteer-chromium-resolver",
   "types": "index.d.ts",
+  "scripts": {
+    "test:lint": "eslint ."
+  },
   "dependencies": {
     "puppeteer": "23.5.3"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
+    "eslint": "catalog:"
   }
 }

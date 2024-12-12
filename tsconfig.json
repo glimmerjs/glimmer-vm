@@ -9,106 +9,119 @@
     "baseUrl": ".",
     "noErrorTruncation": true,
     "outDir": "ts-dist",
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "node",
+      "vite/client"
+    ]
   },
-  "files": ["knip.config.ts", "vite.config.mts"],
+  "files": [
+    "knip.config.ts",
+    "vite.config.mts"
+  ],
+  "include": [],
   "references": [
     {
-      "path": "bin"
+      "path": "/home/wycats/Code/glimmer-vm/tsconfig.json"
     },
     {
-      "path": "benchmark/benchmarks/krausest"
+      "path": "/home/wycats/Code/glimmer-vm/benchmark/benchmarks/krausest/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/compiler"
+      "path": "/home/wycats/Code/glimmer-vm/bin/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/constants"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer-workspace/benchmark-env/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/debug"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer-workspace/build/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/debug-util"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer-workspace/integration-tests/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/destroyable"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer-workspace/smoke-types/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/encoder"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer-workspace/test-utils/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/engine"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/compiler/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/fundamental"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/constants/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/global-context"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/debug/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/interfaces"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/debug-util/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/local-debug-flags"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/destroyable/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/manager"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/encoder/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/node"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/engine/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/opcode-compiler"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/fundamental/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/owner"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/global-context/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/program"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/interfaces/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/reference"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/local-debug-flags/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/runtime"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/manager/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/state"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/node/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/syntax"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/opcode-compiler/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/util"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/owner/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/validator"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/program/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/vm"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/reference/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer/wire-format"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/runtime/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer-workspace/benchmark-env"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/state/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer-workspace/build"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/syntax/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer-workspace/eslint-plugin"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/util/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer-workspace/integration-tests"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/validator/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer-workspace/smoke-types"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/vm/tsconfig.json"
     },
     {
-      "path": "packages/@glimmer-workspace/test-utils"
+      "path": "/home/wycats/Code/glimmer-vm/packages/@glimmer/wire-format/tsconfig.json"
+    },
+    {
+      "path": "/home/wycats/Code/glimmer-vm/packages/@types/js-reporters/tsconfig.json"
+    },
+    {
+      "path": "/home/wycats/Code/glimmer-vm/packages/@types/puppeteer-chromium-resolver/tsconfig.json"
     }
-  ],
-  "include": []
+  ]
 }

@@ -1,6 +1,9 @@
 {
   "extends": "../tsconfig.shared.json",
-  "include": ["test/**/*.ts", "index.ts"],
+  "include": [
+    "test/**/*.ts",
+    "index.ts"
+  ],
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/owner",
     "composite": true,

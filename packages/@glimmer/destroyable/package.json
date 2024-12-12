@@ -3,7 +3,11 @@
   "version": "0.93.1",
   "license": "MIT",
   "description": "Utilities for creating and managing a destroyable hierarchy of objects",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/destroyable",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/destroyable"
+  },
   "type": "module",
   "exports": "./index.ts",
   "publishConfig": {
@@ -39,6 +43,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "eslint": "catalog:",
     "publint": "catalog:",

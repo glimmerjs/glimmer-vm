@@ -4,10 +4,6 @@
   "private": true,
   "license": "MIT",
   "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/glimmerjs/glimmer-vm.git"
-  },
   "author": "Tilde, Inc.",
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
@@ -17,7 +13,6 @@
     "browserstack:connect": "ember browserstack:connect",
     "browserstack:disconnect": "ember browserstack:disconnect",
     "browserstack:results": "ember browserstack:results",
-    "build": "x-env turbo  --concurrency=\\$TURBO_CONCURRENCY build",
     "build:control": "rollup -c rollup.config.mjs",
     "build:flags": "RETAIN_FLAGS=true ember build --env production --suppress-sizes",
     "clean": "node ./bin/clean.mjs",
@@ -30,6 +25,7 @@
     "start": "x-env vite",
     "test": "node bin/run-tests.mjs",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
+    "test:lint": "eslint .",
     "test:node": "node bin/run-node-tests.mjs",
     "test:smoke": "SMOKE_TESTS=true ember test",
     "test:types": "node bin/run-types-tests.mjs",
@@ -47,7 +43,6 @@
     "@babel/types": "^7.21.5",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.16.0",
-    "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer-workspace/integration-tests": "workspace:*",
     "@glimmer/env": "0.1.7",
@@ -80,6 +75,7 @@
     "execa": "^7.1.1",
     "fast-glob": "^3.2.12",
     "glob": "^10.2.3",
+    "globby": "^14.0.2",
     "js-yaml": "^4.1.0",
     "jsonc-eslint-parser": "^2.4.0",
     "knip": "^5.39.2",
@@ -93,7 +89,6 @@
     "release-it": "^16.2.1",
     "release-plan": "^0.9.2",
     "rimraf": "^5.0.0",
-    "rollup": "^4.27.4",
     "semver": "^7.5.2",
     "testem-failure-only-reporter": "^1.0.0",
     "toml": "^3.0.0",
@@ -103,8 +98,7 @@
     "typescript": "catalog:",
     "vite": "^5.4.10",
     "x-var": "^2.0.1",
-    "xo": "^0.54.2",
-    "zx": "^8.1.9"
+    "xo": "^0.54.2"
   },
   "changelog": {
     "repo": "glimmerjs/glimmer-vm",

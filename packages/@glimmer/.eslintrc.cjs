@@ -4,12 +4,7 @@ module.exports = {
   plugins: ['@glimmer-workspace'],
   overrides: [
     {
-      files: [
-        '*/index.{ts,js,d.ts}',
-        '*/lib/**/*.{ts,js,d.ts}',
-        '*/test/**/*.{ts,js,d.ts}',
-        'rollup.config.mjs',
-      ],
+      files: ['*/index.{ts,js,d.ts}', '*/lib/**/*.{ts,js,d.ts}', '*/test/**/*.{ts,js,d.ts}'],
       parserOptions: {
         ecmaVersion: 'latest',
       },

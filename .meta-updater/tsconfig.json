@@ -8,5 +8,9 @@
     "outDir": "../ts-dist/.meta-updater",
     "incremental": true
   },
-  "include": ["main.mjs"]
+  "include": [
+    "json.mjs",
+    "main.mjs",
+    "code.mjs"
+  ]
 }

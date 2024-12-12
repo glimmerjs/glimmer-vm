@@ -1,6 +1,9 @@
 {
   "extends": "../tsconfig.shared.json",
-  "include": ["lib/**/*.ts", "index.ts"],
+  "include": [
+    "lib/**/*.ts",
+    "index.ts"
+  ],
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/runtime",
     "composite": true,

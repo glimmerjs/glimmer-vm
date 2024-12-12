@@ -2,7 +2,11 @@
   "name": "@glimmer/program",
   "version": "0.93.1",
   "license": "MIT",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/program",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/program"
+  },
   "type": "module",
   "exports": "./index.ts",
   "publishConfig": {
@@ -41,6 +45,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",

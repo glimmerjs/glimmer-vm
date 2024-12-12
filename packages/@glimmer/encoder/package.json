@@ -2,7 +2,11 @@
   "name": "@glimmer/encoder",
   "version": "0.92.5",
   "license": "MIT",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/encoder",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/encoder"
+  },
   "type": "module",
   "exports": "./index.ts",
   "publishConfig": {
@@ -37,6 +41,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "eslint": "catalog:",
     "publint": "catalog:",
     "rollup": "catalog:",

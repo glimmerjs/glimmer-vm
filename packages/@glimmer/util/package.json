@@ -3,7 +3,11 @@
   "version": "0.93.1",
   "license": "MIT",
   "description": "Common utilities used in Glimmer",
-  "repository": "https://github.com/tildeio/glimmer/tree/main/packages/@glimmer/util",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/util"
+  },
   "type": "module",
   "exports": "./index.ts",
   "publishConfig": {
@@ -37,6 +41,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
     "@types/qunit": "^2.19.9",

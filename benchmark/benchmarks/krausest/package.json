@@ -4,7 +4,8 @@
   "type": "module",
   "files": [
     "lib",
-    "browser.js"
+    "browser.js",
+    "vite.config.mts"
   ],
   "scripts": {
     "start": "vite --mode production",

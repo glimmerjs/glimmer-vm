@@ -1,6 +1,10 @@
 {
   "extends": "../tsconfig.shared.json",
-  "include": ["lib/**/*.ts", "test/**/*.ts", "index.ts"],
+  "include": [
+    "lib/**/*.ts",
+    "test/**/*.ts",
+    "index.ts"
+  ],
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer-workspace/integration-tests",
     "composite": true,
@@ -72,6 +76,9 @@
     },
     {
       "path": "../../@glimmer/local-debug-flags/tsconfig.json"
+    },
+    {
+      "path": "../../@types/js-reporters/tsconfig.json"
     }
   ]
 }

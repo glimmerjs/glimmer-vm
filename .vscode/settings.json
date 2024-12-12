@@ -29,7 +29,12 @@
     "bin",
     "benchmark/benchmarks/krausest"
   ],
-  "eslint.validate": ["javascript", "typescript", "json", "jsonc"],
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "json",
+    "jsonc"
+  ],
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.git": true,
@@ -56,9 +61,15 @@
   "eslint.problems.shortenToSingleLine": true,
   "typescript.experimental.expandableHover": true,
   "inline-bookmarks.expert.custom.words.mapping": {
-    "warn": ["@premerge(\\s|$)"],
-    "active": ["@active(\\s|$)"],
-    "fixme": ["@fixme(\\s|$)"]
+    "warn": [
+      "@premerge(\\s|$)"
+    ],
+    "active": [
+      "@active(\\s|$)"
+    ],
+    "fixme": [
+      "@fixme(\\s|$)"
+    ]
   },
   "inline-bookmarks.expert.custom.styles": {
     "active": {

@@ -3,7 +3,11 @@
   "version": "0.93.1",
   "license": "MIT",
   "description": "A single package that sets up a Glimmer runtime environment that can be used for rendering",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/engine",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/engine"
+  },
   "type": "module",
   "exports": "./index.ts",
   "publishConfig": {
@@ -32,9 +36,9 @@
     "test:publint": "publint",
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
-  "dependencies": {},
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug": "workspace:*",
     "@glimmer/debug-util": "workspace:*",

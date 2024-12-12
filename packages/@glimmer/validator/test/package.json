@@ -9,7 +9,6 @@
     "@glimmer/validator": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer/debug-util": "workspace:*",
-    "vite": "*"
+    "@glimmer/debug-util": "workspace:*"
   }
 }

@@ -1,13 +1,17 @@
 // @ts-check
 import { existsSync, statSync } from 'node:fs';
+import { type } from 'node:os';
 import { basename, join, relative, resolve } from 'node:path';
 
-import { pnpmWorkspaceInfo } from '@node-kit/pnpm-workspace-info';
 import { findWorkspaceDir } from '@pnpm/find-workspace-dir';
 import { createUpdateOptions } from '@pnpm/meta-updater';
 import { readPackageJson } from '@pnpm/read-package-json';
+import { findWorkspacePackagesNoCheck } from '@pnpm/workspace.find-packages';
 import { globbySync } from 'globby';
-import { equals } from 'ramda';
+
+import { code } from './code.mjs';
+import { json } from './json.mjs';
+
 /**
  * @import { FormatPluginFnOptions } from '@pnpm/meta-updater';
  * @import { PackageManifest, ProjectManifest } from '@pnpm/types';
@@ -28,7 +32,7 @@ if (!workspaceInfo) {
 const packages = workspaceInfo;
 
 /**
- * @typedef {{compilerOptions?: { composite?: boolean; incremental?: boolean; outDir?: string}; include?: string[]; references?: ({path: string})[]}} TsConfig
+ * @typedef {{compilerOptions?: { composite?: boolean; incremental?: boolean; types?: string[]; outDir?: string}; include?: string[]; references?: ({path: string})[]}} TsConfig
  */
 
 /**
@@ -36,90 +40,186 @@ const packages = workspaceInfo;
  */
 export default function main(workspaceDir) {
   return createUpdateOptions({
-    'package.json': (actual, options) => {
-      if (!actual) {
-        return actual;
-      }
-
-      const pkg = /** @type {ProjectManifest} */ (actual);
-
-      const files = options.manifest.files;
-      if (equals(files, ['dist'])) {
-        pkg.publishConfig = {
-          ...pkg.publishConfig,
-          files: ['dist'],
-        };
-
-        delete pkg.files;
-      }
-
-      if (!pkg.private) {
-        pkg.devDependencies ??= {};
-        pkg.devDependencies['@glimmer-workspace/build-support'] = 'workspace:*';
-
-        if (pkg.devDependencies['publint'] !== 'catalog:*') {
-          pkg.devDependencies['publint'] = 'catalog:*';
+    formats: {
+      '.json': json,
+      '#code': code,
+    },
+    files: {
+      'rollup.config.mjs [#code]': (actual, options) => {
+        // If the package needs to be built, generate a rollup config
+        // that builds the package. This will be used by the `build`
+        // script, which is set up below in `package.json`.
+        if (packageNeedsBuild(options.manifest)) {
+          return (
+            [
+              `import { Package } from '@glimmer-workspace/build-support';`,
+              `export default Package.config(import.meta);`,
+            ].join('\n\n') + '\n'
+          );
         }
 
-        if (pkg.devDependencies['rollup'] !== 'catalog:*') {
-          pkg.devDependencies['rollup'] = 'catalog:*';
+        return null;
+      },
+      'package.json': (actual, options) => {
+        if (!actual) {
+          return actual;
         }
+
+        const pkg = /** @type {ProjectManifest & { exports?: string }} */ (actual);
 
         pkg.scripts ??= {};
-        pkg.scripts['test:publint'] ??= 'publint';
-        pkg.scripts['build'] ??= 'rollup -c rollup.config.mjs';
-      }
+        pkg.devDependencies ??= {};
 
-      return pkg;
-    },
-    'tsconfig.json': (actual, options) => {
-      const tsconfig = /** @type {TsConfig} */ (actual);
+        const needsBuild = packageNeedsBuild(pkg);
+        const isPublished = !pkg.private;
 
-      if (!tsconfig) {
-        return tsconfig;
-      }
+        // If the package needs to be built, add `@glimmer-workspace/build-support`
+        // and `rollup` as devDependencies.
+        updateAll(
+          pkg.devDependencies,
+          {
+            '@glimmer-workspace/build-support': 'workspace:*',
+            rollup: 'catalog:',
+          },
+          needsBuild
+        );
 
-      const include = includesList(options);
+        // If the package needs to be built, add a `build` script that
+        // builds the package using rollup.
+        updateAll(pkg.scripts, { build: 'rollup -c rollup.config.mjs' }, needsBuild);
 
-      const relativeDir = relative(workspaceDir, options.dir);
-      const distDir = join(workspaceDir, 'ts-dist', relativeDir);
-      const relativeDistDir = relative(options.dir, distDir);
+        // If the package is published, add `publint` as a devDependency
+        // and a `test:publint` script that runs `publint`.
+        updateAll(pkg.scripts, { 'test:publint': 'publint' }, isPublished);
+        updateAll(pkg.devDependencies, { publint: 'catalog:' }, isPublished);
 
-      tsconfig.compilerOptions ??= {};
-      tsconfig.compilerOptions.outDir = relativeDistDir;
-      tsconfig.compilerOptions.composite = true;
-      tsconfig.compilerOptions.incremental = true;
-      // delete tsconfig.compilerOptions.outDir;
+        updateAll(
+          pkg,
+          {
+            repository: {
+              type: 'git',
+              url: 'https://github.com/glimmerjs/glimmer-vm.git',
+              directory: relative(workspaceDir, options.dir),
+            },
+          },
+          isPublished
+        );
 
-      tsconfig.include = include;
+        // If there are no scripts, remove the `scripts` field
+        if (Object.keys(pkg.scripts).length === 0) {
+          delete pkg.scripts;
+        }
 
-      if (options.dir === workspaceDir) {
-        const paths = [];
+        return pkg;
+      },
+      'tsconfig.json': (actual, options) => {
+        const pkg = options.manifest;
 
-        for (const pkg of packages) {
-          if (existsSync(resolve(pkg.root, 'tsconfig.json'))) {
-            paths.push(pkg.root);
+        if (!pkg.name) {
+          return actual;
+        }
+
+        // If the package doesn't need a tsconfig, remove it
+        if (!needsTsConfig(pkg)) {
+          return null;
+        }
+
+        let tsconfig = /** @type {TsConfig} */ (actual) ?? {
+          extends: '../tsconfig.shared.json',
+        };
+
+        const types = typesList(options);
+        const include = includesList(options);
+
+        const relativeDir = relative(workspaceDir, options.dir);
+        const distDir = join(workspaceDir, 'ts-dist', relativeDir);
+        const relativeDistDir = relative(options.dir, distDir);
+
+        tsconfig.compilerOptions ??= {};
+        tsconfig.compilerOptions.outDir = relativeDistDir;
+        tsconfig.compilerOptions.composite = true;
+        tsconfig.compilerOptions.incremental = true;
+
+        updateAll(tsconfig.compilerOptions, { types }, types.length > 0);
+        updateAll(tsconfig, { include });
+
+        // We're looking at the root package, which has special references
+        if (options.dir === workspaceDir) {
+          /** @type {string[]} */
+          const paths = [];
+
+          for (const pkg of packages) {
+            if (pkg.tsconfig) {
+              paths.push(pkg.tsconfig);
+            }
+          }
+
+          tsconfig.references = paths.map((path) => ({
+            path,
+          }));
+        } else {
+          const references = getReferences(options.dir, options.manifest).map((ref) => ({
+            path: relative(workspaceDir, ref.tsconfig),
+          }));
+
+          if (references.length === 0) {
+            delete tsconfig.references;
+          } else {
+            tsconfig.references = references;
           }
         }
 
-        tsconfig.references = paths.map((path) => ({
-          path,
-        }));
-      } else {
-        const references = getReferences(options.dir, options.manifest).map((ref) => ({
-          path: ref.tsconfig,
-        }));
-
-        if (references.length === 0) {
-          delete tsconfig.references;
-        } else {
-          tsconfig.references = references;
-        }
-      }
-
-      return tsconfig;
+        return tsconfig;
+      },
     },
   });
+}
+
+/**
+ * A package needs a tsconfig if:
+ *
+ * 1. it doesn't have a name
+ * 2. its name
+ *
+ * @param {ProjectManifest} pkg
+ */
+function needsTsConfig(pkg) {
+  return (
+    !pkg.name ||
+    (!pkg.name.startsWith('@glimmer-test/') && pkg.name !== '@glimmer-workspace/eslint-plugin')
+  );
+}
+
+/**
+ * The package needs to be built if it's:
+ *
+ * 1. public
+ * 2. has an exports field that ends in .ts (but not .d.ts)
+ *
+ * @param {ProjectManifest & { exports?: string }} pkg
+ */
+function packageNeedsBuild(pkg) {
+  return (
+    !pkg.private &&
+    typeof pkg.exports === 'string' &&
+    pkg.exports.endsWith('.ts') &&
+    !pkg.exports.endsWith('.d.ts')
+  );
+}
+
+/**
+ * @param {object} obj
+ * @param {object} updates
+ * @param {boolean} [include] if false, delete keys
+ */
+function updateAll(obj, updates, include) {
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined || include === false) {
+      Reflect.deleteProperty(obj, key);
+    } else {
+      Reflect.set(obj, key, value);
+    }
+  }
 }
 
 const CODE_EXTENSIONS = ['js', 'ts', 'mjs', 'mts', 'cjs', 'cts'];
@@ -163,13 +263,35 @@ function isCodeFile(path) {
  *
  * @param {FormatPluginFnOptions} options
  */
+function typesList(options) {
+  const manifest = options.manifest;
+  const devDeps = Object.keys(manifest.devDependencies ?? {});
+
+  /** @type {string[]} */
+  const types = [];
+
+  if (devDeps.includes('@types/node')) {
+    types.push('node');
+  }
+
+  if (devDeps.includes('vite')) {
+    types.push('vite/client');
+  }
+
+  return types;
+}
+
+/**
+ * Generate a list of TypeScript include patterns for the given package.
+ *
+ * @param {FormatPluginFnOptions} options
+ */
 function includesList(options) {
   const pkgRoot = options.dir;
   const manifest = options.manifest;
 
-  const files = manifest.files
-    ? splitDirectories(manifest.files ?? [], pkgRoot)
-    : splitDirectories(['index.*', 'lib', 'test'], pkgRoot);
+  const allFiles = manifest.files ? manifest.files : ['index.*', 'lib'];
+  const files = splitDirectories([...allFiles, 'test'], pkgRoot);
 
   /** @type {string[]} */
   const includes = [];
@@ -348,19 +470,21 @@ function getReferences(pkgRoot, pkg) {
  * @returns {Promise<{root: string; package: PackageManifest; tsconfig?: string | undefined}[]>}
  */
 async function workspacePackages(root) {
-  const packages = await pnpmWorkspaceInfo(root);
+  const packages = await findWorkspacePackagesNoCheck(root);
 
   if (packages === null || packages === undefined) {
     throw new Error('Could not find workspace info');
   } else {
     return Promise.all(
-      Object.entries(packages).map(async ([_pkg, { path }]) => {
-        const packageJson = await readPackageJson(resolve(path, 'package.json'));
-        const tsconfig = resolve(path, 'tsconfig.json');
+      packages.map(async (pkg) => {
+        const packageJson = await readPackageJson(resolve(pkg.rootDir, 'package.json'));
+        const tsconfig = needsTsConfig(packageJson)
+          ? resolve(pkg.rootDir, 'tsconfig.json')
+          : undefined;
         return {
-          root: path,
+          root: pkg.rootDir,
           package: packageJson,
-          tsconfig: existsSync(tsconfig) ? tsconfig : undefined,
+          tsconfig,
         };
       })
     );

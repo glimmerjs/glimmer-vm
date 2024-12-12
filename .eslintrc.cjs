@@ -1,5 +1,18 @@
 // @ts-check
 
+const { resolve } = require('node:path');
+const glob = require('fast-glob');
+
+const eslintFiles = glob.sync('**/.eslintrc.cjs', {
+  cwd: __dirname,
+  ignore: ['**/node_modules/**', '**/dist/**', '**/ts-dist/**'],
+});
+
+const rollupFiles = glob.sync('**/rollup.config.mjs', {
+  cwd: __dirname,
+  ignore: ['**/node_modules/**', '**/dist/**', '**/ts-dist/**'],
+});
+
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: true,
@@ -13,7 +26,6 @@ module.exports = {
     '**/node_modules',
     '**/dist',
     '**/fixtures',
-    '!**/.eslintrc.cjs',
   ],
 
   rules: {},
@@ -23,12 +35,22 @@ module.exports = {
       extends: ['plugin:@glimmer-workspace/recommended'],
     },
     {
-      files: ['.eslintrc.cjs', '**/.eslintrc.cjs'],
+      files: [...eslintFiles, ...rollupFiles],
       extends: ['plugin:@glimmer-workspace/recommended'],
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: [...eslintFiles, ...rollupFiles],
+          defaultProject: resolve(
+            __dirname,
+            'packages/@glimmer-workspace/eslint-plugin/lib/tsconfig.plugin.json'
+          ),
+        },
+      },
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
         '@typescript-eslint/no-require-imports': 'off',
         '@typescript-eslint/unbound-method': 'off',
+        'n/no-unpublished-import': 'off',
       },
     },
     {
