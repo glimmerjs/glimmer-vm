@@ -11,6 +11,7 @@
   "include": [
     "json.mjs",
     "main.mjs",
-    "code.mjs"
+    "code.mjs",
+    "requirements.mjs"
   ]
 }

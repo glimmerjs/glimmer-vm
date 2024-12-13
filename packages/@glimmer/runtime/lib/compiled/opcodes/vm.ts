@@ -54,7 +54,7 @@ import {
   validateTag,
   valueForTag,
 } from '@glimmer/fundamental';
-import { toBool } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import {
   createComputeRef,
   createConstRef,
@@ -278,7 +278,7 @@ APPEND_OPCODES.add(VM_TO_BOOLEAN_OP, (vm) => {
   let { stack } = vm;
   let valueRef = check(stack.pop(), CheckReference);
 
-  stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
+  stack.push(createComputeRef(() => context().toBool(valueForRef(valueRef))));
 });
 
 export class Assert implements UpdatingOpcode {

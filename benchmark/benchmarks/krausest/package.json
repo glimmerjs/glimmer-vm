@@ -2,6 +2,9 @@
   "private": true,
   "name": "@glimmer-workspace/krausest",
   "type": "module",
+  "keywords": [
+    "node"
+  ],
   "files": [
     "lib",
     "browser.js",
@@ -18,7 +21,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
-    "@types/node": "^20.9.4",
+    "@types/node": "catalog:",
     "eslint": "^8.57.1",
     "typescript": "^5.7.1",
     "vite": "^5.4.10"

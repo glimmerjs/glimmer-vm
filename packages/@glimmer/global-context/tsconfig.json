@@ -10,10 +10,5 @@
     "types": [
       "vite/client"
     ]
-  },
-  "references": [
-    {
-      "path": "../../@glimmer-workspace/build/tsconfig.json"
-    }
-  ]
+  }
 }

@@ -121,7 +121,7 @@ function hasFlag(flag: string): true | false {
 }
 
 if (import.meta.env.VM_LOCAL_DEV) {
-  Error.stackTraceLimit = Infinity;
+  (Error as unknown as { stackTraceLimit: number }).stackTraceLimit = Infinity;
 }
 
 /**

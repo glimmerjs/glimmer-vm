@@ -10,7 +10,7 @@ import type {
 } from '@glimmer/interfaces';
 import { NS_SVG } from '@glimmer/constants';
 import { castToBrowser } from '@glimmer/debug-util';
-import { warnIfStyleNotTrusted } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 
 import { normalizeStringValue } from '../../dom/normalize';
 import { normalizeProperty } from '../../dom/props';
@@ -242,12 +242,12 @@ let DebugStyleAttributeManager: {
 if (import.meta.env.DEV) {
   DebugStyleAttributeManager = class extends SimpleDynamicAttribute {
     override set(dom: TreeBuilder, value: unknown, env: Environment): void {
-      warnIfStyleNotTrusted(value);
+      context('dev').warnIfStyleNotTrusted(value);
 
       super.set(dom, value, env);
     }
     override update(value: unknown, env: Environment): void {
-      warnIfStyleNotTrusted(value);
+      context('dev').warnIfStyleNotTrusted(value);
 
       super.update(value, env);
     }

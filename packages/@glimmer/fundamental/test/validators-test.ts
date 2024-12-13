@@ -29,7 +29,7 @@ module('@glimmer/fundamental: validators', () => {
     });
 
     test('it calls scheduleRevalidate', (assert) => {
-      let originalContext = unwrap(testOverrideGlobalContext)({
+      const override = unwrap(testOverrideGlobalContext)({
         scheduleRevalidate() {
           assert.step('scheduleRevalidate');
           assert.ok(true, 'called');
@@ -41,7 +41,7 @@ module('@glimmer/fundamental: validators', () => {
 
         dirtyTag(tag);
       } finally {
-        unwrap(testOverrideGlobalContext)(originalContext);
+        override.done();
       }
 
       assert.verifySteps(['scheduleRevalidate']);

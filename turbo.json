@@ -35,7 +35,7 @@
       "dependsOn": ["build"]
     },
     "lint:types": {},
-    "//#test:types:published": {
+    "//#test:published:types": {
       "inputs": ["**/dist/**"],
       "dependsOn": ["^build"]
     }

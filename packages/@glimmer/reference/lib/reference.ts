@@ -12,7 +12,7 @@ import type {
 import type { Tag } from '@glimmer/validator';
 import { expect } from '@glimmer/debug-util';
 import { valueForRef } from '@glimmer/fundamental';
-import { getProp, setProp } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import state from '@glimmer/state';
 import { isDict } from '@glimmer/util';
 import { CONSTANT_TAG, INITIAL } from '@glimmer/validator';
@@ -190,14 +190,14 @@ export function childRefFor(_parentRef: Reference, path: string): Reference {
         const parent = valueForRef(parentRef);
 
         if (isDict(parent)) {
-          return getProp(parent, path);
+          return context().getProp(parent, path);
         }
       },
       (val) => {
         const parent = valueForRef(parentRef);
 
         if (isDict(parent)) {
-          return setProp(parent, path, val);
+          return context().setProp(parent, path, val);
         }
       }
     );

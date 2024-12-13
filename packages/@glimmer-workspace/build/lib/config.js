@@ -5,6 +5,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { findWorkspaceDir } from '@pnpm/find-workspace-dir';
+import { findWorkspacePackagesNoCheck } from '@pnpm/workspace.find-packages';
 import replace from '@rollup/plugin-replace';
 import rollupSWC from '@rollup/plugin-swc';
 import terser from '@rollup/plugin-terser';
@@ -20,10 +22,9 @@ const { default: nodePolyfills } = await import('rollup-plugin-polyfill-node');
 const { default: fonts } = await import('unplugin-fonts/vite');
 
 /**
- * @import { PartialCompilerOptions } from "@rollup/plugin-typescript";
- * @import { ExternalOption, PackageInfo, PackageJSON, PackageJsonInline, ViteConfig, JsonValue, JsonObject, JsonArray, RollupExport } from "./types.d.js";
- * @import { CompilerOptions } from "typescript";
+ * @import { ExternalOption, PackageInfo, PackageJSON, ViteConfig, RollupExport } from "./types.d.js";
  * @import { Plugin as RollupPlugin, RollupOptions } from "rollup";
+ * @import { Project } from "@pnpm/workspace.find-packages";
  */
 
 /**
@@ -68,10 +69,17 @@ function typescript(pkg, env) {
     {
       name: 'Build Declarations',
       closeBundle: async function () {
+        const types = ['vite/client'];
+        if (pkg.devDependencies['@types/node']) {
+          types.push('node');
+        }
+
         const start = performance.now();
         await $({
           stdio: 'inherit',
-        })`pnpm tsc --declaration --declarationDir dist/${env} --emitDeclarationOnly --isolatedDeclarations --module esnext --moduleResolution bundler ${pkg.exports} --types vite/client,node --skipLibCheck --target esnext --strict`;
+        })`pnpm tsc --declaration --declarationDir dist/${env} --emitDeclarationOnly --isolatedDeclarations --module esnext --moduleResolution bundler ${
+          pkg.exports
+        } --types ${types.join(',')} --skipLibCheck --target esnext --strict`;
         const duration = performance.now() - start;
         console.log(
           `${chalk.green('created')} ${chalk.green.bold(`dist/${env}/index.d.ts`)} ${chalk.green(
@@ -84,35 +92,41 @@ function typescript(pkg, env) {
 }
 
 /**
- * @satisfies {ExternalOption[]}
+ * @param {Project[]} packages
  */
-const EXTERNAL_OPTIONS = /** @type {const} */ ([
-  [
-    'is',
+function externals(packages) {
+  const inlinedPackages = packages.flatMap((pkg) => {
+    if (pkg.manifest.name && pkg.manifest.private === true) {
+      return [pkg.manifest.name];
+    } else {
+      return [];
+    }
+  });
+
+  return /** @type {const} */ ([
     [
-      'tslib',
-      '@glimmer/local-debug-flags',
-      '@glimmer/constants',
-      '@glimmer/debug',
-      '@glimmer/debug-util',
-      '@glimmer/fundamental',
-      '@glimmer/state',
-      '@glimmer/interfaces',
+      'is',
+      ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'],
+      'external',
     ],
-    'inline',
-  ],
-  ['is', ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'], 'external'],
-  ['startsWith', ['.', '/', '#', '@babel/runtime/', process.cwd().replace(/\\/gu, '/')], 'inline'],
-  ['startsWith', ['@glimmer/', '@simple-dom/', '@babel/', 'node:'], 'external'],
-]);
+    [
+      'startsWith',
+      ['.', '/', '#', '@babel/runtime/', process.cwd().replace(/\\/gu, '/')],
+      'inline',
+    ],
+    ['is', ['tslib', ...inlinedPackages], 'inline'],
+    ['startsWith', ['@glimmer/', '@simple-dom/', '@babel/', 'node:'], 'external'],
+  ]);
+}
 
 /**
  * @param {string} id
+ * @param {Project[]} packages
  * @returns {boolean | null}
  */
-function matchExternals(id) {
+function matchExternals(id, packages) {
   id = id.replace(/\\/gu, '/');
-  for (const [operator, prefixes, kind] of EXTERNAL_OPTIONS) {
+  for (const [operator, prefixes, kind] of externals(packages)) {
     const result = match(id, operator, prefixes);
 
     if (result) {
@@ -124,7 +138,7 @@ function matchExternals(id) {
 }
 
 /**
- * @template {string[]} Prefixes
+ * @template {readonly string[]} Prefixes
  * @param {string} id
  * @param {'is' | 'startsWith'} operator
  * @param {Prefixes} prefixes
@@ -167,6 +181,8 @@ export class Package {
       return new Package({
         name: json.name,
         exports: resolve(root, json.exports),
+        devDependencies: json.devDependencies ?? {},
+        keywords: json.keywords ?? [],
         root,
       });
     } else {
@@ -176,6 +192,8 @@ export class Package {
           return new Package({
             name: json.name,
             exports: path,
+            devDependencies: json.devDependencies ?? {},
+            keywords: json.keywords ?? [],
             root,
           });
         }
@@ -187,13 +205,21 @@ export class Package {
 
   /**
    * @param {ImportMeta | string} meta
-   * @returns {RollupExport}
+   * @returns {Promise<RollupExport>}
    */
-  static config(meta) {
+  static async config(meta) {
+    const workspace = await findWorkspaceDir(typeof meta === 'string' ? meta : meta.url);
+
+    if (!workspace) {
+      throw Error(`No workspace found at ${typeof meta === 'string' ? meta : Package.root(meta)}`);
+    }
+
+    const packages = await findWorkspacePackagesNoCheck(workspace);
+
     const pkg = Package.at(meta);
 
     if (pkg) {
-      return pkg.config();
+      return pkg.config(packages);
     } else {
       return [];
     }
@@ -221,6 +247,14 @@ export class Package {
     this.#package = pkg;
   }
 
+  get keywords() {
+    return this.#package.keywords;
+  }
+
+  get devDependencies() {
+    return this.#package.devDependencies;
+  }
+
   /**
    * @returns {string}
    */
@@ -245,13 +279,14 @@ export class Package {
   /**
    * @typedef {{esm?: boolean, cjs?: boolean}} Formats
    *
+   * @param {Project[]} packages
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
-  config() {
+  config(packages) {
     let builds = [];
 
-    builds.push(...this.rollupESM({ env: 'dev' }));
-    builds.push(...this.rollupESM({ env: 'prod' }));
+    builds.push(...this.rollupESM({ env: 'dev' }, packages));
+    builds.push(...this.rollupESM({ env: 'prod' }, packages));
 
     return builds;
   }
@@ -286,14 +321,15 @@ export class Package {
    * @property {'dev' | 'prod'} env
    *
    * @param {RollupConfigurationOptions} options
+   * @param {Project[]} packages
    * @returns {RollupOptions[]}
    */
-  rollupESM({ env }) {
+  rollupESM({ env }, packages) {
     return this.#shared('esm', env).map(
       (options) =>
         /** @satisfies {RollupOptions} */ ({
           ...options,
-          external: this.#external,
+          external: this.#external(packages),
           plugins: [
             inline(),
             nodePolyfills(),
@@ -390,15 +426,16 @@ export class Package {
   }
 
   /**
+   * @param {Project[]} packages
    * @return {(id: string) => boolean}
    */
-  get #external() {
+  #external(packages) {
     /**
      * @param {string} id
      * @returns {boolean}
      */
     return (id) => {
-      const external = matchExternals(id);
+      const external = matchExternals(id, packages);
 
       if (external === null) {
         console.warn('unhandled external', id);

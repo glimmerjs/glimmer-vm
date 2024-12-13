@@ -38,7 +38,7 @@ import {
 } from '@glimmer/debug';
 import { assert, debugToString, unwrap } from '@glimmer/debug-util';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
-import { toBool } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
 import {
   childRefFor,
@@ -283,7 +283,7 @@ APPEND_OPCODES.add(VM_IF_INLINE_OP, (vm) => {
 
   vm.stack.push(
     createComputeRef(() => {
-      if (toBool(valueForRef(condition)) === true) {
+      if (context().toBool(valueForRef(condition)) === true) {
         return valueForRef(truthy);
       } else {
         return valueForRef(falsy);
@@ -297,7 +297,7 @@ APPEND_OPCODES.add(VM_NOT_OP, (vm) => {
 
   vm.stack.push(
     createComputeRef(() => {
-      return !toBool(valueForRef(ref));
+      return !context().toBool(valueForRef(ref));
     })
   );
 });

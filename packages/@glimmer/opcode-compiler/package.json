@@ -24,11 +24,11 @@
           }
         }
       }
-    },
-    "files": [
-      "dist"
-    ]
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:publint": "publint"

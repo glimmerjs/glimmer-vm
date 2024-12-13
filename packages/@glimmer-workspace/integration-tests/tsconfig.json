@@ -11,8 +11,8 @@
     "incremental": true,
     "types": [
       "node",
-      "vite/client",
-      "qunit"
+      "qunit",
+      "vite/client"
     ]
   },
   "references": [

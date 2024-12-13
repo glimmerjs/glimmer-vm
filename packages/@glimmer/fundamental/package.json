@@ -6,29 +6,8 @@
   "description": "The fundamental state used by Glimmer reactivity. This package coordinates via a single global, and allows the rest of the packages to be duplicated semantically.",
   "type": "module",
   "exports": "./index.ts",
-  "publishConfig": {
-    "access": "public",
-    "files": [
-      "dist"
-    ],
-    "exports": {
-      ".": {
-        "default": {
-          "development": {
-            "types": "./dist/dev/index.d.ts",
-            "default": "./dist/dev/index.js"
-          },
-          "default": {
-            "types": "./dist/prod/index.d.ts",
-            "default": "./dist/prod/index.js"
-          }
-        }
-      }
-    }
-  },
   "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ./tsconfig.json"
+    "test:lint": "eslint ."
   },
   "dependencies": {
     "@glimmer/debug-util": "workspace:*",

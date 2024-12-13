@@ -17,6 +17,13 @@ import type {
   TransactionEnv,
 } from './types/types';
 
+/**
+ * The `STATE` symbol coordinates all of the fundamental state
+ * required by the rest of the Glimmer runtime under a single
+ * symbol. The first time this code is executed, it sets up the
+ * the state under this symbol. All subsequent executions of this
+ * code (however duplicated) will use the same state.
+ */
 const STATE = Symbol.for('@glimmer/state');
 
 let current = Reflect.get(globalThis, STATE) as State | undefined;

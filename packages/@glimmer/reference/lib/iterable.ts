@@ -1,6 +1,6 @@
 import type { Dict, Nullable } from '@glimmer/interfaces';
 import { consumeTag, valueForRef } from '@glimmer/fundamental';
-import { getPath, toIterator } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import { EMPTY_ARRAY, isIndexable } from '@glimmer/util';
 import { createTag, dirtyTag } from '@glimmer/validator';
 
@@ -47,7 +47,7 @@ function keyForPath(path: string): KeyFor {
   if (import.meta.env.DEV && path[0] === '@') {
     throw new Error(`invalid keypath: '${path}', valid keys: @index, @identity, or a path`);
   }
-  return uniqueKeyFor((item) => getPath(item as object, path));
+  return uniqueKeyFor((item) => context().getPath(item as object, path));
 }
 
 function makeKeyFor(key: string) {
@@ -167,7 +167,7 @@ export function createIteratorRef(
       return new ArrayIterator(iterable, keyFor);
     }
 
-    let maybeIterator = toIterator(iterable);
+    let maybeIterator = context().toIterator(iterable);
 
     if (maybeIterator === null) {
       return new ArrayIterator(EMPTY_ARRAY, () => null);

@@ -5,6 +5,8 @@ export interface PackageInfo {
   readonly name: string;
   readonly root: string;
   readonly exports: string;
+  readonly keywords: string[];
+  readonly devDependencies: Record<string, string>;
 }
 
 export type JsonArray = JsonValue[];
@@ -22,6 +24,8 @@ export interface PackageJSON {
   readonly types: string;
   readonly private: boolean;
   readonly name: string;
+  readonly devDependencies?: Record<string, string>;
+  readonly keywords?: string[];
 }
 
 type SimpleExternal = { [P in string]: 'inline' | 'external' };

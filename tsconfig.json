@@ -11,9 +11,8 @@
     "outDir": "ts-dist",
     "incremental": true,
     "types": [
-      "node",
-      "vite/client",
-      "qunit"
+      "qunit",
+      "vite/client"
     ]
   },
   "files": [
@@ -22,9 +21,6 @@
   ],
   "include": [],
   "references": [
-    {
-      "path": "/home/wycats/Code/glimmer-vm/tsconfig.json"
-    },
     {
       "path": "/home/wycats/Code/glimmer-vm/benchmark/benchmarks/krausest/tsconfig.json"
     },

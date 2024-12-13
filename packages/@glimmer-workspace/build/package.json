@@ -3,6 +3,9 @@
   "name": "@glimmer-workspace/build-support",
   "version": "1.0.0",
   "type": "module",
+  "keywords": [
+    "node"
+  ],
   "main": "index.mjs",
   "types": "index.d.mts",
   "exports": {
@@ -10,6 +13,8 @@
     "default": "./index.js"
   },
   "dependencies": {
+    "@pnpm/find-workspace-dir": "^900.0.1",
+    "@pnpm/workspace.find-packages": "^1000.0.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-swc": "^0.4.0",
@@ -30,7 +35,7 @@
   "devDependencies": {
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@types/ms": "^0.7.34",
-    "@types/node": "^20.9.4",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:"
   },

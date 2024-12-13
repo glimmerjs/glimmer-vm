@@ -8,8 +8,7 @@
   "main": "index.ts",
   "types": "index.ts",
   "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ./tsconfig.json"
+    "test:lint": "eslint ."
   },
   "dependencies": {
     "@glimmer/interfaces": "workspace:*"

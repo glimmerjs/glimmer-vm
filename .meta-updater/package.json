@@ -1,9 +1,6 @@
 {
   "private": true,
   "exports": "./main.mjs",
-  "files": [
-    "*.mjs"
-  ],
   "dependencies": {
     "@node-kit/pnpm-workspace-info": "^3.3.1",
     "@pnpm/find-workspace-dir": "^900.0.1",

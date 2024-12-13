@@ -10,7 +10,7 @@ import type {
   UpdatableTagId,
 } from '@glimmer/state';
 import { assert, unwrap } from '@glimmer/debug-util';
-import { scheduleRevalidate } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import state from '@glimmer/state';
 
 import { bump, now } from './timestamp';
@@ -111,7 +111,7 @@ export class TagImpl<const T extends TagId> implements Tag<T> {
 
     (tag as TagImpl<TagId>).revision = bump();
 
-    scheduleRevalidate();
+    context().scheduleRevalidate();
   }
 }
 

@@ -1,7 +1,6 @@
-import type { GlobalContext } from '@glimmer/global-context';
+import type { GlobalContextOverride } from '@glimmer/global-context';
 import type { OpaqueIterationItem, Reference } from '@glimmer/reference';
 import type { Cache } from '@glimmer/validator';
-import { unwrap } from '@glimmer/debug-util';
 import { bump, consumeTag } from '@glimmer/fundamental';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 import { createComputeRef, createIteratorRef, valueForRef } from '@glimmer/reference';
@@ -50,14 +49,14 @@ class IterableWrapper {
 }
 
 module('@glimmer/reference: IterableReference', (hooks) => {
-  let originalContext: GlobalContext | null;
+  let override: GlobalContextOverride;
 
   hooks.beforeEach(() => {
-    originalContext = unwrap(testOverrideGlobalContext)(TestContext);
+    override = testOverrideGlobalContext(TestContext);
   });
 
   hooks.afterEach(() => {
-    unwrap(testOverrideGlobalContext)(originalContext);
+    override.done();
   });
 
   module('iterator delegates', () => {

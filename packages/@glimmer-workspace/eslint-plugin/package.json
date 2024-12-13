@@ -2,6 +2,9 @@
   "name": "@glimmer-workspace/eslint-plugin",
   "private": true,
   "type": "commonjs",
+  "keywords": [
+    "node"
+  ],
   "main": "lib/index.cjs",
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.18.0",
@@ -21,6 +24,6 @@
   },
   "devDependencies": {
     "@types/eslint": "^8.56.12",
-    "@types/node": "^20.17.9"
+    "@types/node": "catalog:"
   }
 }

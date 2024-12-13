@@ -1,44 +1,13 @@
 {
   "name": "@glimmer/global-context",
+  "private": true,
   "version": "0.92.4",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
-    "directory": "packages/@glimmer/global-context"
-  },
   "type": "module",
   "exports": "./index.ts",
-  "publishConfig": {
-    "access": "public",
-    "exports": {
-      ".": {
-        "default": {
-          "development": {
-            "types": "./dist/dev/index.d.ts",
-            "default": "./dist/dev/index.js"
-          },
-          "default": {
-            "types": "./dist/prod/index.d.ts",
-            "default": "./dist/prod/index.js"
-          }
-        }
-      }
-    },
-    "files": [
-      "dist"
-    ]
-  },
-  "scripts": {
-    "build": "rollup -c rollup.config.mjs",
-    "test:publint": "publint"
-  },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "eslint": "catalog:",
-    "publint": "catalog:",
-    "rollup": "catalog:",
     "typescript": "catalog:"
   }
 }

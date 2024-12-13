@@ -22,7 +22,7 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module',
     projectService: {
-      allowDefaultProject: ['rollup.config.mjs', '.eslintrc.cjs', 'vite.config.mts'],
+      allowDefaultProject: ['rollup.config.mjs', '.eslintrc.cjs'],
       defaultProject: resolve(__dirname, './tsconfig.plugin.json'),
     },
   },
@@ -37,7 +37,6 @@ module.exports = {
     'simple-import-sort',
     'unused-imports',
     'import-x',
-    'deprecation',
     'n',
   ],
   extends: [

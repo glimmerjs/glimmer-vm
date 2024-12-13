@@ -7,7 +7,7 @@ import type {
   OneOrMany,
 } from '@glimmer/state';
 import { debugToString } from '@glimmer/debug-util';
-import { scheduleDestroy, scheduleDestroyed } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import state from '@glimmer/state';
 
 const LIVE_STATE: LiveState = 0;
@@ -152,9 +152,9 @@ export function destroy(destroyable: Destroyable): void {
 
   iterate(children, destroy);
   iterate(eagerDestructors, (destructor) => destructor(destroyable));
-  iterate(destructors, (destructor) => scheduleDestroy(destroyable, destructor));
+  iterate(destructors, (destructor) => context().scheduleDestroy(destroyable, destructor));
 
-  scheduleDestroyed(() => {
+  context().scheduleDestroyed(() => {
     iterate(parents, (parent) => removeChildFromParent(destroyable, parent));
 
     meta.state = DESTROYED_STATE;

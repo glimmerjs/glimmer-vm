@@ -1,5 +1,5 @@
 import type { CapturedArguments, HelperDefinitionState } from '@glimmer/interfaces';
-import { getPath, setPath } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import { createComputeRef, UNDEFINED_REFERENCE, valueForRef } from '@glimmer/reference';
 import { isDict } from '@glimmer/util';
 
@@ -91,14 +91,14 @@ export const get: HelperDefinitionState = internalHelper(({ positional }: Captur
       let source = valueForRef(sourceRef);
 
       if (isDict(source)) {
-        return getPath(source, String(valueForRef(pathRef)));
+        return context().getPath(source, String(valueForRef(pathRef)));
       }
     },
     (value) => {
       let source = valueForRef(sourceRef);
 
       if (isDict(source)) {
-        return setPath(source, String(valueForRef(pathRef)), value);
+        return context().setPath(source, String(valueForRef(pathRef)), value);
       }
     },
     'get'

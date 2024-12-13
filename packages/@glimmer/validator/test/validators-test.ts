@@ -13,14 +13,6 @@ import {
 
 import { module, test } from './-utils';
 
-function unwrap<T>(value: T | null | undefined): T {
-  if (value === null || value === undefined) {
-    throw new Error('unexpected null or undefined value');
-  }
-
-  return value;
-}
-
 module('@glimmer/validator: validators', () => {
   module('DirtyableTag', () => {
     test('it can be dirtied', (assert) => {
@@ -37,7 +29,7 @@ module('@glimmer/validator: validators', () => {
     });
 
     test('it calls scheduleRevalidate', (assert) => {
-      let originalContext = unwrap(testOverrideGlobalContext)({
+      let override = testOverrideGlobalContext({
         scheduleRevalidate() {
           assert.step('scheduleRevalidate');
           assert.ok(true, 'called');
@@ -49,7 +41,7 @@ module('@glimmer/validator: validators', () => {
 
         dirtyTag(tag);
       } finally {
-        unwrap(testOverrideGlobalContext)(originalContext);
+        override.done();
       }
 
       assert.verifySteps(['scheduleRevalidate']);

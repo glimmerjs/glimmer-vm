@@ -9,8 +9,8 @@
     "composite": true,
     "incremental": true,
     "types": [
-      "vite/client",
-      "qunit"
+      "qunit",
+      "vite/client"
     ]
   },
   "references": [
