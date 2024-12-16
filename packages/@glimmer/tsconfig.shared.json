@@ -5,6 +5,7 @@
     // Compilation Configuration
     "lib": [
       "esnext",
+      "ES2015.Collection",
       "DOM",
       "DOM.Iterable",
       "ES2015.Iterable"

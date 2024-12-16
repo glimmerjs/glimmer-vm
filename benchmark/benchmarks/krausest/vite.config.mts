@@ -20,6 +20,19 @@ export default defineConfig({
   preview: {
     strictPort: true,
   },
+
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      module: true,
+      compress: {
+        passes: 3,
+        keep_fargs: false,
+        keep_fnames: false,
+      },
+    },
+  },
+
   resolve: {
     alias: {
       '@glimmer-workspace/benchmark-env': '@glimmer-workspace/benchmark-env/index.ts',

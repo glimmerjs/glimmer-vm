@@ -2,7 +2,13 @@ import type { WireFormat } from '@glimmer/interfaces';
 import type { TemplateWithIdAndReferrer } from '@glimmer/opcode-compiler';
 import { precompile } from '@glimmer/compiler';
 import { assert as glimmerAssert, unwrapTemplate } from '@glimmer/debug-util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WF_CLOSE_ELEMENT_OPCODE,
+  WF_FLUSH_ELEMENT_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
+  WF_GET_LEXICAL_SYMBOL_OPCODE,
+  WF_OPEN_ELEMENT_OPCODE,
+} from '@glimmer/wire-format';
 
 import { preprocess } from '../..';
 import { module } from '../support';
@@ -61,14 +67,14 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     assert.deepEqual(
       componentNameExpr,
-      [SexpOpcodes.GetLexicalSymbol, 0],
+      [WF_GET_LEXICAL_SYMBOL_OPCODE, 0],
       'The component invocation is for the lexical symbol `hello` (the 0th lexical entry)'
     );
 
     assert.deepEqual(divExpr, [
-      [SexpOpcodes.OpenElement, 0],
-      [SexpOpcodes.FlushElement],
-      [SexpOpcodes.CloseElement],
+      [WF_OPEN_ELEMENT_OPCODE, 0],
+      [WF_FLUSH_ELEMENT_OPCODE],
+      [WF_CLOSE_ELEMENT_OPCODE],
     ]);
   });
 
@@ -87,14 +93,14 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     assert.deepEqual(wire.scope?.(), [f]);
     assert.deepEqual(
       componentNameExpr,
-      [SexpOpcodes.GetLexicalSymbol, 0, ['hello']],
+      [WF_GET_LEXICAL_SYMBOL_OPCODE, 0, ['hello']],
       'The component invocation is for the lexical symbol `hello` (the 0th lexical entry)'
     );
 
     assert.deepEqual(divExpr, [
-      [SexpOpcodes.OpenElement, 0],
-      [SexpOpcodes.FlushElement],
-      [SexpOpcodes.CloseElement],
+      [WF_OPEN_ELEMENT_OPCODE, 0],
+      [WF_FLUSH_ELEMENT_OPCODE],
+      [WF_CLOSE_ELEMENT_OPCODE],
     ]);
   });
 
@@ -112,7 +118,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+        componentNameExpr[0] === WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
       `component name is a free variable lookup`
     );
 
@@ -136,7 +142,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+        componentNameExpr[0] === WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
       `component name is a free variable lookup`
     );
 
@@ -159,7 +165,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+        componentNameExpr[0] === WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
       `component name is a free variable lookup`
     );
 
@@ -182,7 +188,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+        componentNameExpr[0] === WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
       `component name is a free variable lookup`
     );
 
@@ -203,7 +209,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let [openElementExpr] = block[0] as [WireFormat.Statements.OpenElement];
 
     glimmerAssert(
-      Array.isArray(openElementExpr) && openElementExpr[0] === SexpOpcodes.OpenElement,
+      Array.isArray(openElementExpr) && openElementExpr[0] === WF_OPEN_ELEMENT_OPCODE,
       `expr is open element`
     );
 

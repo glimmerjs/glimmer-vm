@@ -276,6 +276,9 @@ importers:
       '@pnpm/workspace.find-packages':
         specifier: ^900.0.1
         version: 900.0.1(@pnpm/logger@5.2.0)
+      '@types/node':
+        specifier: ^20.17.10
+        version: 20.17.10
       '@types/ramda':
         specifier: ^0.30.2
         version: 0.30.2
@@ -1729,21 +1732,12 @@ importers:
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
-      '@glimmer-workspace/build-support':
-        specifier: workspace:*
-        version: link:../../@glimmer-workspace/build
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
-      publint:
-        specifier: 'catalog:'
-        version: 0.2.12
-      rollup:
-        specifier: 'catalog:'
-        version: 4.28.1
       typescript:
         specifier: ^5.7.2
         version: 5.7.2

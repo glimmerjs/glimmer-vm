@@ -1,28 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [
-    "pnpm-lock.yaml",
-    "patches",
-    ".env",
-    ".env.testing",
-    ".eslintignore",
-    ".prettierrc.json",
-    ".eslintrc.cjs",
-    "rollup.config.mjs",
-    "vite.config.mts",
-    ".github/workflows/ci.yml",
-    "tsconfig.json",
-    "tsconfig.dist.json",
-    "*/tsconfig.json",
-    "packages/*/tsconfig.json",
-    "packages/@glimmer/.eslintrc.cjs",
-    "packages/@glimmer-workspace/.eslintrc.cjs",
-    "packages/@glimmer-workspace/eslint-plugin/**/*",
-    "packages/@glimmer-workspace/build/lib/config.js"
-  ],
+  "globalDependencies": [],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["//#update:meta"],
+      "inputs": ["$TURBO_DEFAULT$", "package.json", "index.ts", "lib/**"],
       "outputs": ["dist/**"]
     },
     "lint": {
@@ -35,6 +17,9 @@
       "dependsOn": ["build"]
     },
     "lint:types": {},
+    "//#update:meta": {
+      "inputs": ["**/package.json"]
+    },
     "//#test:published:types": {
       "inputs": ["**/dist/**"],
       "dependsOn": ["^build"]

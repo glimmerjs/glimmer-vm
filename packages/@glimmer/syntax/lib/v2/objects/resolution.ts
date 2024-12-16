@@ -6,7 +6,13 @@
  */
 
 import type { GetContextualFreeOpcode } from '@glimmer/interfaces';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE,
+  WF_GET_STRICT_KEYWORD_OPCODE,
+} from '@glimmer/wire-format';
 
 import type { FreeVarNamespace } from './constants';
 
@@ -29,7 +35,7 @@ interface StrictResolution extends Resolution {
 }
 
 export const STRICT_RESOLUTION: StrictResolution = {
-  resolution: (): GetContextualFreeOpcode => SexpOpcodes.GetStrictKeyword,
+  resolution: (): GetContextualFreeOpcode => WF_GET_STRICT_KEYWORD_OPCODE,
   serialize: (): SerializedResolution => 'Strict',
   isAngleBracket: false,
 };
@@ -111,14 +117,14 @@ export class LooseModeResolution {
     if (this.namespaces.length === 1) {
       switch (this.namespaces[0]) {
         case HELPER_VAR_NS:
-          return SexpOpcodes.GetFreeAsHelperHead;
+          return WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
         case MODIFIER_VAR_NS:
-          return SexpOpcodes.GetFreeAsModifierHead;
+          return WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE;
         case COMPONENT_VAR_NS:
-          return SexpOpcodes.GetFreeAsComponentHead;
+          return WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE;
       }
     } else {
-      return SexpOpcodes.GetFreeAsComponentOrHelperHead;
+      return WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE;
     }
   }
 

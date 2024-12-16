@@ -5,6 +5,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import { join } from 'node:path';
 
+import { execa } from 'execa';
+
 const ROOT = new URL('..', import.meta.url).pathname;
 $.verbose = true;
 
@@ -152,8 +154,20 @@ await buildRepo(CONTROL_DIR, controlRef, REUSE_CONTROL);
 await buildRepo(EXPERIMENT_DIR, experimentRef, REUSE_EXPERIMENT);
 
 // start build assets
-$`cd ${CONTROL_BENCH_DIR} && pnpm vite preview --port ${CONTROL_PORT}`;
-$`cd ${EXPERIMENT_BENCH_DIR} && pnpm vite preview --port ${EXPERIMENT_PORT}`;
+const controlProcess = execa('pnpm', ['vite', 'preview', '--port', String(CONTROL_PORT)], {
+  cwd: CONTROL_BENCH_DIR,
+  stdio: 'inherit',
+});
+
+const experimentProcess = execa('pnpm', ['vite', 'preview', '--port', String(EXPERIMENT_PORT)], {
+  cwd: EXPERIMENT_BENCH_DIR,
+  stdio: 'inherit',
+});
+
+process.on('SIGINT', () => {
+  controlProcess.kill();
+  experimentProcess.kill();
+});
 
 await new Promise((resolve) => {
   // giving 5 seconds for the server to start

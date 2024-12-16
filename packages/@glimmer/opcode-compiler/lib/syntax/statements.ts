@@ -38,7 +38,34 @@ import {
   VM_TO_BOOLEAN_OP,
 } from '@glimmer/constants';
 import { $fp, $sp, ContentType } from '@glimmer/vm';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WF_APPEND_OPCODE,
+  WF_ATTR_SPLAT_OPCODE,
+  WF_BLOCK_OPCODE,
+  WF_CALL_OPCODE,
+  WF_CLOSE_ELEMENT_OPCODE,
+  WF_COMMENT_OPCODE,
+  WF_COMPONENT_ATTR_OPCODE,
+  WF_COMPONENT_OPCODE,
+  WF_DEBUGGER_OPCODE,
+  WF_DYNAMIC_ATTR_OPCODE,
+  WF_EACH_OPCODE,
+  WF_FLUSH_ELEMENT_OPCODE,
+  WF_IF_OPCODE,
+  WF_IN_ELEMENT_OPCODE,
+  WF_INVOKE_COMPONENT_OPCODE,
+  WF_LET_OPCODE,
+  WF_MODIFIER_OPCODE,
+  WF_OPEN_ELEMENT_OPCODE,
+  WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE,
+  WF_STATIC_ATTR_OPCODE,
+  WF_STATIC_COMPONENT_ATTR_OPCODE,
+  WF_TRUSTING_APPEND_OPCODE,
+  WF_TRUSTING_COMPONENT_ATTR_OPCODE,
+  WF_TRUSTING_DYNAMIC_ATTR_OPCODE,
+  WF_WITH_DYNAMIC_VARS_OPCODE,
+  WF_YIELD_OPCODE,
+} from '@glimmer/wire-format';
 
 import type { PushStatementOp } from './compilers';
 
@@ -91,11 +118,11 @@ function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
 
-STATEMENTS.add(SexpOpcodes.Comment, (op, sexp) => op(VM_COMMENT_OP, sexp[1]));
-STATEMENTS.add(SexpOpcodes.CloseElement, (op) => op(VM_CLOSE_ELEMENT_OP));
-STATEMENTS.add(SexpOpcodes.FlushElement, (op) => op(VM_FLUSH_ELEMENT_OP));
+STATEMENTS.add(WF_COMMENT_OPCODE, (op, sexp) => op(VM_COMMENT_OP, sexp[1]));
+STATEMENTS.add(WF_CLOSE_ELEMENT_OPCODE, (op) => op(VM_CLOSE_ELEMENT_OP));
+STATEMENTS.add(WF_FLUSH_ELEMENT_OPCODE, (op) => op(VM_FLUSH_ELEMENT_OP));
 
-STATEMENTS.add(SexpOpcodes.Modifier, (op, [, expression, positional, named]) => {
+STATEMENTS.add(WF_MODIFIER_OPCODE, (op, [, expression, positional, named]) => {
   if (isGetFreeModifier(expression)) {
     op(HighLevelResolutionOpcodes.Modifier, expression, (handle: number) => {
       op(VM_PUSH_FRAME_OP);
@@ -113,44 +140,44 @@ STATEMENTS.add(SexpOpcodes.Modifier, (op, [, expression, positional, named]) => 
   }
 });
 
-STATEMENTS.add(SexpOpcodes.StaticAttr, (op, [, name, value, namespace]) => {
+STATEMENTS.add(WF_STATIC_ATTR_OPCODE, (op, [, name, value, namespace]) => {
   op(VM_STATIC_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
 });
 
-STATEMENTS.add(SexpOpcodes.StaticComponentAttr, (op, [, name, value, namespace]) => {
+STATEMENTS.add(WF_STATIC_COMPONENT_ATTR_OPCODE, (op, [, name, value, namespace]) => {
   op(VM_STATIC_COMPONENT_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
 });
 
-STATEMENTS.add(SexpOpcodes.DynamicAttr, (op, [, name, value, namespace]) => {
+STATEMENTS.add(WF_DYNAMIC_ATTR_OPCODE, (op, [, name, value, namespace]) => {
   expr(op, value);
   op(VM_DYNAMIC_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingDynamicAttr, (op, [, name, value, namespace]) => {
+STATEMENTS.add(WF_TRUSTING_DYNAMIC_ATTR_OPCODE, (op, [, name, value, namespace]) => {
   expr(op, value);
   op(VM_DYNAMIC_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
 });
 
-STATEMENTS.add(SexpOpcodes.ComponentAttr, (op, [, name, value, namespace]) => {
+STATEMENTS.add(WF_COMPONENT_ATTR_OPCODE, (op, [, name, value, namespace]) => {
   expr(op, value);
   op(VM_COMPONENT_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingComponentAttr, (op, [, name, value, namespace]) => {
+STATEMENTS.add(WF_TRUSTING_COMPONENT_ATTR_OPCODE, (op, [, name, value, namespace]) => {
   expr(op, value);
   op(VM_COMPONENT_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
 });
 
-STATEMENTS.add(SexpOpcodes.OpenElement, (op, [, tag]) => {
+STATEMENTS.add(WF_OPEN_ELEMENT_OPCODE, (op, [, tag]) => {
   op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));
 });
 
-STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, (op, [, tag]) => {
+STATEMENTS.add(WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE, (op, [, tag]) => {
   op(VM_PUT_COMPONENT_OPERATIONS_OP);
   op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));
 });
 
-STATEMENTS.add(SexpOpcodes.Component, (op, [, expr, elementBlock, named, blocks]) => {
+STATEMENTS.add(WF_COMPONENT_OPCODE, (op, [, expr, elementBlock, named, blocks]) => {
   if (isGetFreeComponent(expr)) {
     op(HighLevelResolutionOpcodes.Component, expr, (component: CompileTimeComponent) => {
       InvokeComponent(op, component, elementBlock, null, named, blocks);
@@ -162,15 +189,15 @@ STATEMENTS.add(SexpOpcodes.Component, (op, [, expr, elementBlock, named, blocks]
   }
 });
 
-STATEMENTS.add(SexpOpcodes.Yield, (op, [, to, params]) => YieldBlock(op, to, params));
+STATEMENTS.add(WF_YIELD_OPCODE, (op, [, to, params]) => YieldBlock(op, to, params));
 
-STATEMENTS.add(SexpOpcodes.AttrSplat, (op, [, to]) => YieldBlock(op, to, null));
+STATEMENTS.add(WF_ATTR_SPLAT_OPCODE, (op, [, to]) => YieldBlock(op, to, null));
 
-STATEMENTS.add(SexpOpcodes.Debugger, (op, [, locals, upvars, lexical]) => {
+STATEMENTS.add(WF_DEBUGGER_OPCODE, (op, [, locals, upvars, lexical]) => {
   op(VM_DEBUGGER_OP, debugSymbolsOperand(locals, upvars, lexical));
 });
 
-STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
+STATEMENTS.add(WF_APPEND_OPCODE, (op, [, value]) => {
   // Special case for static values
   if (!Array.isArray(value)) {
     op(VM_TEXT_OP, value === null || value === undefined ? '' : String(value));
@@ -194,7 +221,7 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
         op(VM_POP_FRAME_OP);
       },
     });
-  } else if (value[0] === SexpOpcodes.Call) {
+  } else if (value[0] === WF_CALL_OPCODE) {
     let [, expression, positional, named] = value;
 
     if (isGetFreeComponentOrHelper(expression)) {
@@ -246,7 +273,7 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingAppend, (op, [, value]) => {
+STATEMENTS.add(WF_TRUSTING_APPEND_OPCODE, (op, [, value]) => {
   if (!Array.isArray(value)) {
     op(VM_TEXT_OP, value === null || value === undefined ? '' : String(value));
   } else {
@@ -257,7 +284,7 @@ STATEMENTS.add(SexpOpcodes.TrustingAppend, (op, [, value]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.Block, (op, [, expr, positional, named, blocks]) => {
+STATEMENTS.add(WF_BLOCK_OPCODE, (op, [, expr, positional, named, blocks]) => {
   if (isGetFreeComponent(expr)) {
     op(HighLevelResolutionOpcodes.Component, expr, (component: CompileTimeComponent) => {
       InvokeComponent(op, component, null, positional, hashToArgs(named), blocks);
@@ -267,7 +294,7 @@ STATEMENTS.add(SexpOpcodes.Block, (op, [, expr, positional, named, blocks]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.InElement, (op, [, block, guid, destination, insertBefore]) => {
+STATEMENTS.add(WF_IN_ELEMENT_OPCODE, (op, [, block, guid, destination, insertBefore]) => {
   ReplayableIf(
     op,
 
@@ -294,7 +321,7 @@ STATEMENTS.add(SexpOpcodes.InElement, (op, [, block, guid, destination, insertBe
   );
 });
 
-STATEMENTS.add(SexpOpcodes.If, (op, [, condition, block, inverse]) =>
+STATEMENTS.add(WF_IF_OPCODE, (op, [, condition, block, inverse]) =>
   ReplayableIf(
     op,
     () => {
@@ -316,7 +343,7 @@ STATEMENTS.add(SexpOpcodes.If, (op, [, condition, block, inverse]) =>
   )
 );
 
-STATEMENTS.add(SexpOpcodes.Each, (op, [, value, key, block, inverse]) =>
+STATEMENTS.add(WF_EACH_OPCODE, (op, [, value, key, block, inverse]) =>
   Replayable(
     op,
 
@@ -356,12 +383,12 @@ STATEMENTS.add(SexpOpcodes.Each, (op, [, value, key, block, inverse]) =>
   )
 );
 
-STATEMENTS.add(SexpOpcodes.Let, (op, [, positional, block]) => {
+STATEMENTS.add(WF_LET_OPCODE, (op, [, positional, block]) => {
   let count = CompilePositional(op, positional);
   InvokeStaticBlockWithStack(op, block, count);
 });
 
-STATEMENTS.add(SexpOpcodes.WithDynamicVars, (op, [, named, block]) => {
+STATEMENTS.add(WF_WITH_DYNAMIC_VARS_OPCODE, (op, [, named, block]) => {
   if (named) {
     let [names, expressions] = named;
 
@@ -374,7 +401,7 @@ STATEMENTS.add(SexpOpcodes.WithDynamicVars, (op, [, named, block]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.InvokeComponent, (op, [, expr, positional, named, blocks]) => {
+STATEMENTS.add(WF_INVOKE_COMPONENT_OPCODE, (op, [, expr, positional, named, blocks]) => {
   if (isGetFreeComponent(expr)) {
     op(HighLevelResolutionOpcodes.Component, expr, (component: CompileTimeComponent) => {
       InvokeComponent(op, component, null, positional, hashToArgs(named), blocks);

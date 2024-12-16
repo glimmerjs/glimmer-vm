@@ -22,12 +22,14 @@
     "test": "node bin/run-tests.mjs",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
     "test:lint": "eslint .",
+    "test:meta-updater": "pnpm meta-updater --test",
     "test:node": "node bin/run-node-tests.mjs",
     "test:publint": "x-env turbo test:publint --concurrency=\\$TURBO_CONCURRENCY --color",
     "test:published:types": "x-env bin/run-types-tests.mjs",
     "test:smoke": "SMOKE_TESTS=true ember test",
     "tsc:clean": "x-env tsc -b --clean",
-    "unlink:all": "esyes ./bin/unlink-all.mts"
+    "unlink:all": "esyes ./bin/unlink-all.mts",
+    "update:meta": "pnpm meta-updater"
   },
   "devDependencies": {
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",

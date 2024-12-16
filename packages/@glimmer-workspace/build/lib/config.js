@@ -102,8 +102,8 @@ function externals(packages) {
       return [];
     }
   });
-
   return /** @type {const} */ ([
+
     [
       'is',
       ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'],

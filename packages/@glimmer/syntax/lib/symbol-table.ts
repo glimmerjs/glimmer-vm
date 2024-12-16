@@ -1,7 +1,7 @@
 import type { Core, Dict } from '@glimmer/interfaces';
 import { setLocalDebugType, unwrap } from '@glimmer/debug-util';
 import { dict } from '@glimmer/util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE } from '@glimmer/wire-format';
 
 import * as ASTv2 from './v2/api';
 
@@ -119,7 +119,7 @@ export class ProgramSymbolTable extends SymbolTable {
     // If the name in question is an uppercase (i.e. angle-bracket) component invocation, run
     // the optional `customizeComponentName` function provided to the precompiler.
     if (
-      resolution.resolution() === SexpOpcodes.GetFreeAsComponentHead &&
+      resolution.resolution() === WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE &&
       resolution.isAngleBracket
     ) {
       name = this.options.customizeComponentName(name);

@@ -1,48 +1,20 @@
 {
   "name": "@glimmer/wire-format",
+  "private": true,
   "version": "0.93.1",
   "license": "MIT",
   "description": "",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
-    "directory": "packages/@glimmer/wire-format"
-  },
   "type": "module",
   "exports": "./index.ts",
-  "publishConfig": {
-    "access": "public",
-    "exports": {
-      ".": {
-        "default": {
-          "development": {
-            "types": "./dist/dev/index.d.ts",
-            "default": "./dist/dev/index.js"
-          },
-          "default": {
-            "types": "./dist/prod/index.d.ts",
-            "default": "./dist/prod/index.js"
-          }
-        }
-      }
-    }
-  },
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "rollup -c rollup.config.mjs",
-    "test:publint": "publint"
-  },
   "dependencies": {
     "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "eslint": "catalog:",
-    "publint": "catalog:",
-    "rollup": "catalog:",
     "typescript": "catalog:"
   }
 }

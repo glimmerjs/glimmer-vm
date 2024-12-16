@@ -1,6 +1,9 @@
 {
   "private": true,
   "exports": "./main.mjs",
+  "keywords": [
+    "node"
+  ],
   "dependencies": {
     "@node-kit/pnpm-workspace-info": "^3.3.1",
     "@pnpm/find-workspace-dir": "^900.0.1",
@@ -19,6 +22,7 @@
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@pnpm/types": "^1000.0.0",
     "@pnpm/workspace.find-packages": "^900.0.1",
+    "@types/node": "catalog:",
     "@types/ramda": "^0.30.2",
     "eslint": "catalog:",
     "typescript": "catalog:"

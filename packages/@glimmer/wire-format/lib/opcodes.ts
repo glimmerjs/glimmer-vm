@@ -47,98 +47,49 @@ import type {
   YieldOpcode,
 } from '@glimmer/interfaces';
 
-export const opcodes: {
-  readonly Append: AppendOpcode;
-  readonly TrustingAppend: TrustingAppendOpcode;
-  readonly Comment: CommentOpcode;
-  readonly Modifier: ModifierOpcode;
-  readonly StrictModifier: StrictModifierOpcode;
-  readonly Block: BlockOpcode;
-  readonly StrictBlock: StrictBlockOpcode;
-  readonly Component: ComponentOpcode;
-  readonly OpenElement: OpenElementOpcode;
-  readonly OpenElementWithSplat: OpenElementWithSplatOpcode;
-  readonly FlushElement: FlushElementOpcode;
-  readonly CloseElement: CloseElementOpcode;
-  readonly StaticAttr: StaticAttrOpcode;
-  readonly DynamicAttr: DynamicAttrOpcode;
-  readonly ComponentAttr: ComponentAttrOpcode;
-  readonly AttrSplat: AttrSplatOpcode;
-  readonly Yield: YieldOpcode;
-  readonly DynamicArg: DynamicArgOpcode;
-  readonly StaticArg: StaticArgOpcode;
-  readonly TrustingDynamicAttr: TrustingDynamicAttrOpcode;
-  readonly TrustingComponentAttr: TrustingComponentAttrOpcode;
-  readonly StaticComponentAttr: StaticComponentAttrOpcode;
-  readonly Debugger: DebuggerOpcode;
-  readonly Undefined: UndefinedOpcode;
-  readonly Call: CallOpcode;
-  readonly Concat: ConcatOpcode;
-  readonly GetSymbol: GetSymbolOpcode;
-  readonly GetLexicalSymbol: GetLexicalSymbolOpcode;
-  readonly GetStrictKeyword: GetStrictKeywordOpcode;
-  readonly GetFreeAsComponentOrHelperHead: GetFreeAsComponentOrHelperHeadOpcode;
-  readonly GetFreeAsHelperHead: GetFreeAsHelperHeadOpcode;
-  readonly GetFreeAsModifierHead: GetFreeAsModifierHeadOpcode;
-  readonly GetFreeAsComponentHead: GetFreeAsComponentHeadOpcode;
-  readonly InElement: InElementOpcode;
-  readonly If: IfOpcode;
-  readonly Each: EachOpcode;
-  readonly Let: LetOpcode;
-  readonly WithDynamicVars: WithDynamicVarsOpcode;
-  readonly InvokeComponent: InvokeComponentOpcode;
-  readonly HasBlock: HasBlockOpcode;
-  readonly HasBlockParams: HasBlockParamsOpcode;
-  readonly Curry: CurryOpcode;
-  readonly Not: NotOpcode;
-  readonly IfInline: IfInlineOpcode;
-  readonly GetDynamicVar: GetDynamicVarOpcode;
-  readonly Log: LogOpcode;
-} = {
-  Append: 1,
-  TrustingAppend: 2,
-  Comment: 3,
-  Modifier: 4,
-  StrictModifier: 5,
-  Block: 6,
-  StrictBlock: 7,
-  Component: 8,
-  OpenElement: 10,
-  OpenElementWithSplat: 11,
-  FlushElement: 12,
-  CloseElement: 13,
-  StaticAttr: 14,
-  DynamicAttr: 15,
-  ComponentAttr: 16,
-  AttrSplat: 17,
-  Yield: 18,
-  DynamicArg: 20,
-  StaticArg: 21,
-  TrustingDynamicAttr: 22,
-  TrustingComponentAttr: 23,
-  StaticComponentAttr: 24,
-  Debugger: 26,
-  Undefined: 27,
-  Call: 28,
-  Concat: 29,
-  GetSymbol: 30,
-  GetLexicalSymbol: 32,
-  GetStrictKeyword: 31,
-  GetFreeAsComponentOrHelperHead: 35,
-  GetFreeAsHelperHead: 37,
-  GetFreeAsModifierHead: 38,
-  GetFreeAsComponentHead: 39,
-  InElement: 40,
-  If: 41,
-  Each: 42,
-  Let: 44,
-  WithDynamicVars: 45,
-  InvokeComponent: 46,
-  HasBlock: 48,
-  HasBlockParams: 49,
-  Curry: 50,
-  Not: 51,
-  IfInline: 52,
-  GetDynamicVar: 53,
-  Log: 54,
-} as const;
+export const WF_APPEND_OPCODE: AppendOpcode = 1;
+export const WF_TRUSTING_APPEND_OPCODE: TrustingAppendOpcode = 2;
+export const WF_COMMENT_OPCODE: CommentOpcode = 3;
+export const WF_MODIFIER_OPCODE: ModifierOpcode = 4;
+export const WF_STRICT_MODIFIER_OPCODE: StrictModifierOpcode = 5;
+export const WF_BLOCK_OPCODE: BlockOpcode = 6;
+export const WF_STRICT_BLOCK_OPCODE: StrictBlockOpcode = 7;
+export const WF_COMPONENT_OPCODE: ComponentOpcode = 8;
+export const WF_OPEN_ELEMENT_OPCODE: OpenElementOpcode = 10;
+export const WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE: OpenElementWithSplatOpcode = 11;
+export const WF_FLUSH_ELEMENT_OPCODE: FlushElementOpcode = 12;
+export const WF_CLOSE_ELEMENT_OPCODE: CloseElementOpcode = 13;
+export const WF_STATIC_ATTR_OPCODE: StaticAttrOpcode = 14;
+export const WF_DYNAMIC_ATTR_OPCODE: DynamicAttrOpcode = 15;
+export const WF_COMPONENT_ATTR_OPCODE: ComponentAttrOpcode = 16;
+export const WF_ATTR_SPLAT_OPCODE: AttrSplatOpcode = 17;
+export const WF_YIELD_OPCODE: YieldOpcode = 18;
+export const WF_DYNAMIC_ARG_OPCODE: DynamicArgOpcode = 20;
+export const WF_STATIC_ARG_OPCODE: StaticArgOpcode = 21;
+export const WF_TRUSTING_DYNAMIC_ATTR_OPCODE: TrustingDynamicAttrOpcode = 22;
+export const WF_TRUSTING_COMPONENT_ATTR_OPCODE: TrustingComponentAttrOpcode = 23;
+export const WF_STATIC_COMPONENT_ATTR_OPCODE: StaticComponentAttrOpcode = 24;
+export const WF_DEBUGGER_OPCODE: DebuggerOpcode = 26;
+export const WF_UNDEFINED_OPCODE: UndefinedOpcode = 27;
+export const WF_CALL_OPCODE: CallOpcode = 28;
+export const WF_CONCAT_OPCODE: ConcatOpcode = 29;
+export const WF_GET_SYMBOL_OPCODE: GetSymbolOpcode = 30;
+export const WF_GET_LEXICAL_SYMBOL_OPCODE: GetLexicalSymbolOpcode = 32;
+export const WF_GET_STRICT_KEYWORD_OPCODE: GetStrictKeywordOpcode = 31;
+export const WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE: GetFreeAsComponentOrHelperHeadOpcode = 35;
+export const WF_GET_FREE_AS_HELPER_HEAD_OPCODE: GetFreeAsHelperHeadOpcode = 37;
+export const WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE: GetFreeAsModifierHeadOpcode = 38;
+export const WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE: GetFreeAsComponentHeadOpcode = 39;
+export const WF_IN_ELEMENT_OPCODE: InElementOpcode = 40;
+export const WF_IF_OPCODE: IfOpcode = 41;
+export const WF_EACH_OPCODE: EachOpcode = 42;
+export const WF_LET_OPCODE: LetOpcode = 44;
+export const WF_WITH_DYNAMIC_VARS_OPCODE: WithDynamicVarsOpcode = 45;
+export const WF_INVOKE_COMPONENT_OPCODE: InvokeComponentOpcode = 46;
+export const WF_HAS_BLOCK_OPCODE: HasBlockOpcode = 48;
+export const WF_HAS_BLOCK_PARAMS_OPCODE: HasBlockParamsOpcode = 49;
+export const WF_CURRY_OPCODE: CurryOpcode = 50;
+export const WF_NOT_OPCODE: NotOpcode = 51;
+export const WF_IF_INLINE_OPCODE: IfInlineOpcode = 52;
+export const WF_GET_DYNAMIC_VAR_OPCODE: GetDynamicVarOpcode = 53;
+export const WF_LOG_OPCODE: LogOpcode = 54;

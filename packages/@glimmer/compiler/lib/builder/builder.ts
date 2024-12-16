@@ -6,8 +6,14 @@ import type {
   GetContextualFreeOpcode,
   Nullable,
   PresentArray,
+  ResolveAsComponentHeadResolution,
+  ResolveAsComponentOrHelperHeadResolution,
+  ResolveAsHelperHeadResolution,
+  ResolveAsModifierHeadResolution,
+  StrictResolution,
   WireFormat,
 } from '@glimmer/interfaces';
+import type { VariableResolutionContext } from '@glimmer/wire-format';
 import {
   APPEND_EXPR_HEAD,
   APPEND_PATH_HEAD,
@@ -40,7 +46,33 @@ import {
 } from '@glimmer/constants';
 import { assert, exhausted, expect, isPresentArray } from '@glimmer/debug-util';
 import { assertNever, dict, values } from '@glimmer/util';
-import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
+import {
+  WF_APPEND_OPCODE,
+  WF_ATTR_SPLAT_OPCODE,
+  WF_BLOCK_OPCODE,
+  WF_CALL_OPCODE,
+  WF_CLOSE_ELEMENT_OPCODE,
+  WF_COMMENT_OPCODE,
+  WF_CONCAT_OPCODE,
+  WF_DYNAMIC_ATTR_OPCODE,
+  WF_EACH_OPCODE,
+  WF_FLUSH_ELEMENT_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE,
+  WF_GET_STRICT_KEYWORD_OPCODE,
+  WF_GET_SYMBOL_OPCODE,
+  WF_HAS_BLOCK_OPCODE,
+  WF_HAS_BLOCK_PARAMS_OPCODE,
+  WF_IF_OPCODE,
+  WF_LET_OPCODE,
+  WF_OPEN_ELEMENT_OPCODE,
+  WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE,
+  WF_STATIC_ATTR_OPCODE,
+  WF_TRUSTING_APPEND_OPCODE,
+  WF_UNDEFINED_OPCODE,
+} from '@glimmer/wire-format';
 
 import type {
   BuilderComment,
@@ -60,6 +92,12 @@ import type {
 } from './builder-interface';
 
 import { normalizeStatement } from './builder-interface';
+
+const STRICT_RESOLUTION: StrictResolution = 0;
+const RESOLVE_AS_COMPONENT_OR_HELPER_HEAD: ResolveAsComponentOrHelperHeadResolution = 1;
+const RESOLVE_AS_HELPER_HEAD: ResolveAsHelperHeadResolution = 5;
+const RESOLVE_AS_MODIFIER_HEAD: ResolveAsModifierHeadResolution = 6;
+const RESOLVE_AS_COMPONENT_HEAD: ResolveAsComponentHeadResolution = 7;
 
 interface Symbols {
   top: ProgramSymbols;
@@ -227,7 +265,7 @@ export function buildStatement(
     case APPEND_PATH_HEAD: {
       return [
         [
-          normalized.trusted ? Op.TrustingAppend : Op.Append,
+          normalized.trusted ? WF_TRUSTING_APPEND_OPCODE : WF_APPEND_OPCODE,
           buildGetPath(normalized.path, symbols),
         ],
       ];
@@ -236,7 +274,7 @@ export function buildStatement(
     case APPEND_EXPR_HEAD: {
       return [
         [
-          normalized.trusted ? Op.TrustingAppend : Op.Append,
+          normalized.trusted ? WF_TRUSTING_APPEND_OPCODE : WF_APPEND_OPCODE,
           buildExpression(
             normalized.expr,
             normalized.trusted ? 'TrustedAppend' : 'Append',
@@ -254,36 +292,33 @@ export function buildStatement(
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
       let builtExpr: WireFormat.Expression = buildCallHead(
         path,
-        trusted
-          ? VariableResolutionContext.ResolveAsHelperHead
-          : VariableResolutionContext.ResolveAsComponentOrHelperHead,
+        trusted ? RESOLVE_AS_HELPER_HEAD : RESOLVE_AS_COMPONENT_OR_HELPER_HEAD,
         symbols
       );
 
       return [
-        [trusted ? Op.TrustingAppend : Op.Append, [Op.Call, builtExpr, builtParams, builtHash]],
+        [
+          trusted ? WF_TRUSTING_APPEND_OPCODE : WF_APPEND_OPCODE,
+          [WF_CALL_OPCODE, builtExpr, builtParams, builtHash],
+        ],
       ];
     }
 
     case LITERAL_HEAD: {
-      return [[Op.Append, normalized.value]];
+      return [[WF_APPEND_OPCODE, normalized.value]];
     }
 
     case COMMENT_HEAD: {
-      return [[Op.Comment, normalized.value]];
+      return [[WF_COMMENT_OPCODE, normalized.value]];
     }
 
     case BLOCK_HEAD: {
       let blocks = buildBlocks(normalized.blocks, normalized.blockParams, symbols);
       let hash = buildHash(normalized.hash, symbols);
       let params = buildParams(normalized.params, symbols);
-      let path = buildCallHead(
-        normalized.head,
-        VariableResolutionContext.ResolveAsComponentHead,
-        symbols
-      );
+      let path = buildCallHead(normalized.head, RESOLVE_AS_COMPONENT_HEAD, symbols);
 
-      return [[Op.Block, path, params, hash, blocks]];
+      return [[WF_BLOCK_OPCODE, path, params, hash, blocks]];
     }
 
     case KEYWORD_HEAD: {
@@ -352,13 +387,13 @@ function buildKeyword(
 
   switch (name) {
     case 'let':
-      return [Op.Let, expect(params, 'let requires params'), block];
+      return [WF_LET_OPCODE, expect(params, 'let requires params'), block];
     case 'if':
-      return [Op.If, expect(params, 'if requires params')[0], block, inverse];
+      return [WF_IF_OPCODE, expect(params, 'if requires params')[0], block, inverse];
     case 'each': {
       let keyExpr = normalized.hash ? normalized.hash['key'] : null;
       let key = keyExpr ? buildExpression(keyExpr, 'Strict', symbols) : null;
-      return [Op.Each, expect(params, 'if requires params')[0], key, block, inverse];
+      return [WF_EACH_OPCODE, expect(params, 'if requires params')[0], key, block, inverse];
     }
 
     default:
@@ -371,14 +406,14 @@ function buildElement(
   symbols: Symbols
 ): WireFormat.Statement[] {
   let out: WireFormat.Statement[] = [
-    hasSplat(attrs) ? [Op.OpenElementWithSplat, name] : [Op.OpenElement, name],
+    hasSplat(attrs) ? [WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE, name] : [WF_OPEN_ELEMENT_OPCODE, name],
   ];
   if (attrs) {
     let { params, args } = buildElementParams(attrs, symbols);
     out.push(...params);
     assert(args === null, `Can't pass args to a simple element`);
   }
-  out.push([Op.FlushElement]);
+  out.push([WF_FLUSH_ELEMENT_OPCODE]);
 
   if (Array.isArray(block)) {
     block.forEach((s) => out.push(...buildStatement(s, symbols)));
@@ -388,7 +423,7 @@ function buildElement(
     assertNever(block);
   }
 
-  out.push([Op.CloseElement]);
+  out.push([WF_CLOSE_ELEMENT_OPCODE]);
 
   return out;
 }
@@ -409,7 +444,7 @@ function buildElementParams(
 
   for (const [key, value] of Object.entries(attrs)) {
     if (value === SPLAT_HEAD) {
-      params.push([Op.AttrSplat, symbols.block('&attrs')]);
+      params.push([WF_ATTR_SPLAT_OPCODE, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
       keys.push(key);
       values.push(buildExpression(value, 'Strict', symbols));
@@ -467,9 +502,9 @@ function buildAttributeValue(
       if (val === false) {
         return [];
       } else if (val === true) {
-        return [[Op.StaticAttr, name, '', namespace ?? undefined]];
+        return [[WF_STATIC_ATTR_OPCODE, name, '', namespace ?? undefined]];
       } else if (typeof val === 'string') {
-        return [[Op.StaticAttr, name, val, namespace ?? undefined]];
+        return [[WF_STATIC_ATTR_OPCODE, name, val, namespace ?? undefined]];
       } else {
         throw new Error(`Unexpected/unimplemented literal attribute ${JSON.stringify(val)}`);
       }
@@ -478,7 +513,7 @@ function buildAttributeValue(
     default:
       return [
         [
-          Op.DynamicAttr,
+          WF_DYNAMIC_ATTR_OPCODE,
           name,
           buildExpression(value, 'AttrValue', symbols),
           namespace ?? undefined,
@@ -523,7 +558,7 @@ function buildExpression(
     }
 
     case CONCAT_EXPR: {
-      return [Op.Concat, buildConcat(expr.params, symbols)];
+      return [WF_CONCAT_OPCODE, buildConcat(expr.params, symbols)];
     }
 
     case CALL_EXPR: {
@@ -535,15 +570,15 @@ function buildExpression(
         symbols
       );
 
-      return [Op.Call, builtExpr, builtParams, builtHash];
+      return [WF_CALL_OPCODE, builtExpr, builtParams, builtHash];
     }
 
     case HAS_BLOCK_EXPR: {
       return [
-        Op.HasBlock,
+        WF_HAS_BLOCK_OPCODE,
         buildVar(
           { kind: BLOCK_VAR, name: expr.name, mode: 'loose' },
-          VariableResolutionContext.Strict,
+          0 satisfies StrictResolution,
           symbols
         ),
       ];
@@ -551,10 +586,10 @@ function buildExpression(
 
     case HAS_BLOCK_PARAMS_EXPR: {
       return [
-        Op.HasBlockParams,
+        WF_HAS_BLOCK_PARAMS_OPCODE,
         buildVar(
           { kind: BLOCK_VAR, name: expr.name, mode: 'loose' },
-          VariableResolutionContext.Strict,
+          0 satisfies StrictResolution,
           symbols
         ),
       ];
@@ -562,7 +597,7 @@ function buildExpression(
 
     case LITERAL_EXPR: {
       if (expr.value === undefined) {
-        return [Op.Undefined];
+        return [WF_UNDEFINED_OPCODE];
       } else {
         return expr.value;
       }
@@ -586,7 +621,7 @@ function buildCallHead(
 }
 
 function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
-  return buildVar(head.path.head, VariableResolutionContext.Strict, symbols, head.path.tail);
+  return buildVar(head.path.head, 0 satisfies StrictResolution, symbols, head.path.tail);
 }
 
 type VarResolution =
@@ -613,40 +648,40 @@ function buildVar(
   symbols: Symbols,
   path?: PresentArray<string>
 ): Expressions.GetPath | Expressions.GetVar {
-  let op: Expressions.GetPath[0] | Expressions.GetVar[0] = Op.GetSymbol;
+  let op: Expressions.GetPath[0] | Expressions.GetVar[0] = WF_GET_SYMBOL_OPCODE;
   let sym: number;
   switch (head.kind) {
     case FREE_VAR:
       if (context === 'Strict') {
-        op = Op.GetStrictKeyword;
+        op = WF_GET_STRICT_KEYWORD_OPCODE;
       } else if (context === 'AppendBare') {
-        op = Op.GetFreeAsComponentOrHelperHead;
+        op = WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE;
       } else if (context === 'AppendInvoke') {
-        op = Op.GetFreeAsComponentOrHelperHead;
+        op = WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE;
       } else if (context === 'TrustedAppendBare') {
-        op = Op.GetFreeAsHelperHead;
+        op = WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
       } else if (context === 'TrustedAppendInvoke') {
-        op = Op.GetFreeAsHelperHead;
+        op = WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
       } else if (context === 'AttrValueBare') {
-        op = Op.GetFreeAsHelperHead;
+        op = WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
       } else if (context === 'AttrValueInvoke') {
-        op = Op.GetFreeAsHelperHead;
+        op = WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
       } else if (context === 'SubExpression') {
-        op = Op.GetFreeAsHelperHead;
+        op = WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
       } else {
         op = expressionContextOp(context);
       }
       sym = symbols.freeVar(head.name);
       break;
     default:
-      op = Op.GetSymbol;
+      op = WF_GET_SYMBOL_OPCODE;
       sym = getSymbolForVar(head.kind, symbols, head.name);
   }
 
   if (path === undefined || path.length === 0) {
     return [op, sym];
   } else {
-    assert(op !== Op.GetStrictKeyword, '[BUG] keyword with a path');
+    assert(op !== WF_GET_STRICT_KEYWORD_OPCODE, '[BUG] keyword with a path');
     return [op, sym, path];
   }
 }
@@ -668,16 +703,16 @@ function getSymbolForVar(kind: Exclude<VariableKind, FREE_VAR>, symbols: Symbols
 
 function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOpcode {
   switch (context) {
-    case VariableResolutionContext.Strict:
-      return Op.GetStrictKeyword;
-    case VariableResolutionContext.ResolveAsComponentOrHelperHead:
-      return Op.GetFreeAsComponentOrHelperHead;
-    case VariableResolutionContext.ResolveAsHelperHead:
-      return Op.GetFreeAsHelperHead;
-    case VariableResolutionContext.ResolveAsModifierHead:
-      return Op.GetFreeAsModifierHead;
-    case VariableResolutionContext.ResolveAsComponentHead:
-      return Op.GetFreeAsComponentHead;
+    case STRICT_RESOLUTION:
+      return WF_GET_STRICT_KEYWORD_OPCODE;
+    case RESOLVE_AS_COMPONENT_OR_HELPER_HEAD:
+      return WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE;
+    case RESOLVE_AS_HELPER_HEAD:
+      return WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
+    case RESOLVE_AS_MODIFIER_HEAD:
+      return WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE;
+    case RESOLVE_AS_COMPONENT_HEAD:
+      return WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE;
     default:
       return exhausted(context);
   }
