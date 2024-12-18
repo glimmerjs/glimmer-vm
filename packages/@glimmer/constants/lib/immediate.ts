@@ -37,27 +37,19 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
   strategy.
 */
 
-export const MAX_SMI = 2 ** 30 - 1;
-export const MIN_SMI = ~MAX_SMI;
-export const SIGN_BIT = ~(2 ** 29);
-export const MAX_INT = ~SIGN_BIT - 1;
-export const MIN_INT = ~MAX_INT;
+export const MAX_SMI: number = 2 ** 30 - 1;
+export const MIN_SMI: number = ~MAX_SMI;
+export const SIGN_BIT: number = ~(2 ** 29);
+export const MAX_INT: number = ~SIGN_BIT - 1;
+export const MIN_INT: number = ~MAX_INT;
 
-export const FALSE_HANDLE = 0;
-export const TRUE_HANDLE = 1;
-export const NULL_HANDLE = 2;
-export const UNDEFINED_HANDLE = 3;
+export const ENCODED_UNDEFINED_HANDLE = 3;
 
-export const ENCODED_FALSE_HANDLE = FALSE_HANDLE;
-export const ENCODED_TRUE_HANDLE = TRUE_HANDLE;
-export const ENCODED_NULL_HANDLE = NULL_HANDLE;
-export const ENCODED_UNDEFINED_HANDLE = UNDEFINED_HANDLE;
-
-export function isHandle(value: number) {
+export function isHandle(value: number): boolean {
   return value >= 0;
 }
 
-export function isNonPrimitiveHandle(value: number) {
+export function isNonPrimitiveHandle(value: number): boolean {
   return value > ENCODED_UNDEFINED_HANDLE;
 }
 
@@ -65,11 +57,11 @@ export function constants(...values: unknown[]): unknown[] {
   return [false, true, null, undefined, ...values];
 }
 
-export function isSmallInt(value: number) {
+export function isSmallInt(value: number): boolean {
   return value % 1 === 0 && value <= MAX_INT && value >= MIN_INT;
 }
 
-export function encodeNegative(num: number) {
+export function encodeNegative(num: number): number {
   if (LOCAL_DEBUG) {
     assert(num % 1 === 0 && num >= MIN_INT && num < 0, `Could not encode negative: ${num}`);
   }
@@ -77,7 +69,7 @@ export function encodeNegative(num: number) {
   return num & SIGN_BIT;
 }
 
-export function decodeNegative(num: number) {
+export function decodeNegative(num: number): number {
   if (LOCAL_DEBUG) {
     assert(num % 1 === 0 && num < ~MAX_INT && num >= MIN_SMI, `Could not decode negative: ${num}`);
   }
@@ -85,7 +77,7 @@ export function decodeNegative(num: number) {
   return num | ~SIGN_BIT;
 }
 
-export function encodePositive(num: number) {
+export function encodePositive(num: number): number {
   if (LOCAL_DEBUG) {
     assert(num % 1 === 0 && num >= 0 && num <= MAX_INT, `Could not encode positive: ${num}`);
   }
@@ -93,7 +85,7 @@ export function encodePositive(num: number) {
   return ~num;
 }
 
-export function decodePositive(num: number) {
+export function decodePositive(num: number): number {
   if (LOCAL_DEBUG) {
     assert(num % 1 === 0 && num <= 0 && num >= ~MAX_INT, `Could not decode positive: ${num}`);
   }
@@ -101,7 +93,7 @@ export function decodePositive(num: number) {
   return ~num;
 }
 
-export function encodeHandle(num: number) {
+export function encodeHandle(num: number): number {
   if (LOCAL_DEBUG) {
     assert(num % 1 === 0 && num >= 0 && num <= MAX_SMI, `Could not encode handle: ${num}`);
   }
@@ -109,7 +101,7 @@ export function encodeHandle(num: number) {
   return num;
 }
 
-export function decodeHandle(num: number) {
+export function decodeHandle(num: number): number {
   if (LOCAL_DEBUG) {
     assert(num % 1 === 0 && num <= MAX_SMI && num >= 0, `Could not decode handle: ${num}`);
   }
@@ -117,12 +109,12 @@ export function decodeHandle(num: number) {
   return num;
 }
 
-export function encodeImmediate(num: number) {
+export function encodeImmediate(num: number): number {
   num |= 0;
   return num < 0 ? encodeNegative(num) : encodePositive(num);
 }
 
-export function decodeImmediate(num: number) {
+export function decodeImmediate(num: number): number {
   num |= 0;
   return num > SIGN_BIT ? decodePositive(num) : decodeNegative(num);
 }

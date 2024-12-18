@@ -1,4 +1,4 @@
-import type { CapturedArguments, Dict } from '@glimmer/interfaces';
+import type { CapturedArguments, Dict, HelperDefinitionState } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import { createComputeRef } from '@glimmer/reference';
 
@@ -41,24 +41,26 @@ import { internalHelper } from './internal-helper';
    @return {Object} Hash
    @public
  */
-export const hash = internalHelper(({ named }: CapturedArguments): Reference<Dict<unknown>> => {
-  let ref = createComputeRef(
-    () => {
-      return reifyNamed(named);
-    },
-    null,
-    'hash'
-  );
+export const hash: HelperDefinitionState = internalHelper(
+  ({ named }: CapturedArguments): Reference<Dict<unknown>> => {
+    let ref = createComputeRef(
+      () => {
+        return reifyNamed(named);
+      },
+      null,
+      'hash'
+    );
 
-  // Setup the children so that templates can bypass getting the value of
-  // the reference and treat children lazily
-  let children = new Map();
+    // Setup the children so that templates can bypass getting the value of
+    // the reference and treat children lazily
+    let children = new Map();
 
-  for (let name in named) {
-    children.set(name, named[name]);
+    for (let name in named) {
+      children.set(name, named[name]);
+    }
+
+    ref.children = children;
+
+    return ref;
   }
-
-  ref.children = children;
-
-  return ref;
-});
+);

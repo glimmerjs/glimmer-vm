@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function objectValues(obj: any) {
+export default function objectValues(obj: any): any[] {
   if (typeof Object.values === 'function') {
     return Object.values(obj);
   } else {

@@ -10,14 +10,13 @@ import type {
 import type { Reference } from '@glimmer/reference';
 import { unwrap } from '@glimmer/debug-util';
 import { UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { assign } from '@glimmer/util';
 
 export class DynamicScopeImpl implements DynamicScope {
   private bucket: Dict<Reference>;
 
   constructor(bucket?: Dict<Reference>) {
     if (bucket) {
-      this.bucket = assign({}, bucket);
+      this.bucket = { ...bucket };
     } else {
       this.bucket = {};
     }
@@ -34,11 +33,6 @@ export class DynamicScopeImpl implements DynamicScope {
   child(): DynamicScopeImpl {
     return new DynamicScopeImpl(this.bucket);
   }
-}
-
-export function isScopeReference(s: ScopeSlot): s is Reference {
-  if (s === null || Array.isArray(s)) return false;
-  return true;
 }
 
 export interface ScopeOptions {
@@ -103,19 +97,19 @@ export class ScopeImpl implements Scope {
     return block === UNDEFINED_REFERENCE ? null : (block as ScopeBlock);
   }
 
-  bind(symbol: number, value: ScopeSlot) {
+  bind(symbol: number, value: ScopeSlot): void {
     this.set(symbol, value);
   }
 
-  bindSelf(self: Reference<unknown>) {
+  bindSelf(self: Reference<unknown>): void {
     this.set<Reference<unknown>>(0, self);
   }
 
-  bindSymbol(symbol: number, value: Reference<unknown>) {
+  bindSymbol(symbol: number, value: Reference<unknown>): void {
     this.set(symbol, value);
   }
 
-  bindBlock(symbol: number, value: Nullable<ScopeBlock>) {
+  bindBlock(symbol: number, value: Nullable<ScopeBlock>): void {
     this.set<Nullable<ScopeBlock>>(symbol, value);
   }
 

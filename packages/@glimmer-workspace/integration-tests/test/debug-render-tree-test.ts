@@ -1,18 +1,15 @@
 import type {
-  CapturedArguments,
   CapturedRenderNode,
   CustomRenderNode,
   Dict,
-  InternalComponentManager,
-  Owner,
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
 import type { TemplateOnlyComponent } from '@glimmer/runtime';
+import type { CapturedArguments, InternalComponentManager, Owner } from '@glimmer/state';
 import { expect } from '@glimmer/debug-util';
 import { modifierCapabilities, setComponentTemplate, setModifierManager } from '@glimmer/manager';
 import { EMPTY_ARGS, templateOnlyComponent, TemplateOnlyComponentManager } from '@glimmer/runtime';
-import { assign } from '@glimmer/util';
 
 import type { EmberishCurlyComponent } from '..';
 
@@ -875,7 +872,5 @@ class DebugRenderTreeTest extends RenderTest {
 }
 
 suite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
-  env: assign({}, BaseEnv, {
-    enableDebugTooling: true,
-  }),
+  env: { ...BaseEnv, enableDebugTooling: true },
 });

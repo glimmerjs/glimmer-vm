@@ -1,6 +1,6 @@
 import * as src from './api';
 
-export type SerializedSourceSlice<Chars extends string = string> = [
+type SerializedSourceSlice<Chars extends string = string> = [
   chars: Chars,
   span: src.SerializedSourceSpan,
 ];

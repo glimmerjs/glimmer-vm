@@ -290,9 +290,6 @@
       ],
       "pkgJSONPath": "./packages/@glimmer/vm/package.json"
     },
-    "@glimmer/vm-babel-plugins": {
-      "oldVersion": "0.92.4"
-    },
     "@glimmer/wire-format": {
       "impact": "patch",
       "oldVersion": "0.93.0",

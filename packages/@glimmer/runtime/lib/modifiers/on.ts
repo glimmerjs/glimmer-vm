@@ -33,8 +33,8 @@ interface Listener {
   options: AddEventListenerOptions | undefined;
 }
 
-export class OnModifierState {
-  public tag = createUpdatableTag();
+class OnModifierState {
+  public tag: UpdatableTag = createUpdatableTag();
   public element: Element;
   public args: CapturedArguments;
   public listener: Listener | null = null;
@@ -346,4 +346,5 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
   }
 }
 
-export const on = setInternalModifierManager(new OnModifierManager(), {});
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export const on: {} = setInternalModifierManager(new OnModifierManager(), {});

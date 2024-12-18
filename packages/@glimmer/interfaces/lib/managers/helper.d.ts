@@ -1,25 +1,10 @@
-import type { Arguments } from '../runtime.js';
-import type { Capabilities } from './capabilities.js';
+import type { HelperManager } from '@glimmer/state';
 
 export interface HelperCapabilitiesVersions {
   '3.23': {
     hasValue?: boolean;
     hasDestroyable?: boolean;
   };
-}
-
-export interface HelperCapabilities extends Capabilities {
-  hasValue: boolean;
-  hasDestroyable: boolean;
-  hasScheduledEffect: boolean;
-}
-
-export interface HelperManager<HelperStateBucket> {
-  capabilities: HelperCapabilities;
-
-  createHelper(definition: object, args: Arguments): HelperStateBucket;
-
-  getDebugName?(definition: object): string;
 }
 
 export interface HelperManagerWithValue<HelperStateBucket>

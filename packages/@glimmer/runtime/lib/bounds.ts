@@ -10,8 +10,6 @@ export class CursorImpl implements Cursor {
   }
 }
 
-export type DestroyableBounds = Bounds;
-
 export class ConcreteBounds implements Bounds {
   constructor(
     public parentNode: SimpleElement,

@@ -12,7 +12,9 @@ const APPEND_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Append'));
 const CALL_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Call'));
 const MODIFIER_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Modifier'));
 
-for (let keyword of KEYWORDS) {
+for (const _keyword of KEYWORDS) {
+  // this causes TS to understand that the type is assigned before it's used
+  const keyword = _keyword;
   class KeywordSyntaxErrors extends RenderTest {
     static suiteName = `\`${keyword}\` keyword syntax errors`;
 

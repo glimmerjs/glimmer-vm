@@ -1,4 +1,5 @@
 import type {
+  CapturedNamedArguments,
   CapturedPositionalArguments,
   CurriedType,
   Helper,
@@ -35,9 +36,9 @@ import {
   CheckNullable,
   CheckOr,
 } from '@glimmer/debug';
-import { assert, debugToString } from '@glimmer/debug-util';
+import { assert, debugToString, unwrap } from '@glimmer/debug-util';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
-import { toBool } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
 import {
   childRefFor,
@@ -47,7 +48,7 @@ import {
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
-import { assign, isIndexable } from '@glimmer/util';
+import { isIndexable, LOGGER } from '@glimmer/util';
 import { $v0 } from '@glimmer/vm';
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
@@ -109,11 +110,11 @@ APPEND_OPCODES.add(VM_DYNAMIC_HELPER_OP, (vm) => {
       let helper = resolveHelper(resolvedDef, ref);
 
       if (named !== undefined) {
-        args.named = assign({}, ...named, args.named);
+        args.named = { ...named, ...args.named } as unknown as CapturedNamedArguments;
       }
 
       if (positional !== undefined) {
-        args.positional = positional.concat(args.positional) as CapturedPositionalArguments;
+        args.positional = [...positional, ...args.positional] as CapturedPositionalArguments;
       }
 
       helperRef = helper(args, owner);
@@ -163,7 +164,7 @@ function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helpe
     );
   }
 
-  return helper!;
+  return unwrap(helper);
 }
 
 APPEND_OPCODES.add(VM_HELPER_OP, (vm, { op1: handle }) => {
@@ -282,7 +283,7 @@ APPEND_OPCODES.add(VM_IF_INLINE_OP, (vm) => {
 
   vm.stack.push(
     createComputeRef(() => {
-      if (toBool(valueForRef(condition)) === true) {
+      if (context().toBool(valueForRef(condition)) === true) {
         return valueForRef(truthy);
       } else {
         return valueForRef(falsy);
@@ -296,7 +297,7 @@ APPEND_OPCODES.add(VM_NOT_OP, (vm) => {
 
   vm.stack.push(
     createComputeRef(() => {
-      return !toBool(valueForRef(ref));
+      return !context().toBool(valueForRef(ref));
     })
   );
 });
@@ -320,8 +321,7 @@ APPEND_OPCODES.add(VM_LOG_OP, (vm) => {
   vm.loadValue(
     $v0,
     createComputeRef(() => {
-      // eslint-disable-next-line no-console
-      console.log(...reifyPositional(positional));
+      LOGGER.log(...reifyPositional(positional));
     })
   );
 });

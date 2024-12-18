@@ -1,5 +1,6 @@
+export type { SourceLocation } from '../v1/handlebars-ast';
 export { SourceOffset } from './loc/offset';
-export type { SourceLocation, SourcePosition } from './location';
+export type { SourcePosition } from './location';
 export { NON_EXISTENT_LOCATION, SYNTHETIC_LOCATION, UNKNOWN_POSITION } from './location';
 export { SourceSlice } from './slice';
 export { Source } from './source';

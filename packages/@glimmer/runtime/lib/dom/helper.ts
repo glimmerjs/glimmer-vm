@@ -10,7 +10,7 @@ import { castToSimple } from '@glimmer/debug-util';
 
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';
 import { applyTextNodeMergingFix } from '../compat/text-node-merging-fix';
-import { BLACKLIST_TABLE, DOMOperations } from './operations';
+import { DOMOperations, INVALID_SVG_TAGS } from './operations';
 
 [
   'b',
@@ -57,7 +57,7 @@ import { BLACKLIST_TABLE, DOMOperations } from './operations';
   'u',
   'ul',
   'var',
-].forEach((tag) => (BLACKLIST_TABLE[tag] = 1));
+].forEach((tag) => (INVALID_SVG_TAGS[tag] = 1));
 
 const WHITESPACE =
   /[\t\n\v\f\r \xA0\u{1680}\u{180e}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]/u;
@@ -65,7 +65,7 @@ const WHITESPACE =
 const doc: Nullable<SimpleDocument> =
   typeof document === 'undefined' ? null : castToSimple(document);
 
-export function isWhitespace(string: string) {
+export function isWhitespace(string: string): boolean {
   return WHITESPACE.test(string);
 }
 
@@ -77,15 +77,15 @@ export class DOMChangesImpl extends DOMOperations implements GlimmerTreeChanges 
     this.namespace = null;
   }
 
-  setAttribute(element: SimpleElement, name: string, value: string) {
+  setAttribute(element: SimpleElement, name: string, value: string): void {
     element.setAttribute(name, value);
   }
 
-  removeAttribute(element: SimpleElement, name: string) {
+  removeAttribute(element: SimpleElement, name: string): void {
     element.removeAttribute(name);
   }
 
-  insertAfter(element: SimpleElement, node: SimpleNode, reference: SimpleNode) {
+  insertAfter(element: SimpleElement, node: SimpleNode, reference: SimpleNode): void {
     this.insertBefore(element, node, reference.nextSibling);
   }
 }
@@ -95,5 +95,5 @@ let helper = DOMChangesImpl;
 helper = applyTextNodeMergingFix(doc, helper) as typeof DOMChangesImpl;
 helper = applySVGInnerHTMLFix(doc, helper, NS_SVG) as typeof DOMChangesImpl;
 
-export const DOMChanges = helper;
+export const DOMChanges: typeof DOMChangesImpl = helper;
 export { DOMTreeConstruction } from './api';

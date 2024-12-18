@@ -89,7 +89,7 @@ export interface SpecialFragment extends AbstractLeafFragment {
  * The list of leaf fragment types correspond exactly to the list of console.log
  * format specifiers.
  */
-export type LeafFragmentType =
+type LeafFragmentType =
   | StringFragment
   | IntegerFragment
   | FloatFragment

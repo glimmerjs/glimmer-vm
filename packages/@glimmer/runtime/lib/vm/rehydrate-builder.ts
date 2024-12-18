@@ -104,7 +104,7 @@ export class RehydrateTree extends NewTreeBuilder implements TreeBuilder {
     currentCursor.candidate = node;
   }
 
-  disableRehydration(nextSibling: Nullable<SimpleNode>) {
+  disableRehydration(nextSibling: Nullable<SimpleNode>): void {
     const currentCursor = this.currentCursor!;
 
     // rehydration will be disabled until we either:
@@ -115,7 +115,7 @@ export class RehydrateTree extends NewTreeBuilder implements TreeBuilder {
     currentCursor.nextSibling = nextSibling;
   }
 
-  enableRehydration(candidate: Nullable<SimpleNode>) {
+  enableRehydration(candidate: Nullable<SimpleNode>): void {
     const currentCursor = this.currentCursor!;
 
     currentCursor.candidate = candidate;
@@ -129,7 +129,7 @@ export class RehydrateTree extends NewTreeBuilder implements TreeBuilder {
       | (NewTreeBuilder & Partial<Pick<RehydrateTree, 'blockDepth' | 'candidate'>>),
     element: SimpleElement,
     nextSibling: Maybe<SimpleNode> = null
-  ) {
+  ): void {
     const cursor = new RehydratingCursor(element, nextSibling, this.blockDepth || 0);
 
     /**
@@ -275,8 +275,8 @@ export class RehydrateTree extends NewTreeBuilder implements TreeBuilder {
     const candidateBounds = this.markerBounds();
 
     if (candidateBounds) {
-      const first = candidateBounds.firstNode()!;
-      const last = candidateBounds.lastNode()!;
+      const first = candidateBounds.firstNode();
+      const last = candidateBounds.lastNode();
 
       const newBounds = new ConcreteBounds(this.element, first.nextSibling!, last.previousSibling!);
 
@@ -430,7 +430,7 @@ export class RehydrateTree extends NewTreeBuilder implements TreeBuilder {
     }
   }
 
-  override willCloseElement() {
+  override willCloseElement(): void {
     const { candidate, currentCursor } = this;
 
     if (candidate !== null) {

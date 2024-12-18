@@ -1,11 +1,12 @@
 import type { Dict, Nullable } from '@glimmer/interfaces';
-import { getPath, toIterator } from '@glimmer/global-context';
+import { consumeTag, valueForRef } from '@glimmer/fundamental';
+import { context } from '@glimmer/global-context';
 import { EMPTY_ARRAY, isIndexable } from '@glimmer/util';
-import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
+import { createTag, dirtyTag } from '@glimmer/validator';
 
-import type { Reference, ReferenceEnvironment } from './reference';
+import type { Reference } from './reference';
 
-import { createComputeRef, valueForRef } from './reference';
+import { createComputeRef } from './reference';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -24,11 +25,6 @@ export type OpaqueIterator = AbstractIterator<unknown, unknown, OpaqueIterationI
 export interface IteratorDelegate {
   isEmpty(): boolean;
   next(): { value: unknown; memo: unknown } | null;
-}
-
-export interface IteratorReferenceEnvironment extends ReferenceEnvironment {
-  getPath(obj: unknown, path: string): unknown;
-  toIterator(obj: unknown): Nullable<IteratorDelegate>;
 }
 
 type KeyFor = (item: unknown, index: unknown) => unknown;
@@ -51,7 +47,7 @@ function keyForPath(path: string): KeyFor {
   if (import.meta.env.DEV && path[0] === '@') {
     throw new Error(`invalid keypath: '${path}', valid keys: @index, @identity, or a path`);
   }
-  return uniqueKeyFor((item) => getPath(item as object, path));
+  return uniqueKeyFor((item) => context().getPath(item as object, path));
 }
 
 function makeKeyFor(key: string) {
@@ -157,7 +153,10 @@ function uniqueKeyFor(keyFor: KeyFor) {
   };
 }
 
-export function createIteratorRef(listRef: Reference, key: string) {
+export function createIteratorRef(
+  listRef: Reference,
+  key: string
+): Reference<ArrayIterator | IteratorWrapper> {
   return createComputeRef(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let iterable = valueForRef(listRef) as { [Symbol.iterator]: any } | null | false;
@@ -168,7 +167,7 @@ export function createIteratorRef(listRef: Reference, key: string) {
       return new ArrayIterator(iterable, keyFor);
     }
 
-    let maybeIterator = toIterator(iterable);
+    let maybeIterator = context().toIterator(iterable);
 
     if (maybeIterator === null) {
       return new ArrayIterator(EMPTY_ARRAY, () => null);
@@ -178,7 +177,7 @@ export function createIteratorRef(listRef: Reference, key: string) {
   });
 }
 
-export function createIteratorItemRef(_value: unknown) {
+export function createIteratorItemRef(_value: unknown): Reference {
   let value = _value;
   let tag = createTag();
 
@@ -202,11 +201,11 @@ class IteratorWrapper implements OpaqueIterator {
     private keyFor: KeyFor
   ) {}
 
-  isEmpty() {
+  isEmpty(): boolean {
     return this.inner.isEmpty();
   }
 
-  next() {
+  next(): OpaqueIterationItem {
     let nextValue = this.inner.next() as OpaqueIterationItem;
 
     if (nextValue !== null) {

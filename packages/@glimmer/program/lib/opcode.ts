@@ -5,7 +5,7 @@ export class RuntimeOpImpl implements RuntimeOp {
   public offset = 0;
   constructor(readonly heap: ProgramHeap) {}
 
-  get size() {
+  get size(): number {
     let rawType = this.heap.getbyaddr(this.offset);
     return ((rawType & OPERAND_LEN_MASK) >> ARG_SHIFT) + 1;
   }
@@ -19,15 +19,15 @@ export class RuntimeOpImpl implements RuntimeOp {
     return (this.heap.getbyaddr(this.offset) & TYPE_MASK) as SomeVmOp;
   }
 
-  get op1() {
+  get op1(): number {
     return this.heap.getbyaddr(this.offset + 1);
   }
 
-  get op2() {
+  get op2(): number {
     return this.heap.getbyaddr(this.offset + 2);
   }
 
-  get op3() {
+  get op3(): number {
     return this.heap.getbyaddr(this.offset + 3);
   }
 }

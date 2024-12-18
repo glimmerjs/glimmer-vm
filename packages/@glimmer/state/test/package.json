@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "name": "@glimmer-test/state",
+  "dependencies": {
+    "@glimmer/debug-util": "workspace:*",
+    "@glimmer/global-context": "workspace:*",
+    "@glimmer/interfaces": "workspace:*",
+    "@glimmer/state": "workspace:*"
+  }
+}

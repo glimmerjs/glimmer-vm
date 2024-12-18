@@ -1,20 +1,17 @@
 import type { ConstantTag, UpdatableTag } from '@glimmer/interfaces';
+import type { TagMeta } from '@glimmer/state';
+import { getTagMeta, getTrackingDebug, upsertTagMetaFor } from '@glimmer/fundamental';
 
 import type { Indexable } from './utils';
 
-import { debug } from './debug';
 import { unwrap } from './utils';
-import { createUpdatableTag, DIRTY_TAG } from './validators';
+import { createUpdatableTag, dirtyTag } from './validators';
 
 function isObjectLike<T>(u: T): u is Indexable & T {
   return (typeof u === 'object' && u !== null) || typeof u === 'function';
 }
 
 ///////////
-
-export type TagMeta = Map<PropertyKey, UpdatableTag>;
-
-const TRACKED_TAGS = new WeakMap<object, TagMeta>();
 
 export function dirtyTagFor<T extends object>(
   obj: T,
@@ -25,7 +22,7 @@ export function dirtyTagFor<T extends object>(
     throw new Error(`BUG: Can't update a tag for a primitive`);
   }
 
-  let tags = meta === undefined ? TRACKED_TAGS.get(obj) : meta;
+  const tags = meta ?? getTagMeta(obj);
 
   // No tags have been setup for this object yet, return
   if (tags === undefined) return;
@@ -35,23 +32,11 @@ export function dirtyTagFor<T extends object>(
 
   if (propertyTag !== undefined) {
     if (import.meta.env.DEV) {
-      unwrap(debug.assertTagNotConsumed)(propertyTag, obj, key);
+      unwrap(getTrackingDebug)().assertTagNotConsumed(propertyTag, obj, key);
     }
 
-    DIRTY_TAG(propertyTag, true);
+    dirtyTag(propertyTag, true);
   }
-}
-
-export function tagMetaFor(obj: object): TagMeta {
-  let tags = TRACKED_TAGS.get(obj);
-
-  if (tags === undefined) {
-    tags = new Map();
-
-    TRACKED_TAGS.set(obj, tags);
-  }
-
-  return tags;
 }
 
 export function tagFor<T extends object>(
@@ -59,7 +44,7 @@ export function tagFor<T extends object>(
   key: keyof T | string | symbol,
   meta?: TagMeta
 ): UpdatableTag | ConstantTag {
-  let tags = meta === undefined ? tagMetaFor(obj) : meta;
+  const tags = meta ?? upsertTagMetaFor(obj);
   let tag = tags.get(key);
 
   if (tag === undefined) {

@@ -2,10 +2,10 @@ import { createBenchmark } from '@glimmer-workspace/benchmark-env';
 
 import Application from '@/components/Application';
 import ApplicationTemplate from '@/components/Application.hbs';
+import ButtonTemplate from '@/components/BsButton.hbs';
 import Row from '@/components/Row';
 import RowTemplate from '@/components/Row.hbs';
-import ButtonTemplate from '@/components/BsButton.hbs';
-import { enforcePaintEvent, ButtonSelectors, emitDomClickEvent, waitForIdle } from '@/utils/compat';
+import { ButtonSelectors, emitDomClickEvent, enforcePaintEvent, waitForIdle } from '@/utils/compat';
 
 export default async function render(element: HTMLElement, isInteractive: boolean) {
   const benchmark = createBenchmark();

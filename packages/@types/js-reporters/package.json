@@ -1,5 +1,10 @@
 {
   "private": true,
   "name": "@types/js-reporters",
-  "types": "index.d.ts"
+  "types": "index.d.ts",
+  "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
 }

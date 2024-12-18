@@ -77,21 +77,14 @@ interface AnyComponent {
   blocks: NamedBlocks;
 }
 
-// {{component}}
-export interface DynamicComponent extends AnyComponent {
-  definition: WireFormat.Expression;
-  atNames: boolean;
-  curried: boolean;
-}
-
 // <Component>
-export interface StaticComponent extends AnyComponent {
+interface StaticComponent extends AnyComponent {
   capabilities: CapabilityMask;
   layout: CompilableProgram;
 }
 
 // chokepoint
-export interface Component extends AnyComponent {
+interface Component extends AnyComponent {
   // either we know the capabilities statically or we need to be conservative and assume
   // that the component requires all capabilities
   capabilities: CapabilityMask | true;
@@ -490,11 +483,7 @@ export function InvokeBareComponent(op: PushStatementOp): void {
   op(VM_LOAD_OP, $s0);
 }
 
-export function WithSavedRegister(
-  op: PushExpressionOp,
-  register: SavedRegister,
-  block: () => void
-): void {
+function WithSavedRegister(op: PushExpressionOp, register: SavedRegister, block: () => void): void {
   op(VM_FETCH_OP, register);
   block();
   op(VM_LOAD_OP, register);

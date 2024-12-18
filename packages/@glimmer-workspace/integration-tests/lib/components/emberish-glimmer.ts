@@ -1,4 +1,5 @@
-import type { Arguments, ComponentManager, Dict, Owner } from '@glimmer/interfaces';
+import type { ComponentManager, Dict } from '@glimmer/interfaces';
+import type { Arguments, Owner } from '@glimmer/state';
 import { destroy, isDestroyed, isDestroying, registerDestructor } from '@glimmer/destroyable';
 import { componentCapabilities, setComponentManager } from '@glimmer/manager';
 import { setOwner } from '@glimmer/owner';
@@ -25,7 +26,7 @@ export class GlimmerishComponent {
 }
 
 export interface Constructor<T> {
-  new (owner: unknown, args: {}): T;
+  new (owner: unknown, args: object): T;
 }
 
 const CAPABILITIES = componentCapabilities('3.13', {

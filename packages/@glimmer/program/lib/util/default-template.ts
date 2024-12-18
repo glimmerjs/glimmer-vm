@@ -1,10 +1,14 @@
 import type { SerializedTemplateBlock, SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
-import { SexpOpcodes as op } from '@glimmer/wire-format';
+import { WF_YIELD_OPCODE } from '@glimmer/wire-format';
 
 /**
  * Default component template, which is a plain yield
  */
-const DEFAULT_TEMPLATE_BLOCK: SerializedTemplateBlock = [[[op.Yield, 1, null]], ['&default'], []];
+const DEFAULT_TEMPLATE_BLOCK: SerializedTemplateBlock = [
+  [[WF_YIELD_OPCODE, 1, null]],
+  ['&default'],
+  [],
+];
 
 export const DEFAULT_TEMPLATE: SerializedTemplateWithLazyBlock = {
   // random uuid

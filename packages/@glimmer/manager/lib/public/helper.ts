@@ -1,14 +1,16 @@
 import type {
   Helper,
-  HelperCapabilities,
   HelperCapabilitiesVersions,
   HelperDefinitionState,
-  HelperManager,
   HelperManagerWithDestroyable,
   HelperManagerWithValue,
+} from '@glimmer/interfaces';
+import type {
+  HelperCapabilities,
+  HelperManager,
   InternalHelperManager,
   Owner,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 
@@ -93,7 +95,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
     return delegate;
   }
 
-  getDelegateFor(owner: O | undefined) {
+  getDelegateFor(owner: O | undefined): HelperManager<unknown> {
     if (owner === undefined) {
       let { undefinedDelegate } = this;
 
@@ -117,7 +119,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
       if (hasValue(manager)) {
         let cache = createComputeRef(
-          () => (manager as HelperManagerWithValue<unknown>).getValue(bucket),
+          () => manager.getValue(bucket),
           null,
           import.meta.env.DEV && manager.getDebugName && manager.getDebugName(definition)
         );

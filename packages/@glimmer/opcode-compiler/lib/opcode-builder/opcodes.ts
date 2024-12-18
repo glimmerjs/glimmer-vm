@@ -13,20 +13,34 @@ import type {
   HighLevelStopLabels,
 } from '@glimmer/interfaces';
 
-export const HighLevelResolutionOpcodes = {
-  Modifier: 1003 satisfies HighLevelResolveModifier,
-  Component: 1004 satisfies HighLevelResolveComponent,
-  Helper: 1005 satisfies HighLevelResolveHelper,
-  ComponentOrHelper: 1007 satisfies HighLevelResolveComponentOrHelper,
-  OptionalComponentOrHelper: 1008 satisfies HighLevelResolveOptionalComponentOrHelper,
-  Local: 1010 satisfies HighLevelResolveLocal,
-  TemplateLocal: 1011 satisfies HighLevelResolveTemplateLocal,
+export const HighLevelResolutionOpcodes: {
+  readonly Modifier: HighLevelResolveModifier;
+  readonly Component: HighLevelResolveComponent;
+  readonly Helper: HighLevelResolveHelper;
+  readonly ComponentOrHelper: HighLevelResolveComponentOrHelper;
+  readonly OptionalComponentOrHelper: HighLevelResolveOptionalComponentOrHelper;
+  readonly Local: HighLevelResolveLocal;
+  readonly TemplateLocal: HighLevelResolveTemplateLocal;
+} = {
+  Modifier: 1003,
+  Component: 1004,
+  Helper: 1005,
+  ComponentOrHelper: 1007,
+  OptionalComponentOrHelper: 1008,
+  Local: 1010,
+  TemplateLocal: 1011,
 } as const;
 
-export const HighLevelBuilderOpcodes = {
-  Label: 1000 satisfies HighLevelLabel,
-  StartLabels: 1001 satisfies HighLevelStartLabels,
-  StopLabels: 1002 satisfies HighLevelStopLabels,
-  Start: 1000 satisfies HighLevelStart,
-  End: 1002 satisfies HighLevelEnd,
+export const HighLevelBuilderOpcodes: {
+  readonly Label: HighLevelLabel;
+  readonly StartLabels: HighLevelStartLabels;
+  readonly StopLabels: HighLevelStopLabels;
+  readonly Start: HighLevelStart;
+  readonly End: HighLevelEnd;
+} = {
+  Label: 1000,
+  StartLabels: 1001,
+  StopLabels: 1002,
+  Start: 1000,
+  End: 1002,
 } as const;

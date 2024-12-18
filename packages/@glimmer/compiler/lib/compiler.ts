@@ -16,8 +16,12 @@ import { LOCAL_LOGGER } from '@glimmer/util';
 import pass0 from './passes/1-normalization/index';
 import { visit as pass2 } from './passes/2-encoding/index';
 
-declare function require(id: 'crypto'): Crypto;
-declare function require(id: string): unknown;
+// declare global {
+//   function require(id: 'crypto'): Crypto;
+//   function require(id: string): unknown;
+// }
+
+type Require = ((id: 'crypto') => Crypto) & ((id: string) => unknown);
 
 interface Crypto {
   createHash(alg: 'sha1'): {
@@ -27,7 +31,7 @@ interface Crypto {
 }
 
 export const defaultId: TemplateIdFn = (() => {
-  const req: typeof require | undefined =
+  const req: Require | undefined =
     typeof module === 'object' && typeof module.require === 'function'
       ? module.require
       : globalThis.require;

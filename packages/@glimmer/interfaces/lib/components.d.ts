@@ -1,6 +1,6 @@
+import type { InternalComponentManager, Reference } from '@glimmer/state';
+
 import type { Dict } from './core.js';
-import type { InternalComponentManager } from './managers.js';
-import type { Reference } from './references.js';
 import type { ScopeSlot } from './runtime.js';
 import type { CompilableProgram } from './template.js';
 import type { ProgramSymbolTable } from './tier1/symbol-table.js';

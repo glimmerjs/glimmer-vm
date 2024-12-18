@@ -4,8 +4,8 @@ export function emptyArray<T>(): T[] {
   return EMPTY_ARRAY as T[];
 }
 
-export const EMPTY_STRING_ARRAY = emptyArray<string>();
-export const EMPTY_NUMBER_ARRAY = emptyArray<number>();
+export const EMPTY_STRING_ARRAY: string[] = emptyArray();
+export const EMPTY_NUMBER_ARRAY: number[] = emptyArray();
 
 /**
  * This function returns `true` if the input array is the special empty array sentinel,

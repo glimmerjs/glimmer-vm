@@ -21,11 +21,11 @@ export class StackImpl<T> implements Stack<T> {
     this.stack = values;
   }
 
-  public get size() {
+  public get size(): number {
     return this.stack.length;
   }
 
-  push(item: T) {
+  push(item: T): void {
     this.current = item;
     this.stack.push(item);
   }

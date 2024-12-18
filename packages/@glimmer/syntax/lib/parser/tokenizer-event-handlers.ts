@@ -8,7 +8,6 @@ import {
   getLast,
   isPresentArray,
 } from '@glimmer/debug-util';
-import { assign } from '@glimmer/util';
 import { parse, parseWithoutProcessing } from '@handlebars/parser';
 import { EntityParser } from 'simple-html-tokenizer';
 
@@ -33,7 +32,7 @@ function isSpace(char: string): boolean {
   return /[\t\n\f ]/u.test(char);
 }
 
-export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
+class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   private tagOpenLine = 0;
   private tagOpenColumn = 0;
 
@@ -793,7 +792,7 @@ export function preprocess(
 
   if (options?.plugins?.ast) {
     for (const transform of options.plugins.ast) {
-      let env: ASTPluginEnvironment = assign({}, options, { syntax }, { plugins: undefined });
+      let env: ASTPluginEnvironment = { ...options, syntax };
 
       let pluginResult = transform(env);
 

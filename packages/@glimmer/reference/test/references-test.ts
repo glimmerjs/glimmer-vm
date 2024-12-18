@@ -1,5 +1,6 @@
-import type { GlobalContext } from '@glimmer/global-context';
+import type { GlobalContextOverride } from '@glimmer/global-context';
 import { unwrap } from '@glimmer/debug-util';
+import { consumeTag } from '@glimmer/fundamental';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 import {
   childRefFor,
@@ -15,7 +16,7 @@ import {
   valueForRef,
 } from '@glimmer/reference';
 import { dict } from '@glimmer/util';
-import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
+import { createTag, dirtyTag } from '@glimmer/validator';
 
 import { tracked } from './support';
 
@@ -37,12 +38,12 @@ class TrackedDict<T> {
 }
 
 module('References', (hooks) => {
-  let originalContext: GlobalContext | null;
+  let override: GlobalContextOverride;
   let getCount = 0;
   let setCount = 0;
 
   hooks.beforeEach(() => {
-    originalContext = unwrap(testOverrideGlobalContext)({
+    override = testOverrideGlobalContext({
       getProp(obj: object, key: string): unknown {
         getCount++;
         return (obj as Record<string, unknown>)[key];
@@ -58,7 +59,7 @@ module('References', (hooks) => {
   });
 
   hooks.afterEach(() => {
-    unwrap(testOverrideGlobalContext)(originalContext);
+    override.done();
   });
 
   hooks.beforeEach(() => {

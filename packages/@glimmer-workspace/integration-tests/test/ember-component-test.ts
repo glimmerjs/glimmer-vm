@@ -6,7 +6,6 @@ import type {
   JitRenderDelegate,
 } from '@glimmer-workspace/integration-tests';
 import { castToSimple, unwrap } from '@glimmer/debug-util';
-import { assign } from '@glimmer/util';
 import {
   classes,
   createTemplate,
@@ -128,13 +127,13 @@ function assertFired(component: HookedComponent, name: string, count = 1) {
 export function assertElementIsEmberishElement(
   element: SimpleElement | null,
   tagName: string,
-  attrs: Object,
+  attrs: object,
   contents: string
 ): void;
 export function assertElementIsEmberishElement(
   element: SimpleElement | null,
   tagName: string,
-  attrs: Object
+  attrs: object
 ): void;
 export function assertElementIsEmberishElement(
   element: SimpleElement | null,
@@ -159,18 +158,13 @@ export function assertElementIsEmberishElement(
     [tagName, attrs, contents] = args;
   }
 
-  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
+  let fullAttrs = { class: classes('ember-view'), id: regex(/^ember\d*$/u), ...attrs };
   equalsElement(element, tagName, fullAttrs, contents);
 }
 
-// function rerender() {
-//   bump();
-//   view.rerender();
-// }
-
 class CurlyTest extends RenderTest {
-  assertEmberishElement(tagName: string, attrs: Object, contents: string): void;
-  assertEmberishElement(tagName: string, attrs: Object): void;
+  assertEmberishElement(tagName: string, attrs: object, contents: string): void;
+  assertEmberishElement(tagName: string, attrs: object): void;
   assertEmberishElement(tagName: string, contents: string): void;
   assertEmberishElement(tagName: string): void;
   assertEmberishElement(...args: any[]): void {
@@ -184,7 +178,7 @@ class CurlyTest extends RenderTest {
       [tagName, attrs, contents] = args;
     }
 
-    let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
+    let fullAttrs = { class: classes('ember-view'), id: regex(/^ember\d*$/u), ...attrs };
     equalsElement(firstElementChild(this.element) as SimpleElement, tagName, fullAttrs, contents);
   }
 }

@@ -1,5 +1,5 @@
-import type { Destroyable, Destructor } from '@glimmer/interfaces';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
+import type { Destroyable, Destructor } from '@glimmer/state';
 
 interface Scheduled {
   destroyable: Destroyable;

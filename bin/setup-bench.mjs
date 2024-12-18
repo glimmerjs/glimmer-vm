@@ -1,13 +1,18 @@
+/* eslint-disable n/no-process-exit */
 import 'zx/globals';
+
+import { readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import { join } from 'node:path';
-import { readFile, writeFile } from 'node:fs/promises';
+
+import { execa } from 'execa';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 $.verbose = true;
 
 const REUSE_CONTROL = !!(process.env['REUSE_DIRS'] || process.env['REUSE_CONTROL']);
 const REUSE_EXPERIMENT = !!(process.env['REUSE_DIRS'] || process.env['REUSE_EXPERIMENT']);
+const PREFER_OFFLINE = !!process.env['PREFER_OFFLINE'];
 
 /*
 
@@ -96,8 +101,10 @@ const EXPERIMENT_PORT = 4021;
 const CONTROL_URL = `http://localhost:${CONTROL_PORT}`;
 const EXPERIMENT_URL = `http://localhost:${EXPERIMENT_PORT}`;
 
-// make sure that the origin is up to date so we get the right control
-await $`git fetch origin`;
+if (!PREFER_OFFLINE) {
+  // make sure that the origin is up to date so we get the right control
+  await $`git fetch origin`;
+}
 
 // now we can get the ref of the control branch so we can check it out later
 const controlRef = (await $`git rev-parse origin/main`).stdout.trim();
@@ -140,15 +147,27 @@ console.info({
   CONTROL_DIR,
 });
 
-// setup experiment
-await buildRepo(EXPERIMENT_DIR, experimentRef, REUSE_EXPERIMENT);
-
 // setup control
 await buildRepo(CONTROL_DIR, controlRef, REUSE_CONTROL);
 
+// setup experiment
+await buildRepo(EXPERIMENT_DIR, experimentRef, REUSE_EXPERIMENT);
+
 // start build assets
-$`cd ${CONTROL_BENCH_DIR} && pnpm vite preview --port ${CONTROL_PORT}`;
-$`cd ${EXPERIMENT_BENCH_DIR} && pnpm vite preview --port ${EXPERIMENT_PORT}`;
+const controlProcess = execa('pnpm', ['vite', 'preview', '--port', String(CONTROL_PORT)], {
+  cwd: CONTROL_BENCH_DIR,
+  stdio: 'inherit',
+});
+
+const experimentProcess = execa('pnpm', ['vite', 'preview', '--port', String(EXPERIMENT_PORT)], {
+  cwd: EXPERIMENT_BENCH_DIR,
+  stdio: 'inherit',
+});
+
+process.on('SIGINT', () => {
+  controlProcess.kill();
+  experimentProcess.kill();
+});
 
 await new Promise((resolve) => {
   // giving 5 seconds for the server to start
@@ -187,7 +206,7 @@ async function buildRepo(directory, ref, reuse) {
     // experiment and control checkouts
     const benchDir = join(directory, 'benchmark', 'benchmarks', 'krausest');
 
-    await cd(directory);
+    cd(directory);
 
     // write the `pwd` to the output to make it easier to debug if something goes wrong
     await $`pwd`;
@@ -208,14 +227,22 @@ async function buildRepo(directory, ref, reuse) {
     await $`cp -r ${BENCHMARK_FOLDER} ./benchmark`;
 
     // `pnpm install` and build the repo
-    await $`pnpm install --no-frozen-lockfile`;
+    await $`pnpm install --no-frozen-lockfile --color --no-strict-peer-dependencies ${
+      PREFER_OFFLINE ? '--offline' : undefined
+    }`;
+
     await $`pnpm build`;
 
     // rewrite all `package.json`s to behave like published packages
     await rewritePackageJson();
 
     // build the benchmarks using vite
-    await cd(benchDir);
+    cd(benchDir);
+
+    const tsconfig = JSON.parse(await readFile('tsconfig.json', { encoding: 'utf8' }));
+    delete tsconfig['references'];
+    await writeFile('tsconfig.json', JSON.stringify(tsconfig, null, 2), { encoding: 'utf8' });
+
     await $`pnpm vite build`;
   });
 }

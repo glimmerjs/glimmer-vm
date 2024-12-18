@@ -1,32 +1,12 @@
 import type { Dict, SimpleDocumentFragment, SimpleNode } from '@glimmer/interfaces';
 
-export interface SafeString {
+interface SafeString {
   toHTML(): string;
 }
-
-export type Insertion = CautiousInsertion | TrustingInsertion;
-export type CautiousInsertion = string | SafeString | SimpleNode;
-export type TrustingInsertion = string | SimpleNode;
 
 export function normalizeStringValue(value: unknown): string {
   if (isEmpty(value)) {
     return '';
-  }
-  return String(value);
-}
-
-export function normalizeTrustedValue(value: unknown): TrustingInsertion {
-  if (isEmpty(value)) {
-    return '';
-  }
-  if (isString(value)) {
-    return value;
-  }
-  if (isSafeString(value)) {
-    return value.toHTML();
-  }
-  if (isNode(value)) {
-    return value;
   }
   return String(value);
 }

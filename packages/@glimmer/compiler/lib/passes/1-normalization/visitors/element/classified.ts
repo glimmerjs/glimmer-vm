@@ -9,7 +9,7 @@ import * as mir from '../../../2-encoding/mir';
 import { MODIFIER_KEYWORDS } from '../../keywords';
 import { convertPathToCallIfKeyword, VISIT_EXPRS } from '../expressions';
 
-export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
+type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 
 type ProcessedAttributes = {
   attrs: ValidAttr[];
@@ -45,12 +45,13 @@ export class ClassifiedElement {
 
     if (ASTv2.isLiteral(rawValue, 'string')) {
       return Ok(
-        new mir.StaticAttr({
+        mir.StaticAttr({
           loc: attr.loc,
           name,
           value: rawValue.toSlice(),
           namespace,
           kind: {
+            trusting: attr.trusting,
             component: this.delegate.dynamicFeatures,
           },
         })
@@ -60,7 +61,7 @@ export class ClassifiedElement {
     return VISIT_EXPRS.visit(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
       let isTrusting = attr.trusting;
 
-      return new mir.DynamicAttr({
+      return mir.DynamicAttr({
         loc: attr.loc,
         name,
         value: value,
@@ -83,13 +84,12 @@ export class ClassifiedElement {
     let head = VISIT_EXPRS.visit(modifier.callee, this.state);
     let args = VISIT_EXPRS.Args(modifier.args, this.state);
 
-    return Result.all(head, args).mapOk(
-      ([head, args]) =>
-        new mir.Modifier({
-          loc: modifier.loc,
-          callee: head,
-          args,
-        })
+    return Result.all(head, args).mapOk(([head, args]) =>
+      mir.Modifier({
+        loc: modifier.loc,
+        callee: head,
+        args,
+      })
     );
   }
 
@@ -109,7 +109,7 @@ export class ClassifiedElement {
     for (let attr of this.element.attrs) {
       if (attr.type === 'SplatAttr') {
         attrs.add(
-          Ok(new mir.SplatAttr({ loc: attr.loc, symbol: this.state.scope.allocateBlock('attrs') }))
+          Ok(mir.SplatAttr({ loc: attr.loc, symbol: this.state.scope.allocateBlock('attrs') }))
         );
       } else if (attr.name.chars === 'type' && simple) {
         typeAttr = attr;
@@ -128,7 +128,7 @@ export class ClassifiedElement {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: new mir.NamedArguments({
+      args: mir.NamedArguments({
         loc: maybeLoc(args, src.SourceSpan.NON_EXISTENT),
         entries: OptionalList(args),
       }),
@@ -144,7 +144,7 @@ export class ClassifiedElement {
 
       let elementParams = [...attrs, ...modifiers];
 
-      let params = new mir.ElementParameters({
+      let params = mir.ElementParameters({
         loc: maybeLoc(elementParams, src.SourceSpan.NON_EXISTENT),
         body: OptionalList(elementParams),
       });

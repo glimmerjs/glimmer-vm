@@ -49,13 +49,14 @@
  * the `RuntimeResolver` to do dynamic resolution when necessary.
  */
 
+import type { InternalComponentManager } from '@glimmer/state';
+
 import type {
   CapabilityMask,
   ComponentDefinitionState,
   ComponentInstanceState,
 } from './components.js';
 import type { Nullable } from './core.js';
-import type { InternalComponentManager } from './managers.js';
 import type { CompilableProgram, Template } from './template.js';
 
 export interface CompileTimeComponent {

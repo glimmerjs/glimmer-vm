@@ -1,8 +1,5 @@
-import type {
-  CapturedArguments as Arguments,
-  HelperCapabilities,
-  HelperManagerWithValue,
-} from '@glimmer/interfaces';
+import type { HelperManagerWithValue } from '@glimmer/interfaces';
+import type { CapturedArguments as Arguments, HelperCapabilities } from '@glimmer/state';
 
 import { buildCapabilities } from '../util/capabilities';
 

@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "incremental": true,
+    // Compilation Configuration
+    "lib": [
+      "esnext",
+      "ES2015.Collection",
+      "DOM",
+      "DOM.Iterable",
+      "ES2015.Iterable"
+    ],
+    "inlineSources": true,
+    "inlineSourceMap": true,
+    "isolatedDeclarations": true,
+    "declaration": true,
+    "declarationMap": true,
+    "verbatimModuleSyntax": true,
+    // Environment Configuration
+    "experimentalDecorators": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // Enhance Strictness
+    "strict": true,
+    "suppressImplicitAnyIndexErrors": false,
+    "useDefineForClassFields": false,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": false,
+    "skipDefaultLibCheck": true,
+    "types": [
+      "qunit",
+      "node",
+      "vite/client"
+    ]
+  },
+  "references": [
+    {
+      "path": "../@glimmer-workspace/tsconfig.json"
+    }
+  ]
+}

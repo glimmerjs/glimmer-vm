@@ -19,28 +19,26 @@ export class ClassifiedComponent implements Classified {
   arg(attr: ASTv2.ComponentArg, { state }: ClassifiedElement): Result<mir.NamedArgument> {
     let name = attr.name;
 
-    return VISIT_EXPRS.visit(convertPathToCallIfKeyword(attr.value), state).mapOk(
-      (value) =>
-        new mir.NamedArgument({
-          loc: attr.loc,
-          key: name,
-          value,
-        })
+    return VISIT_EXPRS.visit(convertPathToCallIfKeyword(attr.value), state).mapOk((value) =>
+      mir.NamedArgument({
+        loc: attr.loc,
+        key: name,
+        value,
+      })
     );
   }
 
   toStatement(component: ClassifiedElement, { args, params }: PreparedArgs): Result<mir.Statement> {
     let { element, state } = component;
 
-    return this.blocks(state).mapOk(
-      (blocks) =>
-        new mir.Component({
-          loc: element.loc,
-          tag: this.tag,
-          params,
-          args,
-          blocks,
-        })
+    return this.blocks(state).mapOk((blocks) =>
+      mir.Component({
+        loc: element.loc,
+        tag: this.tag,
+        params,
+        args,
+        blocks,
+      })
     );
   }
 

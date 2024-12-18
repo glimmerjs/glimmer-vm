@@ -52,14 +52,13 @@ class NormalizationStatements {
     let args = VISIT_EXPRS.Args(node.args, state);
 
     return Result.all(head, args).andThen(([head, args]) =>
-      this.NamedBlocks(node.blocks, state).mapOk(
-        (blocks) =>
-          new mir.InvokeBlock({
-            loc: node.loc,
-            head,
-            args,
-            blocks,
-          })
+      this.NamedBlocks(node.blocks, state).mapOk((blocks) =>
+        mir.InvokeBlock({
+          loc: node.loc,
+          head,
+          args,
+          blocks,
+        })
       )
     );
   }
@@ -69,14 +68,14 @@ class NormalizationStatements {
 
     return list
       .toArray()
-      .mapOk((list) => new mir.NamedBlocks({ loc: blocks.loc, blocks: OptionalList(list) }));
+      .mapOk((list) => mir.NamedBlocks({ loc: blocks.loc, blocks: OptionalList(list) }));
   }
 
   NamedBlock(named: ASTv2.NamedBlock, state: NormalizationState): Result<mir.NamedBlock> {
     let body = state.visitBlock(named.block);
 
     return body.mapOk((body) => {
-      return new mir.NamedBlock({
+      return mir.NamedBlock({
         loc: named.loc,
         name: named.name,
         body: body.toArray(),
@@ -114,12 +113,12 @@ class NormalizationStatements {
 
     return value.mapOk((value) => {
       if (append.trusting) {
-        return new mir.AppendTrustedHTML({
+        return mir.AppendTrustedHTML({
           loc: append.loc,
           html: value,
         });
       } else {
-        return new mir.AppendTextNode({
+        return mir.AppendTextNode({
           loc: append.loc,
           text: value,
         });
@@ -128,18 +127,18 @@ class NormalizationStatements {
   }
 
   TextNode(text: ASTv2.HtmlText): mir.Statement {
-    return new mir.AppendTextNode({
+    return mir.AppendTextNode({
       loc: text.loc,
       text: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
     });
   }
 
   HtmlComment(comment: ASTv2.HtmlComment): mir.Statement {
-    return new mir.AppendComment({
+    return mir.AppendComment({
       loc: comment.loc,
       value: comment.text,
     });
   }
 }
 
-export const VISIT_STMTS = new NormalizationStatements();
+export const VISIT_STMTS: NormalizationStatements = new NormalizationStatements();

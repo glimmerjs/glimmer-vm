@@ -1,25 +1,11 @@
-import type {
-  Helper,
-  InternalComponentManager,
-  InternalModifierManager,
-  Owner,
-} from '@glimmer/interfaces';
+import type { InternalManager } from '@glimmer/fundamental';
+import type { Helper } from '@glimmer/interfaces';
+import type { InternalComponentManager, InternalModifierManager, Owner } from '@glimmer/state';
 import { debugToString } from '@glimmer/debug-util';
+import { COMPONENT_MANAGERS, HELPER_MANAGERS, MODIFIER_MANAGERS } from '@glimmer/fundamental';
 
 import { CustomHelperManager } from '../public/helper';
 import { FunctionHelperManager } from './defaults';
-
-type InternalManager =
-  | InternalComponentManager
-  | InternalModifierManager
-  | CustomHelperManager
-  | Helper;
-
-const COMPONENT_MANAGERS = new WeakMap<object, InternalComponentManager>();
-
-const MODIFIER_MANAGERS = new WeakMap<object, InternalModifierManager>();
-
-const HELPER_MANAGERS = new WeakMap<object, CustomHelperManager | Helper>();
 
 ///////////
 
@@ -88,7 +74,7 @@ export function getInternalModifierManager(
 ): InternalModifierManager | null;
 export function getInternalModifierManager(
   definition: object,
-  isOptional?: true | undefined
+  isOptional?: true
 ): InternalModifierManager | null {
   if (
     import.meta.env.DEV &&
@@ -133,7 +119,7 @@ export function getInternalHelperManager(
 ): CustomHelperManager | Helper | null;
 export function getInternalHelperManager(
   definition: object,
-  isOptional?: true | undefined
+  isOptional?: true
 ): CustomHelperManager | Helper | null {
   if (
     import.meta.env.DEV &&
@@ -154,7 +140,7 @@ export function getInternalHelperManager(
   }
 
   if (manager) {
-    return manager;
+    return manager as CustomHelperManager;
   } else if (isOptional === true) {
     return null;
   } else if (import.meta.env.DEV) {
@@ -182,7 +168,7 @@ export function getInternalComponentManager(
 ): InternalComponentManager | null;
 export function getInternalComponentManager(
   definition: object,
-  isOptional?: true | undefined
+  isOptional?: true
 ): InternalComponentManager | null {
   if (
     import.meta.env.DEV &&

@@ -1,4 +1,4 @@
-import type { Reference } from '@glimmer/interfaces';
+import type { Reference } from '@glimmer/state';
 import { valueForRef } from '@glimmer/reference';
 
 import type { Fragment } from './fragment';

@@ -5,7 +5,7 @@ import type * as ASTv1 from './nodes-v1';
 
 import b from './public-builders';
 
-export type MustacheStatementParams = Omit<ASTv1.MustacheStatement, 'type' | 'escaped'>;
+type MustacheStatementParams = Omit<ASTv1.MustacheStatement, 'type' | 'escaped'>;
 
 export function buildLegacyMustache({
   path,
@@ -40,7 +40,7 @@ export function buildLegacyMustache({
   return node as ASTv1.MustacheStatement;
 }
 
-export type PathExpressionParams = Omit<ASTv1.MinimalPathExpression, 'type'>;
+type PathExpressionParams = Omit<ASTv1.MinimalPathExpression, 'type'>;
 
 export function buildLegacyPath({ head, tail, loc }: PathExpressionParams): ASTv1.PathExpression {
   const node = {

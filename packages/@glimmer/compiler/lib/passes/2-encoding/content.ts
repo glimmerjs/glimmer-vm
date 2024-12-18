@@ -12,7 +12,33 @@ import type {
 import { exhausted } from '@glimmer/debug-util';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WF_APPEND_OPCODE,
+  WF_ATTR_SPLAT_OPCODE,
+  WF_BLOCK_OPCODE,
+  WF_CLOSE_ELEMENT_OPCODE,
+  WF_COMMENT_OPCODE,
+  WF_COMPONENT_ATTR_OPCODE,
+  WF_COMPONENT_OPCODE,
+  WF_DEBUGGER_OPCODE,
+  WF_DYNAMIC_ATTR_OPCODE,
+  WF_EACH_OPCODE,
+  WF_FLUSH_ELEMENT_OPCODE,
+  WF_IF_OPCODE,
+  WF_IN_ELEMENT_OPCODE,
+  WF_INVOKE_COMPONENT_OPCODE,
+  WF_LET_OPCODE,
+  WF_MODIFIER_OPCODE,
+  WF_OPEN_ELEMENT_OPCODE,
+  WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE,
+  WF_STATIC_ATTR_OPCODE,
+  WF_STATIC_COMPONENT_ATTR_OPCODE,
+  WF_TRUSTING_APPEND_OPCODE,
+  WF_TRUSTING_COMPONENT_ATTR_OPCODE,
+  WF_TRUSTING_DYNAMIC_ATTR_OPCODE,
+  WF_WITH_DYNAMIC_VARS_OPCODE,
+  WF_YIELD_OPCODE,
+} from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
@@ -28,7 +54,7 @@ class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   }
 }
 
-export class ContentEncoder {
+class ContentEncoder {
   list(statements: mir.Statement[]): WireFormat.Statement[] {
     let out: WireFormat.Statement[] = [];
 
@@ -56,7 +82,7 @@ export class ContentEncoder {
   private visitContent(stmt: mir.Statement): WireFormat.Statement | WireStatements {
     switch (stmt.type) {
       case 'Debugger':
-        return [SexpOpcodes.Debugger, ...stmt.scope.getDebugInfo(), {}];
+        return [WF_DEBUGGER_OPCODE, ...stmt.scope.getDebugInfo(), {}];
       case 'AppendComment':
         return this.AppendComment(stmt);
       case 'AppendTextNode':
@@ -89,7 +115,7 @@ export class ContentEncoder {
   }
 
   Yield({ to, positional }: mir.Yield): WireFormat.Statements.Yield {
-    return [SexpOpcodes.Yield, to, EXPR.Positional(positional)];
+    return [WF_YIELD_OPCODE, to, EXPR.Positional(positional)];
   }
 
   InElement({
@@ -104,36 +130,36 @@ export class ContentEncoder {
     let wireInsertBefore = EXPR.expr(insertBefore);
 
     if (wireInsertBefore === undefined) {
-      return [SexpOpcodes.InElement, wireBlock, guid, wireDestination];
+      return [WF_IN_ELEMENT_OPCODE, wireBlock, guid, wireDestination];
     } else {
-      return [SexpOpcodes.InElement, wireBlock, guid, wireDestination, wireInsertBefore];
+      return [WF_IN_ELEMENT_OPCODE, wireBlock, guid, wireDestination, wireInsertBefore];
     }
   }
 
   InvokeBlock({ head, args, blocks }: mir.InvokeBlock): WireFormat.Statements.Block {
-    return [SexpOpcodes.Block, EXPR.expr(head), ...EXPR.Args(args), CONTENT.NamedBlocks(blocks)];
+    return [WF_BLOCK_OPCODE, EXPR.expr(head), ...EXPR.Args(args), CONTENT.NamedBlocks(blocks)];
   }
 
   AppendTrustedHTML({ html }: mir.AppendTrustedHTML): WireFormat.Statements.TrustingAppend {
-    return [SexpOpcodes.TrustingAppend, EXPR.expr(html)];
+    return [WF_TRUSTING_APPEND_OPCODE, EXPR.expr(html)];
   }
 
   AppendTextNode({ text }: mir.AppendTextNode): WireFormat.Statements.Append {
-    return [SexpOpcodes.Append, EXPR.expr(text)];
+    return [WF_APPEND_OPCODE, EXPR.expr(text)];
   }
 
   AppendComment({ value }: mir.AppendComment): WireFormat.Statements.Comment {
-    return [SexpOpcodes.Comment, value.chars];
+    return [WF_COMMENT_OPCODE, value.chars];
   }
 
   SimpleElement({ tag, params, body, dynamicFeatures }: mir.SimpleElement): WireStatements {
-    let op = dynamicFeatures ? SexpOpcodes.OpenElementWithSplat : SexpOpcodes.OpenElement;
+    let op = dynamicFeatures ? WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE : WF_OPEN_ELEMENT_OPCODE;
     return new WireStatements<WireFormat.Statement | WireFormat.ElementParameter>([
       [op, deflateTagName(tag.chars)],
       ...CONTENT.ElementParameters(params).toArray(),
-      [SexpOpcodes.FlushElement],
+      [WF_FLUSH_ELEMENT_OPCODE],
       ...CONTENT.list(body),
-      [SexpOpcodes.CloseElement],
+      [WF_CLOSE_ELEMENT_OPCODE],
     ]);
   }
 
@@ -145,7 +171,7 @@ export class ContentEncoder {
     let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
 
     return [
-      SexpOpcodes.Component,
+      WF_COMPONENT_OPCODE,
       wireTag,
       wirePositional.toPresentArray(),
       wireNamed,
@@ -160,13 +186,13 @@ export class ContentEncoder {
   ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
     switch (param.type) {
       case 'SplatAttr':
-        return [SexpOpcodes.AttrSplat, param.symbol];
+        return [WF_ATTR_SPLAT_OPCODE, param.symbol];
       case 'DynamicAttr':
         return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
       case 'StaticAttr':
         return [staticAttrOp(param.kind), ...staticAttr(param)];
       case 'Modifier':
-        return [SexpOpcodes.Modifier, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
+        return [WF_MODIFIER_OPCODE, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
     }
   }
 
@@ -194,7 +220,7 @@ export class ContentEncoder {
 
   If({ condition, block, inverse }: mir.If): WireFormat.Statements.If {
     return [
-      SexpOpcodes.If,
+      WF_IF_OPCODE,
       EXPR.expr(condition),
       CONTENT.NamedBlock(block)[1],
       inverse ? CONTENT.NamedBlock(inverse)[1] : null,
@@ -203,7 +229,7 @@ export class ContentEncoder {
 
   Each({ value, key, block, inverse }: mir.Each): WireFormat.Statements.Each {
     return [
-      SexpOpcodes.Each,
+      WF_EACH_OPCODE,
       EXPR.expr(value),
       key ? EXPR.expr(key) : null,
       CONTENT.NamedBlock(block)[1],
@@ -212,11 +238,11 @@ export class ContentEncoder {
   }
 
   Let({ positional, block }: mir.Let): WireFormat.Statements.Let {
-    return [SexpOpcodes.Let, EXPR.Positional(positional), CONTENT.NamedBlock(block)[1]];
+    return [WF_LET_OPCODE, EXPR.Positional(positional), CONTENT.NamedBlock(block)[1]];
   }
 
   WithDynamicVars({ named, block }: mir.WithDynamicVars): WireFormat.Statements.WithDynamicVars {
-    return [SexpOpcodes.WithDynamicVars, EXPR.NamedArguments(named), CONTENT.NamedBlock(block)[1]];
+    return [WF_WITH_DYNAMIC_VARS_OPCODE, EXPR.NamedArguments(named), CONTENT.NamedBlock(block)[1]];
   }
 
   InvokeComponent({
@@ -225,7 +251,7 @@ export class ContentEncoder {
     blocks,
   }: mir.InvokeComponent): WireFormat.Statements.InvokeComponent {
     return [
-      SexpOpcodes.InvokeComponent,
+      WF_INVOKE_COMPONENT_OPCODE,
       EXPR.expr(definition),
       EXPR.Positional(args.positional),
       EXPR.NamedArguments(args.named),
@@ -234,9 +260,9 @@ export class ContentEncoder {
   }
 }
 
-export const CONTENT = new ContentEncoder();
+export const CONTENT: ContentEncoder = new ContentEncoder();
 
-export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
+type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
 
 function staticAttr({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs {
   let out: StaticAttrArgs = [deflateAttrName(name.chars), value.chars];
@@ -248,7 +274,7 @@ function staticAttr({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs 
   return out;
 }
 
-export type DynamicAttrArgs = [
+type DynamicAttrArgs = [
   name: string | WellKnownAttrName,
   value: WireFormat.Expression,
   namespace?: string,
@@ -267,9 +293,9 @@ function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrAr
 function staticAttrOp(kind: { component: boolean }): StaticAttrOpcode | StaticComponentAttrOpcode;
 function staticAttrOp(kind: { component: boolean }): AttrOpcode {
   if (kind.component) {
-    return SexpOpcodes.StaticComponentAttr;
+    return WF_STATIC_COMPONENT_ATTR_OPCODE;
   } else {
-    return SexpOpcodes.StaticAttr;
+    return WF_STATIC_ATTR_OPCODE;
   }
 }
 
@@ -281,8 +307,8 @@ function dynamicAttrOp(
   | ComponentAttrOpcode
   | DynamicAttrOpcode {
   if (kind.component) {
-    return kind.trusting ? SexpOpcodes.TrustingComponentAttr : SexpOpcodes.ComponentAttr;
+    return kind.trusting ? WF_TRUSTING_COMPONENT_ATTR_OPCODE : WF_COMPONENT_ATTR_OPCODE;
   } else {
-    return kind.trusting ? SexpOpcodes.TrustingDynamicAttr : SexpOpcodes.DynamicAttr;
+    return kind.trusting ? WF_TRUSTING_DYNAMIC_ATTR_OPCODE : WF_DYNAMIC_ATTR_OPCODE;
   }
 }

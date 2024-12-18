@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { isSimpleElement } from '@glimmer/debug-util';
-import { assign, dict } from '@glimmer/util';
+import { dict } from '@glimmer/util';
 
 export interface DebugElement {
   element: SimpleElement | null | undefined;
@@ -104,7 +104,7 @@ export function equalsElement(
 }
 
 // TODO: Consider removing this
-// eslint-disable-next-line deprecation/deprecation
+// eslint-disable-next-line @typescript-eslint/no-deprecated
 interface CompatibleTagNameMap extends ElementTagNameMap {
   foreignobject: SVGForeignObjectElement;
 }
@@ -159,10 +159,10 @@ export function equalsAttr(expected: any): Matcher {
 export function assertEmberishElement(
   element: SimpleElement,
   tagName: string,
-  attrs: Object,
+  attrs: object,
   contents: string
 ): void;
-export function assertEmberishElement(element: SimpleElement, tagName: string, attrs: Object): void;
+export function assertEmberishElement(element: SimpleElement, tagName: string, attrs: object): void;
 export function assertEmberishElement(
   element: SimpleElement,
   tagName: string,
@@ -172,7 +172,7 @@ export function assertEmberishElement(element: SimpleElement, tagName: string): 
 export function assertEmberishElement(...args: any[]): void {
   let [element, tagName, attrs, contents] = processAssertComponentArgs(args);
 
-  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
+  let fullAttrs = { class: classes('ember-view'), id: regex(/^ember\d*$/u), ...attrs };
 
   equalsElement(element, tagName, fullAttrs, contents);
 }
@@ -261,10 +261,10 @@ export function processAssertComponentArgs(
 export function assertElementShape(
   element: SimpleElement,
   tagName: string,
-  attrs: Object,
+  attrs: object,
   contents: string
 ): void;
-export function assertElementShape(element: SimpleElement, tagName: string, attrs: Object): void;
+export function assertElementShape(element: SimpleElement, tagName: string, attrs: object): void;
 export function assertElementShape(element: SimpleElement, tagName: string, contents: string): void;
 export function assertElementShape(element: SimpleElement, tagName: string): void;
 export function assertElementShape(...args: any[]): void {

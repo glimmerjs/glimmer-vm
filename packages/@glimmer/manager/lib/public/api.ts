@@ -1,4 +1,5 @@
-import type { ComponentManager, HelperManager, ModifierManager, Owner } from '@glimmer/interfaces';
+import type { ComponentManager, ModifierManager } from '@glimmer/interfaces';
+import type { HelperManager, Owner } from '@glimmer/state';
 
 import {
   setInternalComponentManager,

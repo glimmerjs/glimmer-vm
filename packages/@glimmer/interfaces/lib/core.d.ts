@@ -5,6 +5,8 @@ export type Maybe<T> = Nullable<T> | Optional<T>;
 export type FIXME<T, _S extends string> = T;
 
 export type Dict<T = unknown> = Record<string, T>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Indexable = Record<keyof any, unknown>;
 
 export type DictValue<D extends Dict> = D extends Dict<infer V> ? V : never;
 
@@ -14,6 +16,7 @@ export interface Unique<T> {
 
 export type Recast<T, U> = (T & U) | U;
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type AnyFn = Function;
 
 /**
@@ -30,6 +33,3 @@ export type RichIteratorResult<Tick, Return> =
       done: true;
       value: Return;
     };
-
-export type Destroyable = object;
-export type Destructor<T extends Destroyable> = (destroyable: T) => void;

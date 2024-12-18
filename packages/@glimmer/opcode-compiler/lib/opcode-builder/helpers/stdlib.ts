@@ -22,7 +22,7 @@ import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';
 import { CallDynamic } from './vm';
 
-export function main(op: PushStatementOp): void {
+function main(op: PushStatementOp): void {
   op(VM_MAIN_OP, $s0);
   invokePreparedComponent(op, false, false, true);
 }
@@ -35,11 +35,7 @@ export function main(op: PushStatementOp): void {
  * @param trusting whether to interpolate a string as raw HTML (corresponds to
  * triple curlies)
  */
-export function StdAppend(
-  op: PushStatementOp,
-  trusting: boolean,
-  nonDynamicAppend: number | null
-): void {
+function StdAppend(op: PushStatementOp, trusting: boolean, nonDynamicAppend: number | null): void {
   SwitchCases(
     op,
     () => op(VM_CONTENT_TYPE_OP),
@@ -116,7 +112,7 @@ export function compileStd(context: EvaluationContext): StdLib {
   );
 }
 
-export const STDLIB_META: BlockMetadata = {
+const STDLIB_META: BlockMetadata = {
   symbols: {
     locals: null,
     upvars: null,

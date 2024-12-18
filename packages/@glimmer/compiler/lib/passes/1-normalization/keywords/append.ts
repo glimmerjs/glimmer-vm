@@ -2,6 +2,7 @@ import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/constants';
 import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../context';
+import type { Keyword, Keywords } from './impl';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
@@ -14,7 +15,12 @@ import { hasBlockKeyword } from './utils/has-block';
 import { ifUnlessInlineKeyword } from './utils/if-unless';
 import { logKeyword } from './utils/log';
 
-export const APPEND_KEYWORDS = keywords('Append')
+export const APPEND_KEYWORDS: Keywords<
+  'Append',
+  | Keyword<'Append', mir.AppendTextNode>
+  | Keyword<'Append', mir.Statement>
+  | Keyword<'Append', mir.InvokeComponent>
+> = keywords('Append')
   .kw('has-block', toAppend(hasBlockKeyword('has-block')))
   .kw('has-block-params', toAppend(hasBlockKeyword('has-block-params')))
   .kw('-get-dynamic-var', toAppend(getDynamicVarKeyword))
@@ -62,14 +68,13 @@ export const APPEND_KEYWORDS = keywords('Append')
         positional: ASTv2.PositionalArguments;
       }
     ): Result<mir.Statement> {
-      return VISIT_EXPRS.Positional(positional, state).mapOk(
-        (positional) =>
-          new mir.Yield({
-            loc: node.loc,
-            target,
-            to: state.scope.allocateBlock(target.chars),
-            positional,
-          })
+      return VISIT_EXPRS.Positional(positional, state).mapOk((positional) =>
+        mir.Yield({
+          loc: node.loc,
+          target,
+          to: state.scope.allocateBlock(target.chars),
+          positional,
+        })
       );
     },
   })
@@ -98,7 +103,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       node: ASTv2.AppendContent;
       state: NormalizationState;
     }): Result<mir.Statement> {
-      return Ok(new mir.Debugger({ loc: node.loc, scope }));
+      return Ok(mir.Debugger({ loc: node.loc, scope }));
     },
   })
   .kw('component', {
@@ -111,14 +116,13 @@ export const APPEND_KEYWORDS = keywords('Append')
       let definitionResult = VISIT_EXPRS.visit(definition, state);
       let argsResult = VISIT_EXPRS.Args(args, state);
 
-      return Result.all(definitionResult, argsResult).mapOk(
-        ([definition, args]) =>
-          new mir.InvokeComponent({
-            loc: node.loc,
-            definition,
-            args,
-            blocks: null,
-          })
+      return Result.all(definitionResult, argsResult).mapOk(([definition, args]) =>
+        mir.InvokeComponent({
+          loc: node.loc,
+          definition,
+          args,
+          blocks: null,
+        })
       );
     },
   })
@@ -133,9 +137,9 @@ export const APPEND_KEYWORDS = keywords('Append')
       let argsResult = VISIT_EXPRS.Args(args, state);
 
       return Result.all(definitionResult, argsResult).mapOk(([definition, args]) => {
-        let text = new mir.CallExpression({ callee: definition, args, loc: node.loc });
+        let text = mir.CallExpression({ callee: definition, args, loc: node.loc });
 
-        return new mir.AppendTextNode({
+        return mir.AppendTextNode({
           loc: node.loc,
           text,
         });

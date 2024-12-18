@@ -70,7 +70,7 @@ function findProtocolForURL() {
         let url = new URL(_url);
 
         return url.protocol;
-      } catch (error) {
+      } catch {
         // any non-fully qualified url string will trigger an error (because there is no
         // baseURI that we can provide; in that case we **know** that the protocol is
         // "safe" because it isn't specifically one of the `badProtocols` listed above

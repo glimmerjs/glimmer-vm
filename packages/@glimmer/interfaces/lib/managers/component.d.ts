@@ -1,5 +1,4 @@
-import type { Arguments } from '../runtime.js';
-import type { Capabilities } from './capabilities.js';
+import type { Arguments, Capabilities } from '@glimmer/state';
 
 export interface ComponentCapabilitiesVersions {
   '3.4': {

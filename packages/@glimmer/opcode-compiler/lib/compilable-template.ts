@@ -28,7 +28,7 @@ import { encodeOp } from './opcode-builder/encoder';
 import { meta } from './opcode-builder/helpers/shared';
 import { STATEMENTS } from './syntax/statements';
 
-export const PLACEHOLDER_HANDLE = -1;
+const PLACEHOLDER_HANDLE = -1;
 
 class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplate<S> {
   static {

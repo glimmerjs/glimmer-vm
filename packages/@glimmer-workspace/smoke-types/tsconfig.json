@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer-workspace/smoke-types",
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    {
+      "path": "../../@glimmer/runtime/tsconfig.json"
+    }
+  ]
+}

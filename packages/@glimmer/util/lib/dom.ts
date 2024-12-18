@@ -1,6 +1,6 @@
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 
-export function clearElement(parent: SimpleElement) {
+export function clearElement(parent: SimpleElement): void {
   let current: Nullable<SimpleNode> = parent.firstChild;
 
   while (current) {

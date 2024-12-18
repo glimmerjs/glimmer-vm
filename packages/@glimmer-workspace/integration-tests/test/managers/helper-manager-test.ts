@@ -1,4 +1,4 @@
-import type { Arguments, Owner } from '@glimmer/interfaces';
+import type { Arguments, Owner } from '@glimmer/state';
 import { helperCapabilities, setHelperManager, setModifierManager } from '@glimmer/manager';
 
 import {
@@ -355,6 +355,7 @@ class HelperManagerTest extends RenderTest {
       @tracked foo = 123;
 
       value() {
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         this.foo;
         this.foo = 456;
       }
@@ -452,6 +453,7 @@ class HelperManagerTest extends RenderTest {
 
         // first read the tracked property
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         this.foo;
 
         // then attempt to update the tracked property
@@ -478,6 +480,7 @@ class HelperManagerTest extends RenderTest {
       value() {
         // first read the tracked property
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         this.foo;
 
         // then attempt to update the tracked property

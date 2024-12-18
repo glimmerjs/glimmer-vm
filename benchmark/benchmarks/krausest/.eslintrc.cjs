@@ -3,11 +3,14 @@ module.exports = {
   root: false,
   overrides: [
     {
-      files: ['**/*.js'],
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
+      files: ['**/*.{js,ts,mts}'],
+      env: {
+        browser: true,
       },
+      parserOptions: {
+        projectService: true,
+      },
+      extends: ['plugin:@glimmer-workspace/recommended'],
     },
   ],
 };

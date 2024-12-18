@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "incremental": true,
+    "declarationMap": true,
+    "baseUrl": ".",
+    "allowJs": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "suppressImplicitAnyIndexErrors": false,
+    "useDefineForClassFields": false,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "types": ["qunit", "node", "vite/client"]
+  }
+}

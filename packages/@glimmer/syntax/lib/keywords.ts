@@ -1,15 +1,15 @@
-export type Keywords = keyof typeof KEYWORDS_TYPES;
+type Keywords = keyof typeof KEYWORDS;
 export type KeywordType = 'Call' | 'Modifier' | 'Append' | 'Block';
 
 export function isKeyword(word: string): word is Keywords;
 export function isKeyword(word: string, type: KeywordType): boolean;
 export function isKeyword(word: string, type?: KeywordType): boolean {
-  if (word in KEYWORDS_TYPES) {
+  const w = word;
+  if (w in KEYWORDS) {
     if (type === undefined) {
       return true;
     } else {
-      let types = KEYWORDS_TYPES[word as Keywords];
-      // This seems like a TypeScript bug – it inferred types as never[]?
+      let types = KEYWORDS[w as keyof typeof KEYWORDS];
       return types.includes(type as never);
     }
   } else {
@@ -21,7 +21,7 @@ export function isKeyword(word: string, type?: KeywordType): boolean {
  * This includes the full list of keywords currently in use in the template
  * language, and where their valid usages are.
  */
-export const KEYWORDS_TYPES = {
+const KEYWORDS = {
   action: ['Call', 'Modifier'],
   component: ['Call', 'Append', 'Block'],
   debugger: ['Append'],
@@ -42,4 +42,6 @@ export const KEYWORDS_TYPES = {
   unbound: ['Call', 'Append'],
   unless: ['Call', 'Append', 'Block'],
   yield: ['Append'],
-} satisfies Record<string, readonly KeywordType[]>;
+} as const;
+
+export const KEYWORDS_TYPES: typeof KEYWORDS = KEYWORDS;

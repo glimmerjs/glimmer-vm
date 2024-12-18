@@ -3,11 +3,12 @@ import type {
   CapturedRenderNode,
   ComponentDefinition,
   DebugRenderTree,
+  InternalComponentManager,
   Nullable,
   RenderNode,
 } from '@glimmer/interfaces';
 import { expect } from '@glimmer/debug-util';
-import { assign, Stack } from '@glimmer/util';
+import { Stack } from '@glimmer/util';
 
 import { reifyArgsDebug } from './vm/arguments';
 
@@ -69,10 +70,11 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   create(state: TBucket, node: RenderNode): void {
-    let internalNode: InternalRenderNode<TBucket> = assign({}, node, {
+    let internalNode: InternalRenderNode<TBucket> = {
+      ...node,
       bounds: null,
       refs: new Set<Ref<TBucket>>(),
-    });
+    };
     this.nodes.set(state, internalNode);
     this.appendChild(internalNode, state);
     this.enter(state);
@@ -203,7 +205,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
 
 export function getDebugName(
   definition: ComponentDefinition,
-  manager = definition.manager
+  manager: InternalComponentManager<unknown, object> = definition.manager
 ): string {
   return definition.resolvedName ?? definition.debugName ?? manager.getDebugName(definition.state);
 }

@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/vm",
+    "composite": true,
+    "incremental": true
+  },
+  "references": [
+    {
+      "path": "../interfaces/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/build/tsconfig.json"
+    }
+  ]
+}

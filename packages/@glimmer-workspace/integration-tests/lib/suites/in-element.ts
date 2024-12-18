@@ -1,7 +1,6 @@
 import type { AST } from '@glimmer/syntax';
 import { unwrap } from '@glimmer/debug-util';
 import { destroy } from '@glimmer/destroyable';
-import { assign } from '@glimmer/util';
 
 import { GlimmerishComponent } from '../components/emberish-glimmer';
 import { equalsElement } from '../dom/assertions';
@@ -23,7 +22,7 @@ export class InElementSuite extends RenderTest {
           let b = env.syntax.builders;
           let { path, ...rest } = node;
           if (path.type !== 'SubExpression' && path.original === 'maybe-in-element') {
-            return assign({ path: b.path('in-element', path.loc) }, rest);
+            return { path: b.path('in-element', path.loc), ...rest };
           } else {
             return node;
           }

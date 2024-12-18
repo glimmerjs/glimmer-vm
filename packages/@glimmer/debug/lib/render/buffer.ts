@@ -108,7 +108,7 @@ export class LogFragmentBuffer {
   addFootnoted(
     subtle: boolean,
     add: (footnote: { n: number; style: string }, child: LogFragmentBuffer) => boolean
-  ) {
+  ): void {
     if (subtle && !this.#options.showSubtle) return;
 
     const child = new LogFragmentBuffer(this.#options);
@@ -137,7 +137,7 @@ export class LogFragmentBuffer {
    * If the `subtle` option is set, the fragment will only be printed if the buffer is configured
    * to show subtle content.
    */
-  append(subtle: boolean, template: string, ...substitutions: unknown[]) {
+  append(subtle: boolean, template: string, ...substitutions: unknown[]): void {
     if (subtle && !this.#options.showSubtle) return;
     this.#template += template;
 

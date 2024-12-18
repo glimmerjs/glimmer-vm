@@ -1,40 +1,27 @@
 {
-  "$schema": "https://turbo.build/schema.v1.json",
-  "globalDependencies": [
-    "pnpm-lock.yaml",
-    "patches",
-    ".env",
-    ".env.testing",
-    ".eslintignore",
-    ".prettierrc.json",
-    ".eslintrc.cjs",
-    "rollup.config.mjs",
-    "vite.config.mts",
-    ".github/workflows/ci.yml",
-    "tsconfig.json",
-    "tsconfig.dist.json",
-    "*/tsconfig.json",
-    "packages/*/tsconfig.json",
-    "packages/@glimmer/.eslintrc.cjs",
-    "packages/@glimmer-workspace/.eslintrc.cjs",
-    "packages/@glimmer-workspace/eslint-plugin/**/*",
-    "packages/@glimmer-workspace/build/lib/config.js"
-  ],
-  "pipeline": {
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [],
+  "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["//#update:meta"],
+      "inputs": ["$TURBO_DEFAULT$", "package.json", "index.ts", "lib/**"],
       "outputs": ["dist/**"]
     },
     "lint": {
       "cache": false,
-      "dependsOn": ["test:lint", "test:publint"]
+      "dependsOn": ["test:lint", "test:publint", "test:types"]
     },
     "test:lint": {},
+    "test:types": {},
     "test:publint": {
       "dependsOn": ["build"]
     },
-    "//#test:types": {
-      "inputs": ["**/dist/**", "tsconfig.dist.json"],
+    "lint:types": {},
+    "//#update:meta": {
+      "inputs": ["**/package.json"]
+    },
+    "//#test:published:types": {
+      "inputs": ["**/dist/**"],
       "dependsOn": ["^build"]
     }
   }

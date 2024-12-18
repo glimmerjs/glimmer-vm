@@ -8,7 +8,52 @@ import type {
 import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/constants';
 import { exhausted } from '@glimmer/debug-util';
 import { dict } from '@glimmer/util';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
+import {
+  WF_APPEND_OPCODE,
+  WF_ATTR_SPLAT_OPCODE,
+  WF_BLOCK_OPCODE,
+  WF_CALL_OPCODE,
+  WF_CLOSE_ELEMENT_OPCODE,
+  WF_COMMENT_OPCODE,
+  WF_COMPONENT_ATTR_OPCODE,
+  WF_COMPONENT_OPCODE,
+  WF_CONCAT_OPCODE,
+  WF_CURRY_OPCODE,
+  WF_DEBUGGER_OPCODE,
+  WF_DYNAMIC_ARG_OPCODE,
+  WF_DYNAMIC_ATTR_OPCODE,
+  WF_EACH_OPCODE,
+  WF_FLUSH_ELEMENT_OPCODE,
+  WF_GET_DYNAMIC_VAR_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE,
+  WF_GET_LEXICAL_SYMBOL_OPCODE,
+  WF_GET_STRICT_KEYWORD_OPCODE,
+  WF_GET_SYMBOL_OPCODE,
+  WF_HAS_BLOCK_OPCODE,
+  WF_HAS_BLOCK_PARAMS_OPCODE,
+  WF_IF_INLINE_OPCODE,
+  WF_IF_OPCODE,
+  WF_IN_ELEMENT_OPCODE,
+  WF_INVOKE_COMPONENT_OPCODE,
+  WF_LET_OPCODE,
+  WF_LOG_OPCODE,
+  WF_MODIFIER_OPCODE,
+  WF_NOT_OPCODE,
+  WF_OPEN_ELEMENT_OPCODE,
+  WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE,
+  WF_STATIC_ARG_OPCODE,
+  WF_STATIC_ATTR_OPCODE,
+  WF_STATIC_COMPONENT_ATTR_OPCODE,
+  WF_TRUSTING_APPEND_OPCODE,
+  WF_TRUSTING_COMPONENT_ATTR_OPCODE,
+  WF_TRUSTING_DYNAMIC_ATTR_OPCODE,
+  WF_UNDEFINED_OPCODE,
+  WF_WITH_DYNAMIC_VARS_OPCODE,
+  WF_YIELD_OPCODE,
+} from '@glimmer/wire-format';
 
 import { inflateAttrName, inflateTagName } from './utils';
 
@@ -34,12 +79,12 @@ export default class WireFormatDebugger {
   formatOpcode(opcode: WireFormat.Syntax): unknown {
     if (Array.isArray(opcode)) {
       switch (opcode[0]) {
-        case Op.Append:
+        case WF_APPEND_OPCODE:
           return ['append', this.formatOpcode(opcode[1])];
-        case Op.TrustingAppend:
+        case WF_TRUSTING_APPEND_OPCODE:
           return ['trusting-append', this.formatOpcode(opcode[1])];
 
-        case Op.Block:
+        case WF_BLOCK_OPCODE:
           return [
             'block',
             this.formatOpcode(opcode[1]),
@@ -48,7 +93,7 @@ export default class WireFormatDebugger {
             this.formatBlocks(opcode[4]),
           ];
 
-        case Op.InElement:
+        case WF_IN_ELEMENT_OPCODE:
           return [
             'in-element',
             opcode[1],
@@ -56,25 +101,25 @@ export default class WireFormatDebugger {
             opcode[3] ? this.formatOpcode(opcode[3]) : undefined,
           ];
 
-        case Op.OpenElement:
+        case WF_OPEN_ELEMENT_OPCODE:
           return ['open-element', inflateTagName(opcode[1])];
 
-        case Op.OpenElementWithSplat:
+        case WF_OPEN_ELEMENT_WITH_SPLAT_OPCODE:
           return ['open-element-with-splat', inflateTagName(opcode[1])];
 
-        case Op.CloseElement:
+        case WF_CLOSE_ELEMENT_OPCODE:
           return ['close-element'];
 
-        case Op.FlushElement:
+        case WF_FLUSH_ELEMENT_OPCODE:
           return ['flush-element'];
 
-        case Op.StaticAttr:
+        case WF_STATIC_ATTR_OPCODE:
           return ['static-attr', inflateAttrName(opcode[1]), opcode[2], opcode[3]];
 
-        case Op.StaticComponentAttr:
+        case WF_STATIC_COMPONENT_ATTR_OPCODE:
           return ['static-component-attr', inflateAttrName(opcode[1]), opcode[2], opcode[3]];
 
-        case Op.DynamicAttr:
+        case WF_DYNAMIC_ATTR_OPCODE:
           return [
             'dynamic-attr',
             inflateAttrName(opcode[1]),
@@ -82,7 +127,7 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.ComponentAttr:
+        case WF_COMPONENT_ATTR_OPCODE:
           return [
             'component-attr',
             inflateAttrName(opcode[1]),
@@ -90,19 +135,19 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.AttrSplat:
+        case WF_ATTR_SPLAT_OPCODE:
           return ['attr-splat'];
 
-        case Op.Yield:
+        case WF_YIELD_OPCODE:
           return ['yield', opcode[1], this.formatParams(opcode[2])];
 
-        case Op.DynamicArg:
+        case WF_DYNAMIC_ARG_OPCODE:
           return ['dynamic-arg', opcode[1], this.formatOpcode(opcode[2])];
 
-        case Op.StaticArg:
+        case WF_STATIC_ARG_OPCODE:
           return ['static-arg', opcode[1], this.formatOpcode(opcode[2])];
 
-        case Op.TrustingDynamicAttr:
+        case WF_TRUSTING_DYNAMIC_ATTR_OPCODE:
           return [
             'trusting-dynamic-attr',
             inflateAttrName(opcode[1]),
@@ -110,7 +155,7 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.TrustingComponentAttr:
+        case WF_TRUSTING_COMPONENT_ATTR_OPCODE:
           return [
             'trusting-component-attr',
             inflateAttrName(opcode[1]),
@@ -118,13 +163,13 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.Debugger:
+        case WF_DEBUGGER_OPCODE:
           return ['debugger', opcode[1]];
 
-        case Op.Comment:
+        case WF_COMMENT_OPCODE:
           return ['comment', opcode[1]];
 
-        case Op.Modifier:
+        case WF_MODIFIER_OPCODE:
           return [
             'modifier',
             this.formatOpcode(opcode[1]),
@@ -132,7 +177,7 @@ export default class WireFormatDebugger {
             this.formatHash(opcode[3]),
           ];
 
-        case Op.Component:
+        case WF_COMPONENT_OPCODE:
           return [
             'component',
             this.formatOpcode(opcode[1]),
@@ -141,13 +186,13 @@ export default class WireFormatDebugger {
             this.formatBlocks(opcode[4]),
           ];
 
-        case Op.HasBlock:
+        case WF_HAS_BLOCK_OPCODE:
           return ['has-block', this.formatOpcode(opcode[1])];
 
-        case Op.HasBlockParams:
+        case WF_HAS_BLOCK_PARAMS_OPCODE:
           return ['has-block-params', this.formatOpcode(opcode[1])];
 
-        case Op.Curry:
+        case WF_CURRY_OPCODE:
           return [
             'curry',
             this.formatOpcode(opcode[1]),
@@ -156,10 +201,10 @@ export default class WireFormatDebugger {
             this.formatHash(opcode[4]),
           ];
 
-        case Op.Undefined:
+        case WF_UNDEFINED_OPCODE:
           return ['undefined'];
 
-        case Op.Call:
+        case WF_CALL_OPCODE:
           return [
             'call',
             this.formatOpcode(opcode[1]),
@@ -167,25 +212,25 @@ export default class WireFormatDebugger {
             this.formatHash(opcode[3]),
           ];
 
-        case Op.Concat:
+        case WF_CONCAT_OPCODE:
           return ['concat', this.formatParams(opcode[1] as WireFormat.Core.Params)];
 
-        case Op.GetStrictKeyword:
-          return ['get-strict-free', this.upvars[opcode[1]]];
+        case WF_GET_STRICT_KEYWORD_OPCODE:
+          return ['get-strict-keyword', this.upvars[opcode[1]]];
 
-        case Op.GetFreeAsComponentOrHelperHead:
+        case WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE:
           return ['GetFreeAsComponentOrHelperHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsHelperHead:
+        case WF_GET_FREE_AS_HELPER_HEAD_OPCODE:
           return ['GetFreeAsHelperHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsComponentHead:
+        case WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE:
           return ['GetFreeAsComponentHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsModifierHead:
+        case WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE:
           return ['GetFreeAsModifierHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetSymbol: {
+        case WF_GET_SYMBOL_OPCODE: {
           if (opcode[1] === 0) {
             return ['get-symbol', 'this', opcode[2]];
           } else {
@@ -193,11 +238,11 @@ export default class WireFormatDebugger {
           }
         }
 
-        case Op.GetLexicalSymbol: {
-          return ['get-template-symbol', opcode[1], opcode[2]];
+        case WF_GET_LEXICAL_SYMBOL_OPCODE: {
+          return ['get-lexical-symbol', opcode[1], opcode[2]];
         }
 
-        case Op.If:
+        case WF_IF_OPCODE:
           return [
             'if',
             this.formatOpcode(opcode[1]),
@@ -205,13 +250,13 @@ export default class WireFormatDebugger {
             opcode[3] ? this.formatBlock(opcode[3]) : null,
           ];
 
-        case Op.IfInline:
+        case WF_IF_INLINE_OPCODE:
           return ['if-inline'];
 
-        case Op.Not:
+        case WF_NOT_OPCODE:
           return ['not'];
 
-        case Op.Each:
+        case WF_EACH_OPCODE:
           return [
             'each',
             this.formatOpcode(opcode[1]),
@@ -220,19 +265,19 @@ export default class WireFormatDebugger {
             opcode[4] ? this.formatBlock(opcode[4]) : null,
           ];
 
-        case Op.Let:
+        case WF_LET_OPCODE:
           return ['let', this.formatParams(opcode[1]), this.formatBlock(opcode[2])];
 
-        case Op.Log:
+        case WF_LOG_OPCODE:
           return ['log', this.formatParams(opcode[1])];
 
-        case Op.WithDynamicVars:
+        case WF_WITH_DYNAMIC_VARS_OPCODE:
           return ['-with-dynamic-vars', this.formatHash(opcode[1]), this.formatBlock(opcode[2])];
 
-        case Op.GetDynamicVar:
+        case WF_GET_DYNAMIC_VAR_OPCODE:
           return ['-get-dynamic-vars', this.formatOpcode(opcode[1])];
 
-        case Op.InvokeComponent:
+        case WF_INVOKE_COMPONENT_OPCODE:
           return [
             'component',
             this.formatOpcode(opcode[1]),
@@ -255,7 +300,7 @@ export default class WireFormatDebugger {
       case CURRIED_MODIFIER:
         return 'modifier';
       default:
-        throw exhausted(value);
+        exhausted(value);
     }
   }
 

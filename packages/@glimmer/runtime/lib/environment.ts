@@ -20,7 +20,7 @@ import DebugRenderTree from './debug-render-tree';
 import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
 import { isArgumentError } from './vm/arguments';
 
-export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
+const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
 
 class TransactionImpl implements Transaction {
   public scheduledInstallModifiers: ModifierInstance[] = [];
@@ -28,23 +28,23 @@ class TransactionImpl implements Transaction {
   public createdComponents: ComponentInstanceWithCreate[] = [];
   public updatedComponents: ComponentInstanceWithCreate[] = [];
 
-  didCreate(component: ComponentInstanceWithCreate) {
+  didCreate(component: ComponentInstanceWithCreate): void {
     this.createdComponents.push(component);
   }
 
-  didUpdate(component: ComponentInstanceWithCreate) {
+  didUpdate(component: ComponentInstanceWithCreate): void {
     this.updatedComponents.push(component);
   }
 
-  scheduleInstallModifier(modifier: ModifierInstance) {
+  scheduleInstallModifier(modifier: ModifierInstance): void {
     this.scheduledInstallModifiers.push(modifier);
   }
 
-  scheduleUpdateModifier(modifier: ModifierInstance) {
+  scheduleUpdateModifier(modifier: ModifierInstance): void {
     this.scheduledUpdateModifiers.push(modifier);
   }
 
-  commit() {
+  commit(): void {
     let { createdComponents, updatedComponents } = this;
 
     for (const { manager, state } of createdComponents) {
@@ -93,9 +93,13 @@ class TransactionImpl implements Transaction {
   }
 }
 
-export class EnvironmentImpl implements Environment {
-  [TRANSACTION]: Nullable<TransactionImpl> = null;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+export interface EnvironmentImpl extends Environment {
+  [TRANSACTION]: Nullable<TransactionImpl>;
+}
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+export class EnvironmentImpl implements Environment {
   protected declare appendOperations: GlimmerTreeConstruction;
   protected updateOperations?: GlimmerTreeChanges | undefined;
 
@@ -123,7 +127,6 @@ export class EnvironmentImpl implements Environment {
       throw new Error('you must pass document or appendOperations to a new runtime');
     }
   }
-
   getAppendOperations(): GlimmerTreeConstruction {
     return this.appendOperations;
   }
@@ -135,7 +138,7 @@ export class EnvironmentImpl implements Environment {
     );
   }
 
-  begin() {
+  begin(): void {
     assert(
       !this[TRANSACTION],
       'A glimmer transaction was begun, but one already exists. You may have a nested transaction, possibly caused by an earlier runtime exception while rendering. Please check your console for the stack trace of any prior exceptions.'
@@ -150,27 +153,27 @@ export class EnvironmentImpl implements Environment {
     return expect(this[TRANSACTION], 'must be in a transaction');
   }
 
-  didCreate(component: ComponentInstanceWithCreate) {
+  didCreate(component: ComponentInstanceWithCreate): void {
     this.transaction.didCreate(component);
   }
 
-  didUpdate(component: ComponentInstanceWithCreate) {
+  didUpdate(component: ComponentInstanceWithCreate): void {
     this.transaction.didUpdate(component);
   }
 
-  scheduleInstallModifier(modifier: ModifierInstance) {
+  scheduleInstallModifier(modifier: ModifierInstance): void {
     if (this.isInteractive) {
       this.transaction.scheduleInstallModifier(modifier);
     }
   }
 
-  scheduleUpdateModifier(modifier: ModifierInstance) {
+  scheduleUpdateModifier(modifier: ModifierInstance): void {
     if (this.isInteractive) {
       this.transaction.scheduleUpdateModifier(modifier);
     }
   }
 
-  commit() {
+  commit(): void {
     let transaction = this.transaction;
     this[TRANSACTION] = null;
     transaction.commit();
@@ -224,5 +227,3 @@ export function inTransaction(env: Environment, block: () => void): void {
     block();
   }
 }
-
-export default EnvironmentImpl;

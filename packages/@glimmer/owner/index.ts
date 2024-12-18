@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const OWNER: unique symbol = Symbol('OWNER') as any;
+import { OWNER } from '@glimmer/state';
 
 interface OwnedObject<O extends object> {
   [OWNER]: O | undefined;

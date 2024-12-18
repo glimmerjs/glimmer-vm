@@ -1,8 +1,10 @@
-import type { Destroyable, Destructor, Dict, Nullable } from '@glimmer/interfaces';
+import type { Dict, Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
+import type { Destroyable, Destructor } from '@glimmer/state';
 import type { TestBase } from 'qunit';
+import { consumeTag } from '@glimmer/fundamental';
 import setGlobalContext from '@glimmer/global-context';
-import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
+import { dirtyTagFor, tagFor } from '@glimmer/validator';
 
 import { scheduleDidDestroy, scheduleWillDestroy } from './base-env';
 import { NativeIteratorDelegate } from './modes/env';

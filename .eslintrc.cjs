@@ -1,8 +1,17 @@
 // @ts-check
 
-const { resolve } = require('path');
+const { resolve } = require('node:path');
+const glob = require('fast-glob');
 
-const cjsTsconfig = resolve(__dirname, 'tsconfig.cjs.json');
+const eslintFiles = glob.sync('**/.eslintrc.cjs', {
+  cwd: __dirname,
+  ignore: ['**/node_modules/**', '**/dist/**', '**/ts-dist/**'],
+});
+
+const rollupFiles = glob.sync('**/rollup.config.mjs', {
+  cwd: __dirname,
+  ignore: ['**/node_modules/**', '**/dist/**', '**/ts-dist/**'],
+});
 
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
@@ -17,53 +26,50 @@ module.exports = {
     '**/node_modules',
     '**/dist',
     '**/fixtures',
-    '!**/.eslintrc.cjs',
-  ],
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 'latest',
-    project: [],
-  },
-  settings: {
-    'import/parsers': {
-      '@typescript-eslint/parser': ['.js', '.cjs', '.mjs', '.mts', '.ts', '.d.ts'],
-    },
-    'import/core-modules': ['@glimmer/debug'],
-    'import/resolver': {
-      typescript: {},
-    },
-    node: {
-      allowModules: ['@glimmer/debug', '@glimmer/local-debug-flags'],
-      tryExtensions: ['.js', '.ts', '.d.ts', '.json'],
-    },
-  },
-  plugins: [
-    '@typescript-eslint',
-    'prettier',
-    'qunit',
-    'simple-import-sort',
-    'unused-imports',
-    'prettier',
-    'n',
   ],
 
   rules: {},
   overrides: [
     {
-      files: ['.eslintrc.cjs', '**/.eslintrc.cjs'],
+      files: ['./knip.config.ts', './vite.config.mts', './.meta-updater/*.mjs'],
+      extends: ['plugin:@glimmer-workspace/recommended'],
+    },
+    {
+      files: [...eslintFiles, ...rollupFiles],
+      extends: ['plugin:@glimmer-workspace/recommended'],
       parserOptions: {
-        project: [cjsTsconfig],
+        projectService: {
+          allowDefaultProject: [...eslintFiles, ...rollupFiles],
+          defaultProject: resolve(
+            __dirname,
+            'packages/@glimmer-workspace/eslint-plugin/lib/tsconfig.plugin.json'
+          ),
+        },
       },
-      extends: [
-        'plugin:@typescript-eslint/recommended',
-        'plugin:import/errors',
-        'plugin:import/typescript',
-        'plugin:qunit/recommended',
-        'prettier',
-      ],
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
+        '@typescript-eslint/no-require-imports': 'off',
+        '@typescript-eslint/unbound-method': 'off',
+        'n/no-unpublished-import': 'off',
       },
+    },
+    {
+      files: [
+        '.release-plan.json',
+        'turbo.json',
+        '.prettierrc.json',
+        'package.json',
+        'tsconfig.json',
+      ],
+      parser: 'jsonc-eslint-parser',
+      extends: ['plugin:jsonc/recommended-with-json', 'plugin:jsonc/prettier'],
+      rules: {},
+    },
+    {
+      files: ['.vscode/*.json', 'tsconfig.*.json'],
+      parser: 'jsonc-eslint-parser',
+      extends: ['plugin:jsonc/recommended-with-jsonc', 'plugin:jsonc/prettier'],
+      rules: {},
     },
     {
       files: ['./package.json', '**/package.json'],
@@ -102,7 +108,7 @@ module.exports = {
           },
           {
             pathPattern:
-              'scripts|devDependencies|peerDependencies|optionalDependencies|pnpm|overrides|peerDependencyRules|patchedDependencies|dependenciesMeta',
+              'scripts|dependencies|devDependencies|peerDependencies|optionalDependencies|pnpm|overrides|peerDependencyRules|patchedDependencies|dependenciesMeta',
             order: { type: 'asc' },
           },
           // ...

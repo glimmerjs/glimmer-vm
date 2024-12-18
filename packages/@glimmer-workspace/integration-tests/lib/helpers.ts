@@ -1,5 +1,6 @@
-import type { CapturedArguments, Dict } from '@glimmer/interfaces';
+import type { Dict } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
+import type { CapturedArguments } from '@glimmer/state';
 import { setLocalDebugType } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { createComputeRef } from '@glimmer/reference';

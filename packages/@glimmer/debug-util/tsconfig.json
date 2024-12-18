@@ -1,0 +1,24 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "test/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/debug-util",
+    "composite": true,
+    "incremental": true,
+    "types": [
+      "qunit"
+    ]
+  },
+  "references": [
+    {
+      "path": "../interfaces/tsconfig.json"
+    },
+    {
+      "path": "../local-debug-flags/tsconfig.json"
+    }
+  ]
+}

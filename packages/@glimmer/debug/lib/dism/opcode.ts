@@ -4,20 +4,21 @@ import type {
   BlockMetadata,
   BlockSymbolNames,
   Cursor,
+  DisassembledOperand,
   NamedArguments,
   Nullable,
   PositionalArguments,
   Program,
+  RegisterName,
   RuntimeOp,
+  SomeDisassembledOperand,
   VMArguments,
 } from '@glimmer/interfaces';
 import { dev, exhausted, getLocalDebugType } from '@glimmer/debug-util';
-import { isIndexable } from '@glimmer/util';
+import { entries, isIndexable } from '@glimmer/util';
 
-import type { DisassembledOperand } from '../debug';
 import type { ValueRefOptions } from '../render/basic';
 import type { IntoFragment } from '../render/fragment';
-import type { RegisterName, SomeDisassembledOperand } from './dism';
 
 import { debugOp } from '../debug';
 import { empty, join, unknownValue, value } from '../render/basic';
@@ -29,18 +30,18 @@ export function describeOp(
   program: Program,
   meta: Nullable<BlockMetadata>
 ): Fragment {
-  const { name, params } = debugOp(program, op, meta)!;
+  const { name, params } = debugOp(program, op, meta);
 
   const block = new SerializeBlockContext(meta?.symbols ?? null);
 
-  let args: IntoFragment[] = Object.entries(params).map(
+  let args: IntoFragment[] = entries(params).map(
     ([p, v]) => frag`${as.attrName(p)}=${block.serialize(v)}`
   );
 
   return frag`(${join([as.kw(name), ...args], ' ')})`;
 }
 
-export class SerializeBlockContext {
+class SerializeBlockContext {
   readonly #symbols: Nullable<BlockSymbolNames>;
 
   constructor(symbols: Nullable<BlockSymbolNames>) {
@@ -101,6 +102,7 @@ export class SerializeBlockContext {
       case 'stringify':
         return JSON.stringify(value);
       case 'constant':
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         return `${this.#stringify(value, 'unknown')}`;
       case 'register':
         return value;
@@ -297,7 +299,3 @@ function labelledList(name: string, list: readonly unknown[]) {
     ? frag`(${as.dim('no')} ${as.dim(name)})`.subtle()
     : frag`${as.attrName(name)}=${array(list.map((v) => value(v)))}`;
 }
-
-export type SerializableKey<O, P extends keyof O> = {
-  [K in P]: O[P] extends IntoFragment ? K : never;
-}[P];

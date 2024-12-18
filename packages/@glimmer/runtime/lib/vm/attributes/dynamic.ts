@@ -10,7 +10,7 @@ import type {
 } from '@glimmer/interfaces';
 import { NS_SVG } from '@glimmer/constants';
 import { castToBrowser } from '@glimmer/debug-util';
-import { warnIfStyleNotTrusted } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
 
 import { normalizeStringValue } from '../../dom/normalize';
 import { normalizeProperty } from '../../dom/props';
@@ -103,7 +103,7 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
   }
 }
 
-export class DefaultDynamicProperty extends DynamicAttribute {
+class DefaultDynamicProperty extends DynamicAttribute {
   constructor(
     private normalizedName: string,
     attribute: AttributeCursor
@@ -132,7 +132,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
     }
   }
 
-  protected removeAttribute() {
+  protected removeAttribute(): void {
     // TODO this sucks but to preserve properties first and to meet current
     // semantics we must do this.
     const { element, namespace } = this.attribute;
@@ -145,7 +145,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
   }
 }
 
-export class SafeDynamicProperty extends DefaultDynamicProperty {
+class SafeDynamicProperty extends DefaultDynamicProperty {
   override set(dom: TreeBuilder, value: unknown, env: Environment): void {
     const { element, name } = this.attribute;
     const sanitized = sanitizeAttributeValue(element, name, value);
@@ -159,7 +159,7 @@ export class SafeDynamicProperty extends DefaultDynamicProperty {
   }
 }
 
-export class SafeDynamicAttribute extends SimpleDynamicAttribute {
+class SafeDynamicAttribute extends SimpleDynamicAttribute {
   override set(dom: TreeBuilder, value: unknown, env: Environment): void {
     const { element, name } = this.attribute;
     const sanitized = sanitizeAttributeValue(element, name, value);
@@ -173,12 +173,12 @@ export class SafeDynamicAttribute extends SimpleDynamicAttribute {
   }
 }
 
-export class InputValueDynamicAttribute extends DefaultDynamicProperty {
-  override set(dom: TreeBuilder, value: unknown) {
+class InputValueDynamicAttribute extends DefaultDynamicProperty {
+  override set(dom: TreeBuilder, value: unknown): void {
     dom.__setProperty('value', normalizeStringValue(value));
   }
 
-  override update(value: unknown) {
+  override update(value: unknown): void {
     const input = castToBrowser(this.attribute.element, ['input', 'textarea']);
     const currentValue = input.value;
     const normalizedValue = normalizeStringValue(value);
@@ -188,7 +188,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
   }
 }
 
-export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
+class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   override set(dom: TreeBuilder, value: unknown): void {
     if (value !== null && value !== undefined && value !== false) {
       dom.__setProperty('selected', true);
@@ -231,6 +231,7 @@ function normalizeValue(value: unknown): Nullable<string> {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   return String(value);
 }
 
@@ -241,12 +242,12 @@ let DebugStyleAttributeManager: {
 if (import.meta.env.DEV) {
   DebugStyleAttributeManager = class extends SimpleDynamicAttribute {
     override set(dom: TreeBuilder, value: unknown, env: Environment): void {
-      warnIfStyleNotTrusted(value);
+      context('dev').warnIfStyleNotTrusted(value);
 
       super.set(dom, value, env);
     }
     override update(value: unknown, env: Environment): void {
-      warnIfStyleNotTrusted(value);
+      context('dev').warnIfStyleNotTrusted(value);
 
       super.update(value, env);
     }

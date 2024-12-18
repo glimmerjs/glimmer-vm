@@ -1,5 +1,4 @@
-export * from './managers/capabilities.js';
-export * from './managers/component.js';
-export * from './managers/helper.js';
-export * from './managers/internal.js';
-export * from './managers/modifier.js';
+export type * from './managers/component.js';
+export type * from './managers/helper.js';
+export type * from './managers/internal/component.js';
+export type * from './managers/modifier.js';

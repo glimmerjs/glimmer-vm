@@ -1,10 +1,11 @@
-export let assign = Object.assign;
+/** @deprecated use spread */
+export let assign: typeof Object.assign = Object.assign;
 
 export function values<T>(obj: { [s: string]: T }): T[] {
   return Object.values(obj);
 }
 
-export type ObjectEntry<D extends object> = { [P in keyof D]: [P, D[P]] }[keyof D];
+type ObjectEntry<D extends object> = { [P in keyof D]: [P, D[P]] }[keyof D];
 
 export function entries<D extends object>(dict: D): ObjectEntry<D>[] {
   return Object.entries(dict) as ObjectEntry<D>[];

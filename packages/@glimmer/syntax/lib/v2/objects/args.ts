@@ -1,8 +1,9 @@
 import type { SourceSlice } from '../../source/slice';
 import type { SourceSpan } from '../../source/span';
 import type { ExpressionNode } from './expr';
+import type { AnonymousNodeConstructor } from './node';
 
-import { node } from './node';
+import { AstNode } from './node';
 
 /**
  * Corresponds to syntaxes with positional and named arguments:
@@ -15,10 +16,12 @@ import { node } from './node';
  * If `Args` is empty, the `SourceOffsets` for this node should be the collapsed position
  * immediately after the parent call node's `callee`.
  */
-export class Args extends node().fields<{
+const ArgsFields: AnonymousNodeConstructor<{
   positional: PositionalArguments;
   named: NamedArguments;
-}>() {
+}> = AstNode();
+
+export class Args extends ArgsFields {
   static empty(loc: SourceSpan): Args {
     return new Args({
       loc,
@@ -54,9 +57,10 @@ export class Args extends node().fields<{
  * If `PositionalArguments` is empty, the `SourceOffsets` for this node should be the collapsed
  * position immediately after the parent call node's `callee`.
  */
-export class PositionalArguments extends node().fields<{
-  exprs: readonly ExpressionNode[];
-}>() {
+const PositionalArgumentsFields: AnonymousNodeConstructor<{ exprs: readonly ExpressionNode[] }> =
+  AstNode();
+
+export class PositionalArguments extends PositionalArgumentsFields {
   static empty(loc: SourceSpan): PositionalArguments {
     return new PositionalArguments({
       loc,
@@ -86,9 +90,10 @@ export class PositionalArguments extends node().fields<{
  * If `PositionalArguments` is not empty but `NamedArguments` is empty, the `SourceOffsets` for this
  * node should be the collapsed position immediately after the last positional argument.
  */
-export class NamedArguments extends node().fields<{
-  entries: readonly NamedArgument[];
-}>() {
+const NamedArgumentsFields: AnonymousNodeConstructor<{ entries: readonly NamedArgument[] }> =
+  AstNode();
+
+export class NamedArguments extends NamedArgumentsFields {
   static empty(loc: SourceSpan): NamedArguments {
     return new NamedArguments({
       loc,

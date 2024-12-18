@@ -1,4 +1,4 @@
-import { PluginOption, defineConfig } from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   server: {
@@ -8,9 +8,9 @@ export default defineConfig({
   plugins: [
     {
       name: 'define custom import.meta.env',
-      async transform(code) {
+      transform(code) {
         if (code.includes('import.meta.env.VM_LOCAL_DEV')) {
-          return code.replace(/import.meta.env.VM_LOCAL_DEV/g, 'true');
+          return code.replace(/import.meta.env.VM_LOCAL_DEV/gu, 'true');
         }
         return undefined;
       },

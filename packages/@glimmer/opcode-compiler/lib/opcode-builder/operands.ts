@@ -23,15 +23,24 @@ import type {
 import { isSmallInt } from '@glimmer/constants';
 import { assert } from '@glimmer/debug-util';
 
-export const HighLevelOperands = {
-  Label: 1 satisfies LabelOperandType,
-  IsStrictMode: 2 satisfies IsStrictModeOperandType,
-  DebugSymbols: 3 satisfies DebugSymbolsOperandType,
-  Block: 4 satisfies BlockOperandType,
-  StdLib: 5 satisfies StdLibOperandType,
-  NonSmallInt: 6 satisfies NonSmallIntOperandType,
-  SymbolTable: 7 satisfies SymbolTableOperandType,
-  Layout: 8 satisfies LayoutOperandType,
+export const HighLevelOperands: {
+  readonly Label: LabelOperandType;
+  readonly IsStrictMode: IsStrictModeOperandType;
+  readonly DebugSymbols: DebugSymbolsOperandType;
+  readonly Block: BlockOperandType;
+  readonly StdLib: StdLibOperandType;
+  readonly NonSmallInt: NonSmallIntOperandType;
+  readonly SymbolTable: SymbolTableOperandType;
+  readonly Layout: LayoutOperandType;
+} = {
+  Label: 1,
+  IsStrictMode: 2,
+  DebugSymbols: 3,
+  Block: 4,
+  StdLib: 5,
+  NonSmallInt: 6,
+  SymbolTable: 7,
+  Layout: 8,
 } as const;
 
 export function labelOperand(value: string): LabelOperand {

@@ -1,4 +1,4 @@
-import type { GlobalContext } from '@glimmer/global-context';
+import type { GlobalContextOverride } from '@glimmer/global-context';
 import { unwrap } from '@glimmer/debug-util';
 import {
   assertDestroyablesDestroyed,
@@ -27,10 +27,10 @@ function flush() {
 }
 
 module('Destroyables', (hooks) => {
-  let originalContext: GlobalContext | null;
+  let override: GlobalContextOverride;
 
   hooks.beforeEach(() => {
-    originalContext = unwrap(
+    override = unwrap(
       testOverrideGlobalContext?.({
         scheduleDestroy<T extends object>(destroyable: T, destructor: (obj: T) => void) {
           destroyQueue.push(() => destructor(destroyable));
@@ -44,7 +44,7 @@ module('Destroyables', (hooks) => {
   });
 
   hooks.afterEach(() => {
-    unwrap(testOverrideGlobalContext)(originalContext);
+    override.done();
   });
 
   hooks.afterEach((assert) => {

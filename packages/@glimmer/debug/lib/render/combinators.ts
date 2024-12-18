@@ -19,7 +19,7 @@ function append(contents: Fragment, after: IntoFragment): Fragment {
 /**
  * The `wrap` function returns a subtle fragment if the contents are subtle.
  */
-export function wrap(start: IntoFragment, contents: Fragment, end: IntoFragment) {
+export function wrap(start: IntoFragment, contents: Fragment, end: IntoFragment): Fragment {
   return append(prepend(start, contents), end);
 }
 
@@ -84,7 +84,7 @@ export function compactArray<T>(
   }
 }
 
-export function dictionary(entries: Iterable<[key: string, value: unknown]>) {
+export function dictionary(entries: Iterable<[key: string, value: unknown]>): Fragment {
   return frag`{ ${[...entries].map(([k, v]) => frag`${as.attrName(k)}=${value(v)}`)} }`;
 }
 

@@ -1,5 +1,19 @@
-import type { Dict, WellKnownAttrName, WellKnownTagName } from '@glimmer/interfaces';
-import { WellKnownAttrNames, WellKnownTagNames } from '@glimmer/wire-format';
+import type {
+  ATag,
+  ClassAttr,
+  Dict,
+  DivTag,
+  HrefAttr,
+  IdAttr,
+  NameAttr,
+  PTag,
+  SpanTag,
+  StyleAttr,
+  TypeAttr,
+  ValueAttr,
+  WellKnownAttrName,
+  WellKnownTagName,
+} from '@glimmer/interfaces';
 
 // There is a small whitelist of namespaced attributes specially
 // enumerated in
@@ -41,10 +55,10 @@ export function getAttrNamespace(attrName: string): string | undefined {
 const DEFLATE_TAG_TABLE: {
   [tagName: string]: WellKnownTagName | undefined;
 } = {
-  div: WellKnownTagNames.div,
-  span: WellKnownTagNames.span,
-  p: WellKnownTagNames.p,
-  a: WellKnownTagNames.a,
+  div: 0 satisfies DivTag,
+  span: 1 satisfies SpanTag,
+  p: 2 satisfies PTag,
+  a: 3 satisfies ATag,
 };
 
 const INFLATE_TAG_TABLE: {
@@ -62,13 +76,13 @@ export function inflateTagName(tagName: string | WellKnownTagName): string {
 const DEFLATE_ATTR_TABLE: {
   [tagName: string]: WellKnownAttrName | undefined;
 } = {
-  class: WellKnownAttrNames.class,
-  id: WellKnownAttrNames.id,
-  value: WellKnownAttrNames.value,
-  name: WellKnownAttrNames.name,
-  type: WellKnownAttrNames.type,
-  style: WellKnownAttrNames.style,
-  href: WellKnownAttrNames.href,
+  class: 0 satisfies ClassAttr,
+  id: 1 satisfies IdAttr,
+  value: 2 satisfies ValueAttr,
+  name: 3 satisfies NameAttr,
+  type: 4 satisfies TypeAttr,
+  style: 5 satisfies StyleAttr,
+  href: 6 satisfies HrefAttr,
 };
 
 const INFLATE_ATTR_TABLE: {

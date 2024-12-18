@@ -1,6 +1,5 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { assert, assertPresentArray } from '@glimmer/debug-util';
-import { assign } from '@glimmer/util';
 
 import type { SourceSpan } from '../source/span';
 import type { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
@@ -325,7 +324,7 @@ export class Builder {
   }
 }
 
-export interface BuildBaseElement {
+interface BuildBaseElement {
   selfClosing: boolean;
   attrs: ASTv2.HtmlOrSplatAttr[];
   componentArgs: ASTv2.ComponentArg[];
@@ -340,48 +339,34 @@ export class BuildElement {
   }
 
   simple(tag: SourceSlice, body: ASTv2.ContentNode[], loc: SourceSpan): ASTv2.SimpleElement {
-    return new ASTv2.SimpleElement(
-      assign(
-        {
-          tag,
-          body,
-          componentArgs: [],
-          loc,
-        },
-        this.base
-      )
-    );
+    return new ASTv2.SimpleElement({
+      tag,
+      body,
+      loc,
+      ...this.base,
+    });
   }
 
   named(name: SourceSlice, block: ASTv2.Block, loc: SourceSpan): ASTv2.NamedBlock {
-    return new ASTv2.NamedBlock(
-      assign(
-        {
-          name,
-          block,
-          componentArgs: [],
-          loc,
-        },
-        this.base
-      )
-    );
+    return new ASTv2.NamedBlock({
+      name,
+      block,
+      loc,
+      ...this.base,
+    });
   }
 
   selfClosingComponent(callee: ASTv2.ExpressionNode, loc: SourceSpan): ASTv2.InvokeComponent {
-    return new ASTv2.InvokeComponent(
-      assign(
-        {
-          loc,
-          callee,
-          // point the empty named blocks at the `/` self-closing tag
-          blocks: new ASTv2.NamedBlocks({
-            blocks: [],
-            loc: loc.sliceEndChars({ skipEnd: 1, chars: 1 }),
-          }),
-        },
-        this.base
-      )
-    );
+    return new ASTv2.InvokeComponent({
+      loc,
+      callee,
+      // point the empty named blocks at the `/` self-closing tag
+      blocks: new ASTv2.NamedBlocks({
+        blocks: [],
+        loc: loc.sliceEndChars({ skipEnd: 1, chars: 1 }),
+      }),
+      ...this.base,
+    });
   }
 
   componentWithDefaultBlock(
@@ -393,16 +378,12 @@ export class BuildElement {
     let block = this.builder.block(symbols, children, loc);
     let namedBlock = this.builder.namedBlock(SourceSlice.synthetic('default'), block, loc); // BUILDER.simpleNamedBlock('default', children, symbols, loc);
 
-    return new ASTv2.InvokeComponent(
-      assign(
-        {
-          loc,
-          callee,
-          blocks: this.builder.namedBlocks([namedBlock], namedBlock.loc),
-        },
-        this.base
-      )
-    );
+    return new ASTv2.InvokeComponent({
+      loc,
+      callee,
+      blocks: this.builder.namedBlocks([namedBlock], namedBlock.loc),
+      ...this.base,
+    });
   }
 
   componentWithNamedBlocks(
@@ -410,15 +391,11 @@ export class BuildElement {
     blocks: PresentArray<ASTv2.NamedBlock>,
     loc: SourceSpan
   ): ASTv2.InvokeComponent {
-    return new ASTv2.InvokeComponent(
-      assign(
-        {
-          loc,
-          callee,
-          blocks: this.builder.namedBlocks(blocks, SpanList.range(blocks)),
-        },
-        this.base
-      )
-    );
+    return new ASTv2.InvokeComponent({
+      loc,
+      callee,
+      blocks: this.builder.namedBlocks(blocks, SpanList.range(blocks)),
+      ...this.base,
+    });
   }
 }

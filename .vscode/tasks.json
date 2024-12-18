@@ -5,7 +5,6 @@
       "type": "shell",
       "command": "pnpm",
       "args": ["dotenv", "--", "turbo", "lint"],
-      // "script": "lint:files",
       "problemMatcher": ["$eslint-stylish"],
       "presentation": {
         "echo": true,
@@ -17,6 +16,34 @@
       },
       "label": "turbo: lint",
       "detail": "dotenv -- turbo lint"
+    },
+    {
+      "label": "Check Types in the background",
+      "detail": "pnpm lint:types:watch",
+      "type": "npm",
+      "script": "lint:types:watch",
+      "isBackground": true,
+      "runOptions": {
+        "instanceLimit": 1,
+        "reevaluateOnRerun": true,
+        "runOn": "default"
+      },
+      "problemMatcher": ["$tsc-watch"],
+      "group": "build"
+    },
+    {
+      "label": "Type Check",
+      "detail": "pnpm lint:types",
+      "type": "npm",
+      "script": "lint:types",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": ["$eslint-stylish"],
+      "label": "npm: lint",
+      "detail": "x-env turbo lint --concurrency=\\$TURBO_CONCURRENCY --color"
     }
   ]
 }

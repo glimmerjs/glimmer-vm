@@ -17,7 +17,7 @@ import b from '../v1/parser-builders';
 const BEFORE_ATTRIBUTE_NAME = 'beforeAttributeName' as TokenizerState.beforeAttributeName;
 const ATTRIBUTE_VALUE_UNQUOTED = 'attributeValueUnquoted' as TokenizerState.attributeValueUnquoted;
 
-export interface PendingError {
+interface PendingError {
   mustache(span: SourceSpan): never;
   eof(offset: SourceOffset): never;
 }

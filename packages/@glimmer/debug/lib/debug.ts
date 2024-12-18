@@ -1,11 +1,15 @@
 import type {
   BlockMetadata,
   CompilationContext,
+  DebugOp,
   Dict,
-  Nullable,
+  OpSnapshot,
+  Primitive,
   Program,
   ProgramConstants,
-  RuntimeOp,
+  RawDisassembledOperand,
+  RegisterName,
+  SomeDisassembledOperand,
 } from '@glimmer/interfaces';
 import {
   CURRIED_COMPONENT,
@@ -19,7 +23,6 @@ import { LOCAL_DEBUG, LOCAL_SUBTLE_LOGGING, LOCAL_TRACE_LOGGING } from '@glimmer
 import { enumerate, LOCAL_LOGGER } from '@glimmer/util';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 
-import type { Primitive, RegisterName } from './dism/dism';
 import type { NormalizedOperand, OperandType, ShorthandOperand } from './dism/operand-types';
 
 import { describeOp } from './dism/opcode';
@@ -28,7 +31,7 @@ import { opcodeMetadata } from './opcode-metadata';
 import { frag } from './render/fragment';
 import { DebugLogger } from './render/logger';
 
-export function logOpcodeSlice(context: CompilationContext, start: number, end: number) {
+export function logOpcodeSlice(context: CompilationContext, start: number, end: number): void {
   if (LOCAL_TRACE_LOGGING) {
     const logger = new DebugLogger(LOCAL_LOGGER, { showSubtle: !!LOCAL_SUBTLE_LOGGING });
     LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
@@ -167,100 +170,7 @@ function json(param: SomeDisassembledOperand): string | string[] | null {
   }
 }
 
-export type AnyOperand = [type: string, value: never, options?: object];
-export type OperandTypeOf<O extends AnyOperand> = O[0];
-export type OperandValueOf<O extends AnyOperand> = O[1];
-export type OperandOptionsOf<O extends AnyOperand> = O extends [
-  type: string,
-  value: never,
-  options: infer Options,
-]
-  ? Options
-  : void;
-export type OperandOptionsA<O extends AnyOperand> = O extends [
-  type: string,
-  value: never,
-  options: infer Options,
-]
-  ? Options
-  : {};
-
-type ExtractA<O> = O extends { a: infer A } ? A : never;
-type ExpandUnion<U> = U extends infer O ? ExtractA<{ a: O }> : never;
-
-export type NullableOperand<O extends AnyOperand> =
-  | [OperandTypeOf<O>, OperandValueOf<O>, Expand<OperandOptionsA<O> & { nullable?: false }>]
-  | [
-      OperandTypeOf<O>,
-      Nullable<OperandValueOf<O>>,
-      Expand<OperandOptionsA<O> & { nullable: true }>,
-    ];
-
-export type NullableName<T extends string> = T extends `${infer N}?` ? N : never;
-
-export type WithOptions<O extends AnyOperand, Options> = ExpandUnion<
-  [OperandTypeOf<O>, OperandValueOf<O>, Expand<OperandOptionsA<O> & Options>]
->;
-
-// expands object types one level deep
-type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
-
-type DefineOperand<T extends string, V, Options = undefined> = undefined extends Options
-  ? readonly [type: T, value: V]
-  : readonly [type: T, value: V, options: Options];
-
-type DefineNullableOperand<T extends string, V, Options = undefined> = Options extends undefined
-  ?
-      | readonly [type: T, value: V]
-      | readonly [type: T, value: Nullable<V>, options: { nullable: true }]
-      | readonly [type: T, value: V, options: { nullable?: false }]
-  :
-      | readonly [type: T, value: Nullable<V>, options: Expand<Options & { nullable: true }>]
-      | readonly [type: T, value: V, options: Expand<Options & { nullable?: false }>]
-      | readonly [type: T, value: V, options: Options];
-
-/**
- * A dynamic operand has a value that can't be easily represented as an embedded string.
- */
-export type RawDynamicDisassembledOperand =
-  | DefineOperand<'dynamic', unknown>
-  | DefineOperand<'constant', number>
-  | DefineNullableOperand<'array', unknown[]>
-  | DefineOperand<'variable', number, { name?: string | null }>;
-
-export type RawStaticDisassembledOperand =
-  | DefineOperand<'error:operand', number, { label: NormalizedOperand }>
-  | DefineOperand<'error:opcode', number, { kind: number }>
-  | DefineOperand<'number', number>
-  | DefineOperand<'boolean', boolean>
-  | DefineOperand<'primitive', Primitive>
-  | DefineOperand<'register', RegisterName>
-  | DefineOperand<'instruction', number>
-  | DefineOperand<'enum<curry>', 'component' | 'helper' | 'modifier'>
-  | DefineOperand<'array', number[], { kind: typeof Number }>
-  | DefineNullableOperand<'array', string[], { kind: typeof String }>
-  /**
-   * A variable is a numeric offset into the stack (relative to the $fp register).
-   */
-  | DefineNullableOperand<'string', string>;
-
-export type RawDisassembledOperand = RawStaticDisassembledOperand | RawDynamicDisassembledOperand;
-
-type ObjectForRaw<R> = R extends RawDisassembledOperand
-  ? R[2] extends undefined
-    ? {
-        type: R[0];
-        value: R[1];
-        options?: R[2];
-      }
-    : {
-        type: R[0];
-        value: R[1];
-        options: R[2];
-      }
-  : never;
-
-export class DisassembledOperand<R extends RawDisassembledOperand = RawDisassembledOperand> {
+class DisassembledOperand<R extends RawDisassembledOperand = RawDisassembledOperand> {
   static of(raw: RawDisassembledOperand): SomeDisassembledOperand {
     return new DisassembledOperand(raw) as never;
   }
@@ -282,34 +192,6 @@ export class DisassembledOperand<R extends RawDisassembledOperand = RawDisassemb
   get options(): R[2] {
     return this.#raw[2];
   }
-}
-
-export type StaticDisassembledOperand = ObjectForRaw<RawStaticDisassembledOperand> & {
-  isDynamic: false;
-};
-export type DynamicDisassembledOperand = ObjectForRaw<RawDynamicDisassembledOperand> & {
-  isDynamic: true;
-};
-
-export type SomeDisassembledOperand = StaticDisassembledOperand | DynamicDisassembledOperand;
-
-export interface DebugOp {
-  name: string;
-  params: Dict<SomeDisassembledOperand>;
-  meta: BlockMetadata | null;
-}
-
-export type OpSnapshot = Pick<RuntimeOp, 'offset' | 'size' | 'type' | 'op1' | 'op2' | 'op3'>;
-
-export function getOpSnapshot(op: RuntimeOp): OpSnapshot {
-  return {
-    offset: op.offset,
-    size: op.size,
-    type: op.type,
-    op1: op.op1,
-    op2: op.op2,
-    op3: op.op3,
-  };
 }
 
 class DebugOperandInfo {
@@ -377,7 +259,7 @@ export function debugOp(program: Program, op: OpSnapshot, meta: BlockMetadata | 
     return { name: metadata.name, params: fromRaw(out), meta };
   }
 
-  throw unreachable(`BUG: Don't try to debug opcodes while trace is disabled`);
+  unreachable(`BUG: Don't try to debug opcodes while trace is disabled`);
 }
 
 function normalizeOperand(operand: ShorthandOperand): NormalizedOperand {

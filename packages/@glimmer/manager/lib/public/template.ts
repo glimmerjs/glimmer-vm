@@ -5,7 +5,7 @@ const TEMPLATES: WeakMap<object, TemplateFactory> = new WeakMap();
 
 const getPrototypeOf = Object.getPrototypeOf;
 
-export function setComponentTemplate(factory: TemplateFactory, obj: object) {
+export function setComponentTemplate(factory: TemplateFactory, obj: object): object {
   if (
     import.meta.env.DEV &&
     !(obj !== null && (typeof obj === 'object' || typeof obj === 'function'))

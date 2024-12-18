@@ -1,6 +1,5 @@
 import type {
   AttributeHookCapability,
-  Capabilities,
   CapabilityMask,
   CreateArgsCapability,
   CreateCallerCapability,
@@ -12,7 +11,6 @@ import type {
   Expand,
   HasSubOwnerCapability,
   InternalComponentCapability,
-  InternalComponentManager,
   PrepareArgsCapability,
   UpdateHookCapability,
   WillDestroyCapability,
@@ -23,10 +21,14 @@ import type {
   WithUpdateHook,
   WrappedCapability,
 } from '@glimmer/interfaces';
+import type { Capabilities, InternalComponentManager } from '@glimmer/state';
 import { check, CheckNumber } from '@glimmer/debug';
 import { InternalComponentCapabilities } from '@glimmer/vm';
 
-export const FROM_CAPABILITIES = import.meta.env.DEV ? new WeakSet() : undefined;
+// @triage does this WeakMap need to be in @glimmer/state
+export const FROM_CAPABILITIES: WeakSet<WeakKey> | undefined = import.meta.env.DEV
+  ? new WeakSet()
+  : undefined;
 
 export function buildCapabilities<T extends object>(capabilities: T): T & Capabilities {
   if (import.meta.env.DEV) {
@@ -70,7 +72,7 @@ function capability(
   return capabilities[capability] ? InternalComponentCapabilities[capability] : EMPTY;
 }
 
-export type InternalComponentCapabilityFor<C extends InternalComponentCapability> =
+type InternalComponentCapabilityFor<C extends InternalComponentCapability> =
   C extends DynamicLayoutCapability
     ? WithDynamicLayout
     : C extends DynamicTagCapability

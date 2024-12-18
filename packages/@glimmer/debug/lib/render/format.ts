@@ -2,10 +2,10 @@ import type { StyleName } from './styles';
 
 import { STYLES } from './styles';
 
-export type Format = { style: string };
+type Format = { style: string };
 export type IntoFormat = { style: string } | StyleName;
 
-export function intoFormat(format: IntoFormat): Format {
+function intoFormat(format: IntoFormat): Format {
   if (typeof format === 'string') {
     return { style: STYLES[format] };
   } else {
@@ -13,6 +13,6 @@ export function intoFormat(format: IntoFormat): Format {
   }
 }
 
-export function formats(...formats: IntoFormat[]) {
+export function formats(...formats: IntoFormat[]): string {
   return formats.map((c) => intoFormat(c).style).join('; ');
 }

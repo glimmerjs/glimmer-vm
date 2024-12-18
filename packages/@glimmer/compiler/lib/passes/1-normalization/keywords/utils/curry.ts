@@ -81,14 +81,13 @@ function translateCurryKeyword(curriedType: CurriedType) {
     let definitionResult = VISIT_EXPRS.visit(definition, state);
     let argsResult = VISIT_EXPRS.Args(args, state);
 
-    return Result.all(definitionResult, argsResult).mapOk(
-      ([definition, args]) =>
-        new mir.Curry({
-          loc: node.loc,
-          curriedType,
-          definition,
-          args,
-        })
+    return Result.all(definitionResult, argsResult).mapOk(([definition, args]) =>
+      mir.Curry({
+        loc: node.loc,
+        curriedType,
+        definition,
+        args,
+      })
     );
   };
 }

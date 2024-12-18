@@ -1,24 +1,31 @@
 import type {
+  ModifierCapabilitiesVersions,
+  ModifierManager,
+  SimpleElement,
+  UpdatableTag,
+} from '@glimmer/interfaces';
+import type {
   Arguments,
   CapturedArguments,
   InternalModifierManager,
   ModifierCapabilities,
-  ModifierCapabilitiesVersions,
-  ModifierManager,
   Owner,
-  SimpleElement,
-  UpdatableTag,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 import { castToBrowser } from '@glimmer/debug-util';
 import { registerDestructor } from '@glimmer/destroyable';
-import { valueForRef } from '@glimmer/reference';
-import { dict } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
 
 import type { ManagerFactory } from '.';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
+
+export type {
+  CapturedArguments,
+  InternalModifierManager,
+  ModifierCapabilities,
+  Owner,
+} from '@glimmer/state';
 
 export function modifierCapabilities<Version extends keyof ModifierCapabilitiesVersions>(
   managerAPI: Version,
@@ -33,7 +40,7 @@ export function modifierCapabilities<Version extends keyof ModifierCapabilitiesV
   });
 }
 
-export interface CustomModifierState<ModifierInstance> {
+interface CustomModifierState<ModifierInstance> {
   tag: UpdatableTag;
   element: SimpleElement;
   modifier: ModifierInstance;
@@ -97,7 +104,12 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     return delegate;
   }
 
-  create(owner: O, element: SimpleElement, definition: object, capturedArgs: CapturedArguments) {
+  create(
+    owner: O,
+    element: SimpleElement,
+    definition: object,
+    capturedArgs: CapturedArguments
+  ): CustomModifierState<ModifierInstance> {
     let delegate = this.getDelegateFor(owner);
 
     let args = argsProxyFor(capturedArgs, 'modifier');
@@ -119,7 +131,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     return state;
   }
 
-  getDebugName(definition: object) {
+  getDebugName(definition: object): string {
     if (typeof definition === 'function') {
       return definition.name || definition.toString();
     } else {
@@ -127,15 +139,15 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     }
   }
 
-  getDebugInstance({ modifier }: CustomModifierState<ModifierInstance>) {
+  getDebugInstance({ modifier }: CustomModifierState<ModifierInstance>): ModifierInstance {
     return modifier;
   }
 
-  getTag({ tag }: CustomModifierState<ModifierInstance>) {
+  getTag({ tag }: CustomModifierState<ModifierInstance>): UpdatableTag {
     return tag;
   }
 
-  install({ element, args, modifier, delegate }: CustomModifierState<ModifierInstance>) {
+  install({ element, args, modifier, delegate }: CustomModifierState<ModifierInstance>): void {
     let { capabilities } = delegate;
 
     if (capabilities.disableAutoTracking === true) {
@@ -145,7 +157,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     }
   }
 
-  update({ args, modifier, delegate }: CustomModifierState<ModifierInstance>) {
+  update({ args, modifier, delegate }: CustomModifierState<ModifierInstance>): void {
     let { capabilities } = delegate;
 
     if (capabilities.disableAutoTracking === true) {
@@ -155,25 +167,9 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     }
   }
 
-  getDestroyable(state: CustomModifierState<ModifierInstance>) {
+  getDestroyable(
+    state: CustomModifierState<ModifierInstance>
+  ): CustomModifierState<ModifierInstance> {
     return state;
   }
-}
-
-export function reifyArgs({ named, positional }: CapturedArguments): {
-  named: Record<string, unknown>;
-  positional: unknown[];
-} {
-  let reifiedNamed = dict();
-
-  for (const [key, value] of Object.entries(named)) {
-    reifiedNamed[key] = valueForRef(value);
-  }
-
-  let reifiedPositional = positional.map(valueForRef);
-
-  return {
-    named: reifiedNamed,
-    positional: reifiedPositional,
-  };
 }

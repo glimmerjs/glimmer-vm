@@ -3,7 +3,7 @@ import type {
   CapturedArguments,
   CapturedNamedArguments,
   CapturedPositionalArguments,
-} from '@glimmer/interfaces';
+} from '@glimmer/state';
 import type { Tag } from '@glimmer/validator';
 import { valueForRef } from '@glimmer/reference';
 import { track } from '@glimmer/validator';
@@ -14,7 +14,7 @@ export function getCustomTagFor(obj: object): ((obj: object, key: string) => Tag
   return CUSTOM_TAG_FOR.get(obj);
 }
 
-export function setCustomTagFor(obj: object, customTagFn: (obj: object, key: string) => Tag) {
+export function setCustomTagFor(obj: object, customTagFn: (obj: object, key: string) => Tag): void {
   CUSTOM_TAG_FOR.set(obj, customTagFn);
 }
 
@@ -52,12 +52,12 @@ function tagForPositionalArg(positionalArgs: CapturedPositionalArguments, key: s
   });
 }
 
-class NamedArgsProxy implements ProxyHandler<{}> {
-  declare set?: (target: {}, prop: string | number | symbol) => boolean;
+class NamedArgsProxy implements ProxyHandler<object> {
+  declare set?: (target: object, prop: string | number | symbol) => boolean;
 
   constructor(private named: CapturedNamedArguments) {}
 
-  get(_target: {}, prop: string | number | symbol) {
+  get(_target: object, prop: string | number | symbol) {
     const ref = this.named[prop as string];
 
     if (ref !== undefined) {
@@ -65,7 +65,7 @@ class NamedArgsProxy implements ProxyHandler<{}> {
     }
   }
 
-  has(_target: {}, prop: string | number | symbol) {
+  has(_target: object, prop: string | number | symbol) {
     return prop in this.named;
   }
 
@@ -77,7 +77,7 @@ class NamedArgsProxy implements ProxyHandler<{}> {
     return false;
   }
 
-  getOwnPropertyDescriptor(_target: {}, prop: string | number | symbol) {
+  getOwnPropertyDescriptor(_target: object, prop: string | number | symbol) {
     if (import.meta.env.DEV && !(prop in this.named)) {
       throw new Error(
         `args proxies do not have real property descriptors, so you should never need to call getOwnPropertyDescriptor yourself. This code exists for enumerability, such as in for-in loops and Object.keys(). Attempted to get the descriptor for \`${String(

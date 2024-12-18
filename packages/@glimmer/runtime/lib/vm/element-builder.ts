@@ -28,12 +28,12 @@ import type { DynamicAttribute } from './attributes/dynamic';
 import { clear, ConcreteBounds, CursorImpl } from '../bounds';
 import { dynamicAttribute } from './attributes/dynamic';
 
-export interface FirstNode {
+interface FirstNode {
   debug?: { first: () => Nullable<SimpleNode> };
   firstNode(): SimpleNode;
 }
 
-export interface LastNode {
+interface LastNode {
   debug?: { last: () => Nullable<SimpleNode> };
   lastNode(): SimpleNode;
 }
@@ -54,26 +54,6 @@ class Last {
   }
 }
 
-export class Fragment implements Bounds {
-  private bounds: Bounds;
-
-  constructor(bounds: Bounds) {
-    this.bounds = bounds;
-  }
-
-  parentElement(): SimpleElement {
-    return this.bounds.parentElement();
-  }
-
-  firstNode(): SimpleNode {
-    return this.bounds.firstNode();
-  }
-
-  lastNode(): SimpleNode {
-    return this.bounds.lastNode();
-  }
-}
-
 export class NewTreeBuilder implements TreeBuilder {
   declare debug?: () => {
     blocks: AppendingBlock[];
@@ -87,11 +67,11 @@ export class NewTreeBuilder implements TreeBuilder {
   public operations: Nullable<ElementOperations> = null;
   private env: Environment;
 
-  readonly cursors = new Stack<Cursor>();
+  readonly cursors: Stack<Cursor> = new Stack<Cursor>();
   private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
   private blockStack = new Stack<AppendingBlock>();
 
-  static forInitialRender(env: Environment, cursor: CursorImpl) {
+  static forInitialRender(env: Environment, cursor: CursorImpl): NewTreeBuilder {
     return new this(env, cursor.element, cursor.nextSibling).initialize();
   }
 
@@ -137,7 +117,7 @@ export class NewTreeBuilder implements TreeBuilder {
     return this.cursors.current!.nextSibling;
   }
 
-  get hasBlocks() {
+  get hasBlocks(): boolean {
     return this.blockStack.size > 0;
   }
 
@@ -145,7 +125,7 @@ export class NewTreeBuilder implements TreeBuilder {
     return expect(this.blockStack.current, 'Expected a current live block');
   }
 
-  popElement() {
+  popElement(): void {
     this.cursors.pop();
     expect(this.cursors.current, "can't pop past the last element");
   }
@@ -197,7 +177,7 @@ export class NewTreeBuilder implements TreeBuilder {
     return this.dom.createElement(tag, this.element);
   }
 
-  flushElement(modifiers: Nullable<ModifierInstance[]>) {
+  flushElement(modifiers: Nullable<ModifierInstance[]>): void {
     let parent = this.element;
     let element = expect(
       this.constructing,
@@ -214,7 +194,7 @@ export class NewTreeBuilder implements TreeBuilder {
     this.didOpenElement(element);
   }
 
-  __flushElement(parent: SimpleElement, constructing: SimpleElement) {
+  __flushElement(parent: SimpleElement, constructing: SimpleElement): void {
     this.dom.insertBefore(parent, constructing, this.nextSibling);
   }
 
@@ -388,7 +368,7 @@ export class NewTreeBuilder implements TreeBuilder {
   }
 }
 
-export class AppendingBlockImpl implements AppendingBlock {
+class AppendingBlockImpl implements AppendingBlock {
   declare debug?: { first: () => Nullable<SimpleNode>; last: () => Nullable<SimpleNode> };
 
   protected first: Nullable<FirstNode> = null;
@@ -406,7 +386,7 @@ export class AppendingBlockImpl implements AppendingBlock {
     }
   }
 
-  parentElement() {
+  parentElement(): SimpleElement {
     return this.parent;
   }
 
@@ -428,16 +408,16 @@ export class AppendingBlockImpl implements AppendingBlock {
     return last.lastNode();
   }
 
-  openElement(element: SimpleElement) {
+  openElement(element: SimpleElement): void {
     this.didAppendNode(element);
     this.nesting++;
   }
 
-  closeElement() {
+  closeElement(): void {
     this.nesting--;
   }
 
-  didAppendNode(node: SimpleNode) {
+  didAppendNode(node: SimpleNode): void {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -447,7 +427,7 @@ export class AppendingBlockImpl implements AppendingBlock {
     this.last = new Last(node);
   }
 
-  didAppendBounds(bounds: Bounds) {
+  didAppendBounds(bounds: Bounds): void {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -457,7 +437,7 @@ export class AppendingBlockImpl implements AppendingBlock {
     this.last = bounds;
   }
 
-  finalize(stack: TreeBuilder) {
+  finalize(stack: TreeBuilder): void {
     if (this.first === null) {
       stack.appendComment('');
     }
@@ -530,7 +510,7 @@ export class AppendingBlockList implements AppendingBlock {
     this.boundList = boundList;
   }
 
-  parentElement() {
+  parentElement(): SimpleElement {
     return this.parent;
   }
 
@@ -554,21 +534,21 @@ export class AppendingBlockList implements AppendingBlock {
     return tail.lastNode();
   }
 
-  openElement(_element: SimpleElement) {
+  openElement(_element: SimpleElement): void {
     assert(false, 'Cannot openElement directly inside a block list');
   }
 
-  closeElement() {
+  closeElement(): void {
     assert(false, 'Cannot closeElement directly inside a block list');
   }
 
-  didAppendNode(_node: SimpleNode) {
+  didAppendNode(_node: SimpleNode): void {
     assert(false, 'Cannot create a new node directly inside a block list');
   }
 
-  didAppendBounds(_bounds: Bounds) {}
+  didAppendBounds(_bounds: Bounds): void {}
 
-  finalize(_stack: TreeBuilder) {
+  finalize(_stack: TreeBuilder): void {
     assert(this.boundList.length > 0, 'boundsList cannot be empty');
   }
 }

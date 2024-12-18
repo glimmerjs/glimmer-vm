@@ -3,6 +3,7 @@ import { CURRIED_COMPONENT } from '@glimmer/constants';
 import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../context';
+import type { Keyword, Keywords } from './impl';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
@@ -11,7 +12,15 @@ import { VISIT_STMTS } from '../visitors/statements';
 import { keywords } from './impl';
 import { assertCurryKeyword } from './utils/curry';
 
-export const BLOCK_KEYWORDS = keywords('Block')
+export const BLOCK_KEYWORDS: Keywords<
+  'Block',
+  | Keyword<'Block', mir.InElement>
+  | Keyword<'Block', mir.If>
+  | Keyword<'Block', mir.Each>
+  | Keyword<'Block', mir.Let>
+  | Keyword<'Block', mir.WithDynamicVars>
+  | Keyword<'Block', mir.InvokeComponent>
+> = keywords('Block')
   .kw('in-element', {
     assert(node: ASTv2.InvokeBlock): Result<{
       insertBefore: ASTv2.ExpressionNode | null;
@@ -70,22 +79,21 @@ export const BLOCK_KEYWORDS = keywords('Block')
               return Ok({
                 body,
                 destination,
-                insertBefore: new mir.Missing({
+                insertBefore: mir.Missing({
                   loc: node.callee.loc.collapse('end'),
                 }),
               });
             }
           }
         )
-        .mapOk(
-          ({ body, destination, insertBefore }) =>
-            new mir.InElement({
-              loc: node.loc,
-              block: body,
-              insertBefore,
-              guid: state.generateUniqueCursor(),
-              destination,
-            })
+        .mapOk(({ body, destination, insertBefore }) =>
+          mir.InElement({
+            loc: node.loc,
+            block: body,
+            insertBefore,
+            guid: state.generateUniqueCursor(),
+            destination,
+          })
         );
     },
   })
@@ -142,7 +150,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          mir.If({
             loc: node.loc,
             condition,
             block,
@@ -204,9 +212,9 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          mir.If({
             loc: node.loc,
-            condition: new mir.Not({ value: condition, loc: node.loc }),
+            condition: mir.Not({ value: condition, loc: node.loc }),
             block,
             inverse,
           })
@@ -271,7 +279,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(valueResult, keyResult, blockResult, inverseResult).mapOk(
         ([value, key, block, inverse]) =>
-          new mir.Each({
+          mir.Each({
             loc: node.loc,
             value,
             key,
@@ -325,13 +333,12 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let positionalResult = VISIT_EXPRS.Positional(positional, state);
       let blockResult = VISIT_STMTS.NamedBlock(block, state);
 
-      return Result.all(positionalResult, blockResult).mapOk(
-        ([positional, block]) =>
-          new mir.Let({
-            loc: node.loc,
-            positional,
-            block,
-          })
+      return Result.all(positionalResult, blockResult).mapOk(([positional, block]) =>
+        mir.Let({
+          loc: node.loc,
+          positional,
+          block,
+        })
       );
     },
   })
@@ -351,13 +358,12 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let namedResult = VISIT_EXPRS.NamedArguments(named, state);
       let blockResult = VISIT_STMTS.NamedBlock(block, state);
 
-      return Result.all(namedResult, blockResult).mapOk(
-        ([named, block]) =>
-          new mir.WithDynamicVars({
-            loc: node.loc,
-            named,
-            block,
-          })
+      return Result.all(namedResult, blockResult).mapOk(([named, block]) =>
+        mir.WithDynamicVars({
+          loc: node.loc,
+          named,
+          block,
+        })
       );
     },
   })
@@ -374,7 +380,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(definitionResult, argsResult, blocksResult).mapOk(
         ([definition, args, blocks]) =>
-          new mir.InvokeComponent({
+          mir.InvokeComponent({
             loc: node.loc,
             definition,
             args,
