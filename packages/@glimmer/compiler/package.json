@@ -15,23 +15,19 @@
   "publishConfig": {
     "access": "public",
     "exports": {
-      ".": {
-        "default": {
-          "development": {
-            "types": "./dist/dev/index.d.ts",
-            "default": "./dist/dev/index.js"
-          },
-          "default": {
-            "types": "./dist/prod/index.d.ts",
-            "default": "./dist/prod/index.js"
-          }
-        }
+      "development": {
+        "types": "./dist/dev/index.d.ts",
+        "default": "./dist/dev/index.js"
+      },
+      "default": {
+        "types": "./dist/prod/index.d.ts",
+        "default": "./dist/prod/index.js"
       }
-    }
+    },
+    "files": [
+      "dist"
+    ]
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",

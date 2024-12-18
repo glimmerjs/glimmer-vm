@@ -18,8 +18,7 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "types": [
-      "node",
-      "vite/client"
+      "node"
     ],
     "paths": {
       "@/components/*": [

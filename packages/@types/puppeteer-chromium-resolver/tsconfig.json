@@ -3,10 +3,7 @@
 	"compilerOptions": {
 		"outDir": "../../../ts-dist/packages/@types/puppeteer-chromium-resolver",
 		"composite": true,
-		"incremental": true,
-		"types": [
-			"vite/client"
-		]
+		"incremental": true
 	},
 	"include": [
 		"index.d.ts"

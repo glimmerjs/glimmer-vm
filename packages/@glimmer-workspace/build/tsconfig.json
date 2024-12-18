@@ -11,8 +11,7 @@
     "composite": true,
     "incremental": true,
     "types": [
-      "node",
-      "vite/client"
+      "node"
     ]
   }
 }

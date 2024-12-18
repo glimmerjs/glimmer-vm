@@ -4,13 +4,13 @@
  */
 
 import { existsSync } from 'node:fs';
-import { basename, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
 import { readPackageJson } from '@pnpm/read-package-json';
 import { findWorkspacePackagesNoCheck } from '@pnpm/workspace.find-packages';
 import { statSync } from 'fs';
 import { globbySync } from 'globby';
-import { equals } from 'ramda';
+import { $, chalk } from 'zx';
 
 const CODE_EXTENSIONS = ['js', 'ts', 'mjs', 'mts', 'cjs', 'cts'];
 const DEFAULT_PROJECT_FILES = ['rollup.config.mjs'];
@@ -31,6 +31,13 @@ export class Workspace {
    */
   constructor(root) {
     this.#root = root;
+  }
+
+  /**
+   * @returns {string}
+   */
+  get root() {
+    return this.#root;
   }
 
   /**
@@ -71,6 +78,33 @@ export class Workspace {
         })
       );
     }
+  }
+
+  /**
+   * @template T
+   * @param {string} file
+   * @param {T} contents
+   * @param {(content: T, file: string) => void | Promise<void>} writer
+   */
+  async update(file, contents, writer) {
+    // since we're actually writing a file, it's a good place to log that fact that we're updating
+    // the file. In `--test` mode, the `meta-updater` harness prints out the dry run information
+    // and the `write` function will never be called.
+    const dir = dirname(file);
+    const base = basename(file);
+    const relativeDir = relative(this.#root, dir);
+    const [prefix, rest] = relativeDir.startsWith('packages/')
+      ? ['packages/', relativeDir.slice('packages/'.length)]
+      : ['', relativeDir];
+
+    console.error(
+      `${chalk.green.bold('updating')} ${chalk.gray.dim(prefix)}${chalk.magenta.underline(
+        rest
+      )}${chalk.gray(`/`)}${chalk.cyanBright(base)}`
+    );
+
+    await writer(contents, file);
+    await $({ verbose: false })`eslint --fix ${file}`;
   }
 }
 
@@ -161,8 +195,6 @@ export class ProjectRequirements {
     /** @type {string[]} */
     const types = [];
 
-    types.push('vite/client');
-
     if (this.needsTestTypes) {
       types.push('qunit');
     }
@@ -195,8 +227,7 @@ export class ProjectRequirements {
     const pkgRoot = this.#root;
     const manifest = this.#manifest;
 
-    const allFiles =
-      !manifest.files || equals(manifest.files, ['dist']) ? DEFAULT_FILES : manifest.files;
+    const allFiles = !manifest.files ? DEFAULT_FILES : manifest.files;
 
     const files = splitDirectories([...allFiles, 'test'], pkgRoot);
 

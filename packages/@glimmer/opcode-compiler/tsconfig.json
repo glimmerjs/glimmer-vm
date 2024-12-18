@@ -7,10 +7,7 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/opcode-compiler",
     "composite": true,
-    "incremental": true,
-    "types": [
-      "vite/client"
-    ]
+    "incremental": true
   },
   "references": [
     {

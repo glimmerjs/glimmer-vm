@@ -3,6 +3,7 @@ import { join, relative } from 'node:path';
 
 import { findWorkspaceDir } from '@pnpm/find-workspace-dir';
 import { createUpdateOptions } from '@pnpm/meta-updater';
+import { equals } from 'ramda';
 
 import { code } from './code.mjs';
 import { json } from './json.mjs';
@@ -37,8 +38,8 @@ const packages = workspaceInfo;
 export default function main(workspaceDir) {
   return createUpdateOptions({
     formats: {
-      '.json': json,
-      '#code': code,
+      '.json': json(workspace),
+      '#code': code(workspace),
     },
     files: {
       'rollup.config.mjs [#code]': (_, options) => {
@@ -117,26 +118,23 @@ export default function main(workspaceDir) {
             publishConfig: {
               access: 'public',
               exports: {
-                '.': {
-                  default: {
-                    development: {
-                      types: './dist/dev/index.d.ts',
-                      default: './dist/dev/index.js',
-                    },
-                    default: {
-                      types: './dist/prod/index.d.ts',
-                      default: './dist/prod/index.js',
-                    },
-                  },
+                development: {
+                  types: './dist/dev/index.d.ts',
+                  default: './dist/dev/index.js',
+                },
+                default: {
+                  types: './dist/prod/index.d.ts',
+                  default: './dist/prod/index.js',
                 },
               },
+              files: ['dist'],
             },
           },
           req.needsBuild
         );
 
-        if (req.needsBuild) {
-          updateAll(pkg, { files: ['dist'] });
+        if (equals(pkg.files, ['dist'])) {
+          delete pkg.files;
         }
 
         updateAll(
@@ -195,7 +193,7 @@ export default function main(workspaceDir) {
 
           for (const pkg of packages) {
             if (pkg.tsconfig && pkg.root !== workspaceDir) {
-              paths.push(pkg.tsconfig);
+              paths.push(relative(workspaceDir, pkg.tsconfig));
             }
           }
 

@@ -6,10 +6,7 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer-workspace/smoke-types",
     "composite": true,
-    "incremental": true,
-    "types": [
-      "vite/client"
-    ]
+    "incremental": true
   },
   "references": [
     {

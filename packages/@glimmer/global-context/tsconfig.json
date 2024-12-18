@@ -6,9 +6,6 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/global-context",
     "composite": true,
-    "incremental": true,
-    "types": [
-      "vite/client"
-    ]
+    "incremental": true
   }
 }

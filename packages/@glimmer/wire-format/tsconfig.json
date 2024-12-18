@@ -7,10 +7,7 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/wire-format",
     "composite": true,
-    "incremental": true,
-    "types": [
-      "vite/client"
-    ]
+    "incremental": true
   },
   "references": [
     {

@@ -94,7 +94,7 @@
     "ts-node": "^10.9.1",
     "turbo": "^2.3.3",
     "typescript": "catalog:",
-    "vite": "^5.4.10",
+    "vite": "catalog:",
     "x-var": "^2.0.1",
     "xo": "^0.54.2",
     "zx": "^8.2.4"
@@ -115,7 +115,7 @@
   "packageManager": "pnpm@9.15.0",
   "volta": {
     "node": "20.9.0",
-    "pnpm": "8.5.0"
+    "pnpm": "9.15.0"
   },
   "pnpm": {
     "overrides": {
