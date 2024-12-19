@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 import { BLOCK_HEAD } from '@glimmer/constants';
 
 QUnit.module('@glimmer/constants');

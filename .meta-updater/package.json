@@ -16,6 +16,7 @@
     "zx": "^8.2.4"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@pnpm/types": "^1000.0.0",
     "@pnpm/workspace.find-packages": "^1000.0.1",
     "@types/node": "catalog:",

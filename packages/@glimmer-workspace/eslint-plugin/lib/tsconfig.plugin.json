@@ -3,7 +3,12 @@
     "composite": true,
     "incremental": true,
     // Compilation Configuration
-    "lib": ["esnext", "DOM", "DOM.Iterable", "ES2015.Iterable"],
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable",
+      "ES2015.Iterable"
+    ],
     "allowJs": true,
     "inlineSources": true,
     "inlineSourceMap": true,
@@ -27,6 +32,8 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
-    "types": ["node", "vite/client"]
+    "types": [
+      "node"
+    ]
   }
 }

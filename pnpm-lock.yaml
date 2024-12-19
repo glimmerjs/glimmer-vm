@@ -62,6 +62,9 @@ importers:
       '@eslint/js':
         specifier: ^9.16.0
         version: 9.16.0
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:packages/@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:packages/@glimmer-workspace/eslint-plugin
@@ -261,6 +264,9 @@ importers:
         specifier: ^8.2.4
         version: 8.2.4
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../packages/@glimmer-workspace/env
       '@pnpm/types':
         specifier: ^1000.0.0
         version: 1000.0.0
@@ -295,6 +301,9 @@ importers:
         specifier: workspace:*
         version: link:../../../packages/@glimmer/runtime
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../../packages/@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../../packages/@glimmer-workspace/eslint-plugin
@@ -350,6 +359,9 @@ importers:
         specifier: ^8.2.4
         version: 8.2.4
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../packages/@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../packages/@glimmer-workspace/eslint-plugin
@@ -411,6 +423,9 @@ importers:
         specifier: workspace:*
         version: link:../../@glimmer/validator
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../eslint-plugin
@@ -481,6 +496,9 @@ importers:
         specifier: ^8.2.2
         version: 8.2.2
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../eslint-plugin
@@ -490,6 +508,15 @@ importers:
       '@types/node':
         specifier: ^20.17.10
         version: 20.17.10
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.2
+
+  packages/@glimmer-workspace/env:
+    devDependencies:
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
@@ -618,6 +645,9 @@ importers:
         specifier: ^0.5.11
         version: 0.5.11
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../eslint-plugin
@@ -648,6 +678,9 @@ importers:
 
   packages/@glimmer-workspace/smoke-types:
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../eslint-plugin
@@ -667,6 +700,9 @@ importers:
         specifier: workspace:*
         version: link:../../@glimmer/interfaces
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../eslint-plugin
@@ -701,6 +737,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -760,6 +799,9 @@ importers:
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -816,6 +858,9 @@ importers:
         specifier: workspace:*
         version: link:../vm
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -844,6 +889,9 @@ importers:
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -891,6 +939,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -941,6 +992,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -962,6 +1016,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1038,6 +1095,9 @@ importers:
         specifier: workspace:*
         version: link:../state
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1074,6 +1134,9 @@ importers:
 
   packages/@glimmer/global-context:
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1093,6 +1156,9 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1108,6 +1174,9 @@ importers:
 
   packages/@glimmer/local-debug-flags:
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1145,6 +1214,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1203,6 +1275,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1246,6 +1321,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1283,6 +1361,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1332,6 +1413,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1390,6 +1474,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1473,6 +1560,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1503,6 +1593,9 @@ importers:
 
   packages/@glimmer/state:
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1555,6 +1648,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1611,6 +1707,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1654,6 +1753,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1707,6 +1809,9 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/build
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1729,6 +1834,9 @@ importers:
         specifier: workspace:*
         version: link:../interfaces
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1741,6 +1849,9 @@ importers:
 
   packages/@types/js-reporters:
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin
@@ -1757,6 +1868,9 @@ importers:
         specifier: 23.5.3
         version: 23.5.3(typescript@5.7.2)
     devDependencies:
+      '@glimmer-workspace/env':
+        specifier: workspace:*
+        version: link:../../@glimmer-workspace/env
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/eslint-plugin

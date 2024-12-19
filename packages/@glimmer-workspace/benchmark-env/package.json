@@ -17,6 +17,7 @@
     "@glimmer/validator": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "eslint": "catalog:",

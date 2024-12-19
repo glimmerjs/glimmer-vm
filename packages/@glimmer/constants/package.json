@@ -14,6 +14,7 @@
     "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",

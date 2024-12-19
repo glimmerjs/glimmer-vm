@@ -2,6 +2,7 @@
   "extends": "../tsconfig.shared.json",
   "include": [
     "lib/**/*.ts",
+    "lib/**/*.d.ts",
     "test/**/*.ts",
     "index.ts"
   ],
@@ -10,6 +11,7 @@
     "composite": true,
     "incremental": true,
     "types": [
+      "@glimmer-workspace/env",
       "node",
       "qunit"
     ]
@@ -71,6 +73,9 @@
     },
     {
       "path": "../../@glimmer/wire-format/tsconfig.json"
+    },
+    {
+      "path": "../env/tsconfig.json"
     },
     {
       "path": "../../@glimmer/constants/tsconfig.json"

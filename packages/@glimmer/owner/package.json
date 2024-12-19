@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@types/qunit": "catalog:",
     "eslint": "catalog:",

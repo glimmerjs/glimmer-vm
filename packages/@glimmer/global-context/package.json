@@ -6,6 +6,7 @@
   "type": "module",
   "exports": "./index.ts",
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:"

@@ -6,9 +6,15 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer-workspace/smoke-types",
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "@glimmer-workspace/env"
+    ]
   },
   "references": [
+    {
+      "path": "../env/tsconfig.json"
+    },
     {
       "path": "../../@glimmer/runtime/tsconfig.json"
     }

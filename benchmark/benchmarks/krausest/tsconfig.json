@@ -18,6 +18,7 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "types": [
+      "@glimmer-workspace/env",
       "node"
     ],
     "paths": {
@@ -55,6 +56,9 @@
     },
     {
       "path": "../../../packages/@glimmer/runtime/tsconfig.json"
+    },
+    {
+      "path": "../../../packages/@glimmer-workspace/env/tsconfig.json"
     }
   ]
 }

@@ -7,7 +7,10 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/node",
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "types": [
+      "@glimmer-workspace/env"
+    ]
   },
   "references": [
     {
@@ -18,6 +21,12 @@
     },
     {
       "path": "../../@glimmer-workspace/build/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/env/tsconfig.json"
     }
+  ],
+  "exclude": [
+    "dist"
   ]
 }

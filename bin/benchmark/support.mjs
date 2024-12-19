@@ -17,7 +17,7 @@ export class Benchmark {
    */
   static async initialize(options) {
     if (!options.offline) {
-      await $({ cwd: options.root })`git fetch`;
+      await $({ cwd: options.workspaceRoot })`git fetch`;
     }
 
     const scenarios = {};
@@ -190,24 +190,18 @@ export class Scenario {
 
   async viteBuild() {
     if (this.#scenarioConfig.run !== 'repeat') {
-      const tsconfigPath = this.#subdir('benchmark/tsconfig.json');
+      const tsconfigPath = join(this.benchDir, 'tsconfig.json');
 
       // Once we land the infra update, we won't need to check for this anymore since all control
       // checkouts will have a `tsconfig.json` here
       if (existsSync(tsconfigPath)) {
         // Remove the `references` field from `tsconfig.json` because the references in the current
         // checkout may not be compatible with the control checkout.
-        const tsconfig = JSON.parse(
-          await readFile(this.#subdir('benchmark/tsconfig.json'), { encoding: 'utf8' })
-        );
+        const tsconfig = JSON.parse(await readFile(tsconfigPath, { encoding: 'utf8' }));
         delete tsconfig['references'];
-        await writeFile(
-          this.#subdir('benchmark/tsconfig.json'),
-          JSON.stringify(tsconfig, null, 2),
-          {
-            encoding: 'utf8',
-          }
-        );
+        await writeFile(tsconfigPath, JSON.stringify(tsconfig, null, 2), {
+          encoding: 'utf8',
+        });
       }
 
       await $({ cwd: this.benchDir })`pnpm vite build`;
@@ -223,7 +217,8 @@ export class Scenario {
     // limit to `@glimmer/*` packages
     const packages = await this.#$`find ./packages/@glimmer -name 'package.json'`;
 
-    for (const pkg of packages.stdout.trim().split('\n')) {
+    for (const relativePkg of packages.stdout.trim().split('\n')) {
+      const pkg = join(this.dir, relativePkg);
       const packageJson = JSON.parse(await readFile(pkg, { encoding: 'utf8' }));
       const publishConfig = packageJson['publishConfig'];
 

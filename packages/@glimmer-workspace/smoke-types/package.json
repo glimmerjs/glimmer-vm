@@ -3,6 +3,7 @@
   "name": "@glimmer-workspace/smoke-types",
   "main": "index.ts",
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/runtime": "workspace:*",
     "eslint": "catalog:",

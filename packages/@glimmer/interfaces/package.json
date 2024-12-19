@@ -17,6 +17,7 @@
     "@simple-dom/interface": "^1.4.0"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "eslint": "catalog:",
     "publint": "catalog:",

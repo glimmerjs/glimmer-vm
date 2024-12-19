@@ -20,6 +20,7 @@
     "@glimmer/runtime": "workspace:*"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "^8.57.1",

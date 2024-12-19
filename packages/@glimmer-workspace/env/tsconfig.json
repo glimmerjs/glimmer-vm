@@ -1,7 +1,7 @@
 {
 	"extends": "../tsconfig.shared.json",
 	"compilerOptions": {
-		"outDir": "../../../ts-dist/packages/@types/puppeteer-chromium-resolver",
+		"outDir": "../../../ts-dist/packages/@glimmer-workspace/env",
 		"composite": true,
 		"incremental": true,
 		"types": [
@@ -10,10 +10,5 @@
 	},
 	"include": [
 		"index.d.ts"
-	],
-	"references": [
-		{
-			"path": "../../@glimmer-workspace/env/tsconfig.json"
-		}
 	]
 }

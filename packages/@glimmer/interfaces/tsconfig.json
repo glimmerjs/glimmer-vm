@@ -7,11 +7,18 @@
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer/interfaces",
     "composite": true,
-    "incremental": true
+    "incremental": true,
+    "skipLibCheck": false,
+    "types": [
+      "@glimmer-workspace/env"
+    ]
   },
   "references": [
     {
       "path": "../state/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/env/tsconfig.json"
     }
   ]
 }

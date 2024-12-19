@@ -196,7 +196,7 @@ export class ProjectRequirements {
    */
   get types() {
     /** @type {string[]} */
-    const types = [];
+    const types = ['@glimmer-workspace/env'];
 
     if (this.needsTestTypes) {
       types.push('qunit');

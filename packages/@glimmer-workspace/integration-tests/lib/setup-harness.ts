@@ -5,6 +5,8 @@ import { unwrap } from '@glimmer/debug-util';
 import { autoRegister } from 'js-reporters';
 import { default as QUnit } from 'qunit';
 
+/// <reference path="./env.d.ts" />
+
 export async function setupQunit() {
   const qunitLib: QUnit = await import('qunit');
   await import('qunit/qunit/qunit.css');

@@ -37,6 +37,7 @@
     "simple-html-tokenizer": "^0.5.11"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",

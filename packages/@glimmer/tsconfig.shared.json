@@ -29,13 +29,8 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "skipDefaultLibCheck": true,
-    "types": [
-      "qunit",
-      "node",
-      "vite/client"
-    ]
   },
   "references": [
     {

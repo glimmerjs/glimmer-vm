@@ -69,7 +69,7 @@ function typescript(pkg, env) {
     {
       name: 'Build Declarations',
       closeBundle: async function () {
-        const types = ['vite/client'];
+        const types = [];
         if (pkg.devDependencies['@types/node']) {
           types.push('node');
         }
@@ -103,7 +103,6 @@ function externals(packages) {
     }
   });
   return /** @type {const} */ ([
-
     [
       'is',
       ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'],

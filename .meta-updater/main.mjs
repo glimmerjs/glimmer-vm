@@ -3,7 +3,6 @@ import { join, relative } from 'node:path';
 
 import { findWorkspaceDir } from '@pnpm/find-workspace-dir';
 import { createUpdateOptions } from '@pnpm/meta-updater';
-import { equals } from 'ramda';
 
 import { code } from './code.mjs';
 import { json } from './json.mjs';
@@ -73,6 +72,11 @@ export default function main(workspaceDir) {
 
         updateAll(pkg.devDependencies, { '@types/qunit': 'catalog:' }, req.needsTestTypes);
         updateAll(pkg.devDependencies, { '@types/node': 'catalog:' }, req.needsNodeTypes);
+        updateAll(
+          pkg.devDependencies,
+          { '@glimmer-workspace/env': 'workspace:*' },
+          req.needsTsconfig && pkg.name !== '@glimmer-workspace/env'
+        );
 
         // Don't use catalog: dependencies in the benchmark package
         // until the base branch has been updated
@@ -133,10 +137,6 @@ export default function main(workspaceDir) {
           req.needsBuild
         );
 
-        if (equals(pkg.files, ['dist'])) {
-          delete pkg.files;
-        }
-
         updateAll(
           pkg,
           {
@@ -184,7 +184,7 @@ export default function main(workspaceDir) {
         tsconfig.compilerOptions.incremental = true;
 
         updateAll(tsconfig.compilerOptions, { types }, types.length > 0);
-        updateAll(tsconfig, { include });
+        updateAll(tsconfig, { include, exclude: pkg.publishConfig?.['files'] });
 
         // We're looking at the root package, which has special references
         if (options.dir === workspaceDir) {

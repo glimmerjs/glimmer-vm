@@ -217,5 +217,6 @@ async function setupRepo(scenario) {
   await scenario.setupBenchmarks();
   await scenario.pnpmInstall();
   await scenario.pnpmBuild();
+  await scenario.rewritePackageJson();
   await scenario.viteBuild();
 }

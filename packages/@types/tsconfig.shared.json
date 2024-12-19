@@ -33,7 +33,6 @@
     "types": [
       "qunit",
       "node",
-      "vite/client"
     ]
   },
 }

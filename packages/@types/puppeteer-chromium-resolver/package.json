@@ -6,6 +6,7 @@
     "puppeteer": "23.5.3"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:"

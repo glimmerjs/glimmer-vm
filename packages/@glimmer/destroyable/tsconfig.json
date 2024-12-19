@@ -9,6 +9,7 @@
     "composite": true,
     "incremental": true,
     "types": [
+      "@glimmer-workspace/env",
       "qunit"
     ]
   },
@@ -26,7 +27,13 @@
       "path": "../../@glimmer-workspace/build/tsconfig.json"
     },
     {
+      "path": "../../@glimmer-workspace/env/tsconfig.json"
+    },
+    {
       "path": "../debug-util/tsconfig.json"
     }
+  ],
+  "exclude": [
+    "dist"
   ]
 }
