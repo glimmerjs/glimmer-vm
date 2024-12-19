@@ -25,21 +25,10 @@
   },
   "include": [
     "opcodes/**/*.mts",
-    "build-verify.mjs",
-    "clean.mjs",
-    "patch-all.mjs",
-    "run-browserstack-tests.mjs",
-    "run-node-tests.mjs",
-    "run-tests.mjs",
-    "run-types-tests.mjs",
-    "setup-bench.mjs",
-    "sync-npm-owners.mjs",
-    "link-all.mts",
-    "opcodes.mts",
-    "packages.mts",
-    "published-packages.mts",
-    "unlink-all.mts",
-    "update-package-json.mts"
+    "benchmark/**/*.mjs",
+    "benchmark/**/*.d.ts",
+    "*.mjs",
+    "*.mts"
   ],
   "references": [
     {

@@ -4,6 +4,7 @@
  * exists if `debug-util` at dev-time (both `import.meta` and `@glimmer/debug-util`
  * are inlined for all builds).
  */
+
 import 'vite/client';
 
 export { default as assert, assertNever, deprecate } from './lib/assert';

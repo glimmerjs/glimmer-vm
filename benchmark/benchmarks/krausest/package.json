@@ -24,7 +24,7 @@
     "@types/node": "catalog:",
     "eslint": "^8.57.1",
     "typescript": "^5.7.1",
-    "vite": "catalog:"
+    "vite": "^5.3.2"
   },
   "engines": {
     "node": ">=18.0.0"

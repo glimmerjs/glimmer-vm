@@ -2,9 +2,9 @@
   "extends": "../tsconfig.shared.json",
   "include": [
     "lib/**/*.js",
-    "lib/**/*.ts",
-    "index.d.ts",
-    "index.js"
+    "lib/**/*.d.ts",
+    "index.js",
+    "index.d.ts"
   ],
   "compilerOptions": {
     "outDir": "../../../ts-dist/packages/@glimmer-workspace/build",

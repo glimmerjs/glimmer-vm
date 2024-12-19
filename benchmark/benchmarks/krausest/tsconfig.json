@@ -39,6 +39,7 @@
   },
   "include": [
     "lib/**/*.ts",
+    "lib/**/*.d.ts",
     "browser.js",
     "vite.config.mts"
   ],

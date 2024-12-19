@@ -21,6 +21,11 @@ export default defineConfig({
     strictPort: true,
   },
 
+  optimizeDeps: {
+    noDiscovery: true,
+    exclude: ['vite'],
+  },
+
   build: {
     minify: 'terser',
     terserOptions: {

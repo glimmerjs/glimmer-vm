@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.shared.json",
   "include": [
-    "lib/**/*.ts",
+    "lib/**/*.d.ts",
     "index.d.ts"
   ],
   "compilerOptions": {

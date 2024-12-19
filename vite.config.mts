@@ -5,6 +5,7 @@ export default defineConfig({
     open: '?hidepassed',
   },
   mode: 'testing',
+
   plugins: [
     {
       name: 'define custom import.meta.env',
