@@ -69,7 +69,7 @@ function typescript(pkg, env) {
     {
       name: 'Build Declarations',
       closeBundle: async function () {
-        const types = [];
+        const types = ['@glimmer-workspace/env'];
         if (pkg.devDependencies['@types/node']) {
           types.push('node');
         }

@@ -20,12 +20,11 @@
     "@glimmer/runtime": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer-workspace/env": "workspace:*",
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "^8.57.1",
     "typescript": "^5.7.1",
-    "vite": "^5.3.2"
+    "vite": "^6.0.5"
   },
   "engines": {
     "node": ">=18.0.0"

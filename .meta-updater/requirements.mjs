@@ -196,7 +196,14 @@ export class ProjectRequirements {
    */
   get types() {
     /** @type {string[]} */
-    const types = ['@glimmer-workspace/env'];
+    const types = [];
+
+    if (
+      this.#manifest.name !== '@glimmer-workspace/krausest' &&
+      this.#manifest.name !== '@glimmer-workspace/env'
+    ) {
+      types.push('@glimmer-workspace/env');
+    }
 
     if (this.needsTestTypes) {
       types.push('qunit');

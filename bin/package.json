@@ -34,6 +34,7 @@
     "@types/puppeteer-chromium-resolver": "workspace:*",
     "@types/tar": "^6.1.10",
     "eslint": "catalog:",
+    "ts-essentials": "^10.0.3",
     "typescript": "catalog:"
   },
   "engines": {

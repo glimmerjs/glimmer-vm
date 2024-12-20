@@ -75,7 +75,9 @@ export default function main(workspaceDir) {
         updateAll(
           pkg.devDependencies,
           { '@glimmer-workspace/env': 'workspace:*' },
-          req.needsTsconfig && pkg.name !== '@glimmer-workspace/env'
+          req.needsTsconfig &&
+            pkg.name !== '@glimmer-workspace/env' &&
+            pkg.name !== '@glimmer-workspace/krausest'
         );
 
         // Don't use catalog: dependencies in the benchmark package

@@ -1,6 +1,9 @@
+export type BuildMode = 'off' | 'repeat' | 'rebuild' | 'reset';
+export type ServeMode = 'off' | 'serve' | 'bench';
+
 export interface ScenarioConfig {
   /**
-   * - false: do not run
+   * - 'none': do not run
    * - 'repeat': reuse the scenario directory and run again without
    *   rebuilding or resetting any directories
    * - 'rebuild': reuse the scenario directory and run again, but reset
@@ -8,11 +11,11 @@ export interface ScenarioConfig {
    *   build` again
    * - 'reset' (default): delete the scenario directory and start from scratch
    */
-  run: false | 'repeat' | 'rebuild' | 'reset';
+  build: BuildMode;
   /**
    * If `serve` is `false`, the scenario is set up but not served
    */
-  serve: boolean;
+  serve: ServeMode;
   ref: string;
   port: number;
 }
@@ -22,7 +25,16 @@ export interface Config extends WorkspaceOptions {
   control: ScenarioConfig;
   experiment: ScenarioConfig;
   offline: boolean;
+  loglevel: {
+    shouldTrace: boolean;
+    shouldDebug: boolean;
+  };
   tmpdir: string;
+  env: {
+    markers: string[];
+    fidelity: string;
+    throttleRate: string;
+  };
 }
 
 export interface WorkspaceOptions {
