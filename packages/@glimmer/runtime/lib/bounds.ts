@@ -35,6 +35,11 @@ export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
+  if (first === last) {
+    parent.insertBefore(first, reference);
+    return reference;
+  }
+
   const range = document.createRange();
   range.setStartBefore(first as unknown as Node);
   range.setEndAfter(last as unknown as Node);

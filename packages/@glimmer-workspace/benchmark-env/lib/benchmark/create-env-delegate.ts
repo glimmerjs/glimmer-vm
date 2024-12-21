@@ -27,6 +27,8 @@ let revalidateScheduled = false;
 setGlobalContext({
   scheduleRevalidate() {
     if (!revalidateScheduled) {
+      revalidateScheduled = true;
+
       Promise.resolve()
         .then(() => {
           const { env } = result;
