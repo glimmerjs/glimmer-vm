@@ -21,6 +21,19 @@ export default defineConfig({
     exclude: ['vite'],
   },
 
+  build: {
+    minify: 'terser',
+
+    terserOptions: {
+      module: true,
+      compress: {
+        passes: 3,
+        keep_fargs: false,
+        keep_fnames: false,
+      },
+    },
+  },
+
   resolve: {
     //#region aliases
     alias: {
