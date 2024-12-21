@@ -1,11 +1,24 @@
-import type { Tag, UpdatableTagId } from './lib/types';
+import type {
+  CapabilitiesSymbol,
+  OwnerSymbol,
+  ReferenceSymbol,
+  Tag,
+  TagTypeSymbol,
+  UpdatableTagId,
+} from './lib/types';
 
 import { state } from './lib/state';
+
+export type * from './lib/types';
 
 export type TagMeta = Map<PropertyKey, Tag<UpdatableTagId>>;
 
 export type { DebugState, State } from './lib/state';
-export type * from './lib/types';
-export default state;
+export { clock, debug, destroyables, managers, meta, tracking } from './lib/state';
 
-export const OWNER: typeof state.OWNER = state.OWNER;
+export const symbols: {
+  TYPE: TagTypeSymbol;
+  REFERENCE: ReferenceSymbol;
+  OWNER: OwnerSymbol;
+  CAPABILITIES: CapabilitiesSymbol;
+} = state;

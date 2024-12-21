@@ -1,4 +1,4 @@
-import state from '@glimmer/state';
+import { symbols } from '@glimmer/state';
 
 export {
   type AbstractIterator,
@@ -32,4 +32,4 @@ export {
 } from './lib/reference';
 export { valueForRef } from '@glimmer/fundamental';
 
-export const REFERENCE: typeof state.REFERENCE = state.REFERENCE;
+export const REFERENCE: typeof symbols.REFERENCE = symbols.REFERENCE;

@@ -8,9 +8,9 @@ import type {
 import { asPresentArray, getLast, unwrap } from '@glimmer/debug-util';
 import { setTrackingDebug } from '@glimmer/fundamental';
 import { assert } from '@glimmer/global-context';
-import state from '@glimmer/state';
+import { debug as _debug } from '@glimmer/state';
 
-const debug = unwrap(state?.debug);
+const debug = unwrap(_debug);
 
 /**
  * This function should collapse down to nothing, inline as `true`, and

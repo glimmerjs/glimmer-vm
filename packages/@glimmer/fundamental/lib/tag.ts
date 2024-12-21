@@ -6,22 +6,21 @@ import type {
   Revision,
   Tag,
   TagId,
-  TagTypeSymbol,
   UpdatableTagId,
 } from '@glimmer/state';
 import { assert, unwrap } from '@glimmer/debug-util';
 import { context } from '@glimmer/global-context';
-import state from '@glimmer/state';
+import { debug, symbols } from '@glimmer/state';
 
 import { bump, now } from './timestamp';
 import { getTrackingDebug } from './tracking';
-
-const TYPE: TagTypeSymbol = state.TYPE;
 
 const DIRYTABLE_TAG_ID: DirtyableTagId = 0;
 const UPDATABLE_TAG_ID: UpdatableTagId = 1;
 const COMBINATOR_TAG_ID: CombinatorTagId = 2;
 const CONSTANT_TAG_ID: ConstantTagId = 3;
+
+const TYPE: typeof symbols.TYPE = symbols.TYPE;
 
 export interface TagImpl<T extends TagId> extends Tag<T> {
   [TYPE]: T;
@@ -123,7 +122,7 @@ function compute(tag: TagImpl<TagId>): Revision {
   let { lastChecked } = tag;
 
   if (tag.isUpdating === true) {
-    if (import.meta.env.DEV && !unwrap(state.debug).cycleMap.has(tag)) {
+    if (import.meta.env.DEV && !unwrap(debug).cycleMap.has(tag)) {
       throw new Error('Cycles in tags are not allowed');
     }
 

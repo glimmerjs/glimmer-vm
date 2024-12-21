@@ -40,7 +40,7 @@ export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<
     return reference;
   }
 
-  const range = document.createRange();
+  const range = new Range();
   range.setStartBefore(first as unknown as Node);
   range.setEndAfter(last as unknown as Node);
 
@@ -63,11 +63,11 @@ export function clear(bounds: Bounds): Nullable<SimpleNode> {
   }
 
   if (parent.firstChild === first && parent.lastChild === last) {
-    (parent as unknown as Element).innerHTML = '';
+    (parent as unknown as Element).replaceChildren();
     return next;
   }
 
-  const range = document.createRange();
+  const range = new Range();
   range.setStartBefore(first as unknown as Node);
   range.setEndAfter(last as unknown as Node);
   range.deleteContents();

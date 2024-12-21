@@ -42,9 +42,11 @@ export interface State {
   readonly CAPABILITIES: CapabilitiesSymbol;
 
   readonly meta: WeakMap<object, TagMeta>;
-  destroyables:
-    | Map<Destroyable, DestroyableMeta<Destroyable>>
-    | WeakMap<Destroyable, DestroyableMeta<Destroyable>>;
+  destroyables: {
+    current:
+      | Map<Destroyable, DestroyableMeta<Destroyable>>
+      | WeakMap<Destroyable, DestroyableMeta<Destroyable>>;
+  };
 
   readonly tracking: TrackerState;
   readonly managers: {
@@ -71,7 +73,7 @@ if (!current) {
     OWNER,
     CAPABILITIES,
     meta: new WeakMap(),
-    destroyables: new WeakMap(),
+    destroyables: { current: new WeakMap() },
     tracking: {
       current: null,
       stack: [],
@@ -99,3 +101,12 @@ if (!current) {
 }
 
 export const state: State = current;
+export const destroyables: typeof state.destroyables = state.destroyables;
+export const clock: typeof state.clock = state.clock;
+export const debug: typeof state.debug = state.debug;
+export const tracking: typeof state.tracking = state.tracking;
+export const meta: typeof state.meta = state.meta;
+export const managers: typeof state.managers = state.managers;
+export const REFERENCE: typeof state.REFERENCE = state.REFERENCE;
+export const OWNER: typeof state.OWNER = state.OWNER;
+export const CAPABILITIES: typeof state.CAPABILITIES = state.CAPABILITIES;

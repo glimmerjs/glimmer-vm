@@ -1,4 +1,6 @@
-import { OWNER } from '@glimmer/state';
+import { symbols } from '@glimmer/state';
+
+const OWNER: typeof symbols.OWNER = symbols.OWNER;
 
 interface OwnedObject<O extends object> {
   [OWNER]: O | undefined;

@@ -8,7 +8,7 @@ import type {
 } from '@glimmer/state';
 import { debugToString } from '@glimmer/debug-util';
 import { context } from '@glimmer/global-context';
-import state from '@glimmer/state';
+import { destroyables } from '@glimmer/state';
 
 const LIVE_STATE: LiveState = 0;
 const DESTROYING_STATE: DestroyingState = 1;
@@ -57,7 +57,7 @@ function remove<T extends object>(collection: OneOrMany<T>, item: T, message: st
 }
 
 function getDestroyableMeta<T extends Destroyable>(destroyable: T): DestroyableMeta<T> {
-  let meta = state.destroyables.get(destroyable);
+  let meta = destroyables.current.get(destroyable);
 
   if (meta === undefined) {
     meta = {
@@ -72,7 +72,7 @@ function getDestroyableMeta<T extends Destroyable>(destroyable: T): DestroyableM
       meta.source = destroyable as object;
     }
 
-    state.destroyables.set(destroyable, meta);
+    destroyables.current.set(destroyable, meta);
   }
 
   return meta as unknown as DestroyableMeta<T>;
@@ -181,19 +181,19 @@ export function destroyChildren(destroyable: Destroyable): void {
 }
 
 export function _hasDestroyableChildren(destroyable: Destroyable): boolean {
-  let meta = state.destroyables.get(destroyable);
+  let meta = destroyables.current.get(destroyable);
 
   return meta === undefined ? false : meta.children !== null;
 }
 
 export function isDestroying(destroyable: Destroyable): boolean {
-  let meta = state.destroyables.get(destroyable);
+  let meta = destroyables.current.get(destroyable);
 
   return meta === undefined ? false : meta.state >= DESTROYING_STATE;
 }
 
 export function isDestroyed(destroyable: Destroyable): boolean {
-  let meta = state.destroyables.get(destroyable);
+  let meta = destroyables.current.get(destroyable);
 
   return meta === undefined ? false : meta.state >= DESTROYED_STATE;
 }
@@ -209,14 +209,14 @@ if (import.meta.env.DEV) {
   enableDestroyableTracking = () => {
     if (isTesting) {
       // Reset destroyable meta just in case, before throwing the error
-      state.destroyables = new WeakMap();
+      destroyables.current = new WeakMap();
       throw new Error(
         'Attempted to start destroyable testing, but you did not end the previous destroyable test. Did you forget to call `assertDestroyablesDestroyed()`'
       );
     }
 
     isTesting = true;
-    state.destroyables = new Map();
+    destroyables.current = new Map();
   };
 
   assertDestroyablesDestroyed = () => {
@@ -228,8 +228,8 @@ if (import.meta.env.DEV) {
 
     isTesting = false;
 
-    let map = state.destroyables as Map<Destroyable, DestroyableMeta<Destroyable>>;
-    state.destroyables = new WeakMap();
+    let map = destroyables.current as Map<Destroyable, DestroyableMeta<Destroyable>>;
+    destroyables.current = new WeakMap();
 
     let undestroyed: object[] = [];
 

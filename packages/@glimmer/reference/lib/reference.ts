@@ -13,11 +13,11 @@ import type { Tag } from '@glimmer/validator';
 import { expect } from '@glimmer/debug-util';
 import { valueForRef } from '@glimmer/fundamental';
 import { context } from '@glimmer/global-context';
-import state from '@glimmer/state';
+import { symbols } from '@glimmer/state';
 import { isDict } from '@glimmer/util';
 import { CONSTANT_TAG, INITIAL } from '@glimmer/validator';
 
-const REFERENCE: ReferenceSymbol = state.REFERENCE;
+const REFERENCE: ReferenceSymbol = symbols.REFERENCE;
 
 const CONSTANT: ConstantReferenceId = 0;
 const COMPUTE: ComputeReferenceId = 1;
