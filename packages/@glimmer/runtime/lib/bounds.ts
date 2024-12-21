@@ -1,5 +1,5 @@
 import type { Bounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { expect, setLocalDebugType } from '@glimmer/debug-util';
+import { setLocalDebugType } from '@glimmer/debug-util';
 
 export class CursorImpl implements Cursor {
   constructor(
@@ -35,20 +35,14 @@ export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
-  let current: SimpleNode = first;
+  const range = document.createRange();
+  range.setStartBefore(first as unknown as Node);
+  range.setEndAfter(last as unknown as Node);
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    let next = current.nextSibling;
+  const fragment = range.extractContents();
+  (parent as unknown as Element).insertBefore(fragment, reference as unknown as Nullable<Node>);
 
-    parent.insertBefore(current, reference);
-
-    if (current === last) {
-      return next;
-    }
-
-    current = expect(next, 'invalid bounds');
-  }
+  return reference;
 }
 
 export function clear(bounds: Bounds): Nullable<SimpleNode> {
@@ -56,18 +50,22 @@ export function clear(bounds: Bounds): Nullable<SimpleNode> {
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
-  let current: SimpleNode = first;
+  let next = last.nextSibling;
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    let next = current.nextSibling;
-
-    parent.removeChild(current);
-
-    if (current === last) {
-      return next;
-    }
-
-    current = expect(next, 'invalid bounds');
+  if (first === last) {
+    parent.removeChild(first);
+    return next;
   }
+
+  if (parent.firstChild === first && parent.lastChild === last) {
+    (parent as unknown as Element).innerHTML = '';
+    return next;
+  }
+
+  const range = document.createRange();
+  range.setStartBefore(first as unknown as Node);
+  range.setEndAfter(last as unknown as Node);
+  range.deleteContents();
+
+  return next;
 }
