@@ -57,11 +57,15 @@ jobs:
             <tbody>
             <tr><td>This PR</td><td>
 
+            ```
             ${{ steps.dev.outputs.sizes }}
+            ```
 
             </td><td>
 
+            ```
             ${{ steps.prod.outputs.sizes }}
+            ```
 
             </td></tr>
             </tbody></table>
