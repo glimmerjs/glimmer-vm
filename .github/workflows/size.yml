@@ -33,8 +33,9 @@ jobs:
              --filter ".+\/dist\/dev\/index.js$" \
              --no-percent-bars --only-dir --depth 1)
 
+          echo -e $sizes
           echo 'foo<<EOF' >> $GITHUB_OUTPUT
-          echo $sizes >> $GITHUB_OUTPUT
+          echo -e $sizes >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: "Get sizes for production outputs"
@@ -46,8 +47,9 @@ jobs:
              --filter ".+\/dist\/prod\/index.js$" \
              --no-percent-bars --only-dir --depth 1)
 
+          echo -e $sizes
           echo 'foo<<EOF' >> $GITHUB_OUTPUT
-          echo $sizes >> $GITHUB_OUTPUT
+          echo -e $sizes >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - uses: mshick/add-pr-comment@v2
