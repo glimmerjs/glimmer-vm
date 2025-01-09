@@ -34,7 +34,9 @@ jobs:
              --no-percent-bars --only-dir --depth 1 > out.txt
 
           echo 'sizes<<EOF' >> $GITHUB_OUTPUT
-          echo -e $(cat out.txt) >> $GITHUB_OUTPUT
+          while IFS= read -r line; do
+              echo "$line" >> $GITHUB_OUTPUT
+          done <<< $(cat out.txt)
           echo 'EOF' >> $GITHUB_OUTPUT
           cat out.txt
 
@@ -48,7 +50,9 @@ jobs:
              --no-percent-bars --only-dir --depth 1 > out.txt
 
           echo 'sizes<<EOF' >> $GITHUB_OUTPUT
-          echo -e $(cat out.txt) >> $GITHUB_OUTPUT
+          while IFS= read -r line; do
+              echo "$line" >> $GITHUB_OUTPUT
+          done <<< $(cat out.txt)
           echo 'EOF' >> $GITHUB_OUTPUT
           cat out.txt
 
