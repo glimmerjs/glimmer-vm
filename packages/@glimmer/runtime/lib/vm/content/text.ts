@@ -11,7 +11,7 @@ export default class DynamicTextContent implements UpdatingOpcode {
     private lastValue: string
   ) {}
 
-  evaluate() {
+  evaluate(): void {
     let value = valueForRef(this.reference);
 
     let { lastValue } = this;

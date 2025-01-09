@@ -1,0 +1,50 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/debug",
+    "composite": true,
+    "incremental": true,
+    "types": [
+      "@glimmer-workspace/env"
+    ]
+  },
+  "references": [
+    {
+      "path": "../global-context/tsconfig.json"
+    },
+    {
+      "path": "../interfaces/tsconfig.json"
+    },
+    {
+      "path": "../reference/tsconfig.json"
+    },
+    {
+      "path": "../state/tsconfig.json"
+    },
+    {
+      "path": "../util/tsconfig.json"
+    },
+    {
+      "path": "../vm/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/env/tsconfig.json"
+    },
+    {
+      "path": "../constants/tsconfig.json"
+    },
+    {
+      "path": "../debug-util/tsconfig.json"
+    },
+    {
+      "path": "../fundamental/tsconfig.json"
+    },
+    {
+      "path": "../local-debug-flags/tsconfig.json"
+    }
+  ]
+}

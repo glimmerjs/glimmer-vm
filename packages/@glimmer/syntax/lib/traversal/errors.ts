@@ -2,7 +2,7 @@ import type { Nullable } from '@glimmer/interfaces';
 
 import type * as ASTv1 from '../v1/api';
 
-export interface TraversalError extends Error {
+interface TraversalError extends Error {
   constructor: TraversalErrorConstructor;
   key: string;
   node: ASTv1.Node;
@@ -10,7 +10,7 @@ export interface TraversalError extends Error {
   stack?: string;
 }
 
-export interface TraversalErrorConstructor {
+interface TraversalErrorConstructor {
   new (
     message: string,
     node: ASTv1.Node,
@@ -45,8 +45,6 @@ const TraversalError: TraversalErrorConstructor = (function () {
 
   return TraversalError as unknown as TraversalErrorConstructor;
 })();
-
-export default TraversalError;
 
 export function cannotRemoveNode(
   node: ASTv1.Node,

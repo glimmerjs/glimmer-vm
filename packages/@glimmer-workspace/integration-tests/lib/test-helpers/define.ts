@@ -1,10 +1,5 @@
-import type {
-  Arguments,
-  HelperCapabilities,
-  HelperManager,
-  ModifierManager,
-  Owner,
-} from '@glimmer/interfaces';
+import type { AnyFn, ModifierManager } from '@glimmer/interfaces';
+import type { Arguments, HelperCapabilities, HelperManager, Owner } from '@glimmer/state';
 import type { PrecompileOptionsWithLexicalScope } from '@glimmer/syntax';
 import { registerDestructor } from '@glimmer/destroyable';
 import {
@@ -37,7 +32,7 @@ class FunctionalHelperManager implements HelperManager<SimpleHelperState> {
     return fn(...args.positional);
   }
 
-  getDebugName(fn: Function) {
+  getDebugName(fn: AnyFn) {
     return fn.name || '(anonymous function)';
   }
 }
@@ -83,7 +78,7 @@ class FunctionalModifierManager implements ModifierManager<SimpleModifierState> 
     }
   }
 
-  getDebugName(fn: Function) {
+  getDebugName(fn: AnyFn) {
     return fn.name || '(anonymous function)';
   }
 }
@@ -153,11 +148,11 @@ export function defineComponent(
   return definition;
 }
 
-export function defineSimpleHelper<T extends Function>(helperFn: T): T {
+export function defineSimpleHelper<T extends AnyFn>(helperFn: T): T {
   return setHelperManager(FUNCTIONAL_HELPER_MANAGER_FACTORY, helperFn);
 }
 
-export function defineSimpleModifier<T extends Function>(modifierFn: T): T {
+export function defineSimpleModifier<T extends AnyFn>(modifierFn: T): T {
   return setModifierManager(FUNCTIONAL_MODIFIER_MANAGER_FACTORY, modifierFn);
 }
 

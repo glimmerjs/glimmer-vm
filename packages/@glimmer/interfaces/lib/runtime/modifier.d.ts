@@ -1,7 +1,8 @@
-import type { InternalModifierManager } from '../managers.js';
-
-export type ModifierDefinitionState = object;
-export type ModifierInstanceState = unknown;
+import type {
+  InternalModifierManager,
+  ModifierDefinitionState,
+  ModifierInstanceState,
+} from '@glimmer/state';
 
 export interface ModifierDefinition<
   I = unknown,

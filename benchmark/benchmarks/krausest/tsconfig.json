@@ -17,21 +17,44 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
-    "noEmit": true,
+    "types": [
+      "node"
+    ],
     "paths": {
-      "@/components/*": ["./lib/components/*"],
-      "@/utils/*": ["./lib/utils/*"],
-      "@glimmer-workspace/benchmark-env": ["../../../packages/@glimmer-workspace/benchmark-env"],
-      "@glimmer/runtime": ["../../../packages/@glimmer/runtime"]
-    }
+      "@/components/*": [
+        "./lib/components/*"
+      ],
+      "@/utils/*": [
+        "./lib/utils/*"
+      ],
+      "@glimmer-workspace/benchmark-env": [
+        "../../../packages/@glimmer-workspace/benchmark-env"
+      ],
+      "@glimmer/runtime": [
+        "../../../packages/@glimmer/runtime"
+      ]
+    },
+    "outDir": "../../../ts-dist/benchmark/benchmarks/krausest",
+    "incremental": true
   },
-  "include": ["./lib/", "./browser.js"],
+  "include": [
+    "lib/**/*.ts",
+    "lib/**/*.d.ts",
+    "browser.js",
+    "vite.config.mts"
+  ],
   "references": [
     {
-      "path": "../../../packages/@glimmer/tsconfig.json"
+      "path": "../../../packages/@glimmer-workspace/benchmark-env/tsconfig.json"
     },
     {
-      "path": "../../../packages/@glimmer-workspace/tsconfig.json"
+      "path": "../../../packages/@glimmer/compiler/tsconfig.json"
+    },
+    {
+      "path": "../../../packages/@glimmer/interfaces/tsconfig.json"
+    },
+    {
+      "path": "../../../packages/@glimmer/runtime/tsconfig.json"
     }
   ]
 }

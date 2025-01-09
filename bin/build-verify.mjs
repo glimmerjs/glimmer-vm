@@ -1,7 +1,8 @@
-import { globby } from 'globby';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { globby } from 'globby';
 
 const currentDir = fileURLToPath(import.meta.url);
 const FORBIDDEN = [
@@ -16,7 +17,7 @@ const FORBIDDEN = [
   /**
    * These are for local VM debugging and development, and are not meant to make it to real code
    */
-  /[^.]check\(/,
+  /[^.]check\(/u,
   'CheckInterface',
   'CheckOr',
   'CheckFunction',
@@ -45,7 +46,7 @@ for (let filePath of files) {
   let content = file.toString();
 
   for (let searchFor of FORBIDDEN) {
-    if (content.match(searchFor)) {
+    if (typeof searchFor === 'string' ? content.includes(searchFor) : searchFor.test(content)) {
       errors.push({ filePath, found: searchFor });
     }
   }

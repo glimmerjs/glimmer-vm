@@ -7,23 +7,23 @@ export class StdLib {
     private cautiousNonDynamicAppend: number
   ) {}
 
-  get 'trusting-append'() {
+  get 'trusting-append'(): number {
     return this.trustingGuardedAppend;
   }
 
-  get 'cautious-append'() {
+  get 'cautious-append'(): number {
     return this.cautiousGuardedAppend;
   }
 
-  get 'trusting-non-dynamic-append'() {
+  get 'trusting-non-dynamic-append'(): number {
     return this.trustingNonDynamicAppend;
   }
 
-  get 'cautious-non-dynamic-append'() {
+  get 'cautious-non-dynamic-append'(): number {
     return this.cautiousNonDynamicAppend;
   }
 
-  getAppend(trusting: boolean) {
+  getAppend(trusting: boolean): number {
     return trusting ? this.trustingGuardedAppend : this.cautiousGuardedAppend;
   }
 }

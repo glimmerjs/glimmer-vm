@@ -1078,7 +1078,7 @@ test('number literal as path throws error', (assert) => {
   );
 });
 
-export function strip(strings: TemplateStringsArray, ...args: string[]) {
+export function strip(strings: TemplateStringsArray, ...args: string[]): string {
   return strings
     .map((str: string, i: number) => {
       return `${str

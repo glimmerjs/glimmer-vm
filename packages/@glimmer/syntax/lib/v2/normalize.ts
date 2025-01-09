@@ -1,6 +1,5 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { asPresentArray, assert, isPresentArray } from '@glimmer/debug-util';
-import { assign } from '@glimmer/util';
 
 import type {
   PrecompileOptions,
@@ -472,14 +471,12 @@ class StatementNormalizer {
     let callParts = this.expr.callParts(block, resolution.result);
 
     return this.block.builder.blockStatement(
-      assign(
-        {
-          symbols: this.block.table,
-          program: this.Block(program),
-          inverse: inverse ? this.Block(inverse) : null,
-        },
-        callParts
-      ),
+      {
+        symbols: this.block.table,
+        program: this.Block(program),
+        inverse: inverse ? this.Block(inverse) : null,
+        ...callParts,
+      },
       loc
     );
   }

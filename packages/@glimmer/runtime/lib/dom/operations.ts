@@ -24,7 +24,7 @@ const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 // TODO: Adjust SVG elements
 
 // http://www.w3.org/TR/html/syntax.html#parsing-main-inforeign
-export const BLACKLIST_TABLE = Object.create(null);
+export const INVALID_SVG_TAGS: Record<string, 1> = Object.create(null);
 
 export class DOMOperations {
   protected declare uselessElement: SimpleElement; // Set by this.setupUselessElement() in constructor
@@ -35,7 +35,7 @@ export class DOMOperations {
 
   // split into separate method so that NodeDOMTreeConstruction
   // can override it.
-  protected setupUselessElement() {
+  protected setupUselessElement(): void {
     this.uselessElement = this.document.createElement('div');
   }
 
@@ -59,7 +59,7 @@ export class DOMOperations {
       // FIXME: This does not properly handle <font> with color, face, or
       // size attributes, which is also disallowed by the spec. We should fix
       // this.
-      if (BLACKLIST_TABLE[tag]) {
+      if (INVALID_SVG_TAGS[tag]) {
         throw new Error(`Cannot create a ${tag} inside an SVG context`);
       }
       if (isElementInMathMlNamespace) {
@@ -74,7 +74,7 @@ export class DOMOperations {
     }
   }
 
-  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Nullable<SimpleNode>) {
+  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Nullable<SimpleNode>): void {
     parent.insertBefore(node, reference);
   }
 

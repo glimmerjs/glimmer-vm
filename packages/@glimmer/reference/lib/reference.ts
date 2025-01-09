@@ -1,34 +1,29 @@
 import type {
-  ComputeReference,
-  ConstantReference,
-  InvokableReference,
+  ComputeReferenceId,
+  ConstantReferenceId,
+  InvokableReferenceId,
   Nullable,
   Reference,
   ReferenceSymbol,
   ReferenceType,
-  UnboundReference,
+  Revision,
+  UnboundReferenceId,
 } from '@glimmer/interfaces';
-import type { Revision, Tag } from '@glimmer/validator';
+import type { Tag } from '@glimmer/validator';
 import { expect } from '@glimmer/debug-util';
-import { getProp, setProp } from '@glimmer/global-context';
+import { valueForRef } from '@glimmer/fundamental';
+import { context } from '@glimmer/global-context';
+import { symbols } from '@glimmer/state';
 import { isDict } from '@glimmer/util';
-import {
-  CONSTANT_TAG,
-  consumeTag,
-  INITIAL,
-  track,
-  validateTag,
-  valueForTag,
-} from '@glimmer/validator';
+import { CONSTANT_TAG, INITIAL } from '@glimmer/validator';
 
-export const REFERENCE: ReferenceSymbol = Symbol('REFERENCE') as ReferenceSymbol;
+const REFERENCE: ReferenceSymbol = symbols.REFERENCE;
 
-const CONSTANT: ConstantReference = 0;
-const COMPUTE: ComputeReference = 1;
-const UNBOUND: UnboundReference = 2;
-const INVOKABLE: InvokableReference = 3;
+const CONSTANT: ConstantReferenceId = 0;
+const COMPUTE: ComputeReferenceId = 1;
+const UNBOUND: UnboundReferenceId = 2;
+const INVOKABLE: InvokableReferenceId = 3;
 
-export type { Reference as default };
 export type { Reference };
 
 //////////
@@ -71,10 +66,10 @@ export function createPrimitiveRef<T extends string | symbol | number | boolean 
   return ref;
 }
 
-export const UNDEFINED_REFERENCE = createPrimitiveRef(undefined);
-export const NULL_REFERENCE = createPrimitiveRef(null);
-export const TRUE_REFERENCE = createPrimitiveRef(true as const);
-export const FALSE_REFERENCE = createPrimitiveRef(false as const);
+export const UNDEFINED_REFERENCE: Reference<undefined> = createPrimitiveRef(undefined);
+export const NULL_REFERENCE: Reference<null> = createPrimitiveRef(null);
+export const TRUE_REFERENCE: Reference<true> = createPrimitiveRef(true as const);
+export const FALSE_REFERENCE: Reference<false> = createPrimitiveRef(false as const);
 
 export function createConstRef<T>(value: T, debugLabel: false | string): Reference<T> {
   const ref = new ReferenceImpl<T>(CONSTANT);
@@ -125,7 +120,7 @@ export function createReadOnlyRef(ref: Reference): Reference {
   return createComputeRef(() => valueForRef(ref), null, ref.debugLabel);
 }
 
-export function isInvokableRef(ref: Reference) {
+export function isInvokableRef(ref: Reference): boolean {
   return ref[REFERENCE] === INVOKABLE;
 }
 
@@ -140,53 +135,19 @@ export function createInvokableRef(inner: Reference): Reference {
   return ref;
 }
 
-export function isConstRef(_ref: Reference) {
+export function isConstRef(_ref: Reference): boolean {
   const ref = _ref as ReferenceImpl;
 
   return ref.tag === CONSTANT_TAG;
 }
 
-export function isUpdatableRef(_ref: Reference) {
+export function isUpdatableRef(_ref: Reference): boolean {
   const ref = _ref as ReferenceImpl;
 
   return ref.update !== null;
 }
 
-export function valueForRef<T>(_ref: Reference<T>): T {
-  const ref = _ref as ReferenceImpl<T>;
-
-  let { tag } = ref;
-
-  if (tag === CONSTANT_TAG) {
-    return ref.lastValue as T;
-  }
-
-  const { lastRevision } = ref;
-  let lastValue;
-
-  if (tag === null || !validateTag(tag, lastRevision)) {
-    const { compute } = ref;
-
-    const newTag = track(
-      () => {
-        lastValue = ref.lastValue = compute!();
-      },
-      import.meta.env.DEV && ref.debugLabel
-    );
-
-    tag = ref.tag = newTag;
-
-    ref.lastRevision = valueForTag(newTag);
-  } else {
-    lastValue = ref.lastValue;
-  }
-
-  consumeTag(tag);
-
-  return lastValue as T;
-}
-
-export function updateRef(_ref: Reference, value: unknown) {
+export function updateRef(_ref: Reference, value: unknown): void {
   const ref = _ref as ReferenceImpl;
 
   const update = expect(ref.update, 'called update on a non-updatable reference');
@@ -229,14 +190,14 @@ export function childRefFor(_parentRef: Reference, path: string): Reference {
         const parent = valueForRef(parentRef);
 
         if (isDict(parent)) {
-          return getProp(parent, path);
+          return context().getProp(parent, path);
         }
       },
       (val) => {
         const parent = valueForRef(parentRef);
 
         if (isDict(parent)) {
-          return setProp(parent, path, val);
+          return context().setProp(parent, path, val);
         }
       }
     );

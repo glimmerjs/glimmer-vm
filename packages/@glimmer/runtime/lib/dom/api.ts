@@ -16,7 +16,7 @@ import { DOMOperations } from './operations';
 const doc: Nullable<SimpleDocument> =
   typeof document === 'undefined' ? null : castToSimple(document);
 
-export class TreeConstruction extends DOMOperations implements GlimmerTreeConstruction {
+class TreeConstruction extends DOMOperations implements GlimmerTreeConstruction {
   createElementNS(namespace: ElementNamespace, tag: string): SimpleElement {
     return this.document.createElementNS(namespace, tag);
   }
@@ -26,7 +26,7 @@ export class TreeConstruction extends DOMOperations implements GlimmerTreeConstr
     name: string,
     value: string,
     namespace: Nullable<AttrNamespace> = null
-  ) {
+  ): void {
     if (namespace) {
       element.setAttributeNS(namespace, name, value);
     } else {
@@ -46,5 +46,5 @@ appliedTreeConstruction = applySVGInnerHTMLFix(
   NS_SVG
 ) as typeof TreeConstruction;
 
-export const DOMTreeConstruction = appliedTreeConstruction;
+export const DOMTreeConstruction: typeof TreeConstruction = appliedTreeConstruction;
 export type DOMTreeConstruction = TreeConstruction;

@@ -1,0 +1,93 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "lib/**/*.d.ts",
+    "test/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer-workspace/integration-tests",
+    "composite": true,
+    "incremental": true,
+    "types": [
+      "@glimmer-workspace/env",
+      "node",
+      "qunit"
+    ]
+  },
+  "references": [
+    {
+      "path": "../test-utils/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/compiler/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/debug/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/destroyable/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/fundamental/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/global-context/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/interfaces/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/manager/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/node/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/opcode-compiler/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/owner/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/program/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/reference/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/runtime/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/state/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/syntax/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/util/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/validator/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/wire-format/tsconfig.json"
+    },
+    {
+      "path": "../env/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/constants/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/debug-util/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer/local-debug-flags/tsconfig.json"
+    },
+    {
+      "path": "../../@types/js-reporters/tsconfig.json"
+    }
+  ]
+}

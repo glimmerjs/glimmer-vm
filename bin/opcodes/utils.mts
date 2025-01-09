@@ -1,7 +1,9 @@
+/* eslint-disable n/no-process-exit */
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
+
 import chalk from 'chalk';
-import { spawnSync } from 'node:child_process';
 
 const MISSING_INDEX = -1;
 const REMOVE = 1;
@@ -186,7 +188,7 @@ export class Emitter {
   }
 
   #extractImport(type: Target): string {
-    const match = /^@glimmer\/[^/]*/.exec(this.#json.outputs[type])?.[0];
+    const match = /^@glimmer\/[^/]*/u.exec(this.#json.outputs[type])?.[0];
 
     if (!match) {
       this.human(`Invalid output.${type} in opcodes.json: ${chalk.cyan(this.#paths.config)}`);

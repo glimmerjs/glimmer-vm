@@ -1,4 +1,4 @@
-import type { CapturedArguments } from '@glimmer/interfaces';
+import type { CapturedArguments } from '@glimmer/state';
 import { createInvokableRef } from '@glimmer/reference';
 
 import { GlimmerishComponent, jitSuite, RenderTest, test } from '../..';
@@ -177,6 +177,7 @@ class FnTest extends RenderTest {
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
       myFunc() {
         assert.step('calling stashed function');
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         assert.throws(() => String(this), /not bound to a valid `this` context/u);
         // assert.strictEqual(this, null, 'this is bound to null in production builds');
       },

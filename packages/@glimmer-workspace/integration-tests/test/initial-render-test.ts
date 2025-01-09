@@ -968,7 +968,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     return template;
   }
 
-  assertServerComponent(html: string, attrs: Object = {}) {
+  assertServerComponent(html: string, attrs: object = {}) {
     // the Dynamic test type is using {{component 'foo'}} style invocation
     // and therefore an extra node is added delineating the block start
     let elementIndex = this.testType === 'Dynamic' ? 3 : 2;

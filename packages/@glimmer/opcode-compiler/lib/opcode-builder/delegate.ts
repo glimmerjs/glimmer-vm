@@ -1,8 +1,5 @@
-import type {
-  CompileTimeComponent,
-  InternalComponentCapabilities,
-  Nullable,
-} from '@glimmer/interfaces';
+import type { CompileTimeComponent, Nullable } from '@glimmer/interfaces';
+import type { InternalComponentCapabilities } from '@glimmer/state';
 
 export const DEFAULT_CAPABILITIES: InternalComponentCapabilities = {
   dynamicLayout: true,

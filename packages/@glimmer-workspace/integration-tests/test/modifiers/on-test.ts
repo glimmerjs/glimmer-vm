@@ -370,6 +370,7 @@ if (hasDom) {
       this.render(`<button {{on 'click' this.myFunc}}>Click Me</button>`, {
         myFunc(this: any) {
           assert.throws(() => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             this.arg1;
           }, /You accessed `this.arg1` from a function passed to the `on` modifier, but the function itself was not bound to a valid `this` context. Consider updating to use a bound function/u);
         },

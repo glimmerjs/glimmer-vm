@@ -6,13 +6,13 @@
   "[json][jsonc][markdown][yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[javascript][typescript]": {
+  "[javascript][typescript][json][jsonc]": {
     "editor.formatOnSave": false,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
       "source.unusedImports": "explicit",
       "source.fixAll": "explicit",
-      "source.formatDocument": "always"
+      "source.formatDocument": "never"
     }
   },
   "editor.formatOnSave": true,
@@ -20,15 +20,21 @@
   "eslint.codeAction.showDocumentation": {
     "enable": true
   },
-  "eslint.codeActionsOnSave.mode": "all",
+  "eslint.codeActionsOnSave.mode": "problems",
   "eslint.lintTask.enable": true,
   "eslint.onIgnoredFiles": "warn",
   "eslint.workingDirectories": [
-    {
-      "mode": "auto"
-    }
+    "packages/*/*",
+    "packages/*/*/test",
+    "bin",
+    "benchmark/benchmarks/krausest"
   ],
-  "eslint.validate": ["javascript", "typescript", "json", "jsonc"],
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "json",
+    "jsonc"
+  ],
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.git": true,
@@ -47,7 +53,7 @@
   "javascript.preferences.importModuleSpecifier": "project-relative",
   "typescript.preferences.importModuleSpecifier": "project-relative",
   "typescript.preferences.importModuleSpecifierEnding": "auto",
-  "typescript.preferences.useAliasesForRenames": false,
+  "typescript.preferences.useAliasesForRenames": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
   "typescript.workspaceSymbols.scope": "currentProject",
@@ -55,9 +61,15 @@
   "eslint.problems.shortenToSingleLine": true,
   "typescript.experimental.expandableHover": true,
   "inline-bookmarks.expert.custom.words.mapping": {
-    "warn": ["@premerge(\\s|$)"],
-    "active": ["@active(\\s|$)"],
-    "fixme": ["@fixme(\\s|$)"]
+    "warn": [
+      "@premerge(\\s|$)"
+    ],
+    "active": [
+      "@active(\\s|$)"
+    ],
+    "fixme": [
+      "@fixme(\\s|$)"
+    ]
   },
   "inline-bookmarks.expert.custom.styles": {
     "active": {
@@ -230,5 +242,19 @@
   "rewrap.autoWrap.enabled": true,
   "rewrap.reformat": true,
   "rewrap.wholeComment": false,
-  "explorer.excludeGitIgnore": true
+  "explorer.excludeGitIgnore": true,
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.tsserver.useSyntaxServer": "never",
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "typescript.preferences.organizeImports": {
+    "typeOrder": "first"
+  },
+  "typescript.preferGoToSourceDefinition": true,
+  "typescript.tsserver.watchOptions": {
+    "watchFile": "useFsEventsOnParentDirectory",
+    "watchDirectory": "useFsEvents",
+    "fallbackPolling": "dynamicPriorityPolling"
+  },
+  "eslint.debug": true,
+  "eslint.useESLintClass": true
 }

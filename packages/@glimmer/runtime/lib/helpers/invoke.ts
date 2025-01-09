@@ -56,7 +56,7 @@ export function invokeHelper(
   }
 
   const owner = getOwner(context);
-  const internalManager = getInternalHelperManager(definition)!;
+  const internalManager = getInternalHelperManager(definition);
 
   // TODO: figure out why assert isn't using the TS assert thing
   if (import.meta.env.DEV && !internalManager) {

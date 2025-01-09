@@ -1,6 +1,2 @@
-export {
-  Package,
-  type PackageInfo,
-  type PackageJSON,
-  type ViteConfig as ViteExport,
-} from './lib/config.js';
+export { Package } from './lib/config.js';
+export type { PackageInfo, PackageJSON, ViteConfig as ViteExport } from './lib/types.d.ts';

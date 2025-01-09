@@ -5,50 +5,45 @@
   "description": "Objects used to track values and their dirtiness in Glimmer",
   "repository": {
     "type": "git",
-    "url": "https://github.com/glimmerjs/glimmer-vm",
+    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
     "directory": "packages/@glimmer/validator"
   },
   "type": "module",
-  "exports": {
-    "types": "./index.ts",
-    "development": "./index.ts"
-  },
+  "exports": "./index.ts",
   "publishConfig": {
     "access": "public",
     "exports": {
-      ".": {
+      "development": {
         "types": "./dist/dev/index.d.ts",
-        "development": {
-          "require": "./dist/dev/index.cjs",
-          "import": "./dist/dev/index.js"
-        },
-        "require": "./dist/dev/index.cjs",
-        "import": "./dist/prod/index.js"
+        "default": "./dist/dev/index.js"
+      },
+      "default": {
+        "types": "./dist/prod/index.d.ts",
+        "default": "./dist/prod/index.js"
       }
-    }
+    },
+    "files": [
+      "dist"
+    ]
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "test:lint": "eslint .",
-    "test:publint": "publint",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:publint": "publint"
   },
   "dependencies": {
-    "@glimmer/env": "^0.1.7",
-    "@glimmer/global-context": "workspace:*",
-    "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*"
+    "@glimmer/fundamental": "workspace:*",
+    "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
-    "@glimmer/debug-util": "workspace:*",
-    "@glimmer/local-debug-flags": "workspace:*",
-    "eslint": "^8.52.0",
-    "publint": "^0.2.5",
-    "rollup": "^4.5.1",
-    "typescript": "*"
+    "@glimmer-workspace/env": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
+    "@glimmer/state": "workspace:*",
+    "@types/qunit": "catalog:",
+    "eslint": "catalog:",
+    "publint": "catalog:",
+    "rollup": "catalog:",
+    "typescript": "catalog:"
   }
 }

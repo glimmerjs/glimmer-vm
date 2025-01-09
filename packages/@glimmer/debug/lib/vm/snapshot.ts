@@ -1,12 +1,11 @@
 import type {
   Cursor,
-  DebugRegisters,
   DebugVmSnapshot,
   Nullable,
+  RegisterDiffs,
+  RuntimeOpSnapshot,
   ScopeSlot,
   SimpleElement,
-  VmMachineOp,
-  VmOp,
 } from '@glimmer/interfaces';
 import { exhausted } from '@glimmer/debug-util';
 import { LOCAL_SUBTLE_LOGGING } from '@glimmer/local-debug-flags';
@@ -19,12 +18,6 @@ import { decodeRegister } from '../debug';
 import { value } from '../render/basic';
 import { array } from '../render/combinators';
 import { as, frag } from '../render/fragment';
-
-export interface RuntimeOpSnapshot {
-  type: VmMachineOp | VmOp;
-  isMachine: 0 | 1;
-  size: number;
-}
 
 export class VmSnapshot {
   #opcode: RuntimeOpSnapshot;
@@ -39,12 +32,6 @@ export class VmSnapshot {
     return new VmDiff(this.#opcode, this.#snapshot, other.#snapshot);
   }
 }
-
-type GetRegisterDiffs<D extends DebugRegisters> = {
-  [P in keyof D]: VmSnapshotValueDiff<P, D[P]>;
-};
-
-type RegisterDiffs = GetRegisterDiffs<DebugRegisters>;
 
 export class VmDiff {
   readonly opcode: RuntimeOpSnapshot;

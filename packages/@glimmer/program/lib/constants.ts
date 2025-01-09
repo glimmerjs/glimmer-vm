@@ -55,7 +55,7 @@ export class ConstantsImpl implements ProgramConstants {
     ComponentDefinition | null
   >();
 
-  value(value: unknown) {
+  value(value: unknown): number {
     let indexMap = this.indexMap;
     let index = indexMap.get(value);
 

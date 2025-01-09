@@ -3,16 +3,6 @@ const { resolve, relative, dirname } = require('path');
 
 const glob = require('fast-glob');
 
-const libs = glob.sync(['tsconfig.json', '*/tsconfig.json'], {
-  cwd: __dirname,
-  absolute: true,
-});
-
-const tests = glob.sync(['tsconfig.json', '*/test/tsconfig.json'], {
-  cwd: __dirname,
-  absolute: true,
-});
-
 const testDirs = glob.sync(['*/test'], {
   cwd: __dirname,
   absolute: true,
@@ -83,14 +73,15 @@ const overrides = Object.entries(RESTRICTIONS).flatMap(([pkgName, overrides]) =>
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: false,
+  plugins: ['@glimmer-workspace'],
+  parserOptions: {
+    projectService: true,
+    tsconfigRootDir: __dirname,
+  },
   overrides: [
     {
-      files: ['*/lib/**/*.{js,cjs,mjs,ts,d.ts}'],
+      files: ['*/index.{js,cjs,mjs,ts,d.ts}', '*/lib/**/*.{js,cjs,mjs,ts,d.ts}'],
       excludedFiles: ['node_modules', '*/node_modules'],
-      parserOptions: {
-        project: libs,
-      },
-      plugins: ['@glimmer-workspace'],
       extends: ['plugin:@glimmer-workspace/recommended'],
     },
     {
@@ -99,19 +90,19 @@ module.exports = {
         node: true,
       },
       excludedFiles: ['node_modules', '*/node_modules'],
-      parserOptions: {
-        project: libs,
-      },
+
       plugins: ['@glimmer-workspace'],
       extends: ['plugin:@glimmer-workspace/recommended'],
       rules: {
         '@typescript-eslint/no-require-imports': 'off',
         '@typescript-eslint/no-var-requires': 'off',
+        '@typescript-eslint/unbound-method': 'off',
         'no-undef': 'off',
       },
     },
     {
-      files: ['./integration-tests/{lib,test}/**/*.ts'],
+      files: ['integration-tests/{lib,test}/**/*.ts'],
+      extends: ['plugin:@glimmer-workspace/recommended'],
       rules: {
         // off for now
         '@typescript-eslint/no-explicit-any': 'off',
@@ -123,46 +114,16 @@ module.exports = {
     // - https://github.com/qunitjs/qunit/issues/1724
     {
       files: ['*/test/**/*.{js,ts,d.ts}'],
-      parserOptions: {
-        project: tests,
-      },
       plugins: ['@glimmer-workspace'],
       extends: ['plugin:@glimmer-workspace/recommended'],
       rules: {
         '@typescript-eslint/unbound-method': 'off',
         // off for now
         '@typescript-eslint/no-explicit-any': 'off',
-        'import/no-relative-packages': 'error',
+        'import-x/no-relative-packages': 'error',
         'no-restricted-paths': 'off',
       },
     },
     ...overrides,
-    // TODO: / CLEANUP: / TECHDEBT:
-    {
-      files: [
-        'integration-tests/lib/dom/assertions.ts',
-        'integration-tests/lib/snapshot.ts',
-        'integration-tests/lib/dom/simple-utils.ts',
-        'integration-tests/lib/modes/rehydration/builder.ts',
-      ],
-      rules: {
-        '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
-      },
-    },
-    {
-      files: [
-        'integration-tests/test/ember-component-test.ts',
-        'integration-tests/lib/render-test.ts',
-      ],
-      rules: {
-        '@typescript-eslint/no-base-to-string': 'warn',
-      },
-    },
-    {
-      files: ['integration-tests/lib/suites/each.ts', 'integration-tests/lib/dom/assertions.ts'],
-      rules: {
-        'deprecation/deprecation': 'warn',
-      },
-    },
   ],
 };

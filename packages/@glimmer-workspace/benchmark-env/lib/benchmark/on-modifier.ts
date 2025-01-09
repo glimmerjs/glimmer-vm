@@ -18,7 +18,7 @@ interface OnModifierState {
 }
 
 class OnModifierManager implements InternalModifierManager<OnModifierState, object> {
-  create(_owner: Owner, element: SimpleElement, _: {}, args: CapturedArguments) {
+  create(_owner: Owner, element: SimpleElement, _: object, args: CapturedArguments) {
     return {
       element,
       nameRef: args.positional[0] as Reference<string>,

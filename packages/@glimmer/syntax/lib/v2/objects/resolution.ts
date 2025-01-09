@@ -6,7 +6,13 @@
  */
 
 import type { GetContextualFreeOpcode } from '@glimmer/interfaces';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE,
+  WF_GET_STRICT_KEYWORD_OPCODE,
+} from '@glimmer/wire-format';
 
 import type { FreeVarNamespace } from './constants';
 
@@ -18,20 +24,30 @@ import { COMPONENT_VAR_NS, HELPER_VAR_NS, MODIFIER_VAR_NS } from './constants';
  * 1. in a strict mode template
  * 2. in an local variable invocation with dot paths
  */
-export const STRICT_RESOLUTION = {
-  resolution: (): GetContextualFreeOpcode => SexpOpcodes.GetStrictKeyword,
+interface Resolution {
+  readonly resolution: () => GetContextualFreeOpcode;
+  readonly serialize: () => SerializedResolution;
+  readonly isAngleBracket: boolean;
+}
+
+interface StrictResolution extends Resolution {
+  readonly isAngleBracket: false;
+}
+
+export const STRICT_RESOLUTION: StrictResolution = {
+  resolution: (): GetContextualFreeOpcode => WF_GET_STRICT_KEYWORD_OPCODE,
   serialize: (): SerializedResolution => 'Strict',
-  isAngleBracket: false as const,
+  isAngleBracket: false,
 };
 
-export type StrictResolution = typeof STRICT_RESOLUTION;
+interface HtmlResolution extends Resolution {
+  readonly isAngleBracket: true;
+}
 
-export const HTML_RESOLUTION = {
+export const HTML_RESOLUTION: HtmlResolution = {
   ...STRICT_RESOLUTION,
-  isAngleBracket: true as const,
+  isAngleBracket: true,
 };
-
-export type HtmlResolution = typeof HTML_RESOLUTION;
 
 export function isStrictResolution(value: unknown): value is StrictResolution {
   return value === STRICT_RESOLUTION;
@@ -101,14 +117,14 @@ export class LooseModeResolution {
     if (this.namespaces.length === 1) {
       switch (this.namespaces[0]) {
         case HELPER_VAR_NS:
-          return SexpOpcodes.GetFreeAsHelperHead;
+          return WF_GET_FREE_AS_HELPER_HEAD_OPCODE;
         case MODIFIER_VAR_NS:
-          return SexpOpcodes.GetFreeAsModifierHead;
+          return WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE;
         case COMPONENT_VAR_NS:
-          return SexpOpcodes.GetFreeAsComponentHead;
+          return WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE;
       }
     } else {
-      return SexpOpcodes.GetFreeAsComponentOrHelperHead;
+      return WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE;
     }
   }
 
@@ -121,9 +137,9 @@ export class LooseModeResolution {
   }
 }
 
-export const HELPER_NAMESPACE = HELPER_VAR_NS;
-export const MODIFIER_NAMESPACE = MODIFIER_VAR_NS;
-export const COMPONENT_NAMESPACE = COMPONENT_VAR_NS;
+export const HELPER_NAMESPACE: HELPER_VAR_NS = HELPER_VAR_NS;
+export const MODIFIER_NAMESPACE: MODIFIER_VAR_NS = MODIFIER_VAR_NS;
+export const COMPONENT_NAMESPACE: COMPONENT_VAR_NS = COMPONENT_VAR_NS;
 
 /**
  * A `Namespaced` must be resolved in one or more namespaces.

@@ -1,6 +1,5 @@
 import type { Nullable } from '@glimmer/interfaces';
 import { asPresentArray, assert, expect, getLast, unwrap } from '@glimmer/debug-util';
-import { assign } from '@glimmer/util';
 import {
   EntityParser,
   EventedTokenizer,
@@ -34,7 +33,7 @@ export interface EndTag {
   readonly loc: src.SourceSpan;
 }
 
-export interface Attribute {
+interface Attribute {
   name: string;
   currentPart: ASTv1.TextNode | null;
   parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[];
@@ -61,7 +60,7 @@ export abstract class Parser {
 
   constructor(
     source: src.Source,
-    entityParser = new EntityParser(namedCharRefs),
+    entityParser: EntityParser = new EntityParser(namedCharRefs),
     mode: 'precompile' | 'codemod' = 'precompile'
   ) {
     this.source = source;
@@ -79,11 +78,10 @@ export abstract class Parser {
   }
 
   finish<T extends { loc: src.SourceSpan }>(node: ParserNodeBuilder<T>): T {
-    return assign({}, node, {
+    return {
+      ...node,
       loc: node.start.until(this.offset()),
-    } as const) as unknown as T;
-
-    // node.loc = node.loc.withEnd(end);
+    } as unknown as T;
   }
 
   abstract parse(node: HBS.Program, locals: string[]): ASTv1.Template;

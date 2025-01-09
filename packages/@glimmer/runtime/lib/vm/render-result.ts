@@ -6,6 +6,7 @@ import type {
   SimpleNode,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
+import { unreachable } from '@glimmer/debug-util';
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 
 import { clear } from '../bounds';
@@ -22,7 +23,11 @@ export default class RenderResultImpl implements RenderResult {
     registerDestructor(this, () => clear(this.bounds));
   }
 
-  rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
+  rerender({
+    alwaysRevalidate = false,
+  }: {
+    alwaysRevalidate?: false;
+  } = {}): void {
     let { env, updating } = this;
     let vm = new UpdatingVM(env, { alwaysRevalidate });
     vm.execute(updating, this);
@@ -40,7 +45,7 @@ export default class RenderResultImpl implements RenderResult {
     return this.bounds.lastNode();
   }
 
-  handleException() {
-    throw 'this should never happen';
+  handleException(): never {
+    unreachable('this should never happen');
   }
 }

@@ -35,7 +35,6 @@ import {
   renderSync,
   runtimeOptions,
 } from '@glimmer/runtime';
-import { assign } from '@glimmer/util';
 
 import type { ComponentKind, ComponentTypes } from '../../components';
 import type { UserHelper } from '../../helpers';
@@ -94,7 +93,7 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry = new TestJitRegistry();
     this.resolver = resolver(this.registry);
     this.doc = castToSimple(doc ?? document);
-    this.env = assign({}, env ?? BaseEnv);
+    this.env = { ...(env ?? BaseEnv) };
     this.registry.register('modifier', 'on', on);
     this.registry.register('helper', 'fn', fn);
     this.registry.register('helper', 'hash', hash);

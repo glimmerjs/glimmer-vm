@@ -9,7 +9,7 @@ import { Ok, Result, ResultArray } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import { CALL_KEYWORDS } from '../keywords';
 
-export class NormalizeExpressions {
+class NormalizeExpressions {
   visit(node: ASTv2.ExpressionNode, state: NormalizationState): Result<mir.ExpressionNode> {
     switch (node.type) {
       case 'Literal':
@@ -60,10 +60,10 @@ export class NormalizeExpressions {
     if (isPresentArray(tail)) {
       let tailLoc = tail[0].loc.extend(getLast(tail).loc);
       return Ok(
-        new mir.PathExpression({
+        mir.PathExpression({
           loc: path.loc,
           head: ref,
-          tail: new mir.Tail({ loc: tailLoc, members: tail }),
+          tail: mir.Tail({ loc: tailLoc, members: tail }),
         })
       );
     } else {
@@ -89,8 +89,8 @@ export class NormalizeExpressions {
   ): Result<mir.InterpolateExpression> {
     let parts = expr.parts.map(convertPathToCallIfKeyword) as PresentArray<ASTv2.ExpressionNode>;
 
-    return VISIT_EXPRS.visitList(parts, state).mapOk(
-      (parts) => new mir.InterpolateExpression({ loc: expr.loc, parts: parts })
+    return VISIT_EXPRS.visitList(parts, state).mapOk((parts) =>
+      mir.InterpolateExpression({ loc: expr.loc, parts: parts })
     );
   }
 
@@ -104,13 +104,12 @@ export class NormalizeExpressions {
       return Result.all(
         VISIT_EXPRS.visit(expr.callee, state),
         VISIT_EXPRS.Args(expr.args, state)
-      ).mapOk(
-        ([callee, args]) =>
-          new mir.CallExpression({
-            loc: expr.loc,
-            callee,
-            args,
-          })
+      ).mapOk(([callee, args]) =>
+        mir.CallExpression({
+          loc: expr.loc,
+          callee,
+          args,
+        })
       );
     }
   }
@@ -118,7 +117,7 @@ export class NormalizeExpressions {
   Args({ positional, named, loc }: ASTv2.Args, state: NormalizationState): Result<mir.Args> {
     return Result.all(this.Positional(positional, state), this.NamedArguments(named, state)).mapOk(
       ([positional, named]) =>
-        new mir.Args({
+        mir.Args({
           loc,
           positional,
           named,
@@ -130,12 +129,11 @@ export class NormalizeExpressions {
     positional: ASTv2.PositionalArguments,
     state: NormalizationState
   ): Result<mir.Positional> {
-    return VISIT_EXPRS.visitList(positional.exprs, state).mapOk(
-      (list) =>
-        new mir.Positional({
-          loc: positional.loc,
-          list,
-        })
+    return VISIT_EXPRS.visitList(positional.exprs, state).mapOk((list) =>
+      mir.Positional({
+        loc: positional.loc,
+        list,
+      })
     );
   }
 
@@ -146,19 +144,18 @@ export class NormalizeExpressions {
     let pairs = named.entries.map((arg) => {
       let value = convertPathToCallIfKeyword(arg.value);
 
-      return VISIT_EXPRS.visit(value, state).mapOk(
-        (value) =>
-          new mir.NamedArgument({
-            loc: arg.loc,
-            key: arg.name,
-            value,
-          })
+      return VISIT_EXPRS.visit(value, state).mapOk((value) =>
+        mir.NamedArgument({
+          loc: arg.loc,
+          key: arg.name,
+          value,
+        })
       );
     });
 
     return new ResultArray(pairs)
       .toOptionalList()
-      .mapOk((pairs) => new mir.NamedArguments({ loc: named.loc, entries: pairs }));
+      .mapOk((pairs) => mir.NamedArguments({ loc: named.loc, entries: pairs }));
   }
 }
 
@@ -174,4 +171,4 @@ export function convertPathToCallIfKeyword(path: ASTv2.ExpressionNode): ASTv2.Ex
   return path;
 }
 
-export const VISIT_EXPRS = new NormalizeExpressions();
+export const VISIT_EXPRS: NormalizeExpressions = new NormalizeExpressions();

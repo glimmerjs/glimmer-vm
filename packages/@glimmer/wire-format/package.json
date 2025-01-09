@@ -1,50 +1,18 @@
 {
   "name": "@glimmer/wire-format",
+  "private": true,
   "version": "0.93.1",
   "license": "MIT",
   "description": "",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/wire-format",
   "type": "module",
   "exports": "./index.ts",
-  "publishConfig": {
-    "access": "public",
-    "exports": {
-      ".": {
-        "require": {
-          "types": "./dist/dev/index.d.cts",
-          "default": "./dist/dev/index.cjs"
-        },
-        "default": {
-          "development": {
-            "types": "./dist/dev/index.d.ts",
-            "default": "./dist/dev/index.js"
-          },
-          "default": {
-            "types": "./dist/prod/index.d.ts",
-            "default": "./dist/prod/index.js"
-          }
-        }
-      }
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "rollup -c rollup.config.mjs",
-    "test:lint": "eslint .",
-    "test:publint": "publint",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
-  },
   "dependencies": {
-    "@glimmer/interfaces": "workspace:*",
-    "@glimmer/util": "workspace:*"
+    "@glimmer/interfaces": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
-    "eslint": "^8.52.0",
-    "publint": "^0.2.5",
-    "rollup": "^4.5.1",
-    "typescript": "*"
+    "@glimmer-workspace/env": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

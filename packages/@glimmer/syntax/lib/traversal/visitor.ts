@@ -2,7 +2,7 @@ import type * as ASTv1 from '../v1/api';
 import type { VisitorKey } from '../v1/visitor-keys';
 import type WalkerPath from './path';
 
-export interface FullNodeTraversal<N extends ASTv1.Node> {
+interface FullNodeTraversal<N extends ASTv1.Node> {
   enter?(node: N, path: WalkerPath<N>): void;
   exit?(node: N, path: WalkerPath<N>): void;
   keys?: KeysVisitor<N>;
@@ -20,7 +20,7 @@ export type NodeVisitor = { [P in keyof ASTv1.Nodes]?: NodeTraversal<ASTv1.Nodes
   Program?: NodeTraversal<ASTv1.Template | ASTv1.Block>;
 };
 
-export interface FullKeyTraversal<N extends ASTv1.Node, K extends string> {
+interface FullKeyTraversal<N extends ASTv1.Node, K extends string> {
   enter?(node: N, key: K): void;
   exit?(node: N, key: K): void;
 }
@@ -30,7 +30,7 @@ export type KeyTraversal<N extends ASTv1.Node, K extends VisitorKey<N>> =
   | FullKeyTraversal<N, K>
   | KeyHandler<N, K>;
 
-export type KeysVisitor<N extends ASTv1.Node> = { [P in VisitorKey<N>]?: KeyTraversal<N, P> } & {
+type KeysVisitor<N extends ASTv1.Node> = { [P in VisitorKey<N>]?: KeyTraversal<N, P> } & {
   All?: KeyTraversal<N, VisitorKey<N>>;
 
   /**

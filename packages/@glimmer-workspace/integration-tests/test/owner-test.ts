@@ -1,11 +1,10 @@
 import type {
-  InternalComponentCapabilities,
-  Owner,
   ResolvedComponentDefinition,
   WithCreateInstance,
   WithSubOwner,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
+import type { InternalComponentCapabilities, Owner } from '@glimmer/state';
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE } from '@glimmer/reference';
 

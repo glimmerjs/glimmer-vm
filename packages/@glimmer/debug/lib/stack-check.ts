@@ -1,8 +1,10 @@
 import type {
+  AnyFn,
   BlockSymbolTable,
   Dict,
   Maybe,
   Nullable,
+  Primitive,
   ProgramSymbolTable,
   SimpleDocumentFragment,
   SimpleElement,
@@ -11,8 +13,6 @@ import type {
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
-
-import type { Primitive } from './dism/dism';
 
 export interface Checker<T> {
   type: T;
@@ -51,8 +51,29 @@ export function wrap<T>(checker: () => Checker<T>): Checker<T> {
   return new Wrapped();
 }
 
-export interface Constructor<T> extends Function {
+interface Constructor<T> extends AnyFn {
   prototype: T;
+}
+
+class CheckSatisfies<T> implements Checker<T> {
+  declare type: T;
+
+  constructor(
+    private predicate: (value: unknown) => value is T,
+    private desc: string
+  ) {}
+
+  validate(value: unknown): value is T {
+    return this.predicate(value);
+  }
+
+  expected(): string {
+    return this.desc;
+  }
+}
+
+export function satisfies<T>(predicate: (value: unknown) => value is T, desc: string): Checker<T> {
+  return new CheckSatisfies(predicate, desc);
 }
 
 class TypeofChecker<T> implements Checker<T> {
@@ -84,18 +105,6 @@ class PrimitiveChecker implements Checker<Primitive> {
 
   expected(): string {
     return `a primitive`;
-  }
-}
-
-class NullChecker implements Checker<null> {
-  declare type: null;
-
-  validate(value: unknown): value is null {
-    return value === null;
-  }
-
-  expected(): string {
-    return `null`;
   }
 }
 
@@ -283,7 +292,7 @@ class ObjectChecker implements Checker<unknown> {
   }
 }
 
-export interface SafeString {
+interface SafeString {
   toHTML(): string;
 }
 
@@ -441,32 +450,12 @@ export function check<T>(
   }
 }
 
-let size = 0;
-
-export function recordStackSize(sp: number) {
-  size = sp;
-}
-
-export function expectStackChange(stack: { sp: number }, expected: number, name: string) {
-  if (LOCAL_DEBUG) {
-    return;
-  }
-
-  let actual = stack.sp - size;
-
-  if (actual === expected) return;
-
-  throw new Error(
-    `Expected stack to change by ${expected}, but it changed by ${actual} in ${name}`
-  );
-}
-
 export const CheckPrimitive: Checker<Primitive> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new PrimitiveChecker();
-export const CheckFunction: Checker<Function> = !LOCAL_DEBUG
+export const CheckFunction: Checker<AnyFn> = !LOCAL_DEBUG
   ? new NoopChecker()
-  : new TypeofChecker<Function>('function');
+  : new TypeofChecker<AnyFn>('function');
 export const CheckNumber: Checker<number> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new TypeofChecker<number>('number');
@@ -477,7 +466,6 @@ export const CheckHandle: Checker<number> = LOCAL_DEBUG ? CheckNumber : new Noop
 export const CheckString: Checker<string> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new TypeofChecker<string>('string');
-export const CheckNull: Checker<null> = !LOCAL_DEBUG ? new NoopChecker() : new NullChecker();
 export const CheckUndefined: Checker<undefined> = !LOCAL_DEBUG
   ? new NoopChecker()
   : new UndefinedChecker();
@@ -496,11 +484,11 @@ export function CheckOr<T, U>(left: Checker<T>, right: Checker<U>): Checker<T | 
   return new OrChecker(left, right);
 }
 
-export function CheckValue<T>(value: T, desc = String(value)): Checker<T> {
+function CheckValue<T>(value: T, desc?: string): Checker<T> {
   if (!LOCAL_DEBUG) {
     return new NoopChecker<T>();
   }
-  return new ExactValueChecker(value, desc);
+  return new ExactValueChecker(value, desc ?? String(value));
 }
 
 export const CheckBlockSymbolTable: Checker<BlockSymbolTable> = LOCAL_DEBUG

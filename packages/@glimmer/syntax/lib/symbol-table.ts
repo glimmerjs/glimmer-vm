@@ -1,14 +1,9 @@
 import type { Core, Dict } from '@glimmer/interfaces';
 import { setLocalDebugType, unwrap } from '@glimmer/debug-util';
 import { dict } from '@glimmer/util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE } from '@glimmer/wire-format';
 
 import * as ASTv2 from './v2/api';
-
-export interface Upvar {
-  readonly name: string;
-  readonly resolution: ASTv2.FreeVarResolution;
-}
 
 interface SymbolTableOptions {
   customizeComponentName: (input: string) => string;
@@ -72,8 +67,8 @@ export class ProgramSymbolTable extends SymbolTable {
   readonly upvars: string[] = [];
 
   private size = 1;
-  readonly named = dict<number>();
-  readonly blocks = dict<number>();
+  readonly named: Dict<number> = dict();
+  readonly blocks: Dict<number> = dict();
   readonly usedTemplateLocals: string[] = [];
 
   root(): ProgramSymbolTable {
@@ -124,7 +119,7 @@ export class ProgramSymbolTable extends SymbolTable {
     // If the name in question is an uppercase (i.e. angle-bracket) component invocation, run
     // the optional `customizeComponentName` function provided to the precompiler.
     if (
-      resolution.resolution() === SexpOpcodes.GetFreeAsComponentHead &&
+      resolution.resolution() === WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE &&
       resolution.isAngleBracket
     ) {
       name = this.options.customizeComponentName(name);

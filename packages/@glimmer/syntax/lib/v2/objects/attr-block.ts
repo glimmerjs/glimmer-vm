@@ -1,9 +1,10 @@
 import type { SourceSlice } from '../../source/slice';
 import type { CallFields } from './base';
 import type { ExpressionNode } from './expr';
+import type { NodeConstructor } from './node';
 
 import { NamedArgument } from './args';
-import { node } from './node';
+import { AstNode } from './node';
 
 /**
  * Attr nodes look like HTML attributes, but are classified as:
@@ -35,14 +36,19 @@ export type AttrBlockNode = AttrNode | ElementModifier;
  * - `...attributes` is `SplatAttr`
  * - `@x=<value>` is `ComponentArg`
  */
-export class HtmlAttr extends node('HtmlAttr').fields<AttrNodeOptions>() {}
+export const HtmlAttrFields: NodeConstructor<'HtmlAttr', AttrNodeOptions> = AstNode('HtmlAttr');
+export class HtmlAttr extends HtmlAttrFields {}
 
-export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
+export const SplatAttrFields: NodeConstructor<'SplatAttr', { symbol: number }> =
+  AstNode('SplatAttr');
+export class SplatAttr extends SplatAttrFields {}
 
 /**
  * Corresponds to an argument passed by a component (`@x=<value>`)
  */
-export class ComponentArg extends node().fields<AttrNodeOptions>() {
+export const ComponentArgFields: NodeConstructor<'ComponentArg', AttrNodeOptions> =
+  AstNode('ComponentArg');
+export class ComponentArg extends ComponentArgFields {
   /**
    * Convert the component argument into a named argument node
    */
@@ -57,7 +63,9 @@ export class ComponentArg extends node().fields<AttrNodeOptions>() {
 /**
  * An `ElementModifier` is just a normal call node in modifier position.
  */
-export class ElementModifier extends node('ElementModifier').fields<CallFields>() {}
+export const ElementModifierFields: NodeConstructor<'ElementModifier', CallFields> =
+  AstNode('ElementModifier');
+export class ElementModifier extends ElementModifierFields {}
 
 export interface AttrNodeOptions {
   name: SourceSlice;

@@ -1,6 +1,11 @@
-import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
+import type {
+  CompilableTemplate,
+  Nullable,
+  Revision,
+  Tag,
+  UpdatingOpcode,
+} from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
-import type { Revision, Tag } from '@glimmer/validator';
 import {
   decodeHandle,
   decodeImmediate,
@@ -42,7 +47,14 @@ import {
   CheckSyscallRegister,
 } from '@glimmer/debug';
 import { assert, expect, unwrap } from '@glimmer/debug-util';
-import { toBool } from '@glimmer/global-context';
+import {
+  beginTrackFrame,
+  consumeTag,
+  endTrackFrame,
+  validateTag,
+  valueForTag,
+} from '@glimmer/fundamental';
+import { context } from '@glimmer/global-context';
 import {
   createComputeRef,
   createConstRef,
@@ -54,15 +66,7 @@ import {
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
-import {
-  beginTrackFrame,
-  CONSTANT_TAG,
-  consumeTag,
-  endTrackFrame,
-  INITIAL,
-  validateTag,
-  valueForTag,
-} from '@glimmer/validator';
+import { CONSTANT_TAG, INITIAL } from '@glimmer/validator';
 
 import type { UpdatingVM } from '../../vm';
 import type { VM } from '../../vm/append';
@@ -274,7 +278,7 @@ APPEND_OPCODES.add(VM_TO_BOOLEAN_OP, (vm) => {
   let { stack } = vm;
   let valueRef = check(stack.pop(), CheckReference);
 
-  stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
+  stack.push(createComputeRef(() => context().toBool(valueForRef(valueRef))));
 });
 
 export class Assert implements UpdatingOpcode {
@@ -284,7 +288,7 @@ export class Assert implements UpdatingOpcode {
     this.last = valueForRef(ref);
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { last, ref } = this;
     let current = valueForRef(ref);
 
@@ -304,7 +308,7 @@ export class AssertFilter<T, U> implements UpdatingOpcode {
     this.last = filter(valueForRef(ref));
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { last, ref, filter } = this;
     let current = filter(valueForRef(ref));
 
@@ -319,12 +323,12 @@ export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
   private lastRevision: Revision = INITIAL;
   private target?: number;
 
-  finalize(tag: Tag, target: number) {
+  finalize(tag: Tag, target: number): void {
     this.target = target;
     this.didModify(tag);
   }
 
-  evaluate(vm: UpdatingVM) {
+  evaluate(vm: UpdatingVM): void {
     let { tag, target, lastRevision } = this;
 
     if (!vm.alwaysRevalidate && validateTag(tag, lastRevision)) {
@@ -333,7 +337,7 @@ export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
     }
   }
 
-  didModify(tag: Tag) {
+  didModify(tag: Tag): void {
     this.tag = tag;
     this.lastRevision = valueForTag(this.tag);
     consumeTag(tag);
@@ -343,7 +347,7 @@ export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
 export class BeginTrackFrameOpcode implements UpdatingOpcode {
   constructor(private debugLabel?: string) {}
 
-  evaluate() {
+  evaluate(): void {
     beginTrackFrame(this.debugLabel);
   }
 }
@@ -351,7 +355,7 @@ export class BeginTrackFrameOpcode implements UpdatingOpcode {
 export class EndTrackFrameOpcode implements UpdatingOpcode {
   constructor(private target: JumpIfNotModifiedOpcode) {}
 
-  evaluate() {
+  evaluate(): void {
     let tag = endTrackFrame();
     this.target.didModify(tag);
   }

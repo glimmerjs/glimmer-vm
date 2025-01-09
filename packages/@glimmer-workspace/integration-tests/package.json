@@ -2,16 +2,19 @@
   "name": "@glimmer-workspace/integration-tests",
   "version": "0.84.3",
   "private": true,
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer-workspace/integration-tests",
+  "keywords": [
+    "node"
+  ],
   "main": "index.ts",
   "scripts": {
-    "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:lint": "eslint ."
   },
   "dependencies": {
     "@glimmer-workspace/test-utils": "workspace:*",
     "@glimmer/compiler": "workspace:*",
+    "@glimmer/debug": "workspace:*",
     "@glimmer/destroyable": "workspace:*",
+    "@glimmer/fundamental": "workspace:*",
     "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/manager": "workspace:*",
@@ -21,24 +24,28 @@
     "@glimmer/program": "workspace:*",
     "@glimmer/reference": "workspace:*",
     "@glimmer/runtime": "workspace:*",
+    "@glimmer/state": "workspace:*",
     "@glimmer/syntax": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/validator": "workspace:*",
-    "@glimmer/vm": "workspace:*",
     "@glimmer/wire-format": "workspace:*",
     "@simple-dom/document": "^1.4.0",
     "@simple-dom/serializer": "^1.4.0",
     "@simple-dom/void-map": "^1.4.0",
     "js-reporters": "^2.1.0",
-    "qunit": "^2.19.4",
+    "qunit": "catalog:",
     "simple-html-tokenizer": "^0.5.11"
   },
   "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
     "@types/js-reporters": "workspace:*",
-    "@types/qunit": "^2.19.9",
-    "eslint": "^8.52.0"
+    "@types/node": "catalog:",
+    "@types/qunit": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

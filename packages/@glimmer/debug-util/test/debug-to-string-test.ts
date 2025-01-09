@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 import { debugToString as maybeDebugToString } from '@glimmer/debug-util';
 
 QUnit.module('debug-to-string tests');

@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/local-debug-flags",
+    "composite": true,
+    "incremental": true,
+    "types": [
+      "@glimmer-workspace/env"
+    ]
+  },
+  "references": [
+    {
+      "path": "../../@glimmer-workspace/env/tsconfig.json"
+    }
+  ]
+}

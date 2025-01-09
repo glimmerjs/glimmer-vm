@@ -1,4 +1,5 @@
-import type { Arguments, ModifierManager, Owner } from '@glimmer/interfaces';
+import type { ModifierManager } from '@glimmer/interfaces';
+import type { Arguments, Owner } from '@glimmer/state';
 import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
 import { getOwner, setOwner } from '@glimmer/owner';
 
@@ -127,6 +128,7 @@ abstract class ModifierManagerTest extends RenderTest {
         override didInsertElement() {
           // consume first positional argument (ensures updates run)
 
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           this.args.positional[0];
 
           assert.strictEqual(this.element.tagName, 'H1');
@@ -169,6 +171,7 @@ abstract class ModifierManagerTest extends RenderTest {
         override didInsertElement() {
           // track the count of the first item
 
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           trackedOne.count;
           insertCount++;
         }
@@ -176,6 +179,7 @@ abstract class ModifierManagerTest extends RenderTest {
         override didUpdate() {
           // track the count of the second item
 
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           trackedTwo.count;
           updateCount++;
         }
@@ -219,6 +223,7 @@ abstract class ModifierManagerTest extends RenderTest {
 
         // first read the tracked property
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         this.foo;
 
         // then attempt to update the tracked property
@@ -328,6 +333,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
 
           // consume the second positional
 
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           this.args.positional[1];
         }
 
@@ -336,6 +342,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
 
           // consume the second positional
 
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           this.args.positional[1];
         }
       }
@@ -380,8 +387,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
 
           // consume the second positional
 
-          // consume the second positional
-
+          // eslint-disable-next-line @typescript-eslint/no-unused-expressions
           this.args.named['qux'];
         }
 

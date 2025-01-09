@@ -1,8 +1,11 @@
 /* eslint-disable no-console */
 import type { Expand } from '@glimmer/interfaces';
-import { debug } from '@glimmer/validator';
+import { trackingDebug } from '@glimmer/debug';
+import { unwrap } from '@glimmer/debug-util';
 import { autoRegister } from 'js-reporters';
 import { default as QUnit } from 'qunit';
+
+/// <reference path="./env.d.ts" />
 
 export async function setupQunit() {
   const qunitLib: QUnit = await import('qunit');
@@ -69,7 +72,7 @@ export async function setupQunit() {
   console.log(`[HARNESS] ci=${hasFlag('ci')}`);
 
   testing.testStart(() => {
-    debug.resetTrackingTransaction?.();
+    unwrap(trackingDebug).resetTrackingTransaction();
   });
 
   if (!hasFlag('ci')) {

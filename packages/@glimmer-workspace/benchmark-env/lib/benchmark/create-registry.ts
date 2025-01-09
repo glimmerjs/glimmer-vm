@@ -24,7 +24,7 @@ import type { UpdateBenchmark } from '../interfaces';
 import createEnvDelegate from './create-env-delegate';
 import renderBenchmark from './render-benchmark';
 
-export interface Registry {
+interface Registry {
   /**
    * Register a component with a manager
    * @param name

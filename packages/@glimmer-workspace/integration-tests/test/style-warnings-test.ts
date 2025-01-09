@@ -1,31 +1,30 @@
-import type { GlobalContext } from '@glimmer/global-context';
+import type { GlobalContextOverride } from '@glimmer/global-context';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 
 import { jitSuite, RenderTest, test } from '..';
 import { assert } from './support';
 
 let warnings = 0;
-let originalContext: GlobalContext | null;
+let override: GlobalContextOverride;
 
 class StyleWarningsTest extends RenderTest {
   static suiteName = 'Style attributes';
 
   beforeEach() {
     warnings = 0;
-    originalContext =
-      testOverrideGlobalContext?.({
-        warnIfStyleNotTrusted() {
-          warnings++;
-        },
+    override = testOverrideGlobalContext({
+      warnIfStyleNotTrusted() {
+        warnings++;
+      },
 
-        getProp(obj, key) {
-          return (obj as Record<string, unknown>)[key];
-        },
-      }) ?? null;
+      getProp(obj, key) {
+        return (obj as Record<string, unknown>)[key];
+      },
+    });
   }
 
   afterEach() {
-    testOverrideGlobalContext?.(originalContext);
+    override.done();
   }
 
   @test

@@ -1,30 +1,22 @@
 import type { Destroyable, Destructor } from '@glimmer/interfaces';
+import type {
+  DestroyableMeta,
+  DestroyedState,
+  DestroyingState,
+  LiveState,
+  OneOrMany,
+} from '@glimmer/state';
 import { debugToString } from '@glimmer/debug-util';
-import { scheduleDestroy, scheduleDestroyed } from '@glimmer/global-context';
+import { context } from '@glimmer/global-context';
+import { destroyables } from '@glimmer/state';
 
-const LIVE_STATE = 0;
-const DESTROYING_STATE = 1;
-const DESTROYED_STATE = 2;
-type DestroyableState = 0 | 1 | 2;
-
-type OneOrMany<T> = null | T | T[];
-
-interface DestroyableMeta<T extends Destroyable> {
-  source?: T;
-  parents: OneOrMany<Destroyable>;
-  children: OneOrMany<Destroyable>;
-  eagerDestructors: OneOrMany<Destructor<T>>;
-  destructors: OneOrMany<Destructor<T>>;
-  state: DestroyableState;
-}
+const LIVE_STATE: LiveState = 0;
+const DESTROYING_STATE: DestroyingState = 1;
+const DESTROYED_STATE: DestroyedState = 2;
 
 interface UndestroyedDestroyablesError extends Error {
   destroyables: object[];
 }
-
-let DESTROYABLE_META:
-  | Map<Destroyable, DestroyableMeta<Destroyable>>
-  | WeakMap<Destroyable, DestroyableMeta<Destroyable>> = new WeakMap();
 
 function push<T extends object>(collection: OneOrMany<T>, newItem: T): OneOrMany<T> {
   if (collection === null) {
@@ -65,7 +57,7 @@ function remove<T extends object>(collection: OneOrMany<T>, item: T, message: st
 }
 
 function getDestroyableMeta<T extends Destroyable>(destroyable: T): DestroyableMeta<T> {
-  let meta = DESTROYABLE_META.get(destroyable);
+  let meta = destroyables.current.get(destroyable);
 
   if (meta === undefined) {
     meta = {
@@ -80,7 +72,7 @@ function getDestroyableMeta<T extends Destroyable>(destroyable: T): DestroyableM
       meta.source = destroyable as object;
     }
 
-    DESTROYABLE_META.set(destroyable, meta);
+    destroyables.current.set(destroyable, meta);
   }
 
   return meta as unknown as DestroyableMeta<T>;
@@ -149,7 +141,7 @@ export function unregisterDestructor<T extends Destroyable>(
 
 ////////////
 
-export function destroy(destroyable: Destroyable) {
+export function destroy(destroyable: Destroyable): void {
   let meta = getDestroyableMeta(destroyable);
 
   if (meta.state >= DESTROYING_STATE) return;
@@ -160,9 +152,9 @@ export function destroy(destroyable: Destroyable) {
 
   iterate(children, destroy);
   iterate(eagerDestructors, (destructor) => destructor(destroyable));
-  iterate(destructors, (destructor) => scheduleDestroy(destroyable, destructor));
+  iterate(destructors, (destructor) => context().scheduleDestroy(destroyable, destructor));
 
-  scheduleDestroyed(() => {
+  context().scheduleDestroyed(() => {
     iterate(parents, (parent) => removeChildFromParent(destroyable, parent));
 
     meta.state = DESTROYED_STATE;
@@ -182,26 +174,26 @@ function removeChildFromParent(child: Destroyable, parent: Destroyable) {
   }
 }
 
-export function destroyChildren(destroyable: Destroyable) {
+export function destroyChildren(destroyable: Destroyable): void {
   let { children } = getDestroyableMeta(destroyable);
 
   iterate(children, destroy);
 }
 
-export function _hasDestroyableChildren(destroyable: Destroyable) {
-  let meta = DESTROYABLE_META.get(destroyable);
+export function _hasDestroyableChildren(destroyable: Destroyable): boolean {
+  let meta = destroyables.current.get(destroyable);
 
   return meta === undefined ? false : meta.children !== null;
 }
 
-export function isDestroying(destroyable: Destroyable) {
-  let meta = DESTROYABLE_META.get(destroyable);
+export function isDestroying(destroyable: Destroyable): boolean {
+  let meta = destroyables.current.get(destroyable);
 
   return meta === undefined ? false : meta.state >= DESTROYING_STATE;
 }
 
-export function isDestroyed(destroyable: Destroyable) {
-  let meta = DESTROYABLE_META.get(destroyable);
+export function isDestroyed(destroyable: Destroyable): boolean {
+  let meta = destroyables.current.get(destroyable);
 
   return meta === undefined ? false : meta.state >= DESTROYED_STATE;
 }
@@ -217,14 +209,14 @@ if (import.meta.env.DEV) {
   enableDestroyableTracking = () => {
     if (isTesting) {
       // Reset destroyable meta just in case, before throwing the error
-      DESTROYABLE_META = new WeakMap();
+      destroyables.current = new WeakMap();
       throw new Error(
         'Attempted to start destroyable testing, but you did not end the previous destroyable test. Did you forget to call `assertDestroyablesDestroyed()`'
       );
     }
 
     isTesting = true;
-    DESTROYABLE_META = new Map();
+    destroyables.current = new Map();
   };
 
   assertDestroyablesDestroyed = () => {
@@ -236,8 +228,8 @@ if (import.meta.env.DEV) {
 
     isTesting = false;
 
-    let map = DESTROYABLE_META as Map<Destroyable, DestroyableMeta<Destroyable>>;
-    DESTROYABLE_META = new WeakMap();
+    let map = destroyables.current as Map<Destroyable, DestroyableMeta<Destroyable>>;
+    destroyables.current = new WeakMap();
 
     let undestroyed: object[] = [];
 

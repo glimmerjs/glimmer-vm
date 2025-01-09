@@ -2,14 +2,13 @@ import type {
   CompilableProgram,
   LayoutWithContext,
   Nullable,
-  Owner,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
   Template,
   TemplateFactory,
   TemplateOk,
 } from '@glimmer/interfaces';
-import { assign } from '@glimmer/util';
+import type { Owner } from '@glimmer/state';
 
 import { compilable } from './compilable-template';
 import { WrappedBuilder } from './wrapped-component';
@@ -128,14 +127,11 @@ class TemplateImpl implements TemplateWithIdAndReferrer {
 
   asLayout(): CompilableProgram {
     if (this.layout) return this.layout;
-    return (this.layout = compilable(assign({}, this.parsedLayout), this.moduleName));
+    return (this.layout = compilable({ ...this.parsedLayout }, this.moduleName));
   }
 
   asWrappedLayout(): CompilableProgram {
     if (this.wrappedLayout) return this.wrappedLayout;
-    return (this.wrappedLayout = new WrappedBuilder(
-      assign({}, this.parsedLayout),
-      this.moduleName
-    ));
+    return (this.wrappedLayout = new WrappedBuilder({ ...this.parsedLayout }, this.moduleName));
   }
 }

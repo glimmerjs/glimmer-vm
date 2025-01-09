@@ -2,14 +2,10 @@ import type * as ASTv1 from '../v1/api';
 
 import * as ASTv2 from './api';
 
-export interface AstCallParts {
+interface AstCallParts {
   path: ASTv1.Expression;
   params: ASTv1.Expression[];
   hash: ASTv1.Hash;
-}
-
-export interface VarPath extends ASTv1.PathExpression {
-  head: ASTv1.VarHead;
 }
 
 export function SexpSyntaxContext(node: ASTv1.SubExpression): ASTv2.FreeVarResolution | null {

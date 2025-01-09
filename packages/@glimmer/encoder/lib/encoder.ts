@@ -35,7 +35,7 @@ export class InstructionEncoderImpl implements InstructionEncoder {
     this.size = this.buffer.length;
   }
 
-  patch(position: number, target: number) {
+  patch(position: number, target: number): void {
     if (this.buffer[position + 1] === -1) {
       this.buffer[position + 1] = target;
     } else {

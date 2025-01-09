@@ -117,7 +117,7 @@ export function InvokeStaticBlockWithStack(
   op(VM_POP_FRAME_OP);
 }
 
-export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | null): void {
+function PushSymbolTable(op: PushExpressionOp, parameters: number[] | null): void {
   if (parameters !== null) {
     op(VM_PUSH_SYMBOL_TABLE_OP, symbolTableOperand({ parameters }));
   } else {
@@ -125,7 +125,7 @@ export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | nul
   }
 }
 
-export function PushCompilable(
+function PushCompilable(
   op: PushExpressionOp,
   _block: Nullable<WireFormat.SerializedInlineBlock>
 ): void {

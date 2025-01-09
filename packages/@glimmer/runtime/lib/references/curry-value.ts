@@ -22,7 +22,7 @@ export default function createCurryRef(
   args: Nullable<CapturedArguments>,
   resolver: Nullable<ClassicResolver>,
   isStrict: boolean
-) {
+): Reference<string | object | null> {
   let lastValue: Maybe<Dict> | string, curriedDefinition: object | string | null;
 
   return createComputeRef(() => {

@@ -2,7 +2,7 @@ import type * as ASTv1 from '../v1/api';
 
 import { escapeAttrValue, escapeText, sortByLoc } from './util';
 
-export const voidMap = new Set([
+export const voidMap: Set<string> = new Set([
   'area',
   'base',
   'br',
@@ -21,7 +21,7 @@ export const voidMap = new Set([
   'wbr',
 ]);
 
-export function getVoidTags() {
+export function getVoidTags(): string[] {
   return [...voidMap];
 }
 

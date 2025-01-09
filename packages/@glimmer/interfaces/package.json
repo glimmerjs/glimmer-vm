@@ -2,26 +2,25 @@
   "name": "@glimmer/interfaces",
   "version": "0.93.0",
   "license": "MIT",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/main/packages/@glimmer/interfaces",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/interfaces"
+  },
   "type": "module",
   "exports": "./index.d.ts",
-  "files": [
-    "lib",
-    "index.d.ts"
-  ],
   "scripts": {
-    "test:lint": "eslint .",
-    "test:publint": "publint",
-    "test:types": "tsc --noEmit"
+    "test:publint": "publint"
   },
   "dependencies": {
+    "@glimmer/state": "workspace:*",
     "@simple-dom/interface": "^1.4.0"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
-    "eslint": "^8.52.0",
-    "publint": "^0.2.5",
-    "rollup": "^4.5.1",
-    "typescript": "*"
+    "@glimmer-workspace/env": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
+    "eslint": "catalog:",
+    "publint": "catalog:",
+    "typescript": "catalog:"
   }
 }

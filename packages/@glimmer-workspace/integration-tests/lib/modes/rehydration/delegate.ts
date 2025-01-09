@@ -19,7 +19,6 @@ import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { castToSimple } from '@glimmer/debug-util';
 import { serializeBuilder } from '@glimmer/node';
 import { createConstRef } from '@glimmer/reference';
-import { assign } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
 
 import type { ComponentKind } from '../../components';
@@ -70,7 +69,7 @@ export class RehydrationDelegate implements RenderDelegate {
   private self: Nullable<Reference> = null;
 
   constructor(options?: RenderDelegateOptions) {
-    let delegate = assign(options?.env ?? {}, BaseEnv);
+    let delegate = { ...options?.env, ...BaseEnv };
 
     this.clientDoc = castToSimple(document);
     this.clientRegistry = new TestJitRegistry();

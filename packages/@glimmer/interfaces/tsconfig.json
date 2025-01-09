@@ -1,8 +1,24 @@
 {
-  "extends": ["../tsconfig.json"],
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.d.ts",
+    "index.d.ts"
+  ],
   "compilerOptions": {
-    "rootDir": ".",
-    "moduleResolution": "bundler"
+    "outDir": "../../../ts-dist/packages/@glimmer/interfaces",
+    "composite": true,
+    "incremental": true,
+    "skipLibCheck": false,
+    "types": [
+      "@glimmer-workspace/env"
+    ]
   },
-  "include": ["index.d.ts", "lib"]
+  "references": [
+    {
+      "path": "../state/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/env/tsconfig.json"
+    }
+  ]
 }

@@ -10,7 +10,7 @@ export default function assert(test: unknown, msg: string): asserts test {
   }
 }
 
-export function deprecate(desc: string) {
+export function deprecate(desc: string): void {
   if (LOCAL_DEBUG) {
     LOCAL_LOGGER.warn(`DEPRECATION: ${desc}`);
   }
@@ -24,7 +24,7 @@ export function deprecate(desc: string) {
  * It does not alleviate the need to check LOCAL_TRACE_LOGGING, which is used
  * for stripping.
  */
-export const LOCAL_LOGGER = console;
+const LOCAL_LOGGER: Console = console;
 
 /**
  * This constant exists to make it easier to differentiate normal logs from
@@ -32,7 +32,7 @@ export const LOCAL_LOGGER = console;
  * and is meant to be used in the rare situation where a console.* call is
  * actually appropriate.
  */
-export const LOGGER = console;
+const LOGGER: Console = console;
 
 export function assertNever(value: never, desc = 'unexpected unreachable branch'): never {
   LOGGER.log('unreachable', value);

@@ -6,6 +6,8 @@ ts-dist/
 
 # We don't need prettier here
 *.md
+!.meta-updater/README.md
+!bin/**/*.md
 !packages/**/*.md
 *.yaml
 *.yml

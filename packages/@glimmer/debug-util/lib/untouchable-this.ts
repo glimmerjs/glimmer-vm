@@ -15,17 +15,17 @@ export default function buildUntouchableThis(source: string): null | object {
     context = new Proxy(
       {},
       {
-        get(_target: {}, property: string | symbol) {
+        get(_target: object, property: string | symbol) {
           assertOnProperty(property);
         },
 
-        set(_target: {}, property: string | symbol) {
+        set(_target: object, property: string | symbol) {
           assertOnProperty(property);
 
           return false;
         },
 
-        has(_target: {}, property: string | symbol) {
+        has(_target: object, property: string | symbol) {
           assertOnProperty(property);
 
           return false;

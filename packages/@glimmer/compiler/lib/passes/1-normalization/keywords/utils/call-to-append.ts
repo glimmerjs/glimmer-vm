@@ -20,7 +20,7 @@ export function toAppend<T>({
     ): Result<mir.AppendTextNode> {
       let result = translate({ node, state }, value);
 
-      return result.mapOk((text) => new mir.AppendTextNode({ text, loc: node.loc }));
+      return result.mapOk((text) => mir.AppendTextNode({ text, loc: node.loc }));
     },
   };
 }

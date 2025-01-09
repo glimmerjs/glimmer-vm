@@ -36,11 +36,11 @@ export class Labels {
   labels: Dict<number> = dict();
   targets: Array<{ at: number; target: string }> = [];
 
-  label(name: string, index: number) {
+  label(name: string, index: number): void {
     this.labels[name] = index;
   }
 
-  target(at: number, target: string) {
+  target(at: number, target: string): void {
     this.targets.push({ at, target });
   }
 
@@ -130,7 +130,7 @@ export class EncoderImpl implements Encoder {
   constructor(
     private heap: ProgramHeap,
     private meta: BlockMetadata,
-    private stdlib?: STDLib
+    private stdlib?: STDLib | undefined
   ) {
     this.handle = heap.malloc();
   }
@@ -219,15 +219,15 @@ export class EncoderImpl implements Encoder {
     return expect(this.labelsStack.current, 'bug: not in a label stack');
   }
 
-  label(name: string) {
+  label(name: string): void {
     this.currentLabels.label(name, this.heap.offset + 1);
   }
 
-  startLabels() {
+  startLabels(): void {
     this.labelsStack.push(new Labels());
   }
 
-  stopLabels() {
+  stopLabels(): void {
     let label = expect(this.labelsStack.pop(), 'unbalanced push and pop labels');
     label.patch(this.heap);
   }

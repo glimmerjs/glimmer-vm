@@ -1,4 +1,3 @@
-export type { DebugOp, SomeDisassembledOperand } from './lib/debug';
 export { debugOp, describeOpcode, logOpcodeSlice } from './lib/debug';
 export { describeOp } from './lib/dism/opcode';
 export {
@@ -45,10 +44,11 @@ export {
   CheckSyscallRegister,
   CheckUndefined,
   CheckUnknown,
-  recordStackSize,
+  satisfies,
   wrap,
 } from './lib/stack-check';
 export { type VmDiff, VmSnapshot, type VmSnapshotValueDiff } from './lib/vm/snapshot';
+export type { DebugOp, SomeDisassembledOperand } from '@glimmer/interfaces';
 // Types are optimized await automatically
 export type {
   NormalizedMetadata,
@@ -61,3 +61,4 @@ export type {
   Stack,
 } from './lib/metadata';
 export type { Checker } from './lib/stack-check';
+export { allowCycles, allowsCycles, helpers as trackingDebug } from './lib/tracking';

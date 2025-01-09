@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "incremental": true,
+    // Compilation Configuration
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable",
+      "ES2015.Iterable"
+    ],
+    "allowJs": true,
+    "inlineSources": true,
+    "inlineSourceMap": true,
+    "isolatedDeclarations": true,
+    "declaration": true,
+    "declarationMap": true,
+    "baseUrl": ".",
+    "outDir": "../../ts-dist/packages",
+    "verbatimModuleSyntax": true,
+    // Environment Configuration
+    "experimentalDecorators": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // Enhance Strictness
+    "strict": true,
+    "suppressImplicitAnyIndexErrors": false,
+    "useDefineForClassFields": false,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ]
+  }
+}

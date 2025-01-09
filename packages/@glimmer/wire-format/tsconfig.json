@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "include": [
+    "lib/**/*.ts",
+    "index.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "../../../ts-dist/packages/@glimmer/wire-format",
+    "composite": true,
+    "incremental": true,
+    "types": [
+      "@glimmer-workspace/env"
+    ]
+  },
+  "references": [
+    {
+      "path": "../interfaces/tsconfig.json"
+    },
+    {
+      "path": "../../@glimmer-workspace/env/tsconfig.json"
+    }
+  ]
+}

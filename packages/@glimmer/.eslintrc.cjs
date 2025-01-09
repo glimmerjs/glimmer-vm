@@ -1,19 +1,13 @@
-const { resolve } = require('path');
-
-const libTsconfig = resolve(__dirname, 'tsconfig.json');
-const testTsconfig = resolve(__dirname, 'tsconfig.test.json');
-
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: false,
+  plugins: ['@glimmer-workspace'],
   overrides: [
     {
-      files: ['*.{ts,js,d.ts}'],
+      files: ['*/index.{ts,js,d.ts}', '*/lib/**/*.{ts,js,d.ts}', '*/test/**/*.{ts,js,d.ts}'],
       parserOptions: {
         ecmaVersion: 'latest',
-        project: [libTsconfig, testTsconfig],
       },
-      plugins: ['@glimmer-workspace'],
       extends: ['plugin:@glimmer-workspace/recommended'],
       rules: {
         'n/no-unpublished-import': 'off',
@@ -22,9 +16,9 @@ module.exports = {
     {
       files: ['./reference/lib/**/*.ts'],
       rules: {
-        'import/no-relative-parent-imports': 'error',
+        'import-x/no-relative-parent-imports': 'error',
 
-        'import/no-internal-modules': [
+        'import-x/no-internal-modules': [
           'error',
           {
             allow: ['**/internal/*', '**/index.*'],
@@ -85,9 +79,6 @@ module.exports = {
         'syntax/test/traversal/manipulating-node-test.ts',
         'node/lib/node-dom-helper.ts',
       ],
-      rules: {
-        'deprecation/deprecation': 'warn',
-      },
     },
     {
       files: ['util/lib/simple-cast.ts'],

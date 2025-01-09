@@ -85,8 +85,8 @@ export default function normalize(
     }
   }
 
-  let template = body.mapOk(
-    (body) => new mir.Template({ loc: root.loc, scope: root.table, body: body.toArray() })
+  let template = body.mapOk((body) =>
+    mir.Template({ loc: root.loc, scope: root.table, body: body.toArray() })
   );
 
   if (isStrict) {

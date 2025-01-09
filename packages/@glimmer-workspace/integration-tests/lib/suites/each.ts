@@ -1,6 +1,7 @@
+import { consumeTag } from '@glimmer/fundamental';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { beginTestSteps, endTestSteps, verifySteps } from '@glimmer/util';
-import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
+import { createTag, dirtyTag } from '@glimmer/validator';
 
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';

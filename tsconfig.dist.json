@@ -2,13 +2,10 @@
   "compilerOptions": {
     "composite": false,
     "outDir": "ts-dist/dist",
-    "noEmit": true,
-    "target": "es2015",
+    "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "lib": ["esnext", "DOM", "DOM.Iterable"],
-    "types": ["node", "vite/client"],
-
+    "skipLibCheck": true,
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
     "useDefineForClassFields": false,
@@ -17,13 +14,17 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "baseUrl": ".",
-    "typeRoots": [],
-
     "paths": {
       "@glimmer/interfaces": ["./packages/@glimmer/interfaces/index.d.ts"],
       "@glimmer/*": ["./packages/@glimmer/*/dist/dev/index.d.ts"]
     }
   },
   "include": ["packages/@glimmer/*/dist/**/*.d.ts"],
-  "exclude": ["@types/**"]
+  "exclude": [
+    "@types/**",
+    "packages/@glimmer/constants/**",
+    "packages/@glimmer/debug/**",
+    "packages/@glimmer/debug-util/**",
+    "packages/@glimmer/local-debug-flags"
+  ]
 }

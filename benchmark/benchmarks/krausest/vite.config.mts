@@ -1,40 +1,56 @@
 import fs from 'node:fs';
-
-import { precompile } from '@glimmer/compiler';
-import { defineConfig, type Plugin } from 'vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import type { Plugin } from 'vite';
+import { precompile } from '@glimmer/compiler';
+import { defineConfig } from 'vite';
 
 const self = import.meta.url;
 
 const currentPath = path.dirname(fileURLToPath(self));
-const packagesPath = path.resolve(currentPath, '..', '..', './../packages');
-
-const packagePath = (name: string) => {
-  return path.join(packagesPath, name, 'dist/prod/index.js');
-};
 
 export default defineConfig({
   plugins: [importMeta(), benchmark()],
   preview: {
     strictPort: true,
   },
+
+  optimizeDeps: {
+    noDiscovery: true,
+    exclude: ['vite'],
+  },
+
+  build: {
+    minify: 'terser',
+
+    terserOptions: {
+      module: true,
+      compress: {
+        passes: 3,
+        keep_fargs: false,
+        keep_fnames: false,
+      },
+    },
+  },
+
   resolve: {
+    //#region aliases
     alias: {
       '@glimmer-workspace/benchmark-env': '@glimmer-workspace/benchmark-env/index.ts',
-      '@glimmer/runtime': packagePath('@glimmer/runtime'),
       '@/components': path.join(currentPath, 'lib', 'components'),
       '@/utils': path.join(currentPath, 'lib', 'utils'),
     },
+    //#endregion
   },
 });
 
 function importMeta(): Plugin {
   return {
     name: 'define custom import.meta.env',
-    async transform(code) {
+    transform(code) {
       if (code.includes('import.meta.env.VM_LOCAL_DEV')) {
-        return code.replace(/import.meta.env.VM_LOCAL_DEV/g, 'false');
+        return code.replace(/import\.meta\.env\.VM_LOCAL_DEV/gu, 'false');
       }
       return undefined;
     },

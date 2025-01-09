@@ -1,13 +1,27 @@
 import type { PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
 import { assert, assertPresentArray, isPresentArray, mapPresentArray } from '@glimmer/debug-util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WF_CALL_OPCODE,
+  WF_CONCAT_OPCODE,
+  WF_CURRY_OPCODE,
+  WF_GET_DYNAMIC_VAR_OPCODE,
+  WF_GET_LEXICAL_SYMBOL_OPCODE,
+  WF_GET_STRICT_KEYWORD_OPCODE,
+  WF_GET_SYMBOL_OPCODE,
+  WF_HAS_BLOCK_OPCODE,
+  WF_HAS_BLOCK_PARAMS_OPCODE,
+  WF_IF_INLINE_OPCODE,
+  WF_LOG_OPCODE,
+  WF_NOT_OPCODE,
+  WF_UNDEFINED_OPCODE,
+} from '@glimmer/wire-format';
 
 import type * as mir from './mir';
 
-export type HashPair = [string, WireFormat.Expression];
+type HashPair = [string, WireFormat.Expression];
 
-export class ExpressionEncoder {
+class ExpressionEncoder {
   expr(expr: mir.ExpressionNode): WireFormat.Expression {
     switch (expr.type) {
       case 'Missing':
@@ -21,11 +35,11 @@ export class ExpressionEncoder {
       case 'PathExpression':
         return this.PathExpression(expr);
       case 'Arg':
-        return [SexpOpcodes.GetSymbol, expr.symbol];
+        return [WF_GET_SYMBOL_OPCODE, expr.symbol];
       case 'Local':
         return this.Local(expr);
       case 'This':
-        return [SexpOpcodes.GetSymbol, 0];
+        return [WF_GET_SYMBOL_OPCODE, 0];
       case 'Free':
         return [expr.resolution.resolution(), expr.symbol];
       case 'HasBlock':
@@ -51,7 +65,7 @@ export class ExpressionEncoder {
     value,
   }: ASTv2.LiteralExpression): WireFormat.Expressions.Value | WireFormat.Expressions.Undefined {
     if (value === undefined) {
-      return [SexpOpcodes.Undefined];
+      return [WF_UNDEFINED_OPCODE];
     } else {
       return value;
     }
@@ -62,16 +76,16 @@ export class ExpressionEncoder {
   }
 
   HasBlock({ symbol }: mir.HasBlock): WireFormat.Expressions.HasBlock {
-    return [SexpOpcodes.HasBlock, [SexpOpcodes.GetSymbol, symbol]];
+    return [WF_HAS_BLOCK_OPCODE, [WF_GET_SYMBOL_OPCODE, symbol]];
   }
 
   HasBlockParams({ symbol }: mir.HasBlockParams): WireFormat.Expressions.HasBlockParams {
-    return [SexpOpcodes.HasBlockParams, [SexpOpcodes.GetSymbol, symbol]];
+    return [WF_HAS_BLOCK_PARAMS_OPCODE, [WF_GET_SYMBOL_OPCODE, symbol]];
   }
 
   Curry({ definition, curriedType, args }: mir.Curry): WireFormat.Expressions.Curry {
     return [
-      SexpOpcodes.Curry,
+      WF_CURRY_OPCODE,
       EXPR.expr(definition),
       curriedType,
       EXPR.Positional(args.positional),
@@ -85,25 +99,25 @@ export class ExpressionEncoder {
   }: ASTv2.LocalVarReference):
     | WireFormat.Expressions.GetSymbol
     | WireFormat.Expressions.GetLexicalSymbol {
-    return [isTemplateLocal ? SexpOpcodes.GetLexicalSymbol : SexpOpcodes.GetSymbol, symbol];
+    return [isTemplateLocal ? WF_GET_LEXICAL_SYMBOL_OPCODE : WF_GET_SYMBOL_OPCODE, symbol];
   }
 
   Keyword({ symbol }: ASTv2.KeywordExpression): WireFormat.Expressions.GetStrictFree {
-    return [SexpOpcodes.GetStrictKeyword, symbol];
+    return [WF_GET_STRICT_KEYWORD_OPCODE, symbol];
   }
 
   PathExpression({ head, tail }: mir.PathExpression): WireFormat.Expressions.GetPath {
     let getOp = EXPR.expr(head) as WireFormat.Expressions.GetVar;
-    assert(getOp[0] !== SexpOpcodes.GetStrictKeyword, '[BUG] keyword in a PathExpression');
+    assert(getOp[0] !== WF_GET_STRICT_KEYWORD_OPCODE, '[BUG] keyword in a PathExpression');
     return [...getOp, EXPR.Tail(tail)];
   }
 
   InterpolateExpression({ parts }: mir.InterpolateExpression): WireFormat.Expressions.Concat {
-    return [SexpOpcodes.Concat, parts.map((e) => EXPR.expr(e)).toArray()];
+    return [WF_CONCAT_OPCODE, parts.map((e) => EXPR.expr(e)).toArray()];
   }
 
   CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.Helper {
-    return [SexpOpcodes.Call, EXPR.expr(callee), ...EXPR.Args(args)];
+    return [WF_CALL_OPCODE, EXPR.expr(callee), ...EXPR.Args(args)];
   }
 
   Tail({ members }: mir.Tail): PresentArray<string> {
@@ -145,11 +159,11 @@ export class ExpressionEncoder {
   }
 
   Not({ value }: mir.Not): WireFormat.Expressions.Not {
-    return [SexpOpcodes.Not, EXPR.expr(value)];
+    return [WF_NOT_OPCODE, EXPR.expr(value)];
   }
 
   IfInline({ condition, truthy, falsy }: mir.IfInline): WireFormat.Expressions.IfInline {
-    let expr = [SexpOpcodes.IfInline, EXPR.expr(condition), EXPR.expr(truthy)];
+    let expr = [WF_IF_INLINE_OPCODE, EXPR.expr(condition), EXPR.expr(truthy)];
 
     if (falsy) {
       expr.push(EXPR.expr(falsy));
@@ -159,12 +173,12 @@ export class ExpressionEncoder {
   }
 
   GetDynamicVar({ name }: mir.GetDynamicVar): WireFormat.Expressions.GetDynamicVar {
-    return [SexpOpcodes.GetDynamicVar, EXPR.expr(name)];
+    return [WF_GET_DYNAMIC_VAR_OPCODE, EXPR.expr(name)];
   }
 
   Log({ positional }: mir.Log): WireFormat.Expressions.Log {
-    return [SexpOpcodes.Log, this.Positional(positional)];
+    return [WF_LOG_OPCODE, this.Positional(positional)];
   }
 }
 
-export const EXPR = new ExpressionEncoder();
+export const EXPR: ExpressionEncoder = new ExpressionEncoder();

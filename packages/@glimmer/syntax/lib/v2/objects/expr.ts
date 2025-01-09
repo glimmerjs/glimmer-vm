@@ -1,10 +1,9 @@
-import type { PresentArray } from '@glimmer/interfaces';
-
 import type { CallFields } from './base';
+import type { NodeConstructor } from './node';
 import type { VariableReference } from './refs';
 
 import { SourceSlice } from '../../source/slice';
-import { node } from './node';
+import { AstNode } from './node';
 
 /**
  * A Handlebars literal.
@@ -26,7 +25,10 @@ export interface LiteralTypes {
  *
  * @see {LiteralValue}
  */
-export class LiteralExpression extends node('Literal').fields<{ value: LiteralValue }>() {
+export const LiteralExpressionFields: NodeConstructor<'Literal', { value: LiteralValue }> =
+  AstNode('Literal');
+
+export class LiteralExpression extends LiteralExpressionFields {
   toSlice(this: StringLiteral): SourceSlice {
     return new SourceSlice({ loc: this.loc, chars: this.value });
   }
@@ -66,10 +68,14 @@ export function isLiteral<K extends keyof LiteralTypes = keyof LiteralTypes>(
  * x.y
  * ```
  */
-export class PathExpression extends node('Path').fields<{
-  ref: VariableReference;
-  tail: readonly SourceSlice[];
-}>() {}
+export const PathExpressionFields: NodeConstructor<
+  'Path',
+  {
+    ref: VariableReference;
+    tail: readonly SourceSlice[];
+  }
+> = AstNode('Path');
+export class PathExpression extends PathExpressionFields {}
 
 /**
  * Corresponds to a known strict-mode keyword. It behaves similarly to a
@@ -77,10 +83,9 @@ export class PathExpression extends node('Path').fields<{
  * is guaranteed to not have a tail, since `{{outlet.foo}}` would have been
  * illegal.
  */
-export class KeywordExpression extends node('Keyword').fields<{
-  name: string;
-  symbol: number;
-}>() {}
+export const KeywordExpressionFields: NodeConstructor<'Keyword', { name: string; symbol: number }> =
+  AstNode('Keyword');
+export class KeywordExpression extends KeywordExpressionFields {}
 
 /**
  * Corresponds to a parenthesized call expression.
@@ -92,7 +97,9 @@ export class KeywordExpression extends node('Keyword').fields<{
  * (x.y z)
  * ```
  */
-export class CallExpression extends node('Call').fields<CallFields>() {}
+const CallExpressionFields: NodeConstructor<'Call', CallFields> = AstNode('Call');
+
+export class CallExpression extends CallExpressionFields {}
 
 /**
  * Corresponds to an interpolation in attribute value position.
@@ -101,9 +108,12 @@ export class CallExpression extends node('Call').fields<CallFields>() {}
  * <a href="{{url}}.html"
  * ```
  */
-export class InterpolateExpression extends node('Interpolate').fields<{
-  parts: PresentArray<ExpressionNode>;
-}>() {}
+export const InterpolateExpressionFields: NodeConstructor<
+  'Interpolate',
+  { parts: readonly ExpressionNode[] }
+> = AstNode('Interpolate');
+
+export class InterpolateExpression extends InterpolateExpressionFields {}
 
 export type ExpressionNode =
   | LiteralExpression

@@ -15,7 +15,7 @@ export interface DisplayFragmentOptions {
 export type FlushedLines = [LogLine, ...LogEntry[]];
 
 export class DebugLogger {
-  static configured() {
+  static configured(): DebugLogger {
     return new DebugLogger(LOCAL_LOGGER, { showSubtle: !!LOCAL_SUBTLE_LOGGING });
   }
 

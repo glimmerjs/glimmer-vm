@@ -4,7 +4,6 @@ import type {
   ClassicResolver,
   Expressions,
   Nullable,
-  Owner,
   ProgramConstants,
   ResolutionTimeConstants,
   ResolveComponentOp,
@@ -14,37 +13,57 @@ import type {
   ResolveOptionalComponentOrHelperOp,
   SexpOpcode,
 } from '@glimmer/interfaces';
+import type { Owner } from '@glimmer/state';
 import { assert, debugToString, expect, unwrap } from '@glimmer/debug-util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE,
+  WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_HELPER_HEAD_OPCODE,
+  WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE,
+  WF_GET_LEXICAL_SYMBOL_OPCODE,
+  WF_GET_STRICT_KEYWORD_OPCODE,
+} from '@glimmer/wire-format';
 
 function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.TupleExpression {
   return Array.isArray(opcode) && opcode.length === 2;
 }
 
-function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
-  return (
-    opcode: Expressions.Expression
-  ): opcode is Expressions.GetFree | Expressions.GetLexicalSymbol => {
+type ResolutionTypeVerifier<
+  T extends Expressions.GetFree | Expressions.GetLexicalSymbol =
+    | Expressions.GetFree
+    | Expressions.GetLexicalSymbol,
+> = (opcode: Expressions.Expression) => opcode is T;
+
+function makeResolutionTypeVerifier<T extends Expressions.GetFree | Expressions.GetLexicalSymbol>(
+  typeToVerify: SexpOpcode
+): ResolutionTypeVerifier {
+  return (opcode: Expressions.Expression): opcode is T => {
     if (!isGetLikeTuple(opcode)) return false;
 
     let type = opcode[0];
 
     return (
-      type === SexpOpcodes.GetStrictKeyword ||
-      type === SexpOpcodes.GetLexicalSymbol ||
+      type === WF_GET_STRICT_KEYWORD_OPCODE ||
+      type === WF_GET_LEXICAL_SYMBOL_OPCODE ||
       type === typeToVerify
     );
   };
 }
 
-export const isGetFreeComponent = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsComponentHead);
+export const isGetFreeComponent: ResolutionTypeVerifier = makeResolutionTypeVerifier(
+  WF_GET_FREE_AS_COMPONENT_HEAD_OPCODE
+);
 
-export const isGetFreeModifier = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsModifierHead);
+export const isGetFreeModifier: ResolutionTypeVerifier = makeResolutionTypeVerifier(
+  WF_GET_FREE_AS_MODIFIER_HEAD_OPCODE
+);
 
-export const isGetFreeHelper = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsHelperHead);
+export const isGetFreeHelper: ResolutionTypeVerifier = makeResolutionTypeVerifier(
+  WF_GET_FREE_AS_HELPER_HEAD_OPCODE
+);
 
-export const isGetFreeComponentOrHelper = makeResolutionTypeVerifier(
-  SexpOpcodes.GetFreeAsComponentOrHelperHead
+export const isGetFreeComponentOrHelper: ResolutionTypeVerifier = makeResolutionTypeVerifier(
+  WF_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OPCODE
 );
 
 interface ResolvedBlockMetadata extends BlockMetadata {
@@ -87,7 +106,7 @@ export function resolveComponent(
 
   let type = expr[0];
 
-  if (import.meta.env.DEV && expr[0] === SexpOpcodes.GetStrictKeyword) {
+  if (import.meta.env.DEV && expr[0] === WF_GET_STRICT_KEYWORD_OPCODE) {
     assert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
 
     throw new Error(
@@ -97,7 +116,7 @@ export function resolveComponent(
     );
   }
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WF_GET_LEXICAL_SYMBOL_OPCODE) {
     let {
       scopeValues,
       owner,
@@ -150,14 +169,14 @@ export function resolveHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WF_GET_LEXICAL_SYMBOL_OPCODE) {
     let { scopeValues } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
     ];
 
     then(constants.helper(definition as object));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WF_GET_STRICT_KEYWORD_OPCODE) {
     then(
       lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'helper')
     );
@@ -197,7 +216,7 @@ export function resolveModifier(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WF_GET_LEXICAL_SYMBOL_OPCODE) {
     let {
       scopeValues,
       symbols: { lexical },
@@ -207,7 +226,7 @@ export function resolveModifier(
     ];
 
     then(constants.modifier(definition as object, lexical?.at(expr[1]) ?? undefined));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WF_GET_STRICT_KEYWORD_OPCODE) {
     let {
       symbols: { upvars },
     } = assertResolverInvariants(meta);
@@ -259,7 +278,7 @@ export function resolveComponentOrHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WF_GET_LEXICAL_SYMBOL_OPCODE) {
     let {
       scopeValues,
       owner,
@@ -294,7 +313,7 @@ export function resolveComponentOrHelper(
     }
 
     ifHelper(expect(helper, 'BUG: helper must exist'));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WF_GET_STRICT_KEYWORD_OPCODE) {
     ifHelper(
       lookupBuiltInHelper(
         expr as Expressions.GetStrictFree,
@@ -347,7 +366,7 @@ export function resolveOptionalComponentOrHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WF_GET_LEXICAL_SYMBOL_OPCODE) {
     let {
       scopeValues,
       owner,
@@ -386,7 +405,7 @@ export function resolveOptionalComponentOrHelper(
     }
 
     ifValue(constants.value(definition));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WF_GET_STRICT_KEYWORD_OPCODE) {
     ifHelper(
       lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'value')
     );

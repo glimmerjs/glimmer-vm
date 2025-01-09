@@ -31,15 +31,14 @@ export class ClassifiedSimpleElement implements Classified {
 
     let body = VISIT_STMTS.visitList(this.element.body, state);
 
-    return body.mapOk(
-      (body) =>
-        new mir.SimpleElement({
-          loc: element.loc,
-          tag: this.tag,
-          params,
-          body: body.toArray(),
-          dynamicFeatures: this.dynamicFeatures,
-        })
+    return body.mapOk((body) =>
+      mir.SimpleElement({
+        loc: element.loc,
+        tag: this.tag,
+        params,
+        body: body.toArray(),
+        dynamicFeatures: this.dynamicFeatures,
+      })
     );
   }
 }

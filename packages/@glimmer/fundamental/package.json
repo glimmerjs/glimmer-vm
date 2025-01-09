@@ -1,0 +1,24 @@
+{
+  "name": "@glimmer/fundamental",
+  "private": true,
+  "version": "0.93.1",
+  "license": "MIT",
+  "description": "The fundamental state used by Glimmer reactivity. This package coordinates via a single global, and allows the rest of the packages to be duplicated semantically.",
+  "type": "module",
+  "exports": "./index.ts",
+  "scripts": {
+    "test:lint": "eslint ."
+  },
+  "dependencies": {
+    "@glimmer/debug-util": "workspace:*",
+    "@glimmer/global-context": "workspace:*",
+    "@glimmer/state": "workspace:*"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/env": "workspace:*",
+    "@glimmer-workspace/eslint-plugin": "workspace:*",
+    "@types/qunit": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -17,7 +17,7 @@ import {
   WireFormatDebugger,
 } from '@glimmer/compiler';
 import { BUILDER_APPEND, BUILDER_CONCAT } from '@glimmer/constants';
-import { assign, strip } from '@glimmer/util';
+import { strip } from '@glimmer/util';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 
@@ -25,7 +25,7 @@ function compile(content: string): SerializedTemplate {
   let parsed = JSON.parse(precompile(content, {})) as unknown as SerializedTemplateWithLazyBlock;
   let block = JSON.parse(parsed.block);
 
-  return assign({}, parsed, { block });
+  return { ...parsed, block };
 }
 
 function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {

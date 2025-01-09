@@ -1,8 +1,8 @@
+import type { Owner, Reference } from '@glimmer/state';
+
 import type { Nullable } from '../core.js';
-import type { Reference } from '../references.js';
 import type { CompilableBlock } from '../template.js';
 import type { BlockSymbolTable } from '../tier1/symbol-table.js';
-import type { Owner } from './owner.js';
 
 export type Block = CompilableBlock | number;
 
@@ -30,10 +30,4 @@ export interface Scope {
   bindSymbol(symbol: number, value: Reference): void;
   bindBlock(symbol: number, value: Nullable<ScopeBlock>): void;
   child(): Scope;
-}
-
-export interface DynamicScope {
-  get(key: string): Reference<unknown>;
-  set(key: string, reference: Reference<unknown>): Reference<unknown>;
-  child(): DynamicScope;
 }

@@ -1,0 +1,8 @@
+{
+  "name": "@glimmer-workspace/env",
+  "private": true,
+  "devDependencies": {
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}
