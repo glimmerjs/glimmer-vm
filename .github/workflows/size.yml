@@ -28,28 +28,26 @@ jobs:
         id: prod
         run: |
           cd packages/\@glimmer
-          sizes=$(dust --ignore_hidden \
+          dust --ignore_hidden \
              --reverse --apparent-size \
              --filter ".+\/dist\/dev\/index.js$" \
-             --no-percent-bars --only-dir --depth 1)
+             --no-percent-bars --only-dir --depth 1 > out.txt
 
-          echo -e $sizes
           echo 'foo<<EOF' >> $GITHUB_OUTPUT
-          echo -e "sizes="$sizes" >> $GITHUB_OUTPUT
+          echo -e "sizes="$(cat out.txt)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: "Get sizes for production outputs"
         id: dev
         run: |
           cd packages/\@glimmer
-          sizes=$(dust --ignore_hidden \
+          dust --ignore_hidden \
              --reverse --apparent-size \
              --filter ".+\/dist\/prod\/index.js$" \
-             --no-percent-bars --only-dir --depth 1)
+             --no-percent-bars --only-dir --depth 1 > out.txt
 
-          echo -e $sizes
           echo 'foo<<EOF' >> $GITHUB_OUTPUT
-          echo -e "sizes="$sizes" >> $GITHUB_OUTPUT
+          echo -e "sizes="$(cat out.txt)" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
 
       - uses: mshick/add-pr-comment@v2
