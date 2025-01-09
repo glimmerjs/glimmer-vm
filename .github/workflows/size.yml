@@ -34,8 +34,9 @@ jobs:
              --no-percent-bars --only-dir --depth 1 > out.txt
 
           echo 'sizes<<EOF' >> $GITHUB_OUTPUT
-          echo $(cat out.txt) >> $GITHUB_OUTPUT
+          echo -e $(cat out.txt) >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
+          cat out.txt
 
       - name: "Get sizes for production outputs"
         id: dev
@@ -47,8 +48,9 @@ jobs:
              --no-percent-bars --only-dir --depth 1 > out.txt
 
           echo 'sizes<<EOF' >> $GITHUB_OUTPUT
-          echo $(cat out.txt) >> $GITHUB_OUTPUT
+          echo -e $(cat out.txt) >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
+          cat out.txt
 
       - uses: mshick/add-pr-comment@v2
         with:
