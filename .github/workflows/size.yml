@@ -25,7 +25,7 @@ jobs:
       - run: pnpm turbo build
       - run: sudo snap install dust
       - name: "Get sizes for development outputs"
-        id: prod
+        id: dev
         run: |
           cd packages/\@glimmer
           dust --ignore_hidden \
@@ -41,7 +41,7 @@ jobs:
           cat out.txt
 
       - name: "Get sizes for production outputs"
-        id: dev
+        id: prod
         run: |
           cd packages/\@glimmer
           dust --ignore_hidden \
