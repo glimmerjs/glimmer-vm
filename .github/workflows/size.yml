@@ -72,6 +72,7 @@ jobs:
 
       - name: "Get sizes from the main branch"
         run: |
+          git remote -v
           git checkout origin/main
           git clean -Xfd
           pnpm install
