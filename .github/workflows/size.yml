@@ -24,6 +24,11 @@ jobs:
     runs-on: 'ubuntu-latest'
 
     steps:
+      - name: '[DEBUG] Dump GitHub context'
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
       - uses: wyvox/action@v1
         with:
           pnpm-args: '--ignore-scripts'
@@ -67,7 +72,7 @@ jobs:
 
       - name: "Get sizes from the main branch"
         run: |
-          git checkout main
+          git checkout origin/main
           git clean -Xfd
           pnpm install
           pnpm turbo build
