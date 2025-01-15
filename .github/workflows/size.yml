@@ -73,7 +73,8 @@ jobs:
       - name: "Get sizes from the main branch"
         run: |
           git remote -v
-          git checkout origin/main
+          git fetch origin
+          git checkout main
           git clean -Xfd
           pnpm install
           pnpm turbo build
