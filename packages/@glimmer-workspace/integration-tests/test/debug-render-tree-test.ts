@@ -393,7 +393,7 @@ class DebugRenderTreeTest extends RenderTest {
             type: 'keyword',
             name: 'in-element',
             args: { positional: [this.element.firstChild], named: {} },
-            instance: (instance: GlimmerishComponent) => instance === null,
+            instance: (instance: any) => instance === null,
             template: null,
             bounds: this.elementBounds(this.element.firstChild! as unknown as SimpleElement),
             children: [
