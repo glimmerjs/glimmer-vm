@@ -863,6 +863,86 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
+  @test({ kind: 'glimmer' }) 'destruction is not autotracked'() {
+    class State {
+      @tracked willDestroyCalls = 0;
+      incrementWillDestroy = () => this.willDestroyCalls++;
+    }
+    let state = new State();
+    class Child extends GlimmerishComponent {
+      declare args: { incrementWillDestroy: () => void };
+      override willDestroy() {
+        super.willDestroy();
+        this.args.incrementWillDestroy();
+      }
+    }
+    class Example extends GlimmerishComponent {
+      @tracked showChild = true;
+      toggleChild = () => (this.showChild = !this.showChild);
+    }
+    this.registerComponent('Glimmer', 'Child', 'a child', Child);
+    this.registerComponent(
+      'Glimmer',
+      'Example',
+      `<p>willDestroyCalls: {{@willDestroyCalls}}</p>
+      <button {{on "click" this.toggleChild}}>Toggle child</button>
+
+      {{#if this.showChild}}
+        <Child @incrementWillDestroy={{@incrementWillDestroy}} />
+      {{/if}}`,
+      Example
+    );
+
+    this.render(
+      `<Example
+         @incrementWillDestroy={{this.state.incrementWillDestroy}}
+         @willDestroyCalls={{this.state.willDestroyCalls}}
+       />`,
+      { state }
+    );
+
+    // Helper because assertHTML is invisible-character sensitive, and this test doesn't care about
+    // that.
+    // Where is qunit-dom?
+    let output = (calls: number, hasChild: boolean) => {
+      if (hasChild) {
+        return `<p>willDestroyCalls: ${calls}</p>
+      <button>Toggle child</button>
+
+        a child
+`;
+      }
+      return `<p>willDestroyCalls: ${calls}</p>
+      <button>Toggle child</button>
+<!---->
+`;
+    };
+
+    const el = () => this.element as unknown as HTMLElement;
+    const click = () => {
+      el().querySelector('button')?.click();
+      this.rerender();
+    };
+
+    this.assert.strictEqual(state.willDestroyCalls, 0, '0 destructions');
+    this.assertHTML(output(0, true), 'initial render');
+
+    click();
+    this.assert.strictEqual(state.willDestroyCalls, 1, '1 destruction');
+    this.assertHTML(output(1, false), 'destroyed once');
+
+    click();
+    this.assert.strictEqual(state.willDestroyCalls, 1, '1 destruction');
+    this.assertHTML(output(1, true), 'shown again, no change');
+
+    click();
+    this.assert.strictEqual(state.willDestroyCalls, 2, '2 destruction');
+    this.assertHTML(output(2, false), 'destroyed twice');
+
+    this.destroy();
+    this.assertHTML('', 'destroys correctly');
+  }
+
   @test({ kind: 'templateOnly' })
   'throwing an error during rendering gives a readable error stack'(assert: Assert) {
     // eslint-disable-next-line no-console
