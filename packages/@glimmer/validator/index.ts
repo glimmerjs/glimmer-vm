@@ -12,6 +12,7 @@ if (globalObj[GLIMMER_VALIDATOR_REGISTRATION] === true) {
 
 globalObj[GLIMMER_VALIDATOR_REGISTRATION] = true;
 
+export { Cell } from './lib/cell';
 export { debug } from './lib/debug';
 export { dirtyTagFor, tagFor, type TagMeta, tagMetaFor } from './lib/meta';
 export { trackedData } from './lib/tracked-data';
