@@ -1,5 +1,34 @@
 # Changelog
 
+## Release (2025-01-19)
+
+@glimmer/compiler 0.93.2 (patch)
+@glimmer/node 0.93.2 (patch)
+@glimmer/runtime 0.93.2 (patch)
+@glimmer/syntax 0.94.0 (minor)
+
+#### :rocket: Enhancement
+* `@glimmer-workspace/integration-tests`, `@glimmer/syntax`
+  * [#1673](https://github.com/glimmerjs/glimmer-vm/pull/1673) Lexical "this" capture ([@ef4](https://github.com/ef4))
+
+#### :bug: Bug Fix
+* `@glimmer-workspace/integration-tests`, `@glimmer/runtime`
+  * [#1672](https://github.com/glimmerjs/glimmer-vm/pull/1672) Feature: Basic mathml support ([@lifeart](https://github.com/lifeart))
+
+#### :house: Internal
+* Other
+  * [#1681](https://github.com/glimmerjs/glimmer-vm/pull/1681) Rotate the size chart ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1679](https://github.com/glimmerjs/glimmer-vm/pull/1679) Compare sizes with main ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1678](https://github.com/glimmerjs/glimmer-vm/pull/1678) Allow manual checkout for perf and size workflows ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+  * [#1641](https://github.com/glimmerjs/glimmer-vm/pull/1641) Measure sizes and post as a comment ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@types/puppeteer-chromium-resolver`
+  * [#1675](https://github.com/glimmerjs/glimmer-vm/pull/1675) Fix CI ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 3
+- Alex Kanunnikov ([@lifeart](https://github.com/lifeart))
+- Edward Faulkner ([@ef4](https://github.com/ef4))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## Release (2024-11-27)
 
 @glimmer/compiler 0.93.1 (patch)
