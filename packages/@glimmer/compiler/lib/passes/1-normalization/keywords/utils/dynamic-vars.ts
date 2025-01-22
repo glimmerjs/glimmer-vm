@@ -3,31 +3,36 @@ import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';
 import type { NormalizationState } from '../../context';
-import type { GenericKeywordNode, KeywordDelegate } from '../impl';
+import type { InvokeKeywordCandidate, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { VISIT_EXPRS } from '../../visitors/expressions';
+import { visitExpr } from '../../visitors/expressions';
 
-function assertGetDynamicVarKeyword(node: GenericKeywordNode): Result<ASTv2.ExpressionNode> {
-  let call = node.type === 'AppendContent' ? node.value : node;
+function assertGetDynamicVarKeyword(
+  node: InvokeKeywordCandidate
+): Result<ASTv2.ExpressionValueNode> {
+  const args = node.args;
 
-  let named = call.type === 'Call' ? call.args.named : null;
-  let positionals = call.type === 'Call' ? call.args.positional : null;
+  if (args.isEmpty()) {
+    return Err(generateSyntaxError(`(-get-dynamic-vars) requires a var name to get`, node.loc));
+  }
 
-  if (named && !named.isEmpty()) {
+  const { positional, named } = args;
+
+  if (!named.isEmpty()) {
     return Err(
       generateSyntaxError(`(-get-dynamic-vars) does not take any named arguments`, node.loc)
     );
   }
 
-  let varName = positionals?.nth(0);
+  let varName = positional.nth(0);
 
   if (!varName) {
     return Err(generateSyntaxError(`(-get-dynamic-vars) requires a var name to get`, node.loc));
   }
 
-  if (positionals && positionals.size > 1) {
+  if (args.positional.size > 1) {
     return Err(
       generateSyntaxError(`(-get-dynamic-vars) only receives one positional arg`, node.loc)
     );
@@ -37,17 +42,15 @@ function assertGetDynamicVarKeyword(node: GenericKeywordNode): Result<ASTv2.Expr
 }
 
 function translateGetDynamicVarKeyword(
-  { node, state }: { node: GenericKeywordNode; state: NormalizationState },
-  name: ASTv2.ExpressionNode
+  { node, state }: { node: InvokeKeywordCandidate; state: NormalizationState },
+  name: ASTv2.ExpressionValueNode
 ): Result<mir.GetDynamicVar> {
-  return VISIT_EXPRS.visit(name, state).mapOk(
-    (name) => new mir.GetDynamicVar({ name, loc: node.loc })
-  );
+  return visitExpr(name, state).mapOk((name) => new mir.GetDynamicVar({ name, loc: node.loc }));
 }
 
 export const getDynamicVarKeyword: KeywordDelegate<
-  GenericKeywordNode,
-  ASTv2.ExpressionNode,
+  InvokeKeywordCandidate,
+  ASTv2.ExpressionValueNode,
   mir.GetDynamicVar
 > = {
   assert: assertGetDynamicVarKeyword,

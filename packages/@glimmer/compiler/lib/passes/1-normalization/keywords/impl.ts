@@ -33,7 +33,7 @@ class KeywordImpl<
     type: KeywordType,
     private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
   ) {
-    let nodes = new Set<KeywordNode['type']>();
+    let nodes = new Set<KeywordMatch['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
       nodes.add(nodeType);
     }
@@ -42,34 +42,11 @@ class KeywordImpl<
   }
 
   protected match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
-    if (!this.types.has(node.type)) {
-      return false;
-    }
-
-    let path = getCalleeExpression(node);
-
-    if (path !== null && path.type === 'Path' && path.ref.type === 'Free') {
-      return path.ref.name === this.keyword;
-    } else {
-      return false;
-    }
+    return this.types.has(node.type) && node.isResolved && node.callee.name === this.keyword;
   }
 
   translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
     if (this.match(node)) {
-      let path = getCalleeExpression(node);
-
-      if (path !== null && path.type === 'Path' && path.tail.length > 0) {
-        return Err(
-          generateSyntaxError(
-            `The \`${
-              this.keyword
-            }\` keyword was used incorrectly. It was used as \`${path.loc.asString()}\`, but it cannot be used with additional path segments. \n\nError caused by`,
-            node.loc
-          )
-        );
-      }
-
       let param = this.delegate.assert(node, state);
       return param.andThen((param) => this.delegate.translate({ node, state }, param));
     } else {
@@ -79,38 +56,45 @@ class KeywordImpl<
 }
 
 export const KEYWORD_NODES = {
-  Call: ['Call'],
-  Block: ['InvokeBlock'],
-  Append: ['AppendContent'],
-  Modifier: ['ElementModifier'],
+  Call: ['ResolvedCall'],
+  Block: ['InvokeResolvedBlock'],
+  Append: ['AppendResolvedInvokable'],
+  Modifier: ['ResolvedElementModifier'],
 } as const;
 
 export interface KeywordCandidates {
-  Call: ASTv2.ExpressionNode;
-  Block: ASTv2.InvokeBlock;
-  Append: ASTv2.AppendContent;
-  Modifier: ASTv2.ElementModifier;
+  Call: ASTv2.CallExpression | ASTv2.ResolvedCallExpression;
+  Block: ASTv2.InvokeBlock | ASTv2.InvokeResolvedBlock;
+  Append: ASTv2.AppendContent | ASTv2.AppendResolvedInvokable;
+  Modifier: ASTv2.ElementModifier | ASTv2.ResolvedElementModifier;
 }
 
 export type KeywordCandidate = KeywordCandidates[keyof KeywordCandidates];
 
-export interface KeywordMatches {
-  Call: ASTv2.CallExpression;
-  Block: ASTv2.InvokeBlock;
-  Append: ASTv2.AppendContent;
-  Modifier: ASTv2.ElementModifier;
-}
+export type KeywordMatches = {
+  [P in keyof KeywordCandidates]: Extract<KeywordCandidates[P], { isResolved: true }>;
+};
 
 export type KeywordMatch = KeywordMatches[keyof KeywordMatches];
 
 /**
- * A "generic" keyword is something like `has-block`, which makes sense in the context
- * of sub-expression or append
+ * An invoke keyword candidate is something like `has-block`, which can be used as `(has-block)` or
+ * `{{has-block}}`.
  */
-export type GenericKeywordNode = ASTv2.AppendContent | ASTv2.CallExpression;
+export type InvokeKeywordCandidate = CallKeywordCandidate | AppendKeywordCandidate;
+
+/**
+ * A content keyword candidate is something like `component`, which can be used as
+ * `{{component ...}}`, `(component ...)` or `{{#component ...}}`
+ */
+export type ContentKeywordCandidate = InvokeKeywordCandidate | BlockKeywordCandidate;
+
+export type CallKeywordCandidate = KeywordMatches['Call'];
+export type AppendKeywordCandidate = KeywordMatches['Append'];
+export type BlockKeywordCandidate = KeywordMatches['Block'];
 
 export type KeywordNode =
-  | GenericKeywordNode
+  | AppendKeywordCandidate
   | ASTv2.CallExpression
   | ASTv2.InvokeBlock
   | ASTv2.ElementModifier;
@@ -118,25 +102,6 @@ export type KeywordNode =
 export type PossibleKeyword = KeywordNode;
 type OutFor<K extends Keyword | BlockKeyword> =
   K extends BlockKeyword<infer Out> ? Out : K extends Keyword<KeywordType, infer Out> ? Out : never;
-
-function getCalleeExpression(
-  node: KeywordNode | ASTv2.ExpressionNode
-): ASTv2.ExpressionNode | null {
-  switch (node.type) {
-    // This covers the inside of attributes and expressions, as well as the callee
-    // of call nodes
-    case 'Path':
-      return node;
-    case 'AppendContent':
-      return getCalleeExpression(node.value);
-    case 'Call':
-    case 'InvokeBlock':
-    case 'ElementModifier':
-      return node.callee;
-    default:
-      return null;
-  }
-}
 
 export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = never>
   implements Keyword<K, OutFor<KeywordList>>
@@ -168,10 +133,12 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
       }
     }
 
-    let path = getCalleeExpression(node);
+    if (!node.isResolved) {
+      return null;
+    }
 
-    if (path && path.type === 'Path' && path.ref.type === 'Free' && isKeyword(path.ref.name)) {
-      let { name } = path.ref as { name: keyof typeof KEYWORDS_TYPES };
+    if (isKeyword(node.callee.name)) {
+      let { name } = node.callee as { name: keyof typeof KEYWORDS_TYPES };
 
       let usedType = this._type;
       let validTypes: readonly KeywordType[] = KEYWORDS_TYPES[name];

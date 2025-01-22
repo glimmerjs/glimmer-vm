@@ -68,7 +68,7 @@ export interface MustacheStatement extends BaseNode {
 
 export interface BlockStatement extends BaseNode {
   type: 'BlockStatement';
-  path: CallableExpression;
+  path: PathExpression;
   params: Expression[];
   hash: Hash;
   program: Block;
@@ -281,6 +281,10 @@ export interface Hash extends BaseNode {
   type: 'Hash';
   pairs: HashPair[];
 }
+
+export type PresentHash = Hash & {
+  pairs: PresentArray<HashPair>;
+};
 
 export interface HashPair extends BaseNode {
   type: 'HashPair';

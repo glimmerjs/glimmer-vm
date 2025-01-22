@@ -116,6 +116,7 @@ class DebugRenderTreeTest extends RenderTest {
     const HelloWorld = defComponent('<p ...attributes>{{@arg}}</p>');
     const noopFn = () => {};
     const noop = defineSimpleModifier(noopFn);
+
     const Root = defComponent(
       `<HelloWorld {{noop}} @arg="first"/>{{#if state.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       { scope: { HelloWorld, state, noop }, emit: { moduleName: 'root.hbs' } }

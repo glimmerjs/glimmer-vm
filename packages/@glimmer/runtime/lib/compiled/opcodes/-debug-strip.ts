@@ -147,5 +147,5 @@ export const CheckComponentDefinition: Checker<ComponentDefinition> = CheckInter
   state: CheckOr(CheckObject, CheckFunction),
   manager: CheckComponentManager,
   capabilities: CheckCapabilities,
-  compilable: CheckCompilableProgram,
+  layout: CheckCompilableProgram,
 });
