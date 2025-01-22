@@ -5,7 +5,7 @@
   },
   "[javascript][typescript]": {
     "editor.codeActionsOnSave": {
-      "source.fixAll": "always",
+      "source.fixAll.eslint": "always",
       "source.formatDocument": "always"
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -38,13 +38,10 @@
   "eslint.codeAction.showDocumentation": {
     "enable": true
   },
-  "eslint.codeActionsOnSave.mode": "all",
+  "eslint.codeActionsOnSave.mode": "problems",
   "eslint.enable": true,
   "eslint.lintTask.enable": true,
   "eslint.onIgnoredFiles": "warn",
-  "eslint.options": {
-    "overrideConfigFile": "./eslint.config.js"
-  },
   "eslint.problems.shortenToSingleLine": true,
   "eslint.runtime": "node",
   "eslint.useFlatConfig": true,
@@ -56,7 +53,7 @@
   ],
   "eslint.workingDirectories": [
     {
-      "pattern": "."
+      "mode": "auto"
     }
   ],
   "explorer.excludeGitIgnore": true,

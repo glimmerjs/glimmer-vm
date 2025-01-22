@@ -2,16 +2,12 @@ import type {
   BlockMetadata,
   BlockSymbolNames,
   ClassicResolver,
+  CompileTimeComponent,
   Expressions,
   Nullable,
   Owner,
   ProgramConstants,
   ResolutionTimeConstants,
-  ResolveComponentOp,
-  ResolveComponentOrHelperOp,
-  ResolveHelperOp,
-  ResolveModifierOp,
-  ResolveOptionalComponentOrHelperOp,
   SexpOpcode,
 } from '@glimmer/interfaces';
 import { debugToString, expect, localAssert, unwrap } from '@glimmer/debug-util';
@@ -54,7 +50,7 @@ interface ResolvedBlockMetadata extends BlockMetadata {
   };
 }
 
-function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMetadata {
+export function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMetadata {
   if (import.meta.env.DEV) {
     if (!meta.symbols.upvars) {
       throw new Error(
@@ -81,7 +77,8 @@ export function resolveComponent(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveComponentOp
+  expr: Expressions.Expression,
+  then: (component: CompileTimeComponent) => void
 ): void {
   localAssert(isGetFreeComponent(expr), 'Attempted to resolve a component with incorrect opcode');
 
@@ -126,7 +123,10 @@ export function resolveComponent(
     let definition = resolver?.lookupComponent?.(name, owner) ?? null;
 
     if (import.meta.env.DEV && (typeof definition !== 'object' || definition === null)) {
-      localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
+      localAssert(
+        !meta.isStrictMode,
+        'Strict mode errors should already be handled at compile time'
+      );
 
       throw new Error(
         `Attempted to resolve \`${name}\`, which was expected to be a component, but nothing was found.`
@@ -146,7 +146,8 @@ export function resolveHelper(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveHelperOp
+  expr: Expressions.Expression,
+  then: (handle: number) => void
 ): void {
   localAssert(isGetFreeHelper(expr), 'Attempted to resolve a helper with incorrect opcode');
 
@@ -173,7 +174,10 @@ export function resolveHelper(
     let helper = resolver?.lookupHelper?.(name, owner) ?? null;
 
     if (import.meta.env.DEV && helper === null) {
-      localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
+      localAssert(
+        !meta.isStrictMode,
+        'Strict mode errors should already be handled at compile time'
+      );
 
       throw new Error(
         `Attempted to resolve \`${name}\`, which was expected to be a helper, but nothing was found.`
@@ -194,7 +198,8 @@ export function resolveModifier(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveModifierOp
+  expr: Expressions.Expression,
+  then: (handle: number) => void
 ): void {
   localAssert(isGetFreeModifier(expr), 'Attempted to resolve a modifier with incorrect opcode');
 
@@ -218,7 +223,10 @@ export function resolveModifier(
     let modifier = resolver?.lookupBuiltInModifier?.(name) ?? null;
 
     if (import.meta.env.DEV && modifier === null) {
-      localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
+      localAssert(
+        !meta.isStrictMode,
+        'Strict mode errors should already be handled at compile time'
+      );
 
       throw new Error(
         `Attempted to resolve a modifier in a strict mode template, but it was not in scope: ${name}`
@@ -236,7 +244,10 @@ export function resolveModifier(
     let modifier = resolver?.lookupModifier?.(name, owner) ?? null;
 
     if (import.meta.env.DEV && modifier === null) {
-      localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
+      localAssert(
+        !meta.isStrictMode,
+        'Strict mode errors should already be handled at compile time'
+      );
 
       throw new Error(
         `Attempted to resolve \`${name}\`, which was expected to be a modifier, but nothing was found.`
@@ -251,11 +262,12 @@ export function resolveModifier(
 /**
  * {{component-or-helper arg}}
  */
-export function resolveComponentOrHelper(
+export function resolveAppendInvokable(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, { ifComponent, ifHelper }]: ResolveComponentOrHelperOp
+  expr: Expressions.Expression,
+  { ifComponent, ifHelper }: ResolveAppendInvokableOptions
 ): void {
   localAssert(
     isGetFreeComponentOrHelper(expr),
@@ -289,7 +301,10 @@ export function resolveComponentOrHelper(
     let helper = constants.helper(definition as object, null, true);
 
     if (import.meta.env.DEV && helper === null) {
-      localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
+      localAssert(
+        !meta.isStrictMode,
+        'Strict mode errors should already be handled at compile time'
+      );
 
       throw new Error(
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
@@ -325,7 +340,10 @@ export function resolveComponentOrHelper(
       let helper = resolver?.lookupHelper?.(name, owner) ?? null;
 
       if (import.meta.env.DEV && helper === null) {
-        localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
+        localAssert(
+          !meta.isStrictMode,
+          'Strict mode errors should already be handled at compile time'
+        );
 
         throw new Error(
           `Attempted to resolve \`${name}\`, which was expected to be a component or helper, but nothing was found.`
@@ -338,14 +356,24 @@ export function resolveComponentOrHelper(
   }
 }
 
+export interface ResolveAppendInvokableOptions {
+  ifComponent: (component: CompileTimeComponent) => void;
+  ifHelper: (handle: number) => void;
+}
+
+export interface ResolveAppendOptions extends ResolveAppendInvokableOptions {
+  ifValue: (handle: number) => void;
+}
+
 /**
  * {{maybeHelperOrComponent}}
  */
-export function resolveOptionalComponentOrHelper(
+export function resolveAppend(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, { ifComponent, ifHelper, ifValue }]: ResolveOptionalComponentOrHelperOp
+  expr: Expressions.Expression,
+  { ifComponent, ifHelper, ifValue }: ResolveAppendOptions
 ): void {
   localAssert(
     isGetFreeComponentOrHelper(expr),

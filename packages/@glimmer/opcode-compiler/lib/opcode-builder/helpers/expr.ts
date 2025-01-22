@@ -1,16 +1,17 @@
 import type { WireFormat } from '@glimmer/interfaces';
 import { VM_PRIMITIVE_REFERENCE_OP } from '@glimmer/constants';
 
-import type { PushExpressionOp } from '../../syntax/compilers';
+import type { BuildExpression } from '../../syntax/compilers';
 
 import { EXPRESSIONS } from '../../syntax/expressions';
 import { PushPrimitive } from './vm';
+import type { EncodeOp } from '../encoder';
 
-export function expr(op: PushExpressionOp, expression: WireFormat.Expression): void {
+export function expr(encode: EncodeOp, expression: WireFormat.Expression): void {
   if (Array.isArray(expression)) {
-    EXPRESSIONS.compile(op, expression);
+    EXPRESSIONS.compile(encode, expression);
   } else {
-    PushPrimitive(op, expression);
-    op(VM_PRIMITIVE_REFERENCE_OP);
+    PushPrimitive(encode, expression);
+    encode.op(VM_PRIMITIVE_REFERENCE_OP);
   }
 }
