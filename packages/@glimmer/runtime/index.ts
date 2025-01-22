@@ -17,7 +17,7 @@ export {
   templateOnlyComponent,
   TemplateOnlyComponentManager,
 } from './lib/component/template-only';
-export { CurriedValue, curry } from './lib/curried-value';
+export { CurriedValue, curry } from '../program/lib/util/curried-value';
 export {
   DOMChanges,
   DOMTreeConstruction,

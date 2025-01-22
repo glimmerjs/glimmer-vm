@@ -42,10 +42,10 @@ import { isIndexable } from '@glimmer/util';
 import { consumeTag, CURRENT_TAG, validateTag, valueForTag } from '@glimmer/validator';
 import { $t0 } from '@glimmer/vm';
 
-import type { CurriedValue } from '../../curried-value';
+import type { CurriedValue } from '../../../../program/lib/util/curried-value';
 import type { DynamicAttribute } from '../../vm/attributes/dynamic';
 
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { isCurriedType, resolveCurriedValue } from '../../../../program/lib/util/curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import { createCapturedArgs } from '../../vm/arguments';
 import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';

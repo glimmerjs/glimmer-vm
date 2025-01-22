@@ -7,11 +7,12 @@ import {
   GlimmerishComponent,
   jitSuite,
   RenderTest,
-  syntaxErrorFor,
   test,
   TestHelper,
   trackedObj,
+  syntaxErrorFor,
 } from '@glimmer-workspace/integration-tests';
+import { unresolvedErrorFor } from '@glimmer-workspace/test-utils';
 
 class GeneralStrictModeTest extends RenderTest {
   static suiteName = 'strict mode: general properties';
@@ -133,7 +134,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Foo);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -161,7 +162,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -181,7 +182,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Foo);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -200,7 +201,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -220,7 +221,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -239,7 +240,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -415,13 +416,11 @@ class StaticStrictModeTest extends RenderTest {
       () => {
         defineComponent({}, '<Foo/>');
       },
-      syntaxErrorFor(
-        'Attempted to invoke a component that was not in scope in a strict mode template, `<Foo>`. If you wanted to create an element with that name, convert it to lowercase - `<foo>`',
-        '<Foo/>',
-        'an unknown module',
-        1,
-        0
-      )
+      unresolvedErrorFor('component', 'tag:unresolved', '<<|Foo|>/>', 'an unknown module', {
+        notes: [
+          'If you wanted to create an element with that name, convert it to lowercase - \`<foo>\`',
+        ],
+      })
     );
   }
 
@@ -431,13 +430,7 @@ class StaticStrictModeTest extends RenderTest {
       () => {
         defineComponent({}, '{{foo}}');
       },
-      syntaxErrorFor(
-        'Attempted to resolve a value in a strict mode template, but that value was not in scope: foo',
-        '{{foo}}',
-        'an unknown module',
-        1,
-        0
-      )
+      unresolvedErrorFor('content', 'append:value', '[%{{<|foo|>}}%]', 'an unknown module')
     );
   }
 
@@ -445,15 +438,9 @@ class StaticStrictModeTest extends RenderTest {
   'Throws an error if component or helper in append position is not in scope'() {
     this.assert.throws(
       () => {
-        defineComponent({}, '{{foo "bar"}}');
+        defineComponent({}, `{{foo 'bar'}}`);
       },
-      syntaxErrorFor(
-        'Attempted to resolve a component or helper in a strict mode template, but that value was not in scope: foo',
-        '{{foo "bar"}}',
-        'an unknown module',
-        1,
-        0
-      )
+      unresolvedErrorFor('content', 'append:callee', `[%{{<|foo|> 'bar'}}%]`, 'an unknown module')
     );
   }
 
@@ -481,12 +468,11 @@ class StaticStrictModeTest extends RenderTest {
       () => {
         defineComponent({}, '<div class={{foo}} />');
       },
-      syntaxErrorFor(
-        'Attempted to resolve a value in a strict mode template, but that value was not in scope: foo',
-        'class={{foo}}',
-        'an unknown module',
-        1,
-        5
+      unresolvedErrorFor(
+        'component',
+        'attr:value',
+        '<div [%class={{<|foo|>}}%] />',
+        'an unknown module'
       )
     );
   }
@@ -560,6 +546,60 @@ class StaticStrictModeTest extends RenderTest {
   }
 
   @test
+  'Throws an error if a helper is used as a positional argument in a modifier and is not in scope'() {
+    const foo = defineSimpleModifier((_element: Element) => {});
+
+    this.assert.throws(
+      () => {
+        defineComponent({ foo }, '<div {{foo (bar)}}></div>');
+      },
+      syntaxErrorFor(
+        'Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar',
+        '(bar)',
+        'an unknown module',
+        1,
+        11
+      )
+    );
+  }
+
+  @test
+  'Throws an error if a helper is used as a named argument in a modifier and is not in scope'() {
+    const foo = defineSimpleModifier((_element: Element) => {});
+
+    this.assert.throws(
+      () => {
+        defineComponent({ foo }, '<div {{foo bar=(bar)}}></div>');
+      },
+      syntaxErrorFor(
+        'Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar',
+        'bar=(bar)',
+        'an unknown module',
+        1,
+        11
+      )
+    );
+  }
+
+  @test
+  'Throws an error if unresolvable value is used in a modifier and is not in scope'() {
+    const foo = defineSimpleModifier((_element: Element) => {});
+
+    this.assert.throws(
+      () => {
+        defineComponent({ foo }, '<div {{foo bar}}></div>');
+      },
+      syntaxErrorFor(
+        'Attempted to resolve a value in a strict mode template, but that value was not in scope: bar',
+        '{{foo <|bar|>}}',
+        'an unknown module',
+        1,
+        11
+      )
+    );
+  }
+
+  @test
   'Throws an error if a non-component is used as a component'() {
     const Foo = defineSimpleHelper(() => 'Hello, world!');
     const Bar = defineComponent({ Foo }, '<Foo/>');
@@ -576,7 +616,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to load a helper, but there wasn't a helper manager associated with the definition. The definition was:/u);
+    }, /Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was `\{\{false\}\}` or `\(false\)`/u);
   }
 
   @test
@@ -586,7 +626,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to load a modifier, but there wasn't a modifier manager associated with the definition. The definition was:/u);
+    }, /Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it./u);
   }
 }
 

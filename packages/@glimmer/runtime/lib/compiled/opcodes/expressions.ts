@@ -51,7 +51,7 @@ import {
 import { assign, isIndexable } from '@glimmer/util';
 import { $v0 } from '@glimmer/vm';
 
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { isCurriedType, resolveCurriedValue } from '../../../../program/lib/util/curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
 import { reifyPositional } from '../../vm/arguments';
@@ -67,7 +67,7 @@ import {
   CheckUndefinedReference,
 } from './-debug-strip';
 
-APPEND_OPCODES.add(VM_CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
+APPEND_OPCODES.add(VM_CURRY_OP, (vm, { op1: type, op2: _isStringAllowed }) => {
   let stack = vm.stack;
 
   let definition = check(stack.pop(), CheckReference);
@@ -76,16 +76,16 @@ APPEND_OPCODES.add(VM_CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
   let owner = vm.getOwner();
   let resolver = vm.context.resolver;
 
-  let isStrict = false;
+  let isStringAllowed = false;
 
   if (import.meta.env.DEV) {
     // strict check only happens in import.meta.env.DEV builds, no reason to load it otherwise
-    isStrict = vm.constants.getValue<boolean>(decodeHandle(_isStrict));
+    isStringAllowed = vm.constants.getValue<boolean>(decodeHandle(_isStringAllowed));
   }
 
   vm.loadValue(
     $v0,
-    createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
+    createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStringAllowed)
   );
 });
 

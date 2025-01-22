@@ -38,8 +38,8 @@ export interface SerializedLocalVarReference extends SerializedBaseNode {
   name: string;
 }
 
-export interface SerializedFreeVarReference extends SerializedBaseNode {
-  type: 'Free';
+export interface SerializedResolvedVarReference extends SerializedBaseNode {
+  type: 'Resolved';
   name: string;
   resolution: ASTv2.SerializedResolution;
 }
@@ -48,7 +48,7 @@ export type SerializedVariableReference =
   | SerializedThisReference
   | SerializedArgReference
   | SerializedLocalVarReference
-  | SerializedFreeVarReference;
+  | SerializedResolvedVarReference;
 
 export interface SerializedCallNode extends SerializedBaseNode {
   callee: SerializedExpressionNode;
@@ -61,7 +61,7 @@ export interface SerializedCallExpression extends SerializedCallNode {
 
 export interface SerializedDeprecatedCallExpression extends SerializedBaseNode {
   type: 'DeprecatedCall';
-  callee: SerializedFreeVarReference;
+  callee: SerializedResolvedVarReference;
 }
 
 export type SerializedExpressionNode =
@@ -107,13 +107,13 @@ export interface SerializedHtmlComment extends SerializedBaseNode {
   text: SerializedSourceSlice;
 }
 
-export interface SerializedInvokeBlock extends SerializedCallNode {
-  type: 'InvokeBlock';
+export interface SerializedInvokeBlockComponent extends SerializedCallNode {
+  type: 'InvokeBlockComponent';
   blocks: SerializedNamedBlocks;
 }
 
-export interface SerializedInvokeComponent extends SerializedBaseNode {
-  type: 'InvokeComponent';
+export interface SerializedInvokeAngleBracketComponent extends SerializedBaseNode {
+  type: 'InvokeAngleBracketComponent';
   callee: SerializedExpressionNode;
   blocks: SerializedNamedBlocks;
   attrs: SerializedAttrNode[];
@@ -164,6 +164,6 @@ export type SerializedContentNode =
   | SerializedHtmlComment
   | SerializedHtmlText
   | SerializedGlimmerComment
-  | SerializedInvokeBlock
-  | SerializedInvokeComponent
+  | SerializedInvokeBlockComponent
+  | SerializedInvokeAngleBracketComponent
   | SerializedSimpleElement;

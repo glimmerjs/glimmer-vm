@@ -3,13 +3,13 @@ import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';
 import type { NormalizationState } from '../../context';
-import type { GenericKeywordNode, KeywordDelegate } from '../impl';
+import type { InvokeKeywordCandidate, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { VISIT_EXPRS } from '../../visitors/expressions';
+import { visitPositional } from '../../visitors/expressions';
 
-function assertLogKeyword(node: GenericKeywordNode): Result<ASTv2.PositionalArguments> {
+function assertLogKeyword(node: InvokeKeywordCandidate): Result<ASTv2.PositionalArguments> {
   let {
     args: { named, positional },
   } = node;
@@ -22,16 +22,16 @@ function assertLogKeyword(node: GenericKeywordNode): Result<ASTv2.PositionalArgu
 }
 
 function translateLogKeyword(
-  { node, state }: { node: ASTv2.CallExpression | ASTv2.AppendContent; state: NormalizationState },
+  { node, state }: { node: InvokeKeywordCandidate; state: NormalizationState },
   positional: ASTv2.PositionalArguments
 ): Result<mir.Log> {
-  return VISIT_EXPRS.Positional(positional, state).mapOk(
+  return visitPositional(positional, state).mapOk(
     (positional) => new mir.Log({ positional, loc: node.loc })
   );
 }
 
 export const logKeyword: KeywordDelegate<
-  ASTv2.CallExpression | ASTv2.AppendContent,
+  InvokeKeywordCandidate,
   ASTv2.PositionalArguments,
   mir.Log
 > = {

@@ -297,6 +297,13 @@ export class SourceSpan implements SourceLocation {
   sliceEndChars({ skipEnd = 0, chars }: { skipEnd?: number; chars: number }): SourceSpan {
     return span(this.getEnd().move(skipEnd - chars).data, this.getStart().move(-skipEnd).data);
   }
+
+  isEqual(other: SourceSpan): boolean {
+    // @todo optimize this for the situation where the spans are both CharPositionSpans. For now,
+    // this is only used inside of error handling, so a little bit of performance overhead is
+    // acceptable
+    return this.getStart() === other.getStart() && this.getEnd() === other.getEnd();
+  }
 }
 
 type AnySpan = HbsSpan | CharPositionSpan | InvisibleSpan;
