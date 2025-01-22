@@ -36,7 +36,8 @@ export type VmConstantReference = 29;
 export type VmPrimitive = 30;
 export type VmPrimitiveReference = 31;
 export type VmReifyU32 = 32;
-export type VmDup = 33;
+export type VmDupFp = 33;
+export type VmDupSp = 113;
 export type VmPop = 34;
 export type VmLoad = 35;
 export type VmFetch = 36;
@@ -61,10 +62,11 @@ export type VmFlushElement = 54;
 export type VmCloseElement = 55;
 export type VmPopRemoteElement = 56;
 export type VmModifier = 57;
-export type VmBindDynamicScope = 58;
+export type VmPushAndBindDynamicScope = 58;
 export type VmPushDynamicScope = 59;
 export type VmPopDynamicScope = 60;
 export type VmCompileBlock = 61;
+export type VmJitInvokeVirtual = 200;
 export type VmPushBlockScope = 62;
 export type VmPushSymbolTable = 63;
 export type VmInvokeYield = 64;
@@ -83,8 +85,8 @@ export type VmContentType = 76;
 export type VmCurry = 77;
 export type VmPushComponentDefinition = 78;
 export type VmPushDynamicComponentInstance = 79;
-export type VmResolveDynamicComponent = 80;
-export type VmResolveCurriedComponent = 81;
+export type VmResolveComponentDefinitionOrString = 80;
+export type VmResolveComponentDefinition = 81;
 export type VmPushArgs = 82;
 export type VmPushEmptyArgs = 83;
 export type VmPopArgs = 84;
@@ -111,7 +113,7 @@ export type VmIfInline = 109;
 export type VmNot = 110;
 export type VmGetDynamicVar = 111;
 export type VmLog = 112;
-export type VmSize = 113;
+export type VmSize = 114;
 
 export type VmOp =
   | VmHelper
@@ -131,7 +133,8 @@ export type VmOp =
   | VmPrimitive
   | VmPrimitiveReference
   | VmReifyU32
-  | VmDup
+  | VmDupFp
+  | VmDupSp
   | VmPop
   | VmLoad
   | VmFetch
@@ -156,10 +159,11 @@ export type VmOp =
   | VmCloseElement
   | VmPopRemoteElement
   | VmModifier
-  | VmBindDynamicScope
+  | VmPushAndBindDynamicScope
   | VmPushDynamicScope
   | VmPopDynamicScope
   | VmCompileBlock
+  | VmJitInvokeVirtual
   | VmPushBlockScope
   | VmPushSymbolTable
   | VmInvokeYield
@@ -178,8 +182,8 @@ export type VmOp =
   | VmCurry
   | VmPushComponentDefinition
   | VmPushDynamicComponentInstance
-  | VmResolveDynamicComponent
-  | VmResolveCurriedComponent
+  | VmResolveComponentDefinitionOrString
+  | VmResolveComponentDefinition
   | VmPushArgs
   | VmPushEmptyArgs
   | VmPopArgs

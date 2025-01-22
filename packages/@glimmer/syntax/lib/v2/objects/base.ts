@@ -1,9 +1,20 @@
 import type { SerializedSourceSpan } from '../../source/span';
-import type { Args } from './args';
+import type { CurlyArgs, UnresolvedBinding } from './args';
 import type { ElementModifier } from './attr-block';
-import type { AppendContent, ContentNode, InvokeBlock, InvokeComponent } from './content';
-import type { CallExpression, KeywordExpression, PathExpression } from './expr';
+import type {
+  AppendContent,
+  ContentNode,
+  InvokeAngleBracketComponent,
+  InvokeBlock,
+} from './content';
+import type {
+  CallExpression,
+  KeywordExpression,
+  PathExpression,
+  ResolvedCallExpression,
+} from './expr';
 import type { BaseNodeFields } from './node';
+import type { VariableReference } from './refs';
 
 export interface SerializedBaseNode {
   loc: SerializedSourceSpan;
@@ -14,15 +25,20 @@ export interface GlimmerParentNodeOptions extends BaseNodeFields {
 }
 
 export interface CallFields extends BaseNodeFields {
-  callee: CalleeNode;
-  args: Args;
+  callee: DynamicCallee | KeywordExpression | UnresolvedBinding;
+  args: CurlyArgs;
 }
 
-export type CalleeNode = KeywordExpression | PathExpression | CallExpression;
+export type DynamicCallee =
+  | KeywordExpression
+  | PathExpression
+  | VariableReference
+  | CallExpression
+  | ResolvedCallExpression;
 
 export type CallNode =
   | CallExpression
   | InvokeBlock
   | AppendContent
-  | InvokeComponent
+  | InvokeAngleBracketComponent
   | ElementModifier;

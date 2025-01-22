@@ -61,11 +61,11 @@ class NamedBlocksSyntaxErrors extends RenderTest {
   'has-block throws if receiving multiple positional'() {
     this.assert.throws(
       () => {
-        preprocess('{{has-block "foo" "bar"}}', { meta: { moduleName: 'test-module' } });
+        preprocess(`{{has-block 'foo' 'bar'}}`, { meta: { moduleName: 'test-module' } });
       },
       syntaxErrorFor(
         '(has-block) only takes a single positional argument',
-        '{{has-block "foo" "bar"}}',
+        `{{has-block 'foo' <|'bar'|>}}`,
         'test-module',
         1,
         0
@@ -109,11 +109,13 @@ class NamedBlocksSyntaxErrors extends RenderTest {
   'has-block-params throws if receiving multiple positional'() {
     this.assert.throws(
       () => {
-        preprocess('{{has-block-params "foo" "bar"}}', { meta: { moduleName: 'test-module' } });
+        preprocess(`{{has-block-params 'foo' 'bar' 'baz'}}`, {
+          meta: { moduleName: 'test-module' },
+        });
       },
       syntaxErrorFor(
         '(has-block-params) only takes a single positional argument',
-        '{{has-block-params "foo" "bar"}}',
+        `{{has-block-params 'foo' <|'bar' 'baz'|>}}`,
         'test-module',
         1,
         0

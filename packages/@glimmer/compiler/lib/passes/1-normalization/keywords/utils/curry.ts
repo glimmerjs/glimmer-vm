@@ -3,11 +3,11 @@ import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/co
 import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../../context';
-import type { KeywordDelegate } from '../impl';
+import type { ContentKeywordCandidate, KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { VISIT_EXPRS } from '../../visitors/expressions';
+import { visitCurlyArgs, visitExpr } from '../../visitors/expressions';
 
 const CurriedTypeToReadableType = {
   [CURRIED_COMPONENT]: 'component',
@@ -15,14 +15,16 @@ const CurriedTypeToReadableType = {
   [CURRIED_MODIFIER]: 'modifier',
 } as const;
 
-export function assertCurryKeyword(curriedType: CurriedType) {
+export function assertCurryKeyword(
+  curriedType: CurriedType
+): (
+  node: ContentKeywordCandidate,
+  state: NormalizationState
+) => Result<{ definition: ASTv2.ExpressionValueNode; args: ASTv2.CurlyArgs }> {
   return (
-    node: ASTv2.AppendContent | ASTv2.InvokeBlock | ASTv2.CallExpression,
-    state: NormalizationState
-  ): Result<{
-    definition: ASTv2.ExpressionNode;
-    args: ASTv2.Args;
-  }> => {
+    node,
+    state
+  ): Result<{ definition: ASTv2.ExpressionValueNode; args: ASTv2.CurlyArgs }> => {
     let readableType = CurriedTypeToReadableType[curriedType];
     let stringsAllowed = curriedType === CURRIED_COMPONENT;
 
@@ -54,17 +56,24 @@ export function assertCurryKeyword(curriedType: CurriedType) {
             node.loc
           )
         );
+      } else if (curriedType === CURRIED_HELPER || curriedType === CURRIED_MODIFIER) {
+        return Err(
+          generateSyntaxError(
+            `(${readableType}) cannot resolve string values, you must pass a ${readableType} definition directly`,
+            node.loc
+          )
+        );
       }
     }
 
-    args = new ASTv2.Args({
-      positional: new ASTv2.PositionalArguments({
+    args = new ASTv2.CurlyArgs(
+      new ASTv2.PositionalArguments({
         exprs: args.positional.exprs.slice(1),
         loc: args.positional.loc,
       }),
-      named: args.named,
-      loc: args.loc,
-    });
+      args.named,
+      args.loc
+    );
 
     return Ok({ definition, args });
   };
@@ -72,14 +81,11 @@ export function assertCurryKeyword(curriedType: CurriedType) {
 
 function translateCurryKeyword(curriedType: CurriedType) {
   return (
-    {
-      node,
-      state,
-    }: { node: ASTv2.CallExpression | ASTv2.AppendContent; state: NormalizationState },
-    { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
+    { node, state }: { node: ContentKeywordCandidate; state: NormalizationState },
+    { definition, args }: { definition: ASTv2.ExpressionValueNode; args: ASTv2.CurlyArgs }
   ): Result<mir.Curry> => {
-    let definitionResult = VISIT_EXPRS.visit(definition, state);
-    let argsResult = VISIT_EXPRS.Args(args, state);
+    let definitionResult = visitExpr(definition, state);
+    let argsResult = visitCurlyArgs(args, state);
 
     return Result.all(definitionResult, argsResult).mapOk(
       ([definition, args]) =>
@@ -96,8 +102,8 @@ function translateCurryKeyword(curriedType: CurriedType) {
 export function curryKeyword(
   curriedType: CurriedType
 ): KeywordDelegate<
-  ASTv2.CallExpression | ASTv2.AppendContent,
-  { definition: ASTv2.ExpressionNode; args: ASTv2.Args },
+  ContentKeywordCandidate,
+  { definition: ASTv2.ExpressionValueNode; args: ASTv2.CurlyArgs },
   mir.Curry
 > {
   return {

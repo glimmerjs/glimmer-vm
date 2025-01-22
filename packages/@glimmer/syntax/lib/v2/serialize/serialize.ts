@@ -11,14 +11,13 @@ import type {
   SerializedContentNode,
   SerializedElementModifier,
   SerializedExpressionNode,
-  SerializedFreeVarReference,
   SerializedGlimmerComment,
   SerializedHtmlComment,
   SerializedHtmlOrSplatAttr,
   SerializedHtmlText,
   SerializedInterpolateExpression,
-  SerializedInvokeBlock,
-  SerializedInvokeComponent,
+  SerializedInvokeAngleBracketComponent,
+  SerializedInvokeBlockComponent,
   SerializedLiteralExpression,
   SerializedLocalVarReference,
   SerializedNamed,
@@ -27,6 +26,7 @@ import type {
   SerializedNamedBlocks,
   SerializedPathExpression,
   SerializedPositional,
+  SerializedResolvedVarReference,
   SerializedSimpleElement,
   SerializedThisReference,
   SerializedVariableReference,
@@ -35,9 +35,9 @@ import type {
 import { SourceSlice } from '../../source/slice';
 
 export class RefSerializer {
-  keyword(keyword: ASTv2.KeywordExpression): SerializedFreeVarReference {
+  keyword(keyword: ASTv2.KeywordExpression): SerializedResolvedVarReference {
     return {
-      type: 'Free',
+      type: 'Resolved',
       loc: keyword.loc.serialize(),
       resolution: 'Strict',
       name: keyword.name,
@@ -52,9 +52,9 @@ export class RefSerializer {
     };
   }
 
-  free(ref: ASTv2.FreeVarReference): SerializedFreeVarReference {
+  resolved(ref: ASTv2.ResolvedVarReference): SerializedResolvedVarReference {
     return {
-      type: 'Free',
+      type: 'Resolved',
       loc: ref.loc.serialize(),
       resolution: ref.resolution.serialize(),
       name: ref.name,
@@ -142,14 +142,14 @@ class ArgsSerializer {
     };
   }
 
-  named(named: ASTv2.NamedArguments): SerializedNamed {
+  named(named: ASTv2.CurlyNamedArguments): SerializedNamed {
     return {
       loc: named.loc.serialize(),
       entries: named.entries.map((e) => this.entry(e)),
     };
   }
 
-  entry(entry: ASTv2.NamedArgument): SerializedNamedArgument {
+  entry(entry: ASTv2.CurlyArgument): SerializedNamedArgument {
     return [entry.name.serialize(), visit.expr(entry.value)];
   }
 }
@@ -190,12 +190,12 @@ export class ContentSerializer {
     };
   }
 
-  invokeBlock(node: ASTv2.InvokeBlock): SerializedInvokeBlock {
+  invokeBlock(node: ASTv2.InvokeBlock): SerializedInvokeBlockComponent {
     let args = ARGS.args(node.args);
     let callee = visit.expr(node.callee);
 
     return {
-      type: 'InvokeBlock',
+      type: 'InvokeBlockComponent',
       loc: node.loc.serialize(),
       args,
       callee,
@@ -203,9 +203,11 @@ export class ContentSerializer {
     };
   }
 
-  invokeComponent(node: ASTv2.InvokeComponent): SerializedInvokeComponent {
+  invokeAngleBracketComponent(
+    node: ASTv2.InvokeAngleBracketComponent
+  ): SerializedInvokeAngleBracketComponent {
     return {
-      type: 'InvokeComponent',
+      type: 'InvokeAngleBracketComponent',
       loc: node.loc.serialize(),
       callee: visit.expr(node.callee),
       blocks: INTERNAL.namedBlocks(node.blocks),
@@ -282,7 +284,7 @@ class InternalSerializer {
 const INTERNAL = new InternalSerializer();
 
 const visit = {
-  expr(expr: ASTv2.ExpressionNode): SerializedExpressionNode {
+  expr(expr: ASTv2.ExpressionValueNode): SerializedExpressionNode {
     switch (expr.type) {
       case 'Literal':
         return EXPR.literal(expr);
@@ -309,8 +311,8 @@ const visit = {
     switch (ref.type) {
       case 'Arg':
         return REF.arg(ref);
-      case 'Free':
-        return REF.free(ref);
+      case 'Resolved':
+        return REF.resolved(ref);
       case 'Local':
         return REF.local(ref);
       case 'This':
@@ -330,8 +332,8 @@ const visit = {
         return CONTENT.htmlText(node);
       case 'InvokeBlock':
         return CONTENT.invokeBlock(node);
-      case 'InvokeComponent':
-        return CONTENT.invokeComponent(node);
+      case 'InvokeAngleBracketComponent':
+        return CONTENT.invokeAngleBracketComponent(node);
       case 'SimpleElement':
         return CONTENT.simpleElement(node);
     }

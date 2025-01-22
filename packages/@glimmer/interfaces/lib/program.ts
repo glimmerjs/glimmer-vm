@@ -1,3 +1,5 @@
+import type { Tagged } from 'type-fest';
+
 import type { Encoder } from './compile/index.js';
 import type { ComponentDefinition, ComponentDefinitionState } from './components.js';
 import type { Nullable } from './core.js';
@@ -106,6 +108,9 @@ export interface CompileTimeConstants {
   toPool(): ConstantPool;
 }
 
+export type CurriedValue = Tagged<object, 'Glimmer.CurriedValue'>;
+export type CurriedComponentValue = CurriedValue & Tagged<object, 'Glimmer.CurriedComponentValue'>;
+
 /**
  * Resolution happens when components are first loaded, either via the resolver
  * or via looking them up in template scope.
@@ -137,9 +142,9 @@ export interface ResolutionTimeConstants {
     debugName?: string
   ): ComponentDefinition;
   component(
-    definitionState: ComponentDefinitionState,
+    definitionState: unknown,
     owner: object,
-    isOptional?: boolean,
+    isOptional: true,
     debugName?: string
   ): ComponentDefinition | null;
 
@@ -155,7 +160,10 @@ export interface RuntimeConstants {
   getArray<T>(handle: number): T[];
 }
 
-export type ProgramConstants = CompileTimeConstants & ResolutionTimeConstants & RuntimeConstants;
+export interface ProgramConstants
+  extends CompileTimeConstants,
+    ResolutionTimeConstants,
+    RuntimeConstants {}
 
 export interface CompileTimeArtifacts {
   heap: ProgramHeap;

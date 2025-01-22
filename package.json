@@ -4,10 +4,6 @@
   "private": true,
   "license": "MIT",
   "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/glimmerjs/glimmer-vm.git"
-  },
   "author": "Tilde, Inc.",
   "type": "module",
   "exports": null,
@@ -19,6 +15,7 @@
     "browserstack:results": "ember browserstack:results",
     "build:control": "rollup -c rollup.config.mjs",
     "build:flags": "RETAIN_FLAGS=true ember build --env production --suppress-sizes",
+    "build:packages": "turbo run prepack",
     "clean": "node ./bin/clean.mjs",
     "link:all": "esyes ./bin/link-all.mts",
     "lint:fix": "turbo test:lint -- --fix && prettier -w .",
