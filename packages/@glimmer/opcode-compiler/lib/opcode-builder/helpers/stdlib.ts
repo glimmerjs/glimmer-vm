@@ -1,4 +1,4 @@
-import type { BlockMetadata, BuilderOp, EvaluationContext, HighLevelOp } from '@glimmer/interfaces';
+import type { BlockMetadata, EvaluationContext } from '@glimmer/interfaces';
 import {
   VM_APPEND_DOCUMENT_FRAGMENT_OP,
   VM_APPEND_HTML_OP,
@@ -14,17 +14,15 @@ import {
 } from '@glimmer/constants';
 import { $s0, ContentType } from '@glimmer/vm';
 
-import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
-
-import { encodeOp, EncoderImpl } from '../encoder';
+import { EncodeOp, EncoderImpl } from '../encoder';
 import { StdLib } from '../stdlib';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';
 import { CallDynamic } from './vm';
 
-export function main(op: PushStatementOp): void {
-  op(VM_MAIN_OP, $s0);
-  invokePreparedComponent(op, false, false, true);
+export function main(encode: EncodeOp): void {
+  encode.op(VM_MAIN_OP, $s0);
+  invokePreparedComponent(encode, false, false, true);
 }
 
 /**
@@ -36,67 +34,67 @@ export function main(op: PushStatementOp): void {
  * triple curlies)
  */
 export function StdAppend(
-  op: PushStatementOp,
+  encode: EncodeOp,
   trusting: boolean,
   nonDynamicAppend: number | null
 ): void {
   SwitchCases(
-    op,
-    () => op(VM_CONTENT_TYPE_OP),
+    encode,
+    () => encode.op(VM_CONTENT_TYPE_OP),
     (when) => {
       when(ContentType.String, () => {
         if (trusting) {
-          op(VM_ASSERT_SAME_OP);
-          op(VM_APPEND_HTML_OP);
+          encode.op(VM_ASSERT_SAME_OP);
+          encode.op(VM_APPEND_HTML_OP);
         } else {
-          op(VM_APPEND_TEXT_OP);
+          encode.op(VM_APPEND_TEXT_OP);
         }
       });
 
       if (typeof nonDynamicAppend === 'number') {
         when(ContentType.Component, () => {
-          op(VM_RESOLVE_CURRIED_COMPONENT_OP);
-          op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-          InvokeBareComponent(op);
+          encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+          encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+          InvokeBareComponent(encode);
         });
 
         when(ContentType.Helper, () => {
-          CallDynamic(op, null, null, () => {
-            op(VM_INVOKE_STATIC_OP, nonDynamicAppend);
+          CallDynamic(encode, null, null, () => {
+            encode.op(VM_INVOKE_STATIC_OP, nonDynamicAppend);
           });
         });
       } else {
         // when non-dynamic, we can no longer call the value (potentially because we've already called it)
         // this prevents infinite loops. We instead coerce the value, whatever it is, into the DOM.
         when(ContentType.Component, () => {
-          op(VM_APPEND_TEXT_OP);
+          encode.op(VM_APPEND_TEXT_OP);
         });
 
         when(ContentType.Helper, () => {
-          op(VM_APPEND_TEXT_OP);
+          encode.op(VM_APPEND_TEXT_OP);
         });
       }
 
       when(ContentType.SafeString, () => {
-        op(VM_ASSERT_SAME_OP);
-        op(VM_APPEND_SAFE_HTML_OP);
+        encode.op(VM_ASSERT_SAME_OP);
+        encode.op(VM_APPEND_SAFE_HTML_OP);
       });
 
       when(ContentType.Fragment, () => {
-        op(VM_ASSERT_SAME_OP);
-        op(VM_APPEND_DOCUMENT_FRAGMENT_OP);
+        encode.op(VM_ASSERT_SAME_OP);
+        encode.op(VM_APPEND_DOCUMENT_FRAGMENT_OP);
       });
 
       when(ContentType.Node, () => {
-        op(VM_ASSERT_SAME_OP);
-        op(VM_APPEND_NODE_OP);
+        encode.op(VM_ASSERT_SAME_OP);
+        encode.op(VM_APPEND_NODE_OP);
       });
     }
   );
 }
 
 export function compileStd(context: EvaluationContext): StdLib {
-  let mainHandle = build(context, (op) => main(op));
+  let mainHandle = build(context, (encode) => main(encode));
   let trustingGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, true, null));
   let cautiousGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, false, null));
 
@@ -130,14 +128,11 @@ export const STDLIB_META: BlockMetadata = {
   size: 0,
 };
 
-function build(evaluation: EvaluationContext, builder: (op: PushStatementOp) => void): number {
+function build(evaluation: EvaluationContext, builder: (encode: EncodeOp) => void): number {
   let encoder = new EncoderImpl(evaluation.program.heap, STDLIB_META);
+  let encode = new EncodeOp(encoder, evaluation, STDLIB_META);
 
-  function pushOp(...op: BuilderOp | HighLevelOp | HighLevelStatementOp) {
-    encodeOp(encoder, evaluation, STDLIB_META, op as BuilderOp | HighLevelOp);
-  }
-
-  builder(pushOp);
+  builder(encode);
 
   let result = encoder.commit(0);
 

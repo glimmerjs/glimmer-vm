@@ -2,16 +2,12 @@ import type {
   BlockMetadata,
   BlockSymbolNames,
   ClassicResolver,
+  CompileTimeComponent,
   Expressions,
   Nullable,
   Owner,
   ProgramConstants,
   ResolutionTimeConstants,
-  ResolveComponentOp,
-  ResolveComponentOrHelperOp,
-  ResolveHelperOp,
-  ResolveModifierOp,
-  ResolveOptionalComponentOrHelperOp,
   SexpOpcode,
 } from '@glimmer/interfaces';
 import { debugToString, expect, localAssert, unwrap } from '@glimmer/debug-util';
@@ -54,7 +50,7 @@ interface ResolvedBlockMetadata extends BlockMetadata {
   };
 }
 
-function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMetadata {
+export function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMetadata {
   if (import.meta.env.DEV) {
     if (!meta.symbols.upvars) {
       throw new Error(
@@ -81,7 +77,8 @@ export function resolveComponent(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveComponentOp
+  expr: Expressions.Expression,
+  then: (component: CompileTimeComponent) => void
 ): void {
   localAssert(isGetFreeComponent(expr), 'Attempted to resolve a component with incorrect opcode');
 
@@ -149,7 +146,8 @@ export function resolveHelper(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveHelperOp
+  expr: Expressions.Expression,
+  then: (handle: number) => void
 ): void {
   localAssert(isGetFreeHelper(expr), 'Attempted to resolve a helper with incorrect opcode');
 
@@ -200,7 +198,8 @@ export function resolveModifier(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveModifierOp
+  expr: Expressions.Expression,
+  then: (handle: number) => void
 ): void {
   localAssert(isGetFreeModifier(expr), 'Attempted to resolve a modifier with incorrect opcode');
 
@@ -263,11 +262,12 @@ export function resolveModifier(
 /**
  * {{component-or-helper arg}}
  */
-export function resolveComponentOrHelper(
+export function resolveAppendInvokable(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, { ifComponent, ifHelper }]: ResolveComponentOrHelperOp
+  expr: Expressions.Expression,
+  { ifComponent, ifHelper }: ResolveAppendInvokableOptions
 ): void {
   localAssert(
     isGetFreeComponentOrHelper(expr),
@@ -356,14 +356,24 @@ export function resolveComponentOrHelper(
   }
 }
 
+export interface ResolveAppendInvokableOptions {
+  ifComponent: (component: CompileTimeComponent) => void;
+  ifHelper: (handle: number) => void;
+}
+
+export interface ResolveAppendOptions extends ResolveAppendInvokableOptions {
+  ifValue: (handle: number) => void;
+}
+
 /**
  * {{maybeHelperOrComponent}}
  */
-export function resolveOptionalComponentOrHelper(
+export function resolveAppend(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, { ifComponent, ifHelper, ifValue }]: ResolveOptionalComponentOrHelperOp
+  expr: Expressions.Expression,
+  { ifComponent, ifHelper, ifValue }: ResolveAppendOptions
 ): void {
   localAssert(
     isGetFreeComponentOrHelper(expr),

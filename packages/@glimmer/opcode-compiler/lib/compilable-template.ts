@@ -1,13 +1,11 @@
 import type {
   BlockMetadata,
   BlockSymbolTable,
-  BuilderOp,
   CompilableBlock,
   CompilableProgram,
   CompilableTemplate,
   EvaluationContext,
   HandleResult,
-  HighLevelOp,
   LayoutWithContext,
   Nullable,
   SerializedBlock,
@@ -20,11 +18,9 @@ import { IS_COMPILABLE_TEMPLATE } from '@glimmer/constants';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
 
-import type { HighLevelStatementOp } from './syntax/compilers';
-
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
-import { encodeOp } from './opcode-builder/encoder';
+import { EncodeOp } from './opcode-builder/encoder';
 import { meta } from './opcode-builder/helpers/shared';
 import { STATEMENTS } from './syntax/statements';
 
@@ -92,12 +88,10 @@ export function compileStatements(
 
   let { encoder, evaluation } = context;
 
-  function pushOp(...op: BuilderOp | HighLevelOp | HighLevelStatementOp) {
-    encodeOp(encoder, evaluation, meta, op as BuilderOp | HighLevelOp);
-  }
+  const encode = new EncodeOp(encoder, evaluation, meta);
 
   for (const statement of statements) {
-    sCompiler.compile(pushOp, statement);
+    sCompiler.compile(encode, statement);
   }
 
   let handle = context.encoder.commit(meta.size);
