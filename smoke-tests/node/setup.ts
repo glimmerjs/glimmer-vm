@@ -10,12 +10,22 @@ function inRoot(cmd: string, options = {}) {
   return inDir(WORKSPACE_ROOT, cmd, options);
 }
 
+let asBin = false;
+
+function log(msg: any) {
+  if (asBin) {
+    console.info(msg);
+  }
+}
+
 function inDir(dir: string, cmd: string, options = {}) {
   return $({
     cwd: dir,
     preferLocal: true,
     shell: true,
     ...options,
+    // execa types are wrong?
+    // @ts-expect-error
   })(cmd);
 }
 
@@ -44,11 +54,20 @@ export async function prepare() {
   let pack = (out: string) => `pnpm pack --out ${join(NODE_SMOKE_DIR, 'packages', out)}.tgz`;
 
   for (let dep of deps) {
+    log(`Packing ${dep}`);
     await inDir(join(WORKSPACE_ROOT, `packages/${dep}`), pack(dep));
   }
 }
 
 if (process.argv[1] === import.meta.filename) {
+  asBin = true;
+  log(`Setting up smoke test packages`);
+  log({ WORKSPACE_ROOT, NODE_SMOKE_DIR });
+
   await prepare();
+
+  log(`Installing Deps`);
   await inNodeSmoke(`pnpm install --ignore-workspace`);
+
+  log(`Done`);
 }

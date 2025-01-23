@@ -21,21 +21,21 @@
     "tsconfig": "../../tsconfig.json"
   },
   "dependencies": {
-    "@glimmer/syntax": "file:packages/@glimmer/syntax.tgz",
-    "@glimmer/util": "file:packages/@glimmer/util.tgz",
-    "@glimmer/wire-format": "file:packages/@glimmer/wire-format.tgz",
-    "@glimmer/compiler": "file:packages/@glimmer/compiler.tgz",
-    "@glimmer/interfaces": "file:packages/@glimmer/interfaces.tgz",
-    "@glimmer/runtime": "file:packages/@glimmer/runtime.tgz"
+    "@glimmer/syntax": "file:./packages/@glimmer/syntax.tgz",
+    "@glimmer/util": "file:./packages/@glimmer/util.tgz",
+    "@glimmer/wire-format": "file:./packages/@glimmer/wire-format.tgz",
+    "@glimmer/compiler": "file:./packages/@glimmer/compiler.tgz",
+    "@glimmer/interfaces": "file:./packages/@glimmer/interfaces.tgz",
+    "@glimmer/runtime": "file:./packages/@glimmer/runtime.tgz"
   },
   "pnpm": {
     "overrides": {
-      "@glimmer/syntax": "file:packages/@glimmer/syntax.tgz",
-      "@glimmer/util": "file:packages/@glimmer/util.tgz",
-      "@glimmer/wire-format": "file:packages/@glimmer/wire-format.tgz",
-      "@glimmer/compiler": "file:packages/@glimmer/compiler.tgz",
-      "@glimmer/interfaces": "file:packages/@glimmer/interfaces.tgz",
-      "@glimmer/runtime": "file:packages/@glimmer/runtime.tgz"
+      "@glimmer/syntax": "file:./packages/@glimmer/syntax.tgz",
+      "@glimmer/util": "file:./packages/@glimmer/util.tgz",
+      "@glimmer/wire-format": "file:./packages/@glimmer/wire-format.tgz",
+      "@glimmer/compiler": "file:./packages/@glimmer/compiler.tgz",
+      "@glimmer/interfaces": "file:./packages/@glimmer/interfaces.tgz",
+      "@glimmer/runtime": "file:./packages/@glimmer/runtime.tgz"
     }
   }
 }
