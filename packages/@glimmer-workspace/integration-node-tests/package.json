@@ -1,8 +1,14 @@
 {
-  "name": "@glimmer-workspace/node-tests",
+  "name": "@glimmer-workspace/integration-node-tests",
   "version": "0.92.0",
   "type": "module",
   "private": true,
+  "repo-meta": {
+    "strictness": "loose",
+    "lint": [
+      "tests/**/*"
+    ]
+  },
   "scripts": {
     "test:lint": "eslint . --quiet",
     "test:node": "vitest --run"
