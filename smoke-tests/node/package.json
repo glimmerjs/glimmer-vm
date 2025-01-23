@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test:lint": "eslint . --quiet",
-    "test:node": "NODE_ENV=production vitest --run",
+    "test:node": "vitest --run",
     "test:setup": "node --disable-warning=ExperimentalWarning --experimental-strip-types ./setup.ts"
   },
   "devDependencies": {
