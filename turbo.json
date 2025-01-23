@@ -34,7 +34,8 @@
       "outputs": ["dist/**"]
     },
     "prepack": {
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "dependsOn": ["^prepack"]
     },
     "//#test:types": {
       "inputs": ["**/dist/**", "tsconfig.dist.json"],

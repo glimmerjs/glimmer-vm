@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@glimmer/syntax": "workspace:*",
+    "execa": "^9.5.2",
     "prettier": "^3.4.2"
   },
   "devDependencies": {
