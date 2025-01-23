@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { styleText } from 'node:util';
 
-import { $ } from 'execa';
+import { execaCommand } from 'execa';
 
 const WORKSPACE_ROOT = join(import.meta.dirname, '../../');
 const NODE_SMOKE_DIR = join(WORKSPACE_ROOT, './smoke-tests/node');
@@ -22,15 +22,13 @@ function log(msg: any) {
 function inDir(dir: string, cmd: string, options = {}) {
   log(styleText('gray', `in ${dir}:\n`) + styleText('green', '\t' + cmd));
 
-  return $({
+  return execaCommand(cmd, {
     cwd: dir,
     preferLocal: true,
     shell: true,
     stdio: 'inherit',
     ...options,
-    // execa types are wrong?
-    // @ts-expect-error
-  })(cmd);
+  });
 }
 
 export function inNodeSmoke(cmd: string, options = {}) {
