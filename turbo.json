@@ -25,6 +25,7 @@
       "cache": false,
       "dependsOn": ["test:lint", "test:publint"]
     },
+    "test:node": {},
     "test:lint": {},
     "test:publint": {
       "dependsOn": ["prepack", "prepare"]

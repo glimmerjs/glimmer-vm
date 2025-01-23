@@ -19,6 +19,7 @@
     "prettier": "^3.4.2"
   },
   "devDependencies": {
+    "@glimmer-workspace/repo-metadata": "workspace:*",
     "vitest": "^3.0.4"
   }
 }
