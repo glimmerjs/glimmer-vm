@@ -4,10 +4,7 @@
   "type": "module",
   "private": true,
   "repo-meta": {
-    "strictness": "loose",
-    "lint": [
-      "test/**/*"
-    ]
+    "strictness": "loose"
   },
   "scripts": {
     "test:lint": "eslint . --quiet",
