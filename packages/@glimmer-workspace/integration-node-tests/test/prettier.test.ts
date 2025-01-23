@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import * as prettier from 'prettier';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import { join } from 'node:path';
+
 import { $ } from 'execa';
-import { readFile, mkdtemp, writeFile } from 'node:fs/promises';
+import * as prettier from 'prettier';
+import { describe, expect, it } from 'vitest';
 
 const monorepoRoot = join(import.meta.dirname, '../../../../');
 const require = createRequire(import.meta.url);
@@ -17,7 +18,7 @@ const require = createRequire(import.meta.url);
  * copy of @glimmer/syntax
  */
 describe('Prettier', () => {
-  it(`SANITY: we've symlinked to the in-repo copy of @glimmer/syntax`, async () => {
+  it(`SANITY: we've symlinked to the in-repo copy of @glimmer/syntax`, () => {
     let workspacePath = require.resolve('@glimmer/syntax');
     let prettierPath = require.resolve('prettier');
     let prettierGlimmer = require.resolve('@glimmer/syntax', { paths: [prettierPath] });
@@ -120,6 +121,7 @@ describe('Prettier', () => {
     // 2 create a space that doesn't mess up the repo
     let tmp = await newTmpDir();
 
+    // eslint-disable-next-line no-console
     console.debug(`Project can be inspected at ${tmp}`);
 
     //////////
