@@ -50,7 +50,7 @@ describe('Prettier', () => {
    *  2. creat a tmp folder
    *  3. create a project in that tmp folder
    *  4. pack and add the tarballs to the project
-   *  6. See if a basic import and call to pre-process works
+   *  5. See if a basic import and call to pre-process works
    */
   it('Uses the real build, and not our monorepo infra', async () => {
     /**
@@ -95,15 +95,15 @@ describe('Prettier', () => {
       return tmpDir;
     }
 
-    function inDir(dir: string, cmd: string) {
-      return $({ cwd: dir, preferLocal: true, shell: true })(cmd);
+    function inDir(dir: string, cmd: string, options = {}) {
+      return $({ cwd: dir, preferLocal: true, shell: true, ...options })(cmd);
     }
     function inRoot(cmd: string) {
       return inDir(monorepoRoot, cmd);
     }
 
-    function inTmp(cmd: string) {
-      return inDir(tmp, cmd);
+    function inTmp(cmd: string, options = {}) {
+      return inDir(tmp, cmd, options);
     }
 
     //////////
@@ -138,9 +138,16 @@ describe('Prettier', () => {
 
     //////////
     // 5 does it work?
-    let result = await inTmp(`node index.js`);
-    let stdout = result.stdout;
+    //
+    // NOTE: dev isn't allowed because it requires that @glimmer/env be compiled away
+    //       let dev = await inTmp(`node --conditions="development" index.js`);
+    //
+    let prod = await inTmp(`node --conditions="production" index.js`);
+    // should also be prod, as dev won't work without a build system
+    let defaultConditions = await inTmp(`node index.js`);
 
-    expect(stdout).toMatchInlineSnapshot();
+    expect(prod.stdout).toMatchInlineSnapshot();
+    // expect(dev.stdout).toMatchInlineSnapshot();
+    expect(defaultConditions.stdout).toMatchInlineSnapshot();
   });
 });

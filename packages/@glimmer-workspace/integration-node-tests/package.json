@@ -6,7 +6,7 @@
   "repo-meta": {
     "strictness": "loose",
     "lint": [
-      "tests/**/*"
+      "test/**/*"
     ]
   },
   "scripts": {
