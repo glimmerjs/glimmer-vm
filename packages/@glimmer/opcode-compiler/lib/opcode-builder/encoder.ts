@@ -1,9 +1,8 @@
 import type {
   BlockMetadata,
-  BuilderOp,
   BuilderOpcode,
+  BuilderOperand,
   CompileTimeComponent,
-  CompileTimeConstants,
   ComponentDefinition,
   Dict,
   Encoder,
@@ -11,12 +10,12 @@ import type {
   EvaluationContext,
   Expressions,
   HandleResult,
-  HighLevelOp,
   InstructionEncoder,
   Operand,
   Optional,
   ProgramHeap,
-  SingleBuilderOperand,
+  SerializedBlock,
+  SerializedInlineBlock,
   STDLib,
 } from '@glimmer/interfaces';
 import { encodeHandle, isMachineOp, VM_PRIMITIVE_OP, VM_RETURN_OP } from '@glimmer/constants';
@@ -36,8 +35,6 @@ import {
   resolveHelper,
   resolveModifier,
 } from './helpers/resolution';
-import { HighLevelBuilderOpcodes, HighLevelResolutionOpcodes } from './opcodes';
-import { HighLevelOperands } from './operands';
 
 export class Labels {
   labels: Dict<number> = dict();
@@ -60,7 +57,7 @@ export class Labels {
 
       localAssert(
         heap.getbyaddr(at) === -1,
-        'Expected heap to contain a placeholder, but it did not'
+        `Expected heap to contain a placeholder for ${target}, but it did not`
       );
 
       heap.setbyaddr(at, address);
@@ -79,8 +76,40 @@ export class EncodeOp {
     this.#meta = meta;
   }
 
-  op = (...op: BuilderOp): void => this.#encoder.push(this.#context.program.constants, ...op);
-  label = (name: string): void => this.#encoder.label(name);
+  isStrictMode(): Operand {
+    return encodeHandle(this.#constants.value(this.#meta.isStrictMode));
+  }
+
+  debugSymbols(symbols: EncodeDebugSymbols): Operand {
+    return encodeHandle(this.#constants.value(symbols));
+  }
+
+  block(block: SerializedInlineBlock | SerializedBlock): Operand {
+    return encodeHandle(this.#constants.value(compilableBlock(block, this.#meta)));
+  }
+
+  stdlibFn(fnName: StdlibFn) {
+    return expect(
+      this.#context.stdlib,
+      'attempted to encode a stdlib operand, but the encoder did not have a stdlib. Are you currently building the stdlib?'
+    )[fnName];
+  }
+
+  constant(value: unknown): number {
+    return encodeHandle(this.#constants.value(value));
+  }
+
+  array(values: number[] | string[]): number {
+    return encodeHandle(this.#constants.array(values));
+  }
+
+  op = (opcode: BuilderOpcode, ...operands: BuilderOperand[]): void =>
+    this.#encoder.push(opcode, ...operands);
+
+  mark = (name: string): void => this.#encoder.mark(name);
+
+  to = (name: string): { label: string } => ({ label: name });
+
   startLabels = (): void => this.#encoder.startLabels();
   stopLabels = (): void => this.#encoder.stopLabels();
 
@@ -169,7 +198,6 @@ export class EncodeOp {
   resolvedModifier = (upvar: number, then: (handle: number) => void) => {
     const {
       symbols: { upvars },
-      owner,
     } = assertResolverInvariants(this.#meta);
 
     const name = unwrap(upvars[upvar]);
@@ -327,7 +355,7 @@ export class EncodeOp {
         );
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       ifHelper(this.#constants.helper(helper!, name));
     }
   };
@@ -431,69 +459,18 @@ export class EncodeOp {
   }
 }
 
-export function encodeOp(
-  encoder: Encoder,
-  context: EvaluationContext,
-  meta: BlockMetadata,
-  op: BuilderOp | HighLevelOp
-): void {
-  let {
-    program: { constants },
-    resolver,
-  } = context;
-
-  if (isBuilderOpcode(op[0])) {
-    let [type, ...operands] = op;
-    encoder.push(constants, type, ...(operands as SingleBuilderOperand[]));
-  } else {
-    switch (op[0]) {
-      case HighLevelBuilderOpcodes.Label:
-        return encoder.label(op[1]);
-      case HighLevelBuilderOpcodes.StartLabels:
-        return encoder.startLabels();
-      case HighLevelBuilderOpcodes.StopLabels:
-        return encoder.stopLabels();
-      case HighLevelResolutionOpcodes.Component:
-        return resolveComponent(resolver, constants, meta, op[1], op[2]);
-      case HighLevelResolutionOpcodes.Modifier:
-        return resolveModifier(resolver, constants, meta, op[1], op[2]);
-      case HighLevelResolutionOpcodes.Helper:
-        return resolveHelper(resolver, constants, meta, op[1], op[2]);
-      case HighLevelResolutionOpcodes.ComponentOrHelper:
-        return resolveAppendInvokable(resolver, constants, meta, op[1], op[2]);
-      case HighLevelResolutionOpcodes.OptionalComponentOrHelper:
-        return resolveAppend(resolver, constants, meta, op[1], op[2]);
-
-      case HighLevelResolutionOpcodes.Local: {
-        let [, freeVar, andThen] = op;
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-        let name = expect(
-          meta.symbols.upvars,
-          'BUG: attempted to resolve value but no upvars found'
-        )[freeVar]!;
-
-        andThen(name, meta.moduleName);
-
-        break;
-      }
-
-      case HighLevelResolutionOpcodes.TemplateLocal: {
-        let [, valueIndex, then] = op;
-        let value = expect(
-          meta.scopeValues,
-          'BUG: Attempted to get a template local, but template does not have any'
-        )[valueIndex];
-
-        then(constants.value(value));
-
-        break;
-      }
-
-      default:
-        throw new Error(`Unexpected high level opcode ${op[0]}`);
-    }
-  }
+interface EncodeDebugSymbols {
+  locals: Record<string, number>;
+  upvars: Record<string, number>;
+  lexical: Record<string, number>;
 }
+
+type StdlibFn =
+  | 'main'
+  | 'trusting-append'
+  | 'cautious-append'
+  | 'trusting-non-dynamic-append'
+  | 'cautious-non-dynamic-append';
 
 export class EncoderImpl implements Encoder {
   private labelsStack = new Stack<Labels>();
@@ -527,11 +504,7 @@ export class EncoderImpl implements Encoder {
     }
   }
 
-  push(
-    constants: CompileTimeConstants,
-    type: BuilderOpcode,
-    ...args: SingleBuilderOperand[]
-  ): void {
+  push(type: BuilderOpcode, ...args: BuilderOperand[]): void {
     let { heap } = this;
 
     if (import.meta.env.DEV && (type as number) > TYPE_SIZE) {
@@ -543,58 +516,23 @@ export class EncoderImpl implements Encoder {
 
     heap.pushRaw(first);
 
-    for (let i = 0; i < args.length; i++) {
-      let op = args[i];
-      heap.pushRaw(this.operand(constants, op));
-    }
-  }
-
-  private operand(constants: CompileTimeConstants, operand: SingleBuilderOperand): Operand {
-    if (typeof operand === 'number') {
-      return operand;
-    }
-
-    if (typeof operand === 'object' && operand !== null) {
-      if (Array.isArray(operand)) {
-        return encodeHandle(constants.array(operand));
+    for (const arg of args) {
+      if (typeof arg === 'number') {
+        heap.pushRaw(arg);
       } else {
-        switch (operand.type) {
-          case HighLevelOperands.Label:
-            this.currentLabels.target(this.heap.offset, operand.value);
-            return -1;
-
-          case HighLevelOperands.IsStrictMode:
-            return encodeHandle(constants.value(this.meta.isStrictMode));
-
-          case HighLevelOperands.DebugSymbols:
-            return encodeHandle(constants.value(operand.value));
-
-          case HighLevelOperands.Block:
-            return encodeHandle(constants.value(compilableBlock(operand.value, this.meta)));
-
-          case HighLevelOperands.StdLib:
-            return expect(
-              this.stdlib,
-              'attempted to encode a stdlib operand, but the encoder did not have a stdlib. Are you currently building the stdlib?'
-            )[operand.value];
-
-          case HighLevelOperands.NonSmallInt:
-          case HighLevelOperands.SymbolTable:
-          case HighLevelOperands.Layout:
-            return constants.value(operand.value);
-        }
+        this.currentLabels.target(heap.offset, arg.label);
+        heap.pushRaw(-1);
       }
     }
-
-    return encodeHandle(constants.value(operand));
   }
 
-  private get currentLabels(): Labels {
-    return expect(this.labelsStack.current, 'bug: not in a label stack');
-  }
-
-  label(name: string) {
+  mark(name: string): void {
     this.currentLabels.label(name, this.heap.offset + 1);
+  }
+
+  toLabel(name: string): number {
+    this.currentLabels.target(this.heap.offset, name);
+    return -1;
   }
 
   startLabels() {
@@ -605,8 +543,8 @@ export class EncoderImpl implements Encoder {
     let label = expect(this.labelsStack.pop(), 'unbalanced push and pop labels');
     label.patch(this.heap);
   }
-}
 
-function isBuilderOpcode(op: number): op is BuilderOpcode {
-  return op < HighLevelBuilderOpcodes.Start;
+  private get currentLabels(): Labels {
+    return expect(this.labelsStack.current, 'bug: not in a label stack');
+  }
 }

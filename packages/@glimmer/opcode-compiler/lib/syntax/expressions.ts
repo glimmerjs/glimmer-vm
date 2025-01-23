@@ -98,8 +98,8 @@ EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHead, (encode, expr) => {
 function withPath(encode: EncodeOp, path?: string[]) {
   if (path === undefined || path.length === 0) return;
 
-  for (let i = 0; i < path.length; i++) {
-    encode.op(VM_GET_PROPERTY_OP, path[i]);
+  for (const part of path) {
+    encode.op(VM_GET_PROPERTY_OP, encode.constant(part));
   }
 }
 

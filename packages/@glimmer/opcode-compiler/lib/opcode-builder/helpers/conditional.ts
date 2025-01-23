@@ -14,8 +14,6 @@ import { unwrap } from '@glimmer/debug-util';
 
 import type { EncodeOp } from '../encoder';
 
-import { labelOperand } from '../operands';
-
 export type When = (match: number, callback: () => void) => void;
 
 export function SwitchCases(
@@ -43,7 +41,7 @@ export function SwitchCases(
   // First, emit the jump opcodes. We don't need a jump for the last
   // opcode, since it bleeds directly into its clause.
   for (let clause of clauses.slice(0, -1)) {
-    encode.op(VM_JUMP_EQ_OP, labelOperand(clause.label), clause.match);
+    encode.op(VM_JUMP_EQ_OP, encode.to(clause.label), clause.match);
   }
 
   // Enumerate the clauses in reverse order. Earlier matches will
@@ -51,18 +49,18 @@ export function SwitchCases(
   for (let i = clauses.length - 1; i >= 0; i--) {
     let clause = unwrap(clauses[i]);
 
-    encode.label(clause.label);
+    encode.mark(clause.label);
     encode.op(VM_POP_OP, 1);
     clause.callback();
 
     // The first match is special: it is placed directly before the END
     // label, so no additional jump is needed at the end of it.
     if (i !== 0) {
-      encode.op(VM_JUMP_OP, labelOperand('END'));
+      encode.op(VM_JUMP_OP, encode.to('END'));
     }
   }
 
-  encode.label('END');
+  encode.mark('END');
   encode.stopLabels();
   encode.op(VM_EXIT_OP);
 }
@@ -137,7 +135,7 @@ export function Replayable(encode: EncodeOp, args: () => number, body: () => voi
 
   // If the body invokes a block, its return will return to
   // END. Otherwise, the return in RETURN will return to END.
-  encode.op(VM_RETURN_TO_OP, labelOperand('ENDINITIAL'));
+  encode.op(VM_RETURN_TO_OP, encode.to('ENDINITIAL'));
 
   // Push the arguments onto the stack. The args() function
   // tells us how many stack elements to retain for re-execution
@@ -164,7 +162,7 @@ export function Replayable(encode: EncodeOp, args: () => number, body: () => voi
   // All execution paths in the body should run the FINALLY once
   // they are done. It is executed both during initial execution
   // and during updating execution.
-  encode.label('FINALLY');
+  encode.mark('FINALLY');
 
   // Finalize the DOM.
   encode.op(VM_EXIT_OP);
@@ -176,7 +174,7 @@ export function Replayable(encode: EncodeOp, args: () => number, body: () => voi
 
   // Cleanup code for the block. Runs on initial execution
   // but not on updating.
-  encode.label('ENDINITIAL');
+  encode.mark('ENDINITIAL');
   encode.op(VM_POP_FRAME_OP);
   encode.stopLabels();
 }
@@ -204,14 +202,14 @@ export function ReplayableIf(
 ): void {
   return Replayable(encode, args, () => {
     // If the conditional is false, jump to the ELSE label.
-    encode.op(VM_JUMP_UNLESS_OP, labelOperand('ELSE'));
+    encode.op(VM_JUMP_UNLESS_OP, encode.to('ELSE'));
     // Otherwise, execute the code associated with the true branch.
     ifTrue();
     // We're done, so return. In the initial execution, this runs
     // the cleanup code. In the updating VM, it exits the updating
     // routine.
-    encode.op(VM_JUMP_OP, labelOperand('FINALLY'));
-    encode.label('ELSE');
+    encode.op(VM_JUMP_OP, encode.to('FINALLY'));
+    encode.mark('ELSE');
 
     // If the conditional is false, and code associatied ith the
     // false branch was provided, execute it. If there was no code

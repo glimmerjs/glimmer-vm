@@ -1,4 +1,4 @@
-import type { CurriedType, NonSmallIntOperand, Nullable, WireFormat } from '@glimmer/interfaces';
+import type { CurriedType, Nullable, WireFormat } from '@glimmer/interfaces';
 import {
   encodeImmediate,
   isSmallInt,
@@ -19,10 +19,8 @@ import {
 } from '@glimmer/constants';
 import { $fp, $v0 } from '@glimmer/vm';
 
-import type { BuildExpression, BuildStatement } from '../../syntax/compilers';
 import type { EncodeOp } from '../encoder';
 
-import { isStrictMode, nonSmallIntOperand } from '../operands';
 import { expr } from './expr';
 import { SimpleArgs } from './shared';
 
@@ -49,13 +47,12 @@ export function PushPrimitiveReference(encode: EncodeOp, value: Primitive): void
  * @param value A JavaScript primitive (undefined, null, boolean, number or string)
  */
 export function PushPrimitive(encode: EncodeOp, primitive: Primitive): void {
-  let p: Primitive | NonSmallIntOperand = primitive;
+  const encoded =
+    typeof primitive === 'number' && isSmallInt(primitive)
+      ? encodeImmediate(primitive)
+      : encode.constant(primitive);
 
-  if (typeof p === 'number') {
-    p = isSmallInt(p) ? encodeImmediate(p) : nonSmallIntOperand(p);
-  }
-
-  encode.op(VM_PRIMITIVE_OP, p);
+  encode.op(VM_PRIMITIVE_OP, encoded);
 }
 
 /**
@@ -118,7 +115,7 @@ export function CallDynamic(
  */
 export function DynamicScope(encode: EncodeOp, names: string[], block: () => void): void {
   encode.op(VM_PUSH_DYNAMIC_SCOPE_OP);
-  encode.op(VM_BIND_DYNAMIC_SCOPE_OP, names);
+  encode.op(VM_BIND_DYNAMIC_SCOPE_OP, encode.array(names));
   block();
   encode.op(VM_POP_DYNAMIC_SCOPE_OP);
 }
@@ -134,7 +131,7 @@ export function Curry(
   SimpleArgs(encode, positional, named, false);
   encode.op(VM_CAPTURE_ARGS_OP);
   expr(encode, definition);
-  encode.op(VM_CURRY_OP, type, isStrictMode());
+  encode.op(VM_CURRY_OP, type, encode.isStrictMode());
   encode.op(VM_POP_FRAME_OP);
   encode.op(VM_FETCH_OP, $v0);
 }

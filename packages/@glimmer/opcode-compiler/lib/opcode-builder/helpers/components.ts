@@ -61,7 +61,6 @@ import { $s0, $s1, $sp, InternalComponentCapabilities } from '@glimmer/vm';
 import type { EncodeOp } from '../encoder';
 
 import { namedBlocks } from '../../utils';
-import { isStrictMode, labelOperand, layoutOperand, symbolTableOperand } from '../operands';
 import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
@@ -165,12 +164,12 @@ export function InvokeDynamicComponent(
     },
 
     () => {
-      encode.op(VM_JUMP_UNLESS_OP, labelOperand('ELSE'));
+      encode.op(VM_JUMP_UNLESS_OP, encode.to('ELSE'));
 
       if (curried) {
         encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
       } else {
-        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, isStrictMode());
+        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.isStrictMode());
       }
 
       encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
@@ -182,7 +181,7 @@ export function InvokeDynamicComponent(
         atNames,
         blocks,
       });
-      encode.label('ELSE');
+      encode.mark('ELSE');
     }
   );
 }
@@ -280,7 +279,7 @@ function InvokeStaticComponent(
     // Finally, push the VM arguments themselves. These args won't need access
     // to blocks (they aren't accessible from userland anyways), so we push an
     // empty array instead of the actual block names.
-    encode.op(VM_PUSH_ARGS_OP, names, EMPTY_STRING_ARRAY, flags);
+    encode.op(VM_PUSH_ARGS_OP, encode.array(names), encode.array(EMPTY_STRING_ARRAY), flags);
 
     // And push an extra pop operation to remove the args before we begin setting
     // variables on the local context
@@ -320,7 +319,7 @@ function InvokeStaticComponent(
   if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
     encode.op(VM_GET_COMPONENT_SELF_OP, $s0);
   } else {
-    encode.op(VM_GET_COMPONENT_SELF_OP, $s0, argNames);
+    encode.op(VM_GET_COMPONENT_SELF_OP, $s0, encode.array(argNames));
   }
 
   // Setup the new root scope for the component
@@ -355,7 +354,7 @@ function InvokeStaticComponent(
     encode.op(VM_SET_BLOCK_OP, symbol + 1);
   }
 
-  encode.op(VM_CONSTANT_OP, layoutOperand(layout));
+  encode.op(VM_CONSTANT_OP, encode.constant(layout));
   encode.op(VM_COMPILE_BLOCK_OP);
   encode.op(VM_INVOKE_VIRTUAL_OP);
   encode.op(VM_DID_RENDER_LAYOUT_OP, $s0);
@@ -393,8 +392,8 @@ export function InvokeNonStaticComponent(
 
   invokePreparedComponent(encode, blocks.has('default'), bindableBlocks, bindableAtNames, () => {
     if (layout) {
-      encode.op(VM_PUSH_SYMBOL_TABLE_OP, symbolTableOperand(layout.symbolTable));
-      encode.op(VM_CONSTANT_OP, layoutOperand(layout));
+      encode.op(VM_PUSH_SYMBOL_TABLE_OP, encode.constant(layout.symbolTable));
+      encode.op(VM_CONSTANT_OP, encode.constant(layout));
       encode.op(VM_COMPILE_BLOCK_OP);
     } else {
       encode.op(VM_GET_COMPONENT_LAYOUT_OP, $s0);
@@ -417,19 +416,19 @@ export function WrappedComponent(
     encode.op(VM_PRIMITIVE_REFERENCE_OP);
     encode.op(VM_DUP_OP, $sp, 0);
   });
-  encode.op(VM_JUMP_UNLESS_OP, labelOperand('BODY'));
+  encode.op(VM_JUMP_UNLESS_OP, encode.to('BODY'));
   encode.op(VM_FETCH_OP, $s1);
   encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
   encode.op(VM_OPEN_DYNAMIC_ELEMENT_OP);
   encode.op(VM_DID_CREATE_ELEMENT_OP, $s0);
   YieldBlock(encode, attrsBlockNumber, null);
   encode.op(VM_FLUSH_ELEMENT_OP);
-  encode.label('BODY');
+  encode.mark('BODY');
   InvokeStaticBlock(encode, [layout.block[0], []]);
   encode.op(VM_FETCH_OP, $s1);
-  encode.op(VM_JUMP_UNLESS_OP, labelOperand('END'));
+  encode.op(VM_JUMP_UNLESS_OP, encode.to('END'));
   encode.op(VM_CLOSE_ELEMENT_OP);
-  encode.label('END');
+  encode.mark('END');
   encode.op(VM_LOAD_OP, $s1);
   encode.stopLabels();
 }
