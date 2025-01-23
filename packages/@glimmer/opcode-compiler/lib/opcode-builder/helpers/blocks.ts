@@ -17,12 +17,10 @@ import {
 } from '@glimmer/constants';
 import { $fp } from '@glimmer/vm';
 
-import type { BuildExpression, BuildStatement } from '../../syntax/compilers';
+import type { EncodeOp } from '../encoder';
 
-import { blockOperand, symbolTableOperand } from '../operands';
 import { SimpleArgs } from './shared';
 import { PushPrimitive } from './vm';
-import type { EncodeOp } from '../encoder';
 
 /**
  * Yield to a block located at a particular symbol location.
@@ -100,7 +98,8 @@ export function InvokeStaticBlockWithStack(
 
     for (let i = 0; i < count; i++) {
       encode.op(VM_DUP_OP, $fp, callerCount - i);
-      encode.op(VM_SET_VARIABLE_OP, parameters[i]);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+      encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
     }
   }
 
@@ -117,7 +116,7 @@ export function InvokeStaticBlockWithStack(
 
 export function PushSymbolTable(encode: EncodeOp, parameters: number[] | null): void {
   if (parameters !== null) {
-    encode.op(VM_PUSH_SYMBOL_TABLE_OP, symbolTableOperand({ parameters }));
+    encode.op(VM_PUSH_SYMBOL_TABLE_OP, encode.constant({ parameters }));
   } else {
     PushPrimitive(encode, null);
   }
@@ -130,6 +129,6 @@ export function PushCompilable(
   if (_block === null) {
     PushPrimitive(encode, null);
   } else {
-    encode.op(VM_CONSTANT_OP, blockOperand(_block));
+    encode.op(VM_CONSTANT_OP, encode.block(_block));
   }
 }

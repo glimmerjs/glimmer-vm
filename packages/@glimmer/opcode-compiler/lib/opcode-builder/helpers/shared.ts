@@ -8,11 +8,10 @@ import type {
 import { VM_PUSH_ARGS_OP, VM_PUSH_EMPTY_ARGS_OP } from '@glimmer/constants';
 import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
 
-import type { BuildExpression, BuildStatement } from '../../syntax/compilers';
+import type { EncodeOp } from '../encoder';
 
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
-import type { EncodeOp } from '../encoder';
 
 /**
  * Compile arguments, pushing an Arguments object onto the stack.
@@ -54,7 +53,7 @@ export function CompileArgs(
     }
   }
 
-  encode.op(VM_PUSH_ARGS_OP, names as string[], blockNames, flags);
+  encode.op(VM_PUSH_ARGS_OP, encode.array(names as string[]), encode.array(blockNames), flags);
 }
 
 /**
@@ -68,7 +67,12 @@ export const EmptyArgs = (encode: EncodeOp): void => encode.op(VM_PUSH_EMPTY_ARG
  * right, followed by named arguments, in the order that `named` is provided, left to right.
  */
 export const CallArgs = (encode: EncodeOp, positional: number, named?: string[]): void =>
-  encode.op(VM_PUSH_ARGS_OP, named ?? EMPTY_STRING_ARRAY, EMPTY_STRING_ARRAY, positional << 4);
+  encode.op(
+    VM_PUSH_ARGS_OP,
+    encode.array(named ?? EMPTY_STRING_ARRAY),
+    encode.array(EMPTY_STRING_ARRAY),
+    positional << 4
+  );
 
 /**
  * A call with at least one positional or named argument. Names are passed as an array *including*
@@ -83,8 +87,8 @@ export const CallArgs = (encode: EncodeOp, positional: number, named?: string[])
 export const CallArgsWithAtNames = (encode: EncodeOp, positional: number, named?: string[]): void =>
   encode.op(
     VM_PUSH_ARGS_OP,
-    named ?? EMPTY_STRING_ARRAY,
-    EMPTY_STRING_ARRAY,
+    encode.array(named ?? EMPTY_STRING_ARRAY),
+    encode.array(EMPTY_STRING_ARRAY),
     (positional << 4) | 0b1000
   );
 

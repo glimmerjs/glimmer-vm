@@ -66,7 +66,6 @@ import {
   DynamicScope,
   PushPrimitiveReference,
 } from '../opcode-builder/helpers/vm';
-import { debugSymbolsOperand, labelOperand, stdlibOperand } from '../opcode-builder/operands';
 import { namedBlocks } from '../utils';
 import { Compilers } from './compilers';
 
@@ -88,7 +87,7 @@ export function inflateAttrName(attrName: string | WellKnownAttrName): string {
 }
 
 export const Comment = (encode: EncodeOp, comment: string): void =>
-  encode.op(VM_COMMENT_OP, comment);
+  encode.op(VM_COMMENT_OP, encode.constant(comment));
 export const CloseElement = (encode: EncodeOp): void => encode.op(VM_CLOSE_ELEMENT_OP);
 export const FlushElement = (encode: EncodeOp): void => encode.op(VM_FLUSH_ELEMENT_OP);
 
@@ -115,40 +114,70 @@ STATEMENTS.add(SexpOpcodes.Modifier, (encode, [, expression, positional, named])
 });
 
 STATEMENTS.add(SexpOpcodes.StaticAttr, (encode, [, name, value, namespace]) => {
-  encode.op(VM_STATIC_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
+  encode.op(
+    VM_STATIC_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(value as string),
+    encode.constant(namespace ?? null)
+  );
 });
 
 STATEMENTS.add(SexpOpcodes.StaticComponentAttr, (encode, [, name, value, namespace]) => {
-  encode.op(VM_STATIC_COMPONENT_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
+  encode.op(
+    VM_STATIC_COMPONENT_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(value as string),
+    encode.constant(namespace ?? null)
+  );
 });
 
 STATEMENTS.add(SexpOpcodes.DynamicAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
-  encode.op(VM_DYNAMIC_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
+  encode.op(
+    VM_DYNAMIC_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(false),
+    encode.constant(namespace ?? null)
+  );
 });
 
 STATEMENTS.add(SexpOpcodes.TrustingDynamicAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
-  encode.op(VM_DYNAMIC_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
+  encode.op(
+    VM_DYNAMIC_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(true),
+    encode.constant(namespace ?? null)
+  );
 });
 
 STATEMENTS.add(SexpOpcodes.ComponentAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
-  encode.op(VM_COMPONENT_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
+  encode.op(
+    VM_COMPONENT_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(false),
+    encode.constant(namespace ?? null)
+  );
 });
 
 STATEMENTS.add(SexpOpcodes.TrustingComponentAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
-  encode.op(VM_COMPONENT_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
+  encode.op(
+    VM_COMPONENT_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(true),
+    encode.constant(namespace ?? null)
+  );
 });
 
 STATEMENTS.add(SexpOpcodes.OpenElement, (encode, [, tag]) => {
-  encode.op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));
+  encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
 STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, (encode, [, tag]) => {
   encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
-  encode.op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));
+  encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
 STATEMENTS.add(SexpOpcodes.Component, (encode, [, expr, elementBlock, named, blocks]) => {
@@ -168,13 +197,16 @@ STATEMENTS.add(SexpOpcodes.Yield, (encode, [, to, params]) => YieldBlock(encode,
 STATEMENTS.add(SexpOpcodes.AttrSplat, (encode, [, to]) => YieldBlock(encode, to, null));
 
 STATEMENTS.add(SexpOpcodes.Debugger, (encode, [, locals, upvars, lexical]) => {
-  encode.op(VM_DEBUGGER_OP, debugSymbolsOperand(locals, upvars, lexical));
+  encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
 });
 
 STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
   // Special case for static values
   if (!Array.isArray(value)) {
-    encode.op(VM_TEXT_OP, value === null || value === undefined ? '' : String(value));
+    encode.op(
+      VM_TEXT_OP,
+      encode.constant(value === null || value === undefined ? '' : String(value))
+    );
   } else if (isGetFreeComponentOrHelper(value)) {
     encode.appendAny(value, {
       ifComponent(component: CompileTimeComponent) {
@@ -184,14 +216,14 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
       ifHelper(handle: number) {
         encode.op(VM_PUSH_FRAME_OP);
         Call(encode, handle, null, null);
-        encode.op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
+        encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
         encode.op(VM_POP_FRAME_OP);
       },
 
       ifValue(handle: number) {
         encode.op(VM_PUSH_FRAME_OP);
         encode.op(VM_CONSTANT_REFERENCE_OP, handle);
-        encode.op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
+        encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
         encode.op(VM_POP_FRAME_OP);
       },
     });
@@ -206,7 +238,7 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
         ifHelper(handle: number) {
           encode.op(VM_PUSH_FRAME_OP);
           Call(encode, handle, positional, named);
-          encode.op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
+          encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
           encode.op(VM_POP_FRAME_OP);
         },
       });
@@ -233,7 +265,7 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
 
           when(ContentType.Helper, () => {
             CallDynamic(encode, positional, named, () => {
-              encode.op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
+              encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
             });
           });
         }
@@ -242,18 +274,21 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
   } else {
     encode.op(VM_PUSH_FRAME_OP);
     expr(encode, value);
-    encode.op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-append'));
+    encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-append'));
     encode.op(VM_POP_FRAME_OP);
   }
 });
 
 STATEMENTS.add(SexpOpcodes.TrustingAppend, (encode, [, value]) => {
   if (!Array.isArray(value)) {
-    encode.op(VM_TEXT_OP, value === null || value === undefined ? '' : String(value));
+    encode.op(
+      VM_TEXT_OP,
+      encode.constant(value === null || value === undefined ? '' : String(value))
+    );
   } else {
     encode.op(VM_PUSH_FRAME_OP);
     expr(encode, value);
-    encode.op(VM_INVOKE_STATIC_OP, stdlibOperand('trusting-append'));
+    encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('trusting-append'));
     encode.op(VM_POP_FRAME_OP);
   }
 });
@@ -334,21 +369,21 @@ STATEMENTS.add(SexpOpcodes.Each, (encode, [, value, key, block, inverse]) =>
     },
 
     () => {
-      encode.op(VM_ENTER_LIST_OP, labelOperand('BODY'), labelOperand('ELSE'));
+      encode.op(VM_ENTER_LIST_OP, encode.to('BODY'), encode.to('ELSE'));
       encode.op(VM_PUSH_FRAME_OP);
       encode.op(VM_DUP_OP, $fp, 1);
-      encode.op(VM_RETURN_TO_OP, labelOperand('ITER'));
-      encode.label('ITER');
-      encode.op(VM_ITERATE_OP, labelOperand('BREAK'));
-      encode.label('BODY');
+      encode.op(VM_RETURN_TO_OP, encode.to('ITER'));
+      encode.mark('ITER');
+      encode.op(VM_ITERATE_OP, encode.to('BREAK'));
+      encode.mark('BODY');
       InvokeStaticBlockWithStack(encode, block, 2);
       encode.op(VM_POP_OP, 2);
-      encode.op(VM_JUMP_OP, labelOperand('FINALLY'));
-      encode.label('BREAK');
+      encode.op(VM_JUMP_OP, encode.to('FINALLY'));
+      encode.mark('BREAK');
       encode.op(VM_POP_FRAME_OP);
       encode.op(VM_EXIT_LIST_OP);
-      encode.op(VM_JUMP_OP, labelOperand('FINALLY'));
-      encode.label('ELSE');
+      encode.op(VM_JUMP_OP, encode.to('FINALLY'));
+      encode.mark('ELSE');
 
       if (inverse) {
         InvokeStaticBlock(encode, inverse);
