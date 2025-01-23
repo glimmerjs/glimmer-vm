@@ -1,0 +1,17 @@
+{
+  "name": "@glimmer-workspace/node-tests",
+  "version": "0.92.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test:lint": "eslint . --quiet",
+    "test:node": "vitest"
+  },
+  "dependencies": {
+    "@glimmer/syntax": "workspace:*",
+    "prettier": "^3.4.2"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.4"
+  }
+}

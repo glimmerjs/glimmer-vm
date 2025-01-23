@@ -22,7 +22,6 @@
     "@glimmer/syntax": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/validator": "workspace:*",
-    "@glimmer/wire-format": "workspace:*",
-    "prettier": "^3.4.2"
+    "@glimmer/wire-format": "workspace:*"
   }
 }
