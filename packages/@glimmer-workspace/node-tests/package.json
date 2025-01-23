@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "test:lint": "eslint . --quiet",
-    "test:node": "vitest"
+    "test:node": "vitest --run"
   },
   "dependencies": {
     "@glimmer/syntax": "workspace:*",

@@ -37,7 +37,7 @@
     "test:babel-plugins": "yarn workspace @glimmer/vm-babel-plugins test",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
     "test:lint": "eslint . --quiet",
-    "test:node": "node bin/run-node-tests.mjs",
+    "test:node": "pnpm -r test:node",
     "test:smoke": "SMOKE_TESTS=true ember test",
     "ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "unlink:all": "esyes ./bin/unlink-all.mts"
