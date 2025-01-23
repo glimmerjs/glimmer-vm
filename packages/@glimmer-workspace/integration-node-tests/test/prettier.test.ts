@@ -53,7 +53,7 @@ describe('Prettier', () => {
    *  4. pack and add the tarballs to the project
    *  5. See if a basic import and call to pre-process works
    */
-  it('Uses the real build, and not our monorepo infra', async () => {
+  it('Uses the real build, and not our monorepo infra', { timeout: 20_000 }, async () => {
     /**
      * pnpm packs tgz's with the name format ${hyphenated-package-name}-${version}.tgz
      */
@@ -148,8 +148,60 @@ describe('Prettier', () => {
     // should also be prod, as dev won't work without a build system
     let defaultConditions = await inTmp(`node index.js`);
 
-    expect(prod.stdout).toMatchInlineSnapshot();
+    expect(prod.stdout).toMatchInlineSnapshot(`
+      "{
+        type: 'Template',
+        body: [
+          {
+            type: 'ElementNode',
+            path: [Object],
+            attributes: [],
+            modifiers: [],
+            params: [],
+            comments: [],
+            children: [],
+            openTag: [j],
+            closeTag: [j],
+            loc: [j],
+            tag: [Getter/Setter],
+            blockParams: [Getter/Setter],
+            selfClosing: [Getter/Setter]
+          }
+        ],
+        blockParams: [],
+        loc: j {
+          data: J { source: [tt], hbsPositions: [Object], kind: 'HbsPosition' },
+          isInvisible: false
+        }
+      }"
+    `);
     // expect(dev.stdout).toMatchInlineSnapshot();
-    expect(defaultConditions.stdout).toMatchInlineSnapshot();
+    expect(defaultConditions.stdout).toMatchInlineSnapshot(`
+      "{
+        type: 'Template',
+        body: [
+          {
+            type: 'ElementNode',
+            path: [Object],
+            attributes: [],
+            modifiers: [],
+            params: [],
+            comments: [],
+            children: [],
+            openTag: [j],
+            closeTag: [j],
+            loc: [j],
+            tag: [Getter/Setter],
+            blockParams: [Getter/Setter],
+            selfClosing: [Getter/Setter]
+          }
+        ],
+        blockParams: [],
+        loc: j {
+          data: J { source: [tt], hbsPositions: [Object], kind: 'HbsPosition' },
+          isInvisible: false
+        }
+      }"
+    `);
   });
 });
