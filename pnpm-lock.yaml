@@ -53,6 +53,9 @@ importers:
       '@glimmer-workspace/eslint-plugin':
         specifier: workspace:*
         version: link:packages/@glimmer-workspace/eslint-plugin
+      '@glimmer-workspace/integration-node-tests':
+        specifier: workspace:*
+        version: link:packages/@glimmer-workspace/integration-node-tests
       '@glimmer-workspace/integration-tests':
         specifier: workspace:*
         version: link:packages/@glimmer-workspace/integration-tests
