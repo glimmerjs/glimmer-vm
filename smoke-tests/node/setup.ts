@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { styleText } from 'node:util';
 
 import { $ } from 'execa';
 
@@ -19,10 +20,13 @@ function log(msg: any) {
 }
 
 function inDir(dir: string, cmd: string, options = {}) {
+  log(styleText('gray', `in ${dir}:\n`) + styleText('green', '\t' + cmd));
+
   return $({
     cwd: dir,
     preferLocal: true,
     shell: true,
+    stdio: 'inherit',
     ...options,
     // execa types are wrong?
     // @ts-expect-error
@@ -54,7 +58,6 @@ export async function prepare() {
   let pack = (out: string) => `pnpm pack --out ${join(NODE_SMOKE_DIR, 'packages', out)}.tgz`;
 
   for (let dep of deps) {
-    log(`Packing ${dep}`);
     await inDir(join(WORKSPACE_ROOT, `packages/${dep}`), pack(dep));
   }
 }
