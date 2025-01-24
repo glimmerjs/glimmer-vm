@@ -40,9 +40,14 @@
     },
     "//#test:types": {
       "inputs": ["**/dist/**", "tsconfig.dist.json"],
-      "dependsOn": ["^prepack", "//#benchmark:setup"]
+      "dependsOn": ["^prepack", "//#benchmark:setup", "//#smoke:setup"]
     },
     "//#benchmark:setup": {
+      "outputs": ["./benchmark/benchmarks/krausest/packages"],
+      "dependsOn": ["^prepack"]
+    },
+    "//#smoke:setup": {
+      "outputs": ["./smoke-tests/node/packages"],
       "dependsOn": ["^prepack"]
     }
   }
