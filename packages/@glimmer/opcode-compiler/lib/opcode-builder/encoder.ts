@@ -127,7 +127,7 @@ export class EncodeOp {
   helper = (expr: Expressions.Expression, then: (handle: number) => void): void =>
     resolveHelper(this.#context.resolver, this.#constants, this.#meta, expr, then);
 
-  appendAny = (expr: Expressions.Expression, options: ResolveAppendOptions): void =>
+  appendAny = (expr: Expressions.GetUnknownAppend, options: ResolveAppendOptions): void =>
     resolveAppend(this.#context.resolver, this.#constants, this.#meta, expr, options);
 
   appendInvokable = (expr: Expressions.Expression, then: ResolveAppendInvokableOptions): void =>

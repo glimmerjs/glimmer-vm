@@ -1,11 +1,14 @@
 import type { VariableKind } from '@glimmer/constants';
 import type {
   AttrNamespace,
+  CallLexicalOpcode,
+  CallResolvedOpcode,
   Dict,
   Expressions,
   GetContextualFreeOpcode,
   Nullable,
   PresentArray,
+  UnknownInvokeOpcode,
   WireFormat,
 } from '@glimmer/interfaces';
 import {
@@ -226,31 +229,35 @@ export function buildNormalizedStatements(
   return out;
 }
 
+export function buildAppend(
+  trusted: boolean,
+  expr: Expressions.Expression
+): WireFormat.Statement[] {
+  if (Array.isArray(expr) && expr[0] === Op.GetFreeAsComponentOrHelperHead) {
+    return [
+      trusted
+        ? [Op.UnknownTrustingAppend, expr as Expressions.GetUnknownAppend]
+        : [Op.UnknownAppend, expr as Expressions.GetUnknownAppend],
+    ];
+  }
+
+  return [[trusted ? Op.TrustingAppend : Op.Append, expr]];
+}
+
 export function buildStatement(
   normalized: NormalizedStatement,
   symbols: Symbols = new ProgramSymbols()
 ): WireFormat.Statement[] {
   switch (normalized.kind) {
     case APPEND_PATH_HEAD: {
-      return [
-        [
-          normalized.trusted ? Op.TrustingAppend : Op.Append,
-          buildGetPath(normalized.path, symbols),
-        ],
-      ];
+      return buildAppend(normalized.trusted, buildGetPath(normalized.path, symbols));
     }
 
     case APPEND_EXPR_HEAD: {
-      return [
-        [
-          normalized.trusted ? Op.TrustingAppend : Op.Append,
-          buildExpression(
-            normalized.expr,
-            normalized.trusted ? 'TrustedAppend' : 'Append',
-            symbols
-          ),
-        ],
-      ];
+      return buildAppend(
+        normalized.trusted,
+        buildExpression(normalized.expr, normalized.trusted ? 'TrustedAppend' : 'Append', symbols)
+      );
     }
 
     case CALL_HEAD: {
@@ -259,17 +266,21 @@ export function buildStatement(
         ? buildParams(params, symbols)
         : null;
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
-      let builtExpr: WireFormat.Expression = buildCallHead(
+      let builtExpr = buildCallHead(
         path,
         trusted
           ? VariableResolutionContext.ResolveAsHelperHead
           : VariableResolutionContext.ResolveAsComponentOrHelperHead,
         symbols
-      );
+      ) as WireFormat.Expressions.GetUnknownAppend;
 
-      return [
-        [trusted ? Op.TrustingAppend : Op.Append, [Op.Call, builtExpr, builtParams, builtHash]],
-      ];
+      if (Array.isArray(builtExpr) && builtExpr[0] === Op.GetFreeAsComponentOrHelperHead) {
+        return [trusted ? [Op.UnknownTrustingAppend, builtExpr] : [Op.UnknownAppend, builtExpr]];
+      }
+
+      const type = callType(builtExpr);
+
+      return [[trusted ? Op.TrustingAppend : Op.Append, [type, builtExpr, builtParams, builtHash]]];
     }
 
     case LITERAL_HEAD: {
@@ -566,7 +577,7 @@ export function buildExpression(
         symbols
       );
 
-      return [Op.Call, builtExpr, builtParams, builtHash];
+      return [callType(builtExpr), builtExpr, builtParams, builtHash];
     }
 
     case HAS_BLOCK_EXPR: {
@@ -776,4 +787,51 @@ function buildBlock(
   locals: number[] = []
 ): WireFormat.SerializedInlineBlock {
   return [buildNormalizedStatements(block, symbols), locals];
+}
+
+/**
+ * Returns true if the expression is a call with a simple name (i.e. `(hello world)` or
+ * `{{hello world}}`) and the name needs to be resolved via the resolver.
+ *
+ * If this function returns `false`, then it either has a non-simple callee (i.e. `this.hello`,
+ * `@hello` or a nested `(hello)`) and we don't need special resolution machinery to invoke it.
+ */
+export function invokeType(
+  expr: Expressions.Expression
+): CallLexicalOpcode | CallResolvedOpcode | UnknownInvokeOpcode {
+  if (!Array.isArray(expr)) throw Error('Something is suspicious @fixme');
+
+  let type = expr[0];
+
+  switch (type) {
+    case Op.GetLexicalSymbol:
+    case Op.GetSymbol:
+      return Op.CallLexical;
+    case Op.GetFreeAsComponentOrHelperHead:
+      return Op.UnknownInvoke;
+    case Op.GetFreeAsHelperHead:
+    case Op.GetStrictKeyword:
+      return Op.CallResolved;
+    default:
+      throw Error(`Something is suspicious (unexpected ${type} opcode in append) @fixme`);
+  }
+}
+
+export function callType(expr: Expressions.Expression): CallLexicalOpcode | CallResolvedOpcode {
+  if (!Array.isArray(expr)) throw Error('Something is suspicious @fixme');
+
+  let type = expr[0];
+
+  switch (type) {
+    case Op.GetLexicalSymbol:
+    case Op.GetSymbol:
+      return Op.CallLexical;
+    case Op.GetFreeAsHelperHead:
+    case Op.GetFreeAsComponentOrHelperHead:
+    case Op.GetStrictKeyword:
+      return Op.CallResolved;
+
+    default:
+      throw Error(`Something is suspicious (unexpected ${type} opcode in call) @fixme`);
+  }
 }

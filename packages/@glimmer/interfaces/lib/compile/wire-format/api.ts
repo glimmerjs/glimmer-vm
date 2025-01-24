@@ -1,12 +1,14 @@
-import type { PresentArray } from '../../array.js';
-import type { Nullable } from '../../core.js';
-import type { CurriedType } from '../../curry.js';
+/* eslint-disable @typescript-eslint/no-namespace */
+import type { PresentArray } from '../../array';
+import type { Nullable } from '../../core';
+import type { CurriedType } from '../../curry';
 import type {
   AppendOpcode,
   AttrOpcode,
   AttrSplatOpcode,
   BlockOpcode,
-  CallOpcode,
+  CallLexicalOpcode,
+  CallResolvedOpcode,
   CloseElementOpcode,
   CommentOpcode,
   ComponentAttrOpcode,
@@ -45,6 +47,8 @@ import type {
   TrustingComponentAttrOpcode,
   TrustingDynamicAttrOpcode,
   UndefinedOpcode,
+  UnknownAppendOpcode,
+  UnknownTrustingAppendOpcode,
   WithDynamicVarsOpcode,
   YieldOpcode,
 } from './opcodes.js';
@@ -102,6 +106,8 @@ export namespace Expressions {
   export type GetFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number];
   export type GetFreeAsComponentHead = [GetFreeAsComponentHeadOpcode, number];
 
+  export type GetUnknownAppend = GetFreeAsComponentOrHelperHead | GetFreeAsHelperHead;
+
   export type GetContextualFree =
     | GetFreeAsComponentOrHelperHead
     | GetFreeAsHelperHead
@@ -144,7 +150,8 @@ export namespace Expressions {
     | HasBlock
     | HasBlockParams
     | Curry
-    | Helper
+    | ResolvedHelper
+    | ConstantHelper
     | Undefined
     | IfInline
     | Not
@@ -155,10 +162,13 @@ export namespace Expressions {
   export type Expression = TupleExpression | Value | undefined;
 
   export type Concat = [ConcatOpcode, Core.ConcatParams];
-  export type Helper = [CallOpcode, Expression, Nullable<Params>, Hash];
+  export type ResolvedHelper = [CallResolvedOpcode, Expression, Nullable<Params>, Hash];
+  export type ConstantHelper = [CallLexicalOpcode, Expression, Nullable<Params>, Hash];
   export type HasBlock = [HasBlockOpcode, Expression];
   export type HasBlockParams = [HasBlockParamsOpcode, Expression];
   export type Curry = [CurryOpcode, Expression, CurriedType, Params, Hash];
+
+  export type SomeHelper = ResolvedHelper | ConstantHelper;
 
   export type IfInline = [
     op: IfInlineOpcode,
@@ -210,6 +220,8 @@ export namespace Statements {
   export type Blocks = Core.Blocks;
   export type Path = Core.Path;
 
+  export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
+  export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
   export type Append = [AppendOpcode, Expression];
   export type TrustingAppend = [TrustingAppendOpcode, Expression];
   export type Comment = [CommentOpcode, string];
@@ -306,6 +318,8 @@ export namespace Statements {
   export type Statement =
     | Append
     | TrustingAppend
+    | UnknownAppend
+    | UnknownTrustingAppend
     | Comment
     | Modifier
     | Block

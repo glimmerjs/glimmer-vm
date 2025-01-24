@@ -1,5 +1,6 @@
 import type { BuilderOp, HighLevelOp, SexpOpcode, SexpOpcodeMap } from '@glimmer/interfaces';
-import { localAssert, unwrap } from '@glimmer/debug-util';
+import { expect, localAssert } from '@glimmer/debug-util';
+
 import type { EncodeOp } from '../opcode-builder/encoder';
 
 export type BuildExpression = (...op: BuilderOp | HighLevelOp) => void;
@@ -29,7 +30,7 @@ export class Compilers<TSexpOpcodes extends SexpOpcode> {
 
   compile(op: EncodeOp, sexp: SexpOpcodeMap[TSexpOpcodes]): void {
     let name = sexp[0];
-    let index = unwrap(this.names[name]);
+    let index = expect(this.names[name], `expected an implementation for ${name}`);
     let func = this.funcs[index];
     localAssert(!!func, `expected an implementation for ${sexp[0]}`);
 

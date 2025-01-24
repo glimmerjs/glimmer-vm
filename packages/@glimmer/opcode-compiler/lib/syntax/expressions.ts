@@ -22,7 +22,6 @@ import { SexpOpcodes } from '@glimmer/wire-format';
 import type { EncodeOp } from '../opcode-builder/encoder';
 
 import { expr } from '../opcode-builder/helpers/expr';
-import { isGetFreeHelper } from '../opcode-builder/helpers/resolution';
 import { SimpleArgs } from '../opcode-builder/helpers/shared';
 import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { Compilers } from './compilers';
@@ -46,15 +45,15 @@ EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
 
 // export const CallDynamic = (op: BuildExpression, )
 
-EXPRESSIONS.add(SexpOpcodes.Call, (encode, [, expression, positional, named]) => {
-  if (isGetFreeHelper(expression)) {
-    encode.helper(expression, (handle: number) => {
-      Call(encode, handle, positional, named);
-    });
-  } else {
-    expr(encode, expression);
-    CallDynamic(encode, positional, named);
-  }
+EXPRESSIONS.add(SexpOpcodes.CallResolved, (encode, [, expression, positional, named]) => {
+  encode.helper(expression, (handle: number) => {
+    Call(encode, handle, positional, named);
+  });
+});
+
+EXPRESSIONS.add(SexpOpcodes.CallLexical, (encode, [, expression, positional, named]) => {
+  expr(encode, expression);
+  CallDynamic(encode, positional, named);
 });
 
 EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, positional, named]) => {
@@ -103,18 +102,41 @@ function withPath(encode: EncodeOp, path?: string[]) {
   }
 }
 
+export const Undefined = (encode: EncodeOp): void => PushPrimitiveReference(encode, undefined);
+
+/**
+ * @expect previously compiled block name as expression
+ */
+export const HasBlock = (encode: EncodeOp): void => encode.op(VM_HAS_BLOCK_OP);
+
 EXPRESSIONS.add(SexpOpcodes.Undefined, (encode) => PushPrimitiveReference(encode, undefined));
 EXPRESSIONS.add(SexpOpcodes.HasBlock, (encode, [, block]) => {
   expr(encode, block);
-  encode.op(VM_HAS_BLOCK_OP);
+  HasBlock(encode);
 });
 
-EXPRESSIONS.add(SexpOpcodes.HasBlockParams, (encode, [, block]) => {
-  expr(encode, block);
+/**
+ * @expect previously compiled block name as expression
+ */
+export const HasBlockParams = (encode: EncodeOp): void => {
   encode.op(VM_SPREAD_BLOCK_OP);
   encode.op(VM_COMPILE_BLOCK_OP);
   encode.op(VM_HAS_BLOCK_PARAMS_OP);
+};
+
+EXPRESSIONS.add(SexpOpcodes.HasBlockParams, (encode, [, block]) => {
+  expr(encode, block);
+  HasBlockParams(encode);
 });
+
+/**
+ * @expect (expression) condition
+ * @expect (expression) truthy
+ * @expect (expression) falsy
+ */
+export const IfInline = (encode: EncodeOp): void => {
+  encode.op(VM_IF_INLINE_OP);
+};
 
 EXPRESSIONS.add(SexpOpcodes.IfInline, (encode, [, condition, truthy, falsy]) => {
   // Push in reverse order
@@ -124,20 +146,31 @@ EXPRESSIONS.add(SexpOpcodes.IfInline, (encode, [, condition, truthy, falsy]) => 
   encode.op(VM_IF_INLINE_OP);
 });
 
+/**
+ * @expect (expression) value to invert
+ */
+export const Not = (encode: EncodeOp): void => encode.op(VM_NOT_OP);
+
 EXPRESSIONS.add(SexpOpcodes.Not, (encode, [, value]) => {
   expr(encode, value);
   encode.op(VM_NOT_OP);
 });
+
+export const GetDynamicVar = (encode: EncodeOp): void => encode.op(VM_GET_DYNAMIC_VAR_OP);
 
 EXPRESSIONS.add(SexpOpcodes.GetDynamicVar, (encode, [, expression]) => {
   expr(encode, expression);
   encode.op(VM_GET_DYNAMIC_VAR_OP);
 });
 
-EXPRESSIONS.add(SexpOpcodes.Log, (encode, [, positional]) => {
+export const Log = (encode: EncodeOp, expr: () => void) => {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, positional, null, false);
+  expr();
   encode.op(VM_LOG_OP);
   encode.op(VM_POP_FRAME_OP);
   encode.op(VM_FETCH_OP, $v0);
+};
+
+EXPRESSIONS.add(SexpOpcodes.Log, (encode, [, positional]) => {
+  Log(encode, () => SimpleArgs(encode, positional, null, false));
 });
