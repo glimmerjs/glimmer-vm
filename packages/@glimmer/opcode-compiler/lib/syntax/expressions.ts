@@ -19,111 +19,158 @@ import {
 import { $v0 } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
-import type { PushExpressionOp } from './compilers';
+import type { EncodeOp } from '../opcode-builder/encoder';
 
 import { expr } from '../opcode-builder/helpers/expr';
-import { isGetFreeHelper } from '../opcode-builder/helpers/resolution';
 import { SimpleArgs } from '../opcode-builder/helpers/shared';
 import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
-import { HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
 import { Compilers } from './compilers';
 
-export const EXPRESSIONS = new Compilers<PushExpressionOp, ExpressionSexpOpcode>();
+export const EXPRESSIONS = new Compilers<ExpressionSexpOpcode>();
+
+/**
+ * Called after compiling the expressions that make up the `Concat`.
+ */
+export const Concat = (encode: EncodeOp, count: number): void => {
+  encode.op(VM_CONCAT_OP, count);
+};
 
 EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
   for (let part of parts) {
     expr(op, part);
   }
 
-  op(VM_CONCAT_OP, parts.length);
+  Concat(op, parts.length);
 });
 
-EXPRESSIONS.add(SexpOpcodes.Call, (op, [, expression, positional, named]) => {
-  if (isGetFreeHelper(expression)) {
-    op(HighLevelResolutionOpcodes.Helper, expression, (handle: number) => {
-      Call(op, handle, positional, named);
-    });
-  } else {
-    expr(op, expression);
-    CallDynamic(op, positional, named);
-  }
+// export const CallDynamic = (op: BuildExpression, )
+
+EXPRESSIONS.add(SexpOpcodes.CallResolved, (encode, [, expression, positional, named]) => {
+  encode.helper(expression, (handle: number) => {
+    Call(encode, handle, positional, named);
+  });
+});
+
+EXPRESSIONS.add(SexpOpcodes.CallLexical, (encode, [, expression, positional, named]) => {
+  expr(encode, expression);
+  CallDynamic(encode, positional, named);
 });
 
 EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, positional, named]) => {
   Curry(op, type, expr, positional, named);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetSymbol, (op, [, sym, path]) => {
-  op(VM_GET_VARIABLE_OP, sym);
-  withPath(op, path);
+export const GetSymbol = (encode: EncodeOp, sym: number): void => {
+  encode.op(VM_GET_VARIABLE_OP, sym);
+};
+
+export const GetPath = (encode: EncodeOp, path: string[]): void => withPath(encode, path);
+
+EXPRESSIONS.add(SexpOpcodes.GetSymbol, (encode, [, sym, path]) => {
+  GetSymbol(encode, sym);
+  if (path) GetPath(encode, path);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetLexicalSymbol, (op, [, sym, path]) => {
-  op(HighLevelResolutionOpcodes.TemplateLocal, sym, (handle: number) => {
-    op(VM_CONSTANT_REFERENCE_OP, handle);
-    withPath(op, path);
+EXPRESSIONS.add(SexpOpcodes.GetLexicalSymbol, (encode, [, sym, path]) => {
+  encode.lexical(sym, (handle) => {
+    encode.op(VM_CONSTANT_REFERENCE_OP, handle);
+    withPath(encode, path);
   });
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (op, expr) => {
-  op(HighLevelResolutionOpcodes.Local, expr[1], (_name: string) => {
-    op(HighLevelResolutionOpcodes.Helper, expr, (handle: number) => {
-      Call(op, handle, null, null);
+EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (encode, expr) => {
+  encode.local(expr[1], (_name: string) => {
+    encode.helper(expr, (handle: number) => {
+      Call(encode, handle, null, null);
     });
   });
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHead, (op, expr) => {
-  op(HighLevelResolutionOpcodes.Local, expr[1], (_name: string) => {
-    op(HighLevelResolutionOpcodes.Helper, expr, (handle: number) => {
-      Call(op, handle, null, null);
+EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHead, (encode, expr) => {
+  encode.local(expr[1], (_name: string) => {
+    encode.helper(expr, (handle: number) => {
+      Call(encode, handle, null, null);
     });
   });
 });
 
-function withPath(op: PushExpressionOp, path?: string[]) {
+function withPath(encode: EncodeOp, path?: string[]) {
   if (path === undefined || path.length === 0) return;
 
-  for (let i = 0; i < path.length; i++) {
-    op(VM_GET_PROPERTY_OP, path[i]);
+  for (const part of path) {
+    encode.op(VM_GET_PROPERTY_OP, encode.constant(part));
   }
 }
 
-EXPRESSIONS.add(SexpOpcodes.Undefined, (op) => PushPrimitiveReference(op, undefined));
-EXPRESSIONS.add(SexpOpcodes.HasBlock, (op, [, block]) => {
-  expr(op, block);
-  op(VM_HAS_BLOCK_OP);
+export const Undefined = (encode: EncodeOp): void => PushPrimitiveReference(encode, undefined);
+
+/**
+ * @expect previously compiled block name as expression
+ */
+export const HasBlock = (encode: EncodeOp): void => encode.op(VM_HAS_BLOCK_OP);
+
+EXPRESSIONS.add(SexpOpcodes.Undefined, (encode) => PushPrimitiveReference(encode, undefined));
+EXPRESSIONS.add(SexpOpcodes.HasBlock, (encode, [, block]) => {
+  expr(encode, block);
+  HasBlock(encode);
 });
 
-EXPRESSIONS.add(SexpOpcodes.HasBlockParams, (op, [, block]) => {
-  expr(op, block);
-  op(VM_SPREAD_BLOCK_OP);
-  op(VM_COMPILE_BLOCK_OP);
-  op(VM_HAS_BLOCK_PARAMS_OP);
+/**
+ * @expect previously compiled block name as expression
+ */
+export const HasBlockParams = (encode: EncodeOp): void => {
+  encode.op(VM_SPREAD_BLOCK_OP);
+  encode.op(VM_COMPILE_BLOCK_OP);
+  encode.op(VM_HAS_BLOCK_PARAMS_OP);
+};
+
+EXPRESSIONS.add(SexpOpcodes.HasBlockParams, (encode, [, block]) => {
+  expr(encode, block);
+  HasBlockParams(encode);
 });
 
-EXPRESSIONS.add(SexpOpcodes.IfInline, (op, [, condition, truthy, falsy]) => {
+/**
+ * @expect (expression) condition
+ * @expect (expression) truthy
+ * @expect (expression) falsy
+ */
+export const IfInline = (encode: EncodeOp): void => {
+  encode.op(VM_IF_INLINE_OP);
+};
+
+EXPRESSIONS.add(SexpOpcodes.IfInline, (encode, [, condition, truthy, falsy]) => {
   // Push in reverse order
-  expr(op, falsy);
-  expr(op, truthy);
-  expr(op, condition);
-  op(VM_IF_INLINE_OP);
+  expr(encode, falsy);
+  expr(encode, truthy);
+  expr(encode, condition);
+  encode.op(VM_IF_INLINE_OP);
 });
 
-EXPRESSIONS.add(SexpOpcodes.Not, (op, [, value]) => {
-  expr(op, value);
-  op(VM_NOT_OP);
+/**
+ * @expect (expression) value to invert
+ */
+export const Not = (encode: EncodeOp): void => encode.op(VM_NOT_OP);
+
+EXPRESSIONS.add(SexpOpcodes.Not, (encode, [, value]) => {
+  expr(encode, value);
+  encode.op(VM_NOT_OP);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetDynamicVar, (op, [, expression]) => {
-  expr(op, expression);
-  op(VM_GET_DYNAMIC_VAR_OP);
+export const GetDynamicVar = (encode: EncodeOp): void => encode.op(VM_GET_DYNAMIC_VAR_OP);
+
+EXPRESSIONS.add(SexpOpcodes.GetDynamicVar, (encode, [, expression]) => {
+  expr(encode, expression);
+  encode.op(VM_GET_DYNAMIC_VAR_OP);
 });
 
-EXPRESSIONS.add(SexpOpcodes.Log, (op, [, positional]) => {
-  op(VM_PUSH_FRAME_OP);
-  SimpleArgs(op, positional, null, false);
-  op(VM_LOG_OP);
-  op(VM_POP_FRAME_OP);
-  op(VM_FETCH_OP, $v0);
+export const Log = (encode: EncodeOp, expr: () => void) => {
+  encode.op(VM_PUSH_FRAME_OP);
+  expr();
+  encode.op(VM_LOG_OP);
+  encode.op(VM_POP_FRAME_OP);
+  encode.op(VM_FETCH_OP, $v0);
+};
+
+EXPRESSIONS.add(SexpOpcodes.Log, (encode, [, positional]) => {
+  Log(encode, () => SimpleArgs(encode, positional, null, false));
 });

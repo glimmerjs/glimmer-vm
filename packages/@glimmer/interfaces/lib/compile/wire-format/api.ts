@@ -1,12 +1,14 @@
-import type { PresentArray } from '../../array.js';
-import type { Nullable } from '../../core.js';
-import type { CurriedType } from '../../curry.js';
+/* eslint-disable @typescript-eslint/no-namespace */
+import type { PresentArray } from '../../array';
+import type { Nullable } from '../../core';
+import type { CurriedType } from '../../curry';
 import type {
   AppendOpcode,
   AttrOpcode,
   AttrSplatOpcode,
   BlockOpcode,
-  CallOpcode,
+  CallLexicalOpcode,
+  CallResolvedOpcode,
   CloseElementOpcode,
   CommentOpcode,
   ComponentAttrOpcode,
@@ -31,13 +33,15 @@ import type {
   IfInlineOpcode,
   IfOpcode,
   InElementOpcode,
-  InvokeComponentOpcode,
+  InvokeLexicalComponentOpcode,
+  InvokeResolvedComponentOpcode,
   LetOpcode,
+  LexicalModifierOpcode,
   LogOpcode,
-  ModifierOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
+  ResolvedModifierOpcode,
   StaticArgOpcode,
   StaticAttrOpcode,
   StaticComponentAttrOpcode,
@@ -45,6 +49,8 @@ import type {
   TrustingComponentAttrOpcode,
   TrustingDynamicAttrOpcode,
   UndefinedOpcode,
+  UnknownAppendOpcode,
+  UnknownTrustingAppendOpcode,
   WithDynamicVarsOpcode,
   YieldOpcode,
 } from './opcodes.js';
@@ -102,6 +108,8 @@ export namespace Expressions {
   export type GetFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number];
   export type GetFreeAsComponentHead = [GetFreeAsComponentHeadOpcode, number];
 
+  export type GetUnknownAppend = GetFreeAsComponentOrHelperHead | GetFreeAsHelperHead;
+
   export type GetContextualFree =
     | GetFreeAsComponentOrHelperHead
     | GetFreeAsHelperHead
@@ -144,7 +152,8 @@ export namespace Expressions {
     | HasBlock
     | HasBlockParams
     | Curry
-    | Helper
+    | ResolvedHelper
+    | ConstantHelper
     | Undefined
     | IfInline
     | Not
@@ -155,10 +164,13 @@ export namespace Expressions {
   export type Expression = TupleExpression | Value | undefined;
 
   export type Concat = [ConcatOpcode, Core.ConcatParams];
-  export type Helper = [CallOpcode, Expression, Nullable<Params>, Hash];
+  export type ResolvedHelper = [CallResolvedOpcode, Expression, Nullable<Params>, Hash];
+  export type ConstantHelper = [CallLexicalOpcode, Expression, Nullable<Params>, Hash];
   export type HasBlock = [HasBlockOpcode, Expression];
   export type HasBlockParams = [HasBlockParamsOpcode, Expression];
   export type Curry = [CurryOpcode, Expression, CurriedType, Params, Hash];
+
+  export type SomeHelper = ResolvedHelper | ConstantHelper;
 
   export type IfInline = [
     op: IfInlineOpcode,
@@ -210,10 +222,17 @@ export namespace Statements {
   export type Blocks = Core.Blocks;
   export type Path = Core.Path;
 
+  export type SomeAppend = Append | TrustingAppend | UnknownAppend | UnknownTrustingAppend;
+  export type SomeModifier = LexicalModifier | ResolvedModifier;
+  export type SomeInvokeComponent = InvokeLexicalComponent | InvokeResolvedComponent;
+
+  export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
+  export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
   export type Append = [AppendOpcode, Expression];
   export type TrustingAppend = [TrustingAppendOpcode, Expression];
   export type Comment = [CommentOpcode, string];
-  export type Modifier = [ModifierOpcode, Expression, Params, Hash];
+  export type LexicalModifier = [LexicalModifierOpcode, Expression, Params, Hash];
+  export type ResolvedModifier = [ResolvedModifierOpcode, Expression, Params, Hash];
   export type Block = [BlockOpcode, Expression, Params, Hash, Blocks];
   export type Component = [
     op: ComponentOpcode,
@@ -292,8 +311,16 @@ export namespace Statements {
     block: SerializedInlineBlock,
   ];
 
-  export type InvokeComponent = [
-    op: InvokeComponentOpcode,
+  export type InvokeLexicalComponent = [
+    op: InvokeLexicalComponentOpcode,
+    definition: Expression,
+    positional: Core.Params,
+    named: Core.Hash,
+    blocks: Blocks | null,
+  ];
+
+  export type InvokeResolvedComponent = [
+    op: InvokeResolvedComponentOpcode,
     definition: Expression,
     positional: Core.Params,
     named: Core.Hash,
@@ -304,10 +331,9 @@ export namespace Statements {
    * A Handlebars statement
    */
   export type Statement =
-    | Append
-    | TrustingAppend
+    | SomeAppend
+    | SomeModifier
     | Comment
-    | Modifier
     | Block
     | Component
     | OpenElement
@@ -325,7 +351,7 @@ export namespace Statements {
     | Each
     | Let
     | WithDynamicVars
-    | InvokeComponent;
+    | SomeInvokeComponent;
 
   export type Attribute =
     | StaticAttr
@@ -335,7 +361,7 @@ export namespace Statements {
     | ComponentAttr
     | TrustingComponentAttr;
 
-  export type ComponentFeature = Modifier | AttrSplat;
+  export type ComponentFeature = SomeModifier | AttrSplat;
   export type Argument = StaticArg | DynamicArg;
 
   export type ElementParameter = Attribute | Argument | ComponentFeature;

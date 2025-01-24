@@ -58,11 +58,9 @@ import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse } from '@glimmer/util';
 import { $s0, $s1, $sp, InternalComponentCapabilities } from '@glimmer/vm';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { EncodeOp } from '../encoder';
 
 import { namedBlocks } from '../../utils';
-import { HighLevelBuilderOpcodes } from '../opcodes';
-import { isStrictMode, labelOperand, layoutOperand, symbolTableOperand } from '../operands';
 import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
@@ -104,7 +102,7 @@ export interface Component extends AnyComponent {
 }
 
 export function InvokeComponent(
-  op: PushStatementOp,
+  encode: EncodeOp,
   component: CompileTimeComponent,
   _elementBlock: WireFormat.Core.ElementParameters,
   positional: WireFormat.Core.Params,
@@ -119,8 +117,8 @@ export function InvokeComponent(
   let blocks = namedBlocks(_blocks);
 
   if (compilable) {
-    op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
-    InvokeStaticComponent(op, {
+    encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
+    InvokeStaticComponent(encode, {
       capabilities: capabilities,
       layout: compilable,
       elementBlock,
@@ -129,8 +127,8 @@ export function InvokeComponent(
       blocks,
     });
   } else {
-    op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
-    InvokeNonStaticComponent(op, {
+    encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
+    InvokeNonStaticComponent(encode, {
       capabilities: capabilities,
       elementBlock,
       positional,
@@ -142,7 +140,7 @@ export function InvokeComponent(
 }
 
 export function InvokeDynamicComponent(
-  op: PushStatementOp,
+  encode: EncodeOp,
   definition: WireFormat.Core.Expression,
   _elementBlock: WireFormat.Core.ElementParameters,
   positional: WireFormat.Core.Params,
@@ -157,25 +155,25 @@ export function InvokeDynamicComponent(
   let blocks = namedBlocks(_blocks);
 
   Replayable(
-    op,
+    encode,
 
     () => {
-      expr(op, definition);
-      op(VM_DUP_OP, $sp, 0);
+      expr(encode, definition);
+      encode.op(VM_DUP_OP, $sp, 0);
       return 2;
     },
 
     () => {
-      op(VM_JUMP_UNLESS_OP, labelOperand('ELSE'));
+      encode.op(VM_JUMP_UNLESS_OP, encode.to('ELSE'));
 
       if (curried) {
-        op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+        encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
       } else {
-        op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, isStrictMode());
+        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.isStrictMode());
       }
 
-      op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-      InvokeNonStaticComponent(op, {
+      encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+      InvokeNonStaticComponent(encode, {
         capabilities: true,
         elementBlock,
         positional,
@@ -183,13 +181,13 @@ export function InvokeDynamicComponent(
         atNames,
         blocks,
       });
-      op(HighLevelBuilderOpcodes.Label, 'ELSE');
+      encode.mark('ELSE');
     }
   );
 }
 
 function InvokeStaticComponent(
-  op: PushStatementOp,
+  encode: EncodeOp,
   { capabilities, layout, elementBlock, positional, named, blocks }: StaticComponent
 ): void {
   let { symbolTable } = layout;
@@ -197,7 +195,7 @@ function InvokeStaticComponent(
   let bailOut = hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
 
   if (bailOut) {
-    InvokeNonStaticComponent(op, {
+    InvokeNonStaticComponent(encode, {
       capabilities,
       elementBlock,
       positional,
@@ -210,10 +208,10 @@ function InvokeStaticComponent(
     return;
   }
 
-  op(VM_FETCH_OP, $s0);
-  op(VM_DUP_OP, $sp, 1);
-  op(VM_LOAD_OP, $s0);
-  op(VM_PUSH_FRAME_OP);
+  encode.op(VM_FETCH_OP, $s0);
+  encode.op(VM_DUP_OP, $sp, 1);
+  encode.op(VM_LOAD_OP, $s0);
+  encode.op(VM_PUSH_FRAME_OP);
 
   // Setup arguments
   let { symbols } = symbolTable;
@@ -232,7 +230,7 @@ function InvokeStaticComponent(
     let symbol = symbols.indexOf(ATTRS_BLOCK);
 
     if (symbol !== -1) {
-      PushYieldableBlock(op, elementBlock);
+      PushYieldableBlock(encode, elementBlock);
       blockSymbols.push(symbol);
     }
   }
@@ -243,7 +241,7 @@ function InvokeStaticComponent(
     let symbol = symbols.indexOf(`&${name}`);
 
     if (symbol !== -1) {
-      PushYieldableBlock(op, blocks.get(name));
+      PushYieldableBlock(encode, blocks.get(name));
       blockSymbols.push(symbol);
     }
   }
@@ -253,7 +251,7 @@ function InvokeStaticComponent(
   // or not an argument is used, so we have to give access to all of them.
   if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
     // First we push positional arguments
-    let count = CompilePositional(op, positional);
+    let count = CompilePositional(encode, positional);
 
     // setup the flags with the count of positionals, and to indicate that atNames
     // are used
@@ -273,7 +271,7 @@ function InvokeStaticComponent(
       for (let i = 0; i < val.length; i++) {
         let symbol = symbols.indexOf(unwrap(names[i]));
 
-        expr(op, val[i]);
+        expr(encode, val[i]);
         argSymbols.push(symbol);
       }
     }
@@ -281,7 +279,7 @@ function InvokeStaticComponent(
     // Finally, push the VM arguments themselves. These args won't need access
     // to blocks (they aren't accessible from userland anyways), so we push an
     // empty array instead of the actual block names.
-    op(VM_PUSH_ARGS_OP, names, EMPTY_STRING_ARRAY, flags);
+    encode.op(VM_PUSH_ARGS_OP, encode.array(names), encode.array(EMPTY_STRING_ARRAY), flags);
 
     // And push an extra pop operation to remove the args before we begin setting
     // variables on the local context
@@ -298,38 +296,38 @@ function InvokeStaticComponent(
       let symbol = symbols.indexOf(name);
 
       if (symbol !== -1) {
-        expr(op, val[i]);
+        expr(encode, val[i]);
         argSymbols.push(symbol);
         argNames.push(name);
       }
     }
   }
 
-  op(VM_BEGIN_COMPONENT_TRANSACTION_OP, $s0);
+  encode.op(VM_BEGIN_COMPONENT_TRANSACTION_OP, $s0);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
-    op(VM_PUSH_DYNAMIC_SCOPE_OP);
+    encode.op(VM_PUSH_DYNAMIC_SCOPE_OP);
   }
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createInstance)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    op(VM_CREATE_COMPONENT_OP, (blocks.has('default') as any) | 0);
+    encode.op(VM_CREATE_COMPONENT_OP, (blocks.has('default') as any) | 0);
   }
 
-  op(VM_REGISTER_COMPONENT_DESTRUCTOR_OP, $s0);
+  encode.op(VM_REGISTER_COMPONENT_DESTRUCTOR_OP, $s0);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
-    op(VM_GET_COMPONENT_SELF_OP, $s0);
+    encode.op(VM_GET_COMPONENT_SELF_OP, $s0);
   } else {
-    op(VM_GET_COMPONENT_SELF_OP, $s0, argNames);
+    encode.op(VM_GET_COMPONENT_SELF_OP, $s0, encode.array(argNames));
   }
 
   // Setup the new root scope for the component
-  op(VM_ROOT_SCOPE_OP, symbols.length + 1, Object.keys(blocks).length > 0 ? 1 : 0);
+  encode.op(VM_ROOT_SCOPE_OP, symbols.length + 1, Object.keys(blocks).length > 0 ? 1 : 0);
 
   // Pop the self reference off the stack and set it to the symbol for `this`
   // in the new scope. This is why all subsequent symbols are increased by one.
-  op(VM_SET_VARIABLE_OP, 0);
+  encode.op(VM_SET_VARIABLE_OP, 0);
 
   // Going in reverse, now we pop the args/blocks off the stack, starting with
   // arguments, and assign them to their symbols in the new scope.
@@ -340,40 +338,40 @@ function InvokeStaticComponent(
     if (symbol === -1) {
       // The expression was not bound to a local symbol, it was only pushed to be
       // used with VM args in the javascript side
-      op(VM_POP_OP, 1);
+      encode.op(VM_POP_OP, 1);
     } else {
-      op(VM_SET_VARIABLE_OP, symbol + 1);
+      encode.op(VM_SET_VARIABLE_OP, symbol + 1);
     }
   }
 
   // if any positional params exist, pop them off the stack as well
   if (positional !== null) {
-    op(VM_POP_OP, positional.length);
+    encode.op(VM_POP_OP, positional.length);
   }
 
   // Finish up by popping off and assigning blocks
   for (const symbol of reverse(blockSymbols)) {
-    op(VM_SET_BLOCK_OP, symbol + 1);
+    encode.op(VM_SET_BLOCK_OP, symbol + 1);
   }
 
-  op(VM_CONSTANT_OP, layoutOperand(layout));
-  op(VM_COMPILE_BLOCK_OP);
-  op(VM_INVOKE_VIRTUAL_OP);
-  op(VM_DID_RENDER_LAYOUT_OP, $s0);
+  encode.op(VM_CONSTANT_OP, encode.constant(layout));
+  encode.op(VM_COMPILE_BLOCK_OP);
+  encode.op(VM_INVOKE_VIRTUAL_OP);
+  encode.op(VM_DID_RENDER_LAYOUT_OP, $s0);
 
-  op(VM_POP_FRAME_OP);
-  op(VM_POP_SCOPE_OP);
+  encode.op(VM_POP_FRAME_OP);
+  encode.op(VM_POP_SCOPE_OP);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
-    op(VM_POP_DYNAMIC_SCOPE_OP);
+    encode.op(VM_POP_DYNAMIC_SCOPE_OP);
   }
 
-  op(VM_COMMIT_COMPONENT_TRANSACTION_OP);
-  op(VM_LOAD_OP, $s0);
+  encode.op(VM_COMMIT_COMPONENT_TRANSACTION_OP);
+  encode.op(VM_LOAD_OP, $s0);
 }
 
 export function InvokeNonStaticComponent(
-  op: PushStatementOp,
+  encode: EncodeOp,
   { capabilities, elementBlock, positional, named, atNames, blocks: namedBlocks, layout }: Component
 ): void {
   let bindableBlocks = !!namedBlocks;
@@ -384,69 +382,69 @@ export function InvokeNonStaticComponent(
 
   let blocks = namedBlocks.with('attrs', elementBlock);
 
-  op(VM_FETCH_OP, $s0);
-  op(VM_DUP_OP, $sp, 1);
-  op(VM_LOAD_OP, $s0);
+  encode.op(VM_FETCH_OP, $s0);
+  encode.op(VM_DUP_OP, $sp, 1);
+  encode.op(VM_LOAD_OP, $s0);
 
-  op(VM_PUSH_FRAME_OP);
-  CompileArgs(op, positional, named, blocks, atNames);
-  op(VM_PREPARE_ARGS_OP, $s0);
+  encode.op(VM_PUSH_FRAME_OP);
+  CompileArgs(encode, positional, named, blocks, atNames);
+  encode.op(VM_PREPARE_ARGS_OP, $s0);
 
-  invokePreparedComponent(op, blocks.has('default'), bindableBlocks, bindableAtNames, () => {
+  invokePreparedComponent(encode, blocks.has('default'), bindableBlocks, bindableAtNames, () => {
     if (layout) {
-      op(VM_PUSH_SYMBOL_TABLE_OP, symbolTableOperand(layout.symbolTable));
-      op(VM_CONSTANT_OP, layoutOperand(layout));
-      op(VM_COMPILE_BLOCK_OP);
+      encode.op(VM_PUSH_SYMBOL_TABLE_OP, encode.constant(layout.symbolTable));
+      encode.op(VM_CONSTANT_OP, encode.constant(layout));
+      encode.op(VM_COMPILE_BLOCK_OP);
     } else {
-      op(VM_GET_COMPONENT_LAYOUT_OP, $s0);
+      encode.op(VM_GET_COMPONENT_LAYOUT_OP, $s0);
     }
 
-    op(VM_POPULATE_LAYOUT_OP, $s0);
+    encode.op(VM_POPULATE_LAYOUT_OP, $s0);
   });
 
-  op(VM_LOAD_OP, $s0);
+  encode.op(VM_LOAD_OP, $s0);
 }
 
 export function WrappedComponent(
-  op: PushStatementOp,
+  encode: EncodeOp,
   layout: LayoutWithContext,
   attrsBlockNumber: number
 ): void {
-  op(HighLevelBuilderOpcodes.StartLabels);
-  WithSavedRegister(op, $s1, () => {
-    op(VM_GET_COMPONENT_TAG_NAME_OP, $s0);
-    op(VM_PRIMITIVE_REFERENCE_OP);
-    op(VM_DUP_OP, $sp, 0);
+  encode.startLabels();
+  WithSavedRegister(encode, $s1, () => {
+    encode.op(VM_GET_COMPONENT_TAG_NAME_OP, $s0);
+    encode.op(VM_PRIMITIVE_REFERENCE_OP);
+    encode.op(VM_DUP_OP, $sp, 0);
   });
-  op(VM_JUMP_UNLESS_OP, labelOperand('BODY'));
-  op(VM_FETCH_OP, $s1);
-  op(VM_PUT_COMPONENT_OPERATIONS_OP);
-  op(VM_OPEN_DYNAMIC_ELEMENT_OP);
-  op(VM_DID_CREATE_ELEMENT_OP, $s0);
-  YieldBlock(op, attrsBlockNumber, null);
-  op(VM_FLUSH_ELEMENT_OP);
-  op(HighLevelBuilderOpcodes.Label, 'BODY');
-  InvokeStaticBlock(op, [layout.block[0], []]);
-  op(VM_FETCH_OP, $s1);
-  op(VM_JUMP_UNLESS_OP, labelOperand('END'));
-  op(VM_CLOSE_ELEMENT_OP);
-  op(HighLevelBuilderOpcodes.Label, 'END');
-  op(VM_LOAD_OP, $s1);
-  op(HighLevelBuilderOpcodes.StopLabels);
+  encode.op(VM_JUMP_UNLESS_OP, encode.to('BODY'));
+  encode.op(VM_FETCH_OP, $s1);
+  encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
+  encode.op(VM_OPEN_DYNAMIC_ELEMENT_OP);
+  encode.op(VM_DID_CREATE_ELEMENT_OP, $s0);
+  YieldBlock(encode, attrsBlockNumber, null);
+  encode.op(VM_FLUSH_ELEMENT_OP);
+  encode.mark('BODY');
+  InvokeStaticBlock(encode, [layout.block[0], []]);
+  encode.op(VM_FETCH_OP, $s1);
+  encode.op(VM_JUMP_UNLESS_OP, encode.to('END'));
+  encode.op(VM_CLOSE_ELEMENT_OP);
+  encode.mark('END');
+  encode.op(VM_LOAD_OP, $s1);
+  encode.stopLabels();
 }
 
 export function invokePreparedComponent(
-  op: PushStatementOp,
+  encode: EncodeOp,
   hasBlock: boolean,
   bindableBlocks: boolean,
   bindableAtNames: boolean,
   populateLayout: Nullable<() => void> = null
 ): void {
-  op(VM_BEGIN_COMPONENT_TRANSACTION_OP, $s0);
-  op(VM_PUSH_DYNAMIC_SCOPE_OP);
+  encode.op(VM_BEGIN_COMPONENT_TRANSACTION_OP, $s0);
+  encode.op(VM_PUSH_DYNAMIC_SCOPE_OP);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  op(VM_CREATE_COMPONENT_OP, (hasBlock as any) | 0);
+  encode.op(VM_CREATE_COMPONENT_OP, (hasBlock as any) | 0);
 
   // this has to run after createComponent to allow
   // for late-bound layouts, but a caller is free
@@ -456,46 +454,46 @@ export function invokePreparedComponent(
     populateLayout();
   }
 
-  op(VM_REGISTER_COMPONENT_DESTRUCTOR_OP, $s0);
-  op(VM_GET_COMPONENT_SELF_OP, $s0);
+  encode.op(VM_REGISTER_COMPONENT_DESTRUCTOR_OP, $s0);
+  encode.op(VM_GET_COMPONENT_SELF_OP, $s0);
 
-  op(VM_VIRTUAL_ROOT_SCOPE_OP, $s0);
-  op(VM_SET_VARIABLE_OP, 0);
+  encode.op(VM_VIRTUAL_ROOT_SCOPE_OP, $s0);
+  encode.op(VM_SET_VARIABLE_OP, 0);
 
-  if (bindableAtNames) op(VM_SET_NAMED_VARIABLES_OP, $s0);
-  if (bindableBlocks) op(VM_SET_BLOCKS_OP, $s0);
+  if (bindableAtNames) encode.op(VM_SET_NAMED_VARIABLES_OP, $s0);
+  if (bindableBlocks) encode.op(VM_SET_BLOCKS_OP, $s0);
 
-  op(VM_POP_OP, 1);
-  op(VM_INVOKE_COMPONENT_LAYOUT_OP, $s0);
-  op(VM_DID_RENDER_LAYOUT_OP, $s0);
-  op(VM_POP_FRAME_OP);
+  encode.op(VM_POP_OP, 1);
+  encode.op(VM_INVOKE_COMPONENT_LAYOUT_OP, $s0);
+  encode.op(VM_DID_RENDER_LAYOUT_OP, $s0);
+  encode.op(VM_POP_FRAME_OP);
 
-  op(VM_POP_SCOPE_OP);
-  op(VM_POP_DYNAMIC_SCOPE_OP);
-  op(VM_COMMIT_COMPONENT_TRANSACTION_OP);
+  encode.op(VM_POP_SCOPE_OP);
+  encode.op(VM_POP_DYNAMIC_SCOPE_OP);
+  encode.op(VM_COMMIT_COMPONENT_TRANSACTION_OP);
 }
 
-export function InvokeBareComponent(op: PushStatementOp): void {
-  op(VM_FETCH_OP, $s0);
-  op(VM_DUP_OP, $sp, 1);
-  op(VM_LOAD_OP, $s0);
+export function InvokeBareComponent(encode: EncodeOp): void {
+  encode.op(VM_FETCH_OP, $s0);
+  encode.op(VM_DUP_OP, $sp, 1);
+  encode.op(VM_LOAD_OP, $s0);
 
-  op(VM_PUSH_FRAME_OP);
-  op(VM_PUSH_EMPTY_ARGS_OP);
-  op(VM_PREPARE_ARGS_OP, $s0);
-  invokePreparedComponent(op, false, false, true, () => {
-    op(VM_GET_COMPONENT_LAYOUT_OP, $s0);
-    op(VM_POPULATE_LAYOUT_OP, $s0);
+  encode.op(VM_PUSH_FRAME_OP);
+  encode.op(VM_PUSH_EMPTY_ARGS_OP);
+  encode.op(VM_PREPARE_ARGS_OP, $s0);
+  invokePreparedComponent(encode, false, false, true, () => {
+    encode.op(VM_GET_COMPONENT_LAYOUT_OP, $s0);
+    encode.op(VM_POPULATE_LAYOUT_OP, $s0);
   });
-  op(VM_LOAD_OP, $s0);
+  encode.op(VM_LOAD_OP, $s0);
 }
 
 export function WithSavedRegister(
-  op: PushExpressionOp,
+  encode: EncodeOp,
   register: SavedRegister,
   block: () => void
 ): void {
-  op(VM_FETCH_OP, register);
+  encode.op(VM_FETCH_OP, register);
   block();
-  op(VM_LOAD_OP, register);
+  encode.op(VM_LOAD_OP, register);
 }

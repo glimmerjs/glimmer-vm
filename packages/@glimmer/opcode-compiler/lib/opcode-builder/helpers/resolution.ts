@@ -2,16 +2,12 @@ import type {
   BlockMetadata,
   BlockSymbolNames,
   ClassicResolver,
+  CompileTimeComponent,
   Expressions,
   Nullable,
   Owner,
   ProgramConstants,
   ResolutionTimeConstants,
-  ResolveComponentOp,
-  ResolveComponentOrHelperOp,
-  ResolveHelperOp,
-  ResolveModifierOp,
-  ResolveOptionalComponentOrHelperOp,
   SexpOpcode,
 } from '@glimmer/interfaces';
 import { debugToString, expect, localAssert, unwrap } from '@glimmer/debug-util';
@@ -54,7 +50,7 @@ interface ResolvedBlockMetadata extends BlockMetadata {
   };
 }
 
-function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMetadata {
+export function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMetadata {
   if (import.meta.env.DEV) {
     if (!meta.symbols.upvars) {
       throw new Error(
@@ -81,9 +77,13 @@ export function resolveComponent(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveComponentOp
+  expr: Expressions.Expression,
+  then: (component: CompileTimeComponent) => void
 ): void {
-  localAssert(isGetFreeComponent(expr), 'Attempted to resolve a component with incorrect opcode');
+  localAssert(
+    isGetFreeComponent(expr),
+    `Attempted to resolve a component with incorrect opcode (${JSON.stringify(expr)})`
+  );
 
   let type = expr[0];
 
@@ -149,7 +149,8 @@ export function resolveHelper(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveHelperOp
+  expr: Expressions.Expression,
+  then: (handle: number) => void
 ): void {
   localAssert(isGetFreeHelper(expr), 'Attempted to resolve a helper with incorrect opcode');
 
@@ -200,7 +201,8 @@ export function resolveModifier(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, then]: ResolveModifierOp
+  expr: Expressions.Expression,
+  then: (handle: number) => void
 ): void {
   localAssert(isGetFreeModifier(expr), 'Attempted to resolve a modifier with incorrect opcode');
 
@@ -263,11 +265,12 @@ export function resolveModifier(
 /**
  * {{component-or-helper arg}}
  */
-export function resolveComponentOrHelper(
+export function resolveAppendInvokable(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, { ifComponent, ifHelper }]: ResolveComponentOrHelperOp
+  expr: Expressions.Expression,
+  { ifComponent, ifHelper }: ResolveAppendInvokableOptions
 ): void {
   localAssert(
     isGetFreeComponentOrHelper(expr),
@@ -356,84 +359,42 @@ export function resolveComponentOrHelper(
   }
 }
 
+export interface ResolveAppendInvokableOptions {
+  ifComponent: (component: CompileTimeComponent) => void;
+  ifHelper: (handle: number) => void;
+}
+
+export interface ResolveAppendOptions extends ResolveAppendInvokableOptions {
+  ifValue: (handle: number) => void;
+}
+
 /**
  * {{maybeHelperOrComponent}}
  */
-export function resolveOptionalComponentOrHelper(
+export function resolveAppend(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  [, expr, { ifComponent, ifHelper, ifValue }]: ResolveOptionalComponentOrHelperOp
+  expr: Expressions.GetUnknownAppend,
+  { ifComponent, ifHelper }: ResolveAppendOptions
 ): void {
-  localAssert(
-    isGetFreeComponentOrHelper(expr),
-    'Attempted to resolve an optional component or helper with incorrect opcode'
-  );
+  let {
+    symbols: { upvars },
+    owner,
+  } = assertResolverInvariants(meta);
 
-  let type = expr[0];
+  let name = unwrap(upvars[expr[1]]);
+  let definition = resolver?.lookupComponent?.(name, owner) ?? null;
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
-    let {
-      scopeValues,
-      owner,
-      symbols: { lexical },
-    } = meta;
-    let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
-      expr[1]
-    ];
+  if (definition !== null) {
+    ifComponent(constants.resolvedComponent(definition, name));
+    return;
+  }
 
-    if (
-      typeof definition !== 'function' &&
-      (typeof definition !== 'object' || definition === null)
-    ) {
-      // The value is not an object, so it can't be a component or helper.
-      ifValue(constants.value(definition));
-      return;
-    }
+  let helper = resolver?.lookupHelper?.(name, owner) ?? null;
 
-    let component = constants.component(
-      definition,
-      expect(owner, 'BUG: expected owner when resolving component definition'),
-      true,
-      lexical?.at(expr[1])
-    );
-
-    if (component !== null) {
-      ifComponent(component);
-      return;
-    }
-
-    let helper = constants.helper(definition, null, true);
-
-    if (helper !== null) {
-      ifHelper(helper);
-      return;
-    }
-
-    ifValue(constants.value(definition));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
-    ifHelper(
-      lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'value')
-    );
-  } else {
-    let {
-      symbols: { upvars },
-      owner,
-    } = assertResolverInvariants(meta);
-
-    let name = unwrap(upvars[expr[1]]);
-    let definition = resolver?.lookupComponent?.(name, owner) ?? null;
-
-    if (definition !== null) {
-      ifComponent(constants.resolvedComponent(definition, name));
-      return;
-    }
-
-    let helper = resolver?.lookupHelper?.(name, owner) ?? null;
-
-    if (helper !== null) {
-      ifHelper(constants.helper(helper, name));
-    }
+  if (helper !== null) {
+    ifHelper(constants.helper(helper, name));
   }
 }
 
