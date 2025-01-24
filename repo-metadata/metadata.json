@@ -115,8 +115,7 @@
       "private": true,
       "repo-meta": {
         "built": false,
-        "strictness": "loose",
-        "lint": ["test/**/*"]
+        "strictness": "loose"
       },
       "entryPoints": {
         "./package.json": [[["default"], "./package.json"]]

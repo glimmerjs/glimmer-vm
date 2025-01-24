@@ -40,7 +40,6 @@
     "test:lint": "eslint . --quiet",
     "test:node": "pnpm turbo test:node",
     "test:smoke": "SMOKE_TESTS=true ember test",
-    "test:types": "tsc -b",
     "ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "unlink:all": "esyes ./bin/unlink-all.mts"
   },
