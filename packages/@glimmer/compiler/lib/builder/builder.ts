@@ -232,16 +232,14 @@ export function buildNormalizedStatements(
 export function buildAppend(
   trusted: boolean,
   expr: Expressions.Expression
-): WireFormat.Statement[] {
+): WireFormat.Statements.SomeAppend {
   if (Array.isArray(expr) && expr[0] === Op.GetFreeAsComponentOrHelperHead) {
-    return [
-      trusted
-        ? [Op.UnknownTrustingAppend, expr as Expressions.GetUnknownAppend]
-        : [Op.UnknownAppend, expr as Expressions.GetUnknownAppend],
-    ];
+    return trusted
+      ? [Op.UnknownTrustingAppend, expr as Expressions.GetUnknownAppend]
+      : [Op.UnknownAppend, expr as Expressions.GetUnknownAppend];
   }
 
-  return [[trusted ? Op.TrustingAppend : Op.Append, expr]];
+  return [trusted ? Op.TrustingAppend : Op.Append, expr];
 }
 
 export function buildStatement(
@@ -250,14 +248,16 @@ export function buildStatement(
 ): WireFormat.Statement[] {
   switch (normalized.kind) {
     case APPEND_PATH_HEAD: {
-      return buildAppend(normalized.trusted, buildGetPath(normalized.path, symbols));
+      return [buildAppend(normalized.trusted, buildGetPath(normalized.path, symbols))];
     }
 
     case APPEND_EXPR_HEAD: {
-      return buildAppend(
-        normalized.trusted,
-        buildExpression(normalized.expr, normalized.trusted ? 'TrustedAppend' : 'Append', symbols)
-      );
+      return [
+        buildAppend(
+          normalized.trusted,
+          buildExpression(normalized.expr, normalized.trusted ? 'TrustedAppend' : 'Append', symbols)
+        ),
+      ];
     }
 
     case CALL_HEAD: {
@@ -818,20 +818,21 @@ export function invokeType(
 }
 
 export function callType(expr: Expressions.Expression): CallLexicalOpcode | CallResolvedOpcode {
-  if (!Array.isArray(expr)) throw Error('Something is suspicious @fixme');
+  if (!Array.isArray(expr)) {
+    throw Error('Something is suspicious @fixme');
+  }
 
   let type = expr[0];
 
   switch (type) {
-    case Op.GetLexicalSymbol:
-    case Op.GetSymbol:
-      return Op.CallLexical;
     case Op.GetFreeAsHelperHead:
+    case Op.GetFreeAsModifierHead:
+    case Op.GetFreeAsComponentHead:
     case Op.GetFreeAsComponentOrHelperHead:
     case Op.GetStrictKeyword:
       return Op.CallResolved;
 
     default:
-      throw Error(`Something is suspicious (unexpected ${type} opcode in call) @fixme`);
+      return Op.CallLexical;
   }
 }

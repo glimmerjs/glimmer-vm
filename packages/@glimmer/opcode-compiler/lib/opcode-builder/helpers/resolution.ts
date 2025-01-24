@@ -80,7 +80,10 @@ export function resolveComponent(
   expr: Expressions.Expression,
   then: (component: CompileTimeComponent) => void
 ): void {
-  localAssert(isGetFreeComponent(expr), 'Attempted to resolve a component with incorrect opcode');
+  localAssert(
+    isGetFreeComponent(expr),
+    `Attempted to resolve a component with incorrect opcode (${JSON.stringify(expr)})`
+  );
 
   let type = expr[0];
 

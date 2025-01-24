@@ -17,7 +17,7 @@ import { SexpOpcodes } from '@glimmer/wire-format';
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
-import { buildAppend } from '../../builder/builder';
+import { buildAppend, callType } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
 
@@ -119,10 +119,8 @@ export class ContentEncoder {
     return [SexpOpcodes.TrustingAppend, EXPR.expr(html)];
   }
 
-  AppendTextNode({
-    text,
-  }: mir.AppendTextNode): WireFormat.Statements.Append | WireFormat.Statements.UnknownAppend {
-    return buildAppend(false, EXPR.expr(text))[0];
+  AppendTextNode({ text }: mir.AppendTextNode): WireFormat.Statements.SomeAppend {
+    return buildAppend(false, EXPR.expr(text));
   }
 
   AppendComment({ value }: mir.AppendComment): WireFormat.Statements.Comment {
@@ -168,8 +166,16 @@ export class ContentEncoder {
         return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
       case 'StaticAttr':
         return [staticAttrOp(param.kind), ...staticAttr(param)];
-      case 'Modifier':
-        return [SexpOpcodes.Modifier, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
+      case 'Modifier': {
+        const expr = EXPR.expr(param.callee);
+        return [
+          callType(expr) === SexpOpcodes.CallLexical
+            ? SexpOpcodes.LexicalModifier
+            : SexpOpcodes.ResolvedModifier,
+          EXPR.expr(param.callee),
+          ...EXPR.Args(param.args),
+        ];
+      }
     }
   }
 
@@ -226,10 +232,14 @@ export class ContentEncoder {
     definition,
     args,
     blocks,
-  }: mir.InvokeComponent): WireFormat.Statements.InvokeComponent {
+  }: mir.InvokeComponent): WireFormat.Statements.SomeInvokeComponent {
+    const expr = EXPR.expr(definition);
+
     return [
-      SexpOpcodes.InvokeComponent,
-      EXPR.expr(definition),
+      typeof expr === 'string' || callType(expr) === SexpOpcodes.CallLexical
+        ? SexpOpcodes.InvokeLexicalComponent
+        : SexpOpcodes.InvokeResolvedComponent,
+      expr,
       EXPR.Positional(args.positional),
       EXPR.NamedArguments(args.named),
       blocks ? CONTENT.NamedBlocks(blocks) : null,

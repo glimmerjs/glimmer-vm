@@ -54,7 +54,7 @@ import {
 } from '../opcode-builder/helpers/components';
 import { Replayable, ReplayableIf, SwitchCases } from '../opcode-builder/helpers/conditional';
 import { expr } from '../opcode-builder/helpers/expr';
-import { isGetFreeComponent, isGetFreeModifier } from '../opcode-builder/helpers/resolution';
+import { isGetFreeComponent } from '../opcode-builder/helpers/resolution';
 import { CompilePositional, SimpleArgs } from '../opcode-builder/helpers/shared';
 import {
   Call,
@@ -91,22 +91,22 @@ STATEMENTS.add(SexpOpcodes.Comment, (op, [, comment]) => Comment(op, comment));
 STATEMENTS.add(SexpOpcodes.CloseElement, (op) => CloseElement(op));
 STATEMENTS.add(SexpOpcodes.FlushElement, (op) => FlushElement(op));
 
-STATEMENTS.add(SexpOpcodes.Modifier, (encode, [, expression, positional, named]) => {
-  if (isGetFreeModifier(expression)) {
-    encode.modifier(expression, (handle: number) => {
-      encode.op(VM_PUSH_FRAME_OP);
-      SimpleArgs(encode, positional, named, false);
-      encode.op(VM_MODIFIER_OP, handle);
-      encode.op(VM_POP_FRAME_OP);
-    });
-  } else {
-    expr(encode, expression);
+STATEMENTS.add(SexpOpcodes.ResolvedModifier, (encode, [, expression, positional, named]) => {
+  encode.modifier(expression, (handle: number) => {
     encode.op(VM_PUSH_FRAME_OP);
     SimpleArgs(encode, positional, named, false);
-    encode.op(VM_DUP_OP, $fp, 1);
-    encode.op(VM_DYNAMIC_MODIFIER_OP);
+    encode.op(VM_MODIFIER_OP, handle);
     encode.op(VM_POP_FRAME_OP);
-  }
+  });
+});
+
+STATEMENTS.add(SexpOpcodes.LexicalModifier, (encode, [, expression, positional, named]) => {
+  expr(encode, expression);
+  encode.op(VM_PUSH_FRAME_OP);
+  SimpleArgs(encode, positional, named, false);
+  encode.op(VM_DUP_OP, $fp, 1);
+  encode.op(VM_DYNAMIC_MODIFIER_OP);
+  encode.op(VM_POP_FRAME_OP);
 });
 
 STATEMENTS.add(SexpOpcodes.StaticAttr, (encode, [, name, value, namespace]) => {
@@ -408,15 +408,21 @@ STATEMENTS.add(SexpOpcodes.WithDynamicVars, (encode, [, named, block]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.InvokeComponent, (encode, [, expr, positional, named, blocks]) => {
-  if (isGetFreeComponent(expr)) {
+STATEMENTS.add(
+  SexpOpcodes.InvokeLexicalComponent,
+  (encode, [, expr, positional, named, blocks]) => {
+    InvokeDynamicComponent(encode, expr, null, positional, named, blocks, false, false);
+  }
+);
+
+STATEMENTS.add(
+  SexpOpcodes.InvokeResolvedComponent,
+  (encode, [, expr, positional, named, blocks]) => {
     encode.component(expr, (component: CompileTimeComponent) => {
       InvokeComponent(encode, component, null, positional, hashToArgs(named), blocks);
     });
-  } else {
-    InvokeDynamicComponent(encode, expr, null, positional, named, blocks, false, false);
   }
-});
+);
 
 function hashToArgs(hash: WireFormat.Core.Hash | null): WireFormat.Core.Hash | null {
   if (hash === null) return null;
