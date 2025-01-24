@@ -19,7 +19,6 @@
   },
   "devDependencies": {
     "@glimmer-workspace/repo-metadata": "workspace:*",
-    "eslint": "^9.18.0",
     "vitest": "^3.0.4"
   }
 }

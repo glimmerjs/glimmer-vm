@@ -616,9 +616,6 @@ importers:
       '@glimmer-workspace/repo-metadata':
         specifier: workspace:*
         version: link:../../../repo-metadata
-      eslint:
-        specifier: ^9.18.0
-        version: 9.18.0(jiti@2.4.2)
       vitest:
         specifier: ^3.0.4
         version: 3.0.4(@types/node@20.17.10)(jiti@2.4.2)(terser@5.37.0)(tsx@4.19.2)(yaml@2.7.0)
