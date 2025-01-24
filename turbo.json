@@ -26,7 +26,8 @@
       "dependsOn": ["test:lint", "test:publint"]
     },
     "test:node": {},
-    "test:lint": {},
+    "test:lint": {
+    },
     "test:publint": {
       "dependsOn": ["prepack", "prepare"]
     },
@@ -38,6 +39,11 @@
       "outputs": ["dist/**"],
       "dependsOn": ["^prepack"]
     },
+    "//#test:lint": {
+      "dependsOn": ["//#repo:update:conventions", "//#repo:update:metadata"]
+    },
+    "//#repo:update:convensions": {},
+    "//#repo:update:metadata": {},
     "//#test:types": {
       "inputs": ["**/dist/**", "tsconfig.dist.json"],
       "dependsOn": ["^prepack", "//#benchmark:setup", "//#smoke:setup"]
