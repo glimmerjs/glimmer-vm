@@ -25,7 +25,8 @@ export function isAttribute(val: Statement): val is Statements.Attribute {
     val[0] === opcodes.StaticComponentAttr ||
     val[0] === opcodes.TrustingComponentAttr ||
     val[0] === opcodes.AttrSplat ||
-    val[0] === opcodes.Modifier
+    val[0] === opcodes.LexicalModifier ||
+    val[0] === opcodes.ResolvedModifier
   );
 }
 

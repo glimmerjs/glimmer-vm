@@ -124,9 +124,10 @@ export default class WireFormatDebugger {
         case Op.Comment:
           return ['comment', opcode[1]];
 
-        case Op.Modifier:
+        case Op.LexicalModifier:
+        case Op.ResolvedModifier:
           return [
-            'modifier',
+            opcode[0] === Op.ResolvedModifier ? 'modifier:resolved' : 'modifier',
             this.formatOpcode(opcode[1]),
             this.formatParams(opcode[2]),
             this.formatHash(opcode[3]),
@@ -233,9 +234,10 @@ export default class WireFormatDebugger {
         case Op.GetDynamicVar:
           return ['-get-dynamic-vars', this.formatOpcode(opcode[1])];
 
-        case Op.InvokeComponent:
+        case Op.InvokeLexicalComponent:
+        case Op.InvokeResolvedComponent:
           return [
-            'component',
+            opcode[0] === Op.InvokeLexicalComponent ? 'component' : 'component:resolved',
             this.formatOpcode(opcode[1]),
             this.formatParams(opcode[2]),
             this.formatHash(opcode[3]),

@@ -4,7 +4,8 @@ export type UnknownAppendOpcode = 2;
 export type UnknownTrustingAppendOpcode = 3;
 export type TrustingAppendOpcode = 4;
 export type CommentOpcode = 5;
-export type ModifierOpcode = 6;
+export type LexicalModifierOpcode = 6;
+export type ResolvedModifierOpcode = 55;
 export type StrictModifierOpcode = 7;
 export type BlockOpcode = 8;
 export type StrictBlockOpcode = 9;
@@ -57,7 +58,8 @@ export type IfOpcode = 41;
 export type EachOpcode = 42;
 export type LetOpcode = 44;
 export type WithDynamicVarsOpcode = 45;
-export type InvokeComponentOpcode = 46;
+export type InvokeLexicalComponentOpcode = 46;
+export type InvokeResolvedComponentOpcode = 47;
 
 // Keyword Expressions
 export type HasBlockOpcode = 48;

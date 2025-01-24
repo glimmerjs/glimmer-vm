@@ -33,13 +33,15 @@ import type {
   IfInlineOpcode,
   IfOpcode,
   InElementOpcode,
-  InvokeComponentOpcode,
+  InvokeLexicalComponentOpcode,
+  InvokeResolvedComponentOpcode,
   LetOpcode,
+  LexicalModifierOpcode,
   LogOpcode,
-  ModifierOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
+  ResolvedModifierOpcode,
   StaticArgOpcode,
   StaticAttrOpcode,
   StaticComponentAttrOpcode,
@@ -220,12 +222,17 @@ export namespace Statements {
   export type Blocks = Core.Blocks;
   export type Path = Core.Path;
 
+  export type SomeAppend = Append | TrustingAppend | UnknownAppend | UnknownTrustingAppend;
+  export type SomeModifier = LexicalModifier | ResolvedModifier;
+  export type SomeInvokeComponent = InvokeLexicalComponent | InvokeResolvedComponent;
+
   export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
   export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
   export type Append = [AppendOpcode, Expression];
   export type TrustingAppend = [TrustingAppendOpcode, Expression];
   export type Comment = [CommentOpcode, string];
-  export type Modifier = [ModifierOpcode, Expression, Params, Hash];
+  export type LexicalModifier = [LexicalModifierOpcode, Expression, Params, Hash];
+  export type ResolvedModifier = [ResolvedModifierOpcode, Expression, Params, Hash];
   export type Block = [BlockOpcode, Expression, Params, Hash, Blocks];
   export type Component = [
     op: ComponentOpcode,
@@ -304,8 +311,16 @@ export namespace Statements {
     block: SerializedInlineBlock,
   ];
 
-  export type InvokeComponent = [
-    op: InvokeComponentOpcode,
+  export type InvokeLexicalComponent = [
+    op: InvokeLexicalComponentOpcode,
+    definition: Expression,
+    positional: Core.Params,
+    named: Core.Hash,
+    blocks: Blocks | null,
+  ];
+
+  export type InvokeResolvedComponent = [
+    op: InvokeResolvedComponentOpcode,
     definition: Expression,
     positional: Core.Params,
     named: Core.Hash,
@@ -316,12 +331,9 @@ export namespace Statements {
    * A Handlebars statement
    */
   export type Statement =
-    | Append
-    | TrustingAppend
-    | UnknownAppend
-    | UnknownTrustingAppend
+    | SomeAppend
+    | SomeModifier
     | Comment
-    | Modifier
     | Block
     | Component
     | OpenElement
@@ -339,7 +351,7 @@ export namespace Statements {
     | Each
     | Let
     | WithDynamicVars
-    | InvokeComponent;
+    | SomeInvokeComponent;
 
   export type Attribute =
     | StaticAttr
@@ -349,7 +361,7 @@ export namespace Statements {
     | ComponentAttr
     | TrustingComponentAttr;
 
-  export type ComponentFeature = Modifier | AttrSplat;
+  export type ComponentFeature = SomeModifier | AttrSplat;
   export type Argument = StaticArg | DynamicArg;
 
   export type ElementParameter = Attribute | Argument | ComponentFeature;
