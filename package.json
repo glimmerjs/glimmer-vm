@@ -25,7 +25,7 @@
     "lint:format": "prettier -c .",
     "postinstall": "node --disable-warning=ExperimentalWarning --experimental-strip-types ./bin/bench-packages.mts",
     "repo:lint:all": "turbo run lint:all",
-    "repo:lint:files": "turbo run test:lint",
+    "repo:lint:files": "turbo run //#test:lint",
     "repo:lint:fix": "turbo run test:lint -- --fix && prettier -w .",
     "repo:lint:pub": "turbo run test:publint",
     "repo:lint:types": "turbo run //#test:types",

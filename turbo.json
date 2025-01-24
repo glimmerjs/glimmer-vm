@@ -42,7 +42,7 @@
     "//#test:lint": {
       "dependsOn": ["//#repo:update:conventions", "//#repo:update:metadata"]
     },
-    "//#repo:update:convensions": {},
+    "//#repo:update:conventions": {},
     "//#repo:update:metadata": {},
     "//#test:types": {
       "inputs": ["**/dist/**", "tsconfig.dist.json"],
