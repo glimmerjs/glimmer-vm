@@ -4,7 +4,10 @@
   "type": "module",
   "private": true,
   "repo-meta": {
-    "strictness": "loose"
+    "strictness": "loose",
+    "lint": [
+      "test/*"
+    ]
   },
   "scripts": {
     "test:lint": "eslint . --quiet",
@@ -17,6 +20,7 @@
   },
   "devDependencies": {
     "@glimmer-workspace/repo-metadata": "workspace:*",
+    "eslint": "^9.18.0",
     "vitest": "^3.0.4"
   }
 }

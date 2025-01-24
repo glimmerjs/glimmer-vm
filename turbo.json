@@ -40,7 +40,10 @@
     },
     "//#test:types": {
       "inputs": ["**/dist/**", "tsconfig.dist.json"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^prepack", "//#benchmark:setup"]
+    },
+    "//#benchmark:setup": {
+      "dependsOn": ["^prepack"]
     }
   }
 }

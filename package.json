@@ -28,7 +28,7 @@
     "repo:lint:files": "turbo run test:lint",
     "repo:lint:fix": "turbo run test:lint -- --fix && prettier -w .",
     "repo:lint:pub": "turbo run test:publint",
-    "repo:lint:types": "tsc -b",
+    "repo:lint:types": "turbo run //#test:types",
     "repo:prepack": "turbo run prepack",
     "repo:update:conventions": "pnpm meta-updater",
     "repo:update:metadata": "node --experimental-strip-types --no-warnings ./repo-metadata/lib/update.ts",
@@ -39,6 +39,7 @@
     "test:lint": "eslint . --quiet",
     "test:node": "pnpm turbo test:node",
     "test:smoke": "SMOKE_TESTS=true ember test",
+    "test:types": "tsc -b",
     "ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "unlink:all": "esyes ./bin/unlink-all.mts"
   },
