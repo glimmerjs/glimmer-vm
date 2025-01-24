@@ -576,7 +576,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to load a helper, but there wasn't a helper manager associated with the definition. The definition was:/u);
+    }, /Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was `\{\{false\}\}` or `\(false\)`/u);
   }
 
   @test

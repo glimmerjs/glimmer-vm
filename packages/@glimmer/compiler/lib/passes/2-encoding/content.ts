@@ -17,6 +17,7 @@ import { SexpOpcodes } from '@glimmer/wire-format';
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
+import { buildAppend } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
 
@@ -118,8 +119,10 @@ export class ContentEncoder {
     return [SexpOpcodes.TrustingAppend, EXPR.expr(html)];
   }
 
-  AppendTextNode({ text }: mir.AppendTextNode): WireFormat.Statements.Append {
-    return [SexpOpcodes.Append, EXPR.expr(text)];
+  AppendTextNode({
+    text,
+  }: mir.AppendTextNode): WireFormat.Statements.Append | WireFormat.Statements.UnknownAppend {
+    return buildAppend(false, EXPR.expr(text))[0];
   }
 
   AppendComment({ value }: mir.AppendComment): WireFormat.Statements.Comment {

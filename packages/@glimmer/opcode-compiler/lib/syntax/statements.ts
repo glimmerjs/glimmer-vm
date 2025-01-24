@@ -54,11 +54,7 @@ import {
 } from '../opcode-builder/helpers/components';
 import { Replayable, ReplayableIf, SwitchCases } from '../opcode-builder/helpers/conditional';
 import { expr } from '../opcode-builder/helpers/expr';
-import {
-  isGetFreeComponent,
-  isGetFreeComponentOrHelper,
-  isGetFreeModifier,
-} from '../opcode-builder/helpers/resolution';
+import { isGetFreeComponent, isGetFreeModifier } from '../opcode-builder/helpers/resolution';
 import { CompilePositional, SimpleArgs } from '../opcode-builder/helpers/shared';
 import {
   Call,
@@ -200,6 +196,28 @@ STATEMENTS.add(SexpOpcodes.Debugger, (encode, [, locals, upvars, lexical]) => {
   encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
 });
 
+STATEMENTS.add(SexpOpcodes.UnknownAppend, (encode, [, value]) => {
+  encode.appendAny(value, {
+    ifComponent(component: CompileTimeComponent) {
+      InvokeComponent(encode, component, null, null, null, null);
+    },
+
+    ifHelper(handle: number) {
+      encode.op(VM_PUSH_FRAME_OP);
+      Call(encode, handle, null, null);
+      encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
+      encode.op(VM_POP_FRAME_OP);
+    },
+
+    ifValue(handle: number) {
+      encode.op(VM_PUSH_FRAME_OP);
+      encode.op(VM_CONSTANT_REFERENCE_OP, handle);
+      encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
+      encode.op(VM_POP_FRAME_OP);
+    },
+  });
+});
+
 STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
   // Special case for static values
   if (!Array.isArray(value)) {
@@ -207,70 +225,50 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
       VM_TEXT_OP,
       encode.constant(value === null || value === undefined ? '' : String(value))
     );
-  } else if (isGetFreeComponentOrHelper(value)) {
-    encode.appendAny(value, {
-      ifComponent(component: CompileTimeComponent) {
-        InvokeComponent(encode, component, null, null, null, null);
-      },
+  } else if (value[0] === SexpOpcodes.CallLexical) {
+    let [, expression, positional, named] = value;
 
+    SwitchCases(
+      encode,
+      () => {
+        expr(encode, expression);
+        encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
+      },
+      (when) => {
+        when(ContentType.Component, () => {
+          encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+          encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+          InvokeNonStaticComponent(encode, {
+            capabilities: true,
+            elementBlock: null,
+            positional,
+            named,
+            atNames: false,
+            blocks: namedBlocks(null),
+          });
+        });
+
+        when(ContentType.Helper, () => {
+          CallDynamic(encode, positional, named, () => {
+            encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
+          });
+        });
+      }
+    );
+  } else if (value[0] === SexpOpcodes.CallResolved) {
+    let [, expression, positional, named] = value;
+
+    encode.appendInvokable(expression, {
+      ifComponent(component: CompileTimeComponent) {
+        InvokeComponent(encode, component, null, positional, hashToArgs(named), null);
+      },
       ifHelper(handle: number) {
         encode.op(VM_PUSH_FRAME_OP);
-        Call(encode, handle, null, null);
-        encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
-        encode.op(VM_POP_FRAME_OP);
-      },
-
-      ifValue(handle: number) {
-        encode.op(VM_PUSH_FRAME_OP);
-        encode.op(VM_CONSTANT_REFERENCE_OP, handle);
+        Call(encode, handle, positional, named);
         encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
         encode.op(VM_POP_FRAME_OP);
       },
     });
-  } else if (value[0] === SexpOpcodes.Call) {
-    let [, expression, positional, named] = value;
-
-    if (isGetFreeComponentOrHelper(expression)) {
-      encode.appendInvokable(expression, {
-        ifComponent(component: CompileTimeComponent) {
-          InvokeComponent(encode, component, null, positional, hashToArgs(named), null);
-        },
-        ifHelper(handle: number) {
-          encode.op(VM_PUSH_FRAME_OP);
-          Call(encode, handle, positional, named);
-          encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
-          encode.op(VM_POP_FRAME_OP);
-        },
-      });
-    } else {
-      SwitchCases(
-        encode,
-        () => {
-          expr(encode, expression);
-          encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
-        },
-        (when) => {
-          when(ContentType.Component, () => {
-            encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
-            encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-            InvokeNonStaticComponent(encode, {
-              capabilities: true,
-              elementBlock: null,
-              positional,
-              named,
-              atNames: false,
-              blocks: namedBlocks(null),
-            });
-          });
-
-          when(ContentType.Helper, () => {
-            CallDynamic(encode, positional, named, () => {
-              encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
-            });
-          });
-        }
-      );
-    }
   } else {
     encode.op(VM_PUSH_FRAME_OP);
     expr(encode, value);

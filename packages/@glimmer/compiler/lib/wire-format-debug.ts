@@ -159,9 +159,10 @@ export default class WireFormatDebugger {
         case Op.Undefined:
           return ['undefined'];
 
-        case Op.Call:
+        case Op.CallResolved:
+        case Op.CallLexical:
           return [
-            'call',
+            opcode[0] === Op.CallResolved ? 'call:resolved' : 'call',
             this.formatOpcode(opcode[1]),
             this.formatParams(opcode[2]),
             this.formatHash(opcode[3]),
