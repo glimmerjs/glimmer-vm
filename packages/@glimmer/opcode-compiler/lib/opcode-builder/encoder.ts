@@ -29,6 +29,7 @@ import type { ResolveAppendInvokableOptions, ResolveAppendOptions } from './help
 import { compilableBlock } from '../compilable-template';
 import {
   assertResolverInvariants,
+  getLexicalComponent,
   resolveAppend,
   resolveAppendInvokable,
   resolveComponent,
@@ -118,10 +119,11 @@ export class EncodeOp {
    * evolve to calls into the correct kind of component, based on the known resolution when the
    * wire format is compiled.
    */
-  component = (
-    expr: Expressions.Expression,
-    then: (component: CompileTimeComponent) => void
-  ): void => resolveComponent(this.#context.resolver, this.#constants, this.#meta, expr, then);
+  resolveComponent = (expr: Expressions.Expression): CompileTimeComponent =>
+    resolveComponent(this.#context.resolver, this.#constants, this.#meta, expr);
+
+  getLexicalComponent = (expr: Expressions.Expression): CompileTimeComponent =>
+    getLexicalComponent(this.#constants, this.#meta, expr);
 
   /** Same as {@linkcode component}. */
   helper = (expr: Expressions.Expression, then: (handle: number) => void): void =>

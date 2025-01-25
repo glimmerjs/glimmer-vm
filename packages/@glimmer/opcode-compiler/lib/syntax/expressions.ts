@@ -23,7 +23,7 @@ import type { EncodeOp } from '../opcode-builder/encoder';
 
 import { expr } from '../opcode-builder/helpers/expr';
 import { SimpleArgs } from '../opcode-builder/helpers/shared';
-import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
+import { Call, CallDynamicExpr, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { Compilers } from './compilers';
 
 export const EXPRESSIONS = new Compilers<ExpressionSexpOpcode>();
@@ -53,7 +53,7 @@ EXPRESSIONS.add(SexpOpcodes.CallResolved, (encode, [, expression, args]) => {
 
 EXPRESSIONS.add(SexpOpcodes.CallLexical, (encode, [, expression, args]) => {
   expr(encode, expression);
-  CallDynamic(encode, args);
+  CallDynamicExpr(encode, args);
 });
 
 EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, args]) => {

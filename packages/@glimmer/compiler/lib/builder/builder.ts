@@ -448,7 +448,6 @@ export function buildAngleInvocation(
   return [
     Op.Component,
     buildExpression(head, VariableResolutionContext.ResolveAsComponentHead, symbols),
-    // isPresentArray(paramList) ? paramList : undefined,
     args,
   ];
 }

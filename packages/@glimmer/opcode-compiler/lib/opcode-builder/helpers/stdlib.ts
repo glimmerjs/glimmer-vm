@@ -7,7 +7,6 @@ import {
   VM_APPEND_TEXT_OP,
   VM_ASSERT_SAME_OP,
   VM_CONTENT_TYPE_OP,
-  VM_INVOKE_STATIC_OP,
   VM_MAIN_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   VM_RESOLVE_CURRIED_COMPONENT_OP,
@@ -18,7 +17,7 @@ import { EncodeOp, EncoderImpl } from '../encoder';
 import { StdLib } from '../stdlib';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';
-import { CallDynamic } from './vm';
+import { CallDynamicBlock } from './vm';
 
 export function main(encode: EncodeOp): void {
   encode.op(VM_MAIN_OP, $s0);
@@ -59,9 +58,7 @@ export function StdAppend(
         });
 
         when(ContentType.Helper, () => {
-          CallDynamic(encode, undefined, () => {
-            encode.op(VM_INVOKE_STATIC_OP, nonDynamicAppend);
-          });
+          CallDynamicBlock(encode, nonDynamicAppend);
         });
       } else {
         // when non-dynamic, we can no longer call the value (potentially because we've already called it)
