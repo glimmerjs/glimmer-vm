@@ -1,4 +1,4 @@
-import type { CurriedType, Nullable, WireFormat } from '@glimmer/interfaces';
+import type { CurriedType, Nullable, Optional, WireFormat } from '@glimmer/interfaces';
 import {
   encodeImmediate,
   isSmallInt,
@@ -66,11 +66,10 @@ export function PushPrimitive(encode: EncodeOp, primitive: Primitive): void {
 export function Call(
   encode: EncodeOp,
   handle: number,
-  positional: WireFormat.Core.Params,
-  named: WireFormat.Core.Hash
+  args?: Optional<WireFormat.Core.Args>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, positional, named, false);
+  SimpleArgs(encode, args, false);
   encode.op(VM_HELPER_OP, handle);
   encode.op(VM_POP_FRAME_OP);
   encode.op(VM_FETCH_OP, $v0);
@@ -85,12 +84,11 @@ export function Call(
  */
 export function CallDynamic(
   encode: EncodeOp,
-  positional: WireFormat.Core.Params,
-  named: WireFormat.Core.Hash,
+  args: Optional<WireFormat.Core.Args>,
   append?: () => void
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, positional, named, false);
+  SimpleArgs(encode, args, false);
   encode.op(VM_DUP_OP, $fp, 1);
   encode.op(VM_DYNAMIC_HELPER_OP);
   if (append) {
@@ -124,11 +122,10 @@ export function Curry(
   encode: EncodeOp,
   type: CurriedType,
   definition: WireFormat.Expression,
-  positional: WireFormat.Core.Params,
-  named: WireFormat.Core.Hash
+  args: Optional<WireFormat.Core.Args>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, positional, named, false);
+  SimpleArgs(encode, args, false);
   encode.op(VM_CAPTURE_ARGS_OP);
   expr(encode, definition);
   encode.op(VM_CURRY_OP, type, encode.isStrictMode());

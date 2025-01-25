@@ -45,19 +45,19 @@ EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
 
 // export const CallDynamic = (op: BuildExpression, )
 
-EXPRESSIONS.add(SexpOpcodes.CallResolved, (encode, [, expression, positional, named]) => {
+EXPRESSIONS.add(SexpOpcodes.CallResolved, (encode, [, expression, args]) => {
   encode.helper(expression, (handle: number) => {
-    Call(encode, handle, positional, named);
+    Call(encode, handle, args);
   });
 });
 
-EXPRESSIONS.add(SexpOpcodes.CallLexical, (encode, [, expression, positional, named]) => {
+EXPRESSIONS.add(SexpOpcodes.CallLexical, (encode, [, expression, args]) => {
   expr(encode, expression);
-  CallDynamic(encode, positional, named);
+  CallDynamic(encode, args);
 });
 
-EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, positional, named]) => {
-  Curry(op, type, expr, positional, named);
+EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, args]) => {
+  Curry(op, type, expr, args);
 });
 
 export const GetSymbol = (encode: EncodeOp, sym: number): void => {
@@ -81,7 +81,7 @@ EXPRESSIONS.add(SexpOpcodes.GetLexicalSymbol, (encode, [, sym, path]) => {
 EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (encode, expr) => {
   encode.local(expr[1], (_name: string) => {
     encode.helper(expr, (handle: number) => {
-      Call(encode, handle, null, null);
+      Call(encode, handle, undefined);
     });
   });
 });
@@ -89,7 +89,7 @@ EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (encode, expr) => {
 EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHead, (encode, expr) => {
   encode.local(expr[1], (_name: string) => {
     encode.helper(expr, (handle: number) => {
-      Call(encode, handle, null, null);
+      Call(encode, handle, undefined);
     });
   });
 });
@@ -172,5 +172,5 @@ export const Log = (encode: EncodeOp, expr: () => void) => {
 };
 
 EXPRESSIONS.add(SexpOpcodes.Log, (encode, [, positional]) => {
-  Log(encode, () => SimpleArgs(encode, positional, null, false));
+  Log(encode, () => SimpleArgs(encode, positional && { params: positional }, false));
 });

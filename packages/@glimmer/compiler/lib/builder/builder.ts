@@ -7,10 +7,12 @@ import type {
   Expressions,
   GetContextualFreeOpcode,
   Nullable,
+  Optional,
   PresentArray,
   UnknownInvokeOpcode,
   WireFormat,
 } from '@glimmer/interfaces';
+import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import {
   APPEND_EXPR_HEAD,
   APPEND_PATH_HEAD,
@@ -262,10 +264,10 @@ export function buildStatement(
 
     case CALL_HEAD: {
       let { head: path, params, hash, trusted } = normalized;
-      let builtParams: Nullable<WireFormat.Core.Params> = params
+      let builtParams: Optional<WireFormat.Core.Params> = params
         ? buildParams(params, symbols)
-        : null;
-      let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
+        : undefined;
+      let builtHash: Optional<WireFormat.Core.Hash> = hash ? buildHash(hash, symbols) : undefined;
       let builtExpr = buildCallHead(
         path,
         trusted
@@ -279,8 +281,13 @@ export function buildStatement(
       }
 
       const type = callType(builtExpr);
+      const call: WireFormat.Expressions.SomeHelper = [
+        type,
+        builtExpr,
+        buildArgs(builtParams, builtHash),
+      ];
 
-      return [[trusted ? Op.TrustingAppend : Op.Append, [type, builtExpr, builtParams, builtHash]]];
+      return [[trusted ? Op.TrustingAppend : Op.Append, call]];
     }
 
     case LITERAL_HEAD: {
@@ -301,7 +308,8 @@ export function buildStatement(
         symbols
       );
 
-      return [[Op.Block, path, params, hash, blocks]];
+      const args = buildBlockArgs(params, hash, blocks);
+      return [[Op.Block, path, args]];
     }
 
     case KEYWORD_HEAD: {
@@ -392,9 +400,9 @@ function buildElement(
     hasSplat(attrs) ? [Op.OpenElementWithSplat, name] : [Op.OpenElement, name],
   ];
   if (attrs) {
-    let { params, args } = buildElementParams(attrs, symbols);
-    out.push(...params);
-    localAssert(args === null, `Can't pass args to a simple element`);
+    let { params, named } = buildElementParams(attrs, symbols);
+    if (params) out.push(...params);
+    localAssert(named === undefined, `Can't pass args to a simple element`);
   }
   out.push([Op.FlushElement]);
 
@@ -420,55 +428,65 @@ export function buildAngleInvocation(
   { attrs, block, head }: NormalizedAngleInvocation,
   symbols: Symbols
 ): WireFormat.Statements.Component {
-  let paramList: WireFormat.ElementParameter[] = [];
-  let args: WireFormat.Core.Hash = null;
+  let paramList: Optional<WireFormat.Core.Splattributes>;
+  let named: Optional<WireFormat.Core.Hash> = undefined;
   let blockList: WireFormat.Statement[] = [];
 
   if (attrs) {
     let built = buildElementParams(attrs, symbols);
     paramList = built.params;
-    args = built.args;
+    named = built.named;
   }
 
   if (block) blockList = buildNormalizedStatements(block, symbols);
 
+  const args: Optional<WireFormat.Core.ComponentArgs> = buildComponentArgs(paramList, named, [
+    ['default'],
+    [[blockList, []]],
+  ]);
+
   return [
     Op.Component,
     buildExpression(head, VariableResolutionContext.ResolveAsComponentHead, symbols),
-    isPresentArray(paramList) ? paramList : null,
+    // isPresentArray(paramList) ? paramList : undefined,
     args,
-    [['default'], [[blockList, []]]],
   ];
 }
 
 export function buildElementParams(
   attrs: NormalizedAttrs,
   symbols: Symbols
-): { params: WireFormat.ElementParameter[]; args: WireFormat.Core.Hash } {
-  let params: WireFormat.ElementParameter[] = [];
+): { params: Optional<WireFormat.Core.Splattributes>; named: Optional<WireFormat.Core.Hash> } {
+  let params: Optional<WireFormat.Core.Splattributes>;
   let keys: string[] = [];
   let values: WireFormat.Expression[] = [];
 
   for (const [key, value] of Object.entries(attrs)) {
     if (value === SPLAT_HEAD) {
-      params.push([Op.AttrSplat, symbols.block('&attrs')]);
+      const statement: WireFormat.ElementParameter = [Op.AttrSplat, symbols.block('&attrs')];
+      params = upsert(params, statement);
     } else if (key[0] === '@') {
       keys.push(key);
       values.push(buildExpression(value, 'Strict', symbols));
     } else {
-      params.push(
-        ...buildAttributeValue(
-          key,
-          value,
-          // TODO: extract namespace from key
-          extractNamespace(key),
-          symbols
-        )
+      const statements = buildAttributeValue(
+        key,
+        value,
+        // TODO: extract namespace from key
+        extractNamespace(key),
+        symbols
       );
+
+      if (statements) {
+        params = upsert(params, ...statements);
+      }
     }
   }
 
-  return { params, args: isPresentArray(keys) && isPresentArray(values) ? [keys, values] : null };
+  return {
+    params,
+    named: isPresentArray(keys) && isPresentArray(values) ? [keys, values] : undefined,
+  };
 }
 
 export function extractNamespace(name: string): Nullable<AttrNamespace> {
@@ -501,13 +519,13 @@ export function buildAttributeValue(
   value: NormalizedExpression,
   namespace: Nullable<AttrNamespace>,
   symbols: Symbols
-): WireFormat.Attribute[] {
+): Optional<PresentArray<WireFormat.Attribute>> {
   switch (value.type) {
     case LITERAL_EXPR: {
       let val = value.value;
 
       if (val === false) {
-        return [];
+        return;
       } else if (val === true) {
         return [[Op.StaticAttr, name, '', namespace ?? undefined]];
       } else if (typeof val === 'string') {
@@ -577,7 +595,7 @@ export function buildExpression(
         symbols
       );
 
-      return [callType(builtExpr), builtExpr, builtParams, builtHash];
+      return [callType(builtExpr), builtExpr, buildArgs(builtParams, builtHash)];
     }
 
     case HAS_BLOCK_EXPR: {
@@ -732,8 +750,8 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
 export function buildParams(
   exprs: Nullable<NormalizedParams>,
   symbols: Symbols
-): Nullable<WireFormat.Core.Params> {
-  if (exprs === null || !isPresentArray(exprs)) return null;
+): Optional<WireFormat.Core.Params> {
+  if (exprs === null || !isPresentArray(exprs)) return;
 
   return exprs.map((e) => buildExpression(e, 'Strict', symbols)) as WireFormat.Core.ConcatParams;
 }
@@ -745,48 +763,52 @@ export function buildConcat(
   return exprs.map((e) => buildExpression(e, 'AttrValue', symbols)) as WireFormat.Core.ConcatParams;
 }
 
-export function buildHash(exprs: Nullable<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
-  if (exprs === null) return null;
+export function buildHash(
+  exprs: Nullable<NormalizedHash>,
+  symbols: Symbols
+): Optional<WireFormat.Core.Hash> {
+  if (exprs === null) return;
 
-  let out: [string[], WireFormat.Expression[]] = [[], []];
+  let keys: Optional<PresentArray<string>>;
+  let values: Optional<PresentArray<WireFormat.Expression>>;
 
   for (const [key, value] of Object.entries(exprs)) {
-    out[0].push(key);
-    out[1].push(buildExpression(value, 'Strict', symbols));
+    keys = upsert(keys, key);
+    values = upsert(values, buildExpression(value, 'Strict', symbols));
   }
 
-  return out as WireFormat.Core.Hash;
+  return keys && values ? [keys, values] : undefined;
+}
+
+export function buildBlock(
+  block: NormalizedBlock,
+  symbols: Symbols,
+  locals: number[] = []
+): WireFormat.SerializedInlineBlock {
+  return [buildNormalizedStatements(block, symbols), locals];
 }
 
 export function buildBlocks(
   blocks: NormalizedBlocks,
   blockParams: Nullable<string[]>,
   parent: Symbols
-): WireFormat.Core.Blocks {
-  let keys: string[] = [];
-  let values: WireFormat.SerializedInlineBlock[] = [];
+): Optional<WireFormat.Core.Blocks> {
+  let keys: Optional<PresentArray<string>>;
+  let values: Optional<PresentArray<WireFormat.SerializedInlineBlock>>;
 
   for (const [name, block] of Object.entries(blocks)) {
-    keys.push(name);
+    keys = upsert(keys, name);
 
     if (name === 'default') {
       let symbols = parent.child(blockParams || []);
 
-      values.push(buildBlock(block, symbols, symbols.paramSymbols));
+      values = upsert(values, buildBlock(block, symbols, symbols.paramSymbols));
     } else {
-      values.push(buildBlock(block, parent, []));
+      values = upsert(values, buildBlock(block, parent, []));
     }
   }
 
-  return [keys, values];
-}
-
-function buildBlock(
-  block: NormalizedBlock,
-  symbols: Symbols,
-  locals: number[] = []
-): WireFormat.SerializedInlineBlock {
-  return [buildNormalizedStatements(block, symbols), locals];
+  return keys && values ? [keys, values] : undefined;
 }
 
 /**
@@ -835,4 +857,109 @@ export function callType(expr: Expressions.Expression): CallLexicalOpcode | Call
     default:
       return Op.CallLexical;
   }
+}
+
+export function buildComponentArgs(
+  splattributes: Optional<WireFormat.Core.Splattributes>,
+  hash: Optional<WireFormat.Core.Hash>,
+  blocks: Optional<WireFormat.Core.Blocks>
+): Optional<WireFormat.Core.ComponentArgs> {
+  return compact({
+    splattributes,
+    hash,
+    blocks,
+  });
+}
+
+export function buildBlockArgs(
+  params: Optional<WireFormat.Core.Params>,
+  hash: Optional<WireFormat.Core.Hash>,
+  blocks: Optional<WireFormat.Core.Blocks>
+): Optional<WireFormat.Core.BlockArgs> {
+  return compact({
+    params,
+    hash,
+    blocks,
+  });
+}
+
+function buildArgs(
+  params: Optional<WireFormat.Core.Params>,
+  hash: Optional<WireFormat.Core.Hash>
+): Optional<WireFormat.Core.Args> {
+  if (!params && !hash) return undefined;
+
+  const args: Partial<WireFormat.Core.Args> = {};
+
+  if (params) args.params = params;
+  if (hash) args.hash = hash;
+
+  return args as WireFormat.Core.Args;
+}
+
+export function upsert<T>(array: Optional<PresentArray<T>>, ...values: PresentArray<T>) {
+  if (array) {
+    array.push(...values);
+  } else {
+    array = [...values];
+  }
+
+  return array;
+}
+
+type CompactObject<T> = Simplify<
+  RequireAtLeastOne<
+    {
+      [K in keyof T as undefined extends T[K] ? never : K]: T[K];
+    } & {
+      [K in keyof T as undefined extends T[K] ? K : never]?: NonNullable<T[K]>;
+    }
+  >
+>;
+
+/**
+ * Remove all `undefined` values from an object.
+ *
+ * The return type:
+ *
+ * - removes all properties whose value is literally `undefined`.
+ * - replaces properties whose value is `T | undefined` with an optional property with the value
+ *   `T`.
+ *
+ * Example:
+ *
+ * ```ts
+ * interface Foo {
+ *   foo?: number;
+ *   bar: number | undefined;
+ *   baz: number;
+ *   bat?: number | undefined;
+ * }
+ *
+ * const obj: Foo = {
+ *   bar: 123,
+ *   baz: 456,
+ *   bat: undefined
+ * };
+ *
+ * const compacted = compact(obj);
+ *
+ * // compacted is now:
+ * interface Foo {
+ *   foo?: number;
+ *   bar?: number;
+ *   baz: number;
+ *   bat?: number;
+ * }
+ * ```
+ */
+export function compact<T extends object>(
+  object: T | undefined
+): Optional<Simplify<CompactObject<T>>> {
+  if (!object) return;
+
+  const entries = Object.entries(object).filter(([_, v]) => v !== undefined);
+  if (entries.length === 0) return undefined;
+
+  return Object.fromEntries(entries) as Simplify<CompactObject<T>> | undefined;
 }

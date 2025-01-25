@@ -59,7 +59,7 @@ export function StdAppend(
         });
 
         when(ContentType.Helper, () => {
-          CallDynamic(encode, null, null, () => {
+          CallDynamic(encode, undefined, () => {
             encode.op(VM_INVOKE_STATIC_OP, nonDynamicAppend);
           });
         });

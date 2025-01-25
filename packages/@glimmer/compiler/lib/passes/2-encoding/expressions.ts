@@ -1,16 +1,11 @@
-import type { PresentArray, WireFormat } from '@glimmer/interfaces';
+import type { Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
-import {
-  assertPresentArray,
-  isPresentArray,
-  localAssert,
-  mapPresentArray,
-} from '@glimmer/debug-util';
+import { assertPresentArray, localAssert, mapPresentArray } from '@glimmer/debug-util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type * as mir from './mir';
 
-import { callType } from '../../builder/builder';
+import { callType, compact } from '../../builder/builder';
 
 export type HashPair = [string, WireFormat.Expression];
 
@@ -77,13 +72,7 @@ export class ExpressionEncoder {
   }
 
   Curry({ definition, curriedType, args }: mir.Curry): WireFormat.Expressions.Curry {
-    return [
-      SexpOpcodes.Curry,
-      EXPR.expr(definition),
-      curriedType,
-      EXPR.Positional(args.positional),
-      EXPR.NamedArguments(args.named),
-    ];
+    return [SexpOpcodes.Curry, EXPR.expr(definition), curriedType, this.Args(args)];
   }
 
   Local({
@@ -112,18 +101,18 @@ export class ExpressionEncoder {
   CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.SomeHelper {
     const calleeExpr = EXPR.expr(callee);
 
-    return [callType(calleeExpr), calleeExpr, ...EXPR.Args(args)];
+    return [callType(calleeExpr), calleeExpr, EXPR.Args(args)];
   }
 
   Tail({ members }: mir.Tail): PresentArray<string> {
     return mapPresentArray(members, (member) => member.chars);
   }
 
-  Args({ positional, named }: mir.Args): WireFormat.Core.Args {
-    return [this.Positional(positional), this.NamedArguments(named)];
+  Args(node: mir.Args): Optional<WireFormat.Core.Args> {
+    return this.#args(node.positional, node.named);
   }
 
-  Positional({ list }: mir.Positional): WireFormat.Core.Params {
+  Positional({ list }: mir.Positional): Optional<WireFormat.Core.Params> {
     return list.map((l) => EXPR.expr(l)).toPresentArray();
   }
 
@@ -131,10 +120,10 @@ export class ExpressionEncoder {
     return [key.chars, EXPR.expr(value)];
   }
 
-  NamedArguments({ entries: pairs }: mir.NamedArguments): WireFormat.Core.Hash {
-    let list = pairs.toArray();
+  NamedArguments({ entries: pairs }: mir.NamedArguments): Optional<WireFormat.Core.Hash> {
+    let list = pairs.toPresentArray();
 
-    if (isPresentArray(list)) {
+    if (list) {
       let names: string[] = [];
       let values: WireFormat.Expression[] = [];
 
@@ -148,8 +137,6 @@ export class ExpressionEncoder {
       assertPresentArray(values);
 
       return [names, values];
-    } else {
-      return null;
     }
   }
 
@@ -173,6 +160,16 @@ export class ExpressionEncoder {
 
   Log({ positional }: mir.Log): WireFormat.Expressions.Log {
     return [SexpOpcodes.Log, this.Positional(positional)];
+  }
+
+  #args(
+    positionalNode: mir.Positional,
+    namedNode: mir.NamedArguments
+  ): Optional<WireFormat.Core.Args> {
+    const positional = this.Positional(positionalNode);
+    const named = this.NamedArguments(namedNode);
+
+    return compact({ params: positional, hash: named });
   }
 }
 

@@ -2,6 +2,9 @@ import type {
   AttrOpcode,
   ComponentAttrOpcode,
   DynamicAttrOpcode,
+  Nullable,
+  Optional,
+  SerializedInlineBlock,
   StaticAttrOpcode,
   StaticComponentAttrOpcode,
   TrustingComponentAttrOpcode,
@@ -9,7 +12,8 @@ import type {
   WellKnownAttrName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { exhausted } from '@glimmer/debug-util';
+import type { BlockSymbolTable } from '@glimmer/syntax';
+import { assertPresentArray, exhausted } from '@glimmer/debug-util';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
@@ -17,7 +21,7 @@ import { SexpOpcodes } from '@glimmer/wire-format';
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
-import { buildAppend, callType } from '../../builder/builder';
+import { buildAppend, buildComponentArgs, callType, compact } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
 
@@ -111,8 +115,18 @@ export class ContentEncoder {
     }
   }
 
+  BlockArgs(
+    argsNode: mir.Args,
+    blocksNode: Nullable<mir.NamedBlocks>
+  ): Optional<WireFormat.Core.BlockArgs> {
+    return compact({
+      ...EXPR.Args(argsNode),
+      blocks: blocksNode ? this.NamedBlocks(blocksNode) : undefined,
+    });
+  }
+
   InvokeBlock({ head, args, blocks }: mir.InvokeBlock): WireFormat.Statements.Block {
-    return [SexpOpcodes.Block, EXPR.expr(head), ...EXPR.Args(args), CONTENT.NamedBlocks(blocks)];
+    return [SexpOpcodes.Block, EXPR.expr(head), this.BlockArgs(args, blocks)];
   }
 
   AppendTrustedHTML({ html }: mir.AppendTrustedHTML): WireFormat.Statements.TrustingAppend {
@@ -138,20 +152,16 @@ export class ContentEncoder {
     ]);
   }
 
-  Component({ tag, params, args, blocks }: mir.Component): WireFormat.Statements.Component {
+  Component({ tag, params, args: named, blocks }: mir.Component): WireFormat.Statements.Component {
     let wireTag = EXPR.expr(tag);
     let wirePositional = CONTENT.ElementParameters(params);
-    let wireNamed = EXPR.NamedArguments(args);
+    let wireNamed = EXPR.NamedArguments(named);
 
     let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
 
-    return [
-      SexpOpcodes.Component,
-      wireTag,
-      wirePositional.toPresentArray(),
-      wireNamed,
-      wireNamedBlocks,
-    ];
+    const args = buildComponentArgs(wirePositional.toPresentArray(), wireNamed, wireNamedBlocks);
+
+    return [SexpOpcodes.Component, wireTag, args];
   }
 
   ElementParameters({ body }: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
@@ -173,32 +183,38 @@ export class ContentEncoder {
             ? SexpOpcodes.LexicalModifier
             : SexpOpcodes.ResolvedModifier,
           EXPR.expr(param.callee),
-          ...EXPR.Args(param.args),
+          EXPR.Args(param.args),
         ];
       }
     }
   }
 
-  NamedBlocks({ blocks }: mir.NamedBlocks): WireFormat.Core.Blocks {
+  NamedBlocks({ blocks: blocksNode }: mir.NamedBlocks): Optional<WireFormat.Core.Blocks> {
+    const blocks = blocksNode.toPresentArray();
+    if (!blocks) return;
+
     let names: string[] = [];
     let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
 
-    for (let block of blocks.toArray()) {
-      let [name, serializedBlock] = CONTENT.NamedBlock(block);
+    for (const block of blocks) {
+      const [name, serializedBlock] = this.NamedBlock(block);
 
       names.push(name);
       serializedBlocks.push(serializedBlock);
     }
 
-    return names.length > 0 ? [names, serializedBlocks] : null;
+    assertPresentArray(names);
+    assertPresentArray(serializedBlocks);
+
+    return [names, serializedBlocks];
   }
 
   NamedBlock({ name, body, scope }: mir.NamedBlock): WireFormat.Core.NamedBlock {
-    let nameChars = name.chars;
-    if (nameChars === 'inverse') {
-      nameChars = 'else';
-    }
-    return [nameChars, [CONTENT.list(body), scope.slots]];
+    return [name.chars === 'inverse' ? 'else' : name.chars, this.namedBlock(body, scope)];
+  }
+
+  namedBlock(body: mir.Statement[], scope: BlockSymbolTable): SerializedInlineBlock {
+    return [CONTENT.list(body), scope.slots];
   }
 
   If({ condition, block, inverse }: mir.If): WireFormat.Statements.If {
@@ -225,7 +241,11 @@ export class ContentEncoder {
   }
 
   WithDynamicVars({ named, block }: mir.WithDynamicVars): WireFormat.Statements.WithDynamicVars {
-    return [SexpOpcodes.WithDynamicVars, EXPR.NamedArguments(named), CONTENT.NamedBlock(block)[1]];
+    return [
+      SexpOpcodes.WithDynamicVars,
+      EXPR.NamedArguments(named),
+      CONTENT.namedBlock(block.body, block.scope),
+    ];
   }
 
   InvokeComponent({
@@ -240,9 +260,7 @@ export class ContentEncoder {
         ? SexpOpcodes.InvokeLexicalComponent
         : SexpOpcodes.InvokeResolvedComponent,
       expr,
-      EXPR.Positional(args.positional),
-      EXPR.NamedArguments(args.named),
-      blocks ? CONTENT.NamedBlocks(blocks) : null,
+      this.BlockArgs(args, blocks),
     ];
   }
 }

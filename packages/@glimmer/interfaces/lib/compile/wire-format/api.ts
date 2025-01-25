@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-namespace */
+import type { RequireAtLeastOne, UndefinedOnPartialDeep } from 'type-fest';
+
 import type { PresentArray } from '../../array';
-import type { Nullable } from '../../core';
+import type { Nullable, Optional } from '../../core';
 import type { CurriedType } from '../../curry';
 import type {
   AppendOpcode,
@@ -80,17 +82,25 @@ export namespace Core {
 
   export type DebugSymbols = [locals: Record<string, number>, upvars: Record<string, number>];
 
-  export type CallArgs = [Params, Hash];
   export type Path = [string, ...string[]];
-  export type ConcatParams = PresentArray<Expression>;
-  export type Params = Nullable<ConcatParams>;
-  export type Hash = Nullable<[PresentArray<string>, PresentArray<Expression>]>;
-  export type Blocks = Nullable<[string[], SerializedInlineBlock[]]>;
-  export type Args = [Params, Hash];
+  export type Params = PresentArray<Expression>;
+  export type ConcatParams = Params;
+  export type Hash = [PresentArray<string>, PresentArray<Expression>];
+  export type Blocks = [PresentArray<string>, PresentArray<SerializedInlineBlock>];
+  export type Args = RequireAtLeastOne<{ params: Params; hash: Hash }>;
+  export type CallArgs = Args;
   export type NamedBlock = [string, SerializedInlineBlock];
-  export type ElementParameters = Nullable<PresentArray<ElementParameter>>;
+  export type Splattributes = PresentArray<ElementParameter>;
 
-  export type Syntax = Path | Params | ConcatParams | Hash | Blocks | Args;
+  export type Syntax = Path | Params | Hash | Blocks | Args;
+
+  export type ComponentArgs = RequireAtLeastOne<{
+    splattributes?: Splattributes;
+    hash?: Hash;
+    blocks?: Blocks;
+  }>;
+
+  export type BlockArgs = RequireAtLeastOne<{ params: Params; hash: Hash; blocks: Blocks }>;
 }
 
 export type CoreSyntax = Core.Syntax;
@@ -164,11 +174,11 @@ export namespace Expressions {
   export type Expression = TupleExpression | Value | undefined;
 
   export type Concat = [ConcatOpcode, Core.ConcatParams];
-  export type ResolvedHelper = [CallResolvedOpcode, Expression, Nullable<Params>, Hash];
-  export type ConstantHelper = [CallLexicalOpcode, Expression, Nullable<Params>, Hash];
+  export type ResolvedHelper = [CallResolvedOpcode, Expression, args?: Optional<Core.Args>];
+  export type ConstantHelper = [CallLexicalOpcode, Expression, args?: Optional<Core.Args>];
   export type HasBlock = [HasBlockOpcode, Expression];
   export type HasBlockParams = [HasBlockParamsOpcode, Expression];
-  export type Curry = [CurryOpcode, Expression, CurriedType, Params, Hash];
+  export type Curry = [CurryOpcode, Expression, CurriedType, args?: Optional<Core.Args>];
 
   export type SomeHelper = ResolvedHelper | ConstantHelper;
 
@@ -183,7 +193,7 @@ export namespace Expressions {
 
   export type GetDynamicVar = [op: GetDynamicVarOpcode, value: Expression];
 
-  export type Log = [op: LogOpcode, positional: Params];
+  export type Log = [op: LogOpcode, positional?: Optional<Params>];
 }
 
 export type Expression = Expressions.Expression;
@@ -231,15 +241,13 @@ export namespace Statements {
   export type Append = [AppendOpcode, Expression];
   export type TrustingAppend = [TrustingAppendOpcode, Expression];
   export type Comment = [CommentOpcode, string];
-  export type LexicalModifier = [LexicalModifierOpcode, Expression, Params, Hash];
-  export type ResolvedModifier = [ResolvedModifierOpcode, Expression, Params, Hash];
-  export type Block = [BlockOpcode, Expression, Params, Hash, Blocks];
+  export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.Args>];
+  export type ResolvedModifier = [ResolvedModifierOpcode, Expression, args?: Optional<Core.Args>];
+  export type Block = [BlockOpcode, Expression, args?: Optional<Core.BlockArgs>];
   export type Component = [
     op: ComponentOpcode,
     tag: Expression,
-    parameters: Core.ElementParameters,
-    args: Hash,
-    blocks: Blocks,
+    args?: Optional<Core.ComponentArgs>,
   ];
   export type OpenElement = [OpenElementOpcode, string | WellKnownTagName];
   export type OpenElementWithSplat = [OpenElementWithSplatOpcode, string | WellKnownTagName];
@@ -259,7 +267,7 @@ export namespace Statements {
   export type AnyStaticAttr = StaticAttr | StaticComponentAttr;
 
   export type AttrSplat = [AttrSplatOpcode, YieldTo];
-  export type Yield = [YieldOpcode, YieldTo, Nullable<Params>];
+  export type Yield = [YieldOpcode, YieldTo, params?: Optional<Params>];
   export type DynamicArg = [DynamicArgOpcode, string, Expression];
   export type StaticArg = [StaticArgOpcode, string, Expression];
 
@@ -303,28 +311,28 @@ export namespace Statements {
     inverse: Nullable<SerializedInlineBlock>,
   ];
 
-  export type Let = [op: LetOpcode, positional: Core.Params, block: SerializedInlineBlock];
+  export type Let = [
+    op: LetOpcode,
+    positional: Optional<Core.Params>,
+    block: SerializedInlineBlock,
+  ];
 
   export type WithDynamicVars = [
     op: WithDynamicVarsOpcode,
-    args: Core.Hash,
+    args: Optional<Core.Hash>,
     block: SerializedInlineBlock,
   ];
 
   export type InvokeLexicalComponent = [
     op: InvokeLexicalComponentOpcode,
     definition: Expression,
-    positional: Core.Params,
-    named: Core.Hash,
-    blocks: Blocks | null,
+    args?: Optional<Core.BlockArgs>,
   ];
 
   export type InvokeResolvedComponent = [
     op: InvokeResolvedComponentOpcode,
     definition: Expression,
-    positional: Core.Params,
-    named: Core.Hash,
-    blocks: Blocks | null,
+    args?: Optional<Core.BlockArgs>,
   ];
 
   /**
@@ -333,6 +341,7 @@ export namespace Statements {
   export type Statement =
     | SomeAppend
     | SomeModifier
+    | SomeInvokeComponent
     | Comment
     | Block
     | Component
@@ -350,8 +359,7 @@ export namespace Statements {
     | If
     | Each
     | Let
-    | WithDynamicVars
-    | SomeInvokeComponent;
+    | WithDynamicVars;
 
   export type Attribute =
     | StaticAttr
@@ -383,7 +391,7 @@ export type SyntaxWithInternal =
   | SerializedTemplateBlock
   | Core.CallArgs
   | Core.NamedBlock
-  | Core.ElementParameters;
+  | Core.Splattributes;
 
 /**
  * A JSON object that the Block was serialized into.
@@ -432,3 +440,5 @@ export interface SerializedTemplateWithLazyBlock {
  * concatenated into a Javascript module.
  */
 export type TemplateJavascript = string;
+
+export type Buildable<T extends unknown[]> = UndefinedOnPartialDeep<T>;

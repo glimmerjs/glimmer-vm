@@ -5,6 +5,7 @@ import type {
   LayoutWithContext,
   NamedBlocks,
   Nullable,
+  Optional,
   WireFormat,
 } from '@glimmer/interfaces';
 import type { SavedRegister } from '@glimmer/vm';
@@ -69,9 +70,9 @@ import { CompileArgs, CompilePositional } from './shared';
 export const ATTRS_BLOCK = '&attrs';
 
 interface AnyComponent {
-  elementBlock: Nullable<WireFormat.SerializedInlineBlock>;
-  positional: WireFormat.Core.Params;
-  named: WireFormat.Core.Hash;
+  splattributes?: Optional<WireFormat.SerializedInlineBlock>;
+  positional?: Optional<WireFormat.Core.Params>;
+  named?: Optional<WireFormat.Core.Hash>;
   blocks: NamedBlocks;
 }
 
@@ -104,35 +105,32 @@ export interface Component extends AnyComponent {
 export function InvokeComponent(
   encode: EncodeOp,
   component: CompileTimeComponent,
-  _elementBlock: WireFormat.Core.ElementParameters,
-  positional: WireFormat.Core.Params,
-  named: WireFormat.Core.Hash,
-  _blocks: WireFormat.Core.Blocks
+  args?: Optional<WireFormat.Core.ComponentArgs>,
+  positional?: Optional<WireFormat.Core.Params>
 ): void {
   let { compilable, capabilities, handle } = component;
 
-  let elementBlock = _elementBlock
-    ? ([_elementBlock, []] as WireFormat.SerializedInlineBlock)
-    : null;
-  let blocks = namedBlocks(_blocks);
+  let splattributes =
+    args?.splattributes && ([args.splattributes, []] as WireFormat.SerializedInlineBlock);
+  let blocks = namedBlocks(args?.blocks);
 
   if (compilable) {
     encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
     InvokeStaticComponent(encode, {
       capabilities: capabilities,
       layout: compilable,
-      elementBlock,
+      splattributes,
       positional,
-      named,
+      named: args?.hash,
       blocks,
     });
   } else {
     encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
     InvokeNonStaticComponent(encode, {
       capabilities: capabilities,
-      elementBlock,
+      splattributes,
       positional,
-      named,
+      named: args?.hash,
       atNames: true,
       blocks,
     });
@@ -142,17 +140,12 @@ export function InvokeComponent(
 export function InvokeDynamicComponent(
   encode: EncodeOp,
   definition: WireFormat.Core.Expression,
-  _elementBlock: WireFormat.Core.ElementParameters,
-  positional: WireFormat.Core.Params,
-  named: WireFormat.Core.Hash,
-  _blocks: WireFormat.Core.Blocks,
-  atNames: boolean,
-  curried: boolean
+  args: Optional<WireFormat.Core.ComponentArgs>,
+  options?: { positional?: Optional<WireFormat.Core.Params>; atNames?: boolean; curried?: boolean }
 ): void {
-  let elementBlock = _elementBlock
-    ? ([_elementBlock, []] as WireFormat.SerializedInlineBlock)
-    : null;
-  let blocks = namedBlocks(_blocks);
+  let splattributes =
+    args?.splattributes && ([args.splattributes, []] as WireFormat.SerializedInlineBlock);
+  let blocks = namedBlocks(args?.blocks);
 
   Replayable(
     encode,
@@ -166,7 +159,7 @@ export function InvokeDynamicComponent(
     () => {
       encode.op(VM_JUMP_UNLESS_OP, encode.to('ELSE'));
 
-      if (curried) {
+      if (options?.curried) {
         encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
       } else {
         encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.isStrictMode());
@@ -175,11 +168,11 @@ export function InvokeDynamicComponent(
       encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
       InvokeNonStaticComponent(encode, {
         capabilities: true,
-        elementBlock,
-        positional,
-        named,
-        atNames,
+        splattributes,
+        positional: options?.positional,
+        named: args?.hash,
         blocks,
+        atNames: options?.atNames ?? false,
       });
       encode.mark('ELSE');
     }
@@ -188,7 +181,7 @@ export function InvokeDynamicComponent(
 
 function InvokeStaticComponent(
   encode: EncodeOp,
-  { capabilities, layout, elementBlock, positional, named, blocks }: StaticComponent
+  { capabilities, layout, splattributes, positional, named, blocks }: StaticComponent
 ): void {
   let { symbolTable } = layout;
 
@@ -197,7 +190,7 @@ function InvokeStaticComponent(
   if (bailOut) {
     InvokeNonStaticComponent(encode, {
       capabilities,
-      elementBlock,
+      splattributes,
       positional,
       named,
       atNames: true,
@@ -226,11 +219,11 @@ function InvokeStaticComponent(
   let blockNames = blocks.names;
 
   // Starting with the attrs block, if it exists and is referenced in the component
-  if (elementBlock !== null) {
+  if (splattributes) {
     let symbol = symbols.indexOf(ATTRS_BLOCK);
 
     if (symbol !== -1) {
-      PushYieldableBlock(encode, elementBlock);
+      PushYieldableBlock(encode, splattributes);
       blockSymbols.push(symbol);
     }
   }
@@ -264,7 +257,7 @@ function InvokeStaticComponent(
     // in the invoked component (e.g. they are used within its template), we push
     // that symbol. If not, we still push the expression as it may be used, and
     // we store the symbol as -1 (this is used later).
-    if (named !== null) {
+    if (named) {
       names = named[0];
       let val = named[1];
 
@@ -284,7 +277,7 @@ function InvokeStaticComponent(
     // And push an extra pop operation to remove the args before we begin setting
     // variables on the local context
     argSymbols.push(-1);
-  } else if (named !== null) {
+  } else if (named) {
     // If the component does not have the `createArgs` capability, then the only
     // expressions we need to push onto the stack are those that are actually
     // referenced in the template of the invoked component (e.g. have symbols).
@@ -345,7 +338,7 @@ function InvokeStaticComponent(
   }
 
   // if any positional params exist, pop them off the stack as well
-  if (positional !== null) {
+  if (positional) {
     encode.op(VM_POP_OP, positional.length);
   }
 
@@ -372,7 +365,15 @@ function InvokeStaticComponent(
 
 export function InvokeNonStaticComponent(
   encode: EncodeOp,
-  { capabilities, elementBlock, positional, named, atNames, blocks: namedBlocks, layout }: Component
+  {
+    capabilities,
+    splattributes,
+    positional,
+    named,
+    atNames,
+    blocks: namedBlocks,
+    layout,
+  }: Component
 ): void {
   let bindableBlocks = !!namedBlocks;
   let bindableAtNames =
@@ -380,7 +381,7 @@ export function InvokeNonStaticComponent(
     hasCapability(capabilities, InternalComponentCapabilities.prepareArgs) ||
     !!(named && named[0].length !== 0);
 
-  let blocks = namedBlocks.with('attrs', elementBlock);
+  let blocks = namedBlocks.with('attrs', splattributes);
 
   encode.op(VM_FETCH_OP, $s0);
   encode.op(VM_DUP_OP, $sp, 1);
@@ -421,7 +422,7 @@ export function WrappedComponent(
   encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
   encode.op(VM_OPEN_DYNAMIC_ELEMENT_OP);
   encode.op(VM_DID_CREATE_ELEMENT_OP, $s0);
-  YieldBlock(encode, attrsBlockNumber, null);
+  YieldBlock(encode, attrsBlockNumber, undefined);
   encode.op(VM_FLUSH_ELEMENT_OP);
   encode.mark('BODY');
   InvokeStaticBlock(encode, [layout.block[0], []]);
