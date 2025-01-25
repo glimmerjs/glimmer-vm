@@ -88,7 +88,7 @@ export type HandleResult = OkHandle | ErrHandle;
 export interface NamedBlocks {
   get(name: string): Nullable<SerializedInlineBlock>;
   has(name: string): boolean;
-  with(name: string, block: Nullable<SerializedInlineBlock>): NamedBlocks;
+  with(name: string, block: Optional<SerializedInlineBlock>): NamedBlocks;
   hasAny: boolean;
   names: string[];
 }

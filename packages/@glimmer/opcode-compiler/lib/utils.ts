@@ -1,15 +1,21 @@
-import type { NamedBlocks, Nullable, SerializedInlineBlock, WireFormat } from '@glimmer/interfaces';
+import type {
+  NamedBlocks,
+  Nullable,
+  Optional,
+  SerializedInlineBlock,
+  WireFormat,
+} from '@glimmer/interfaces';
 import { unwrap } from '@glimmer/debug-util';
 import { assign, dict, enumerate } from '@glimmer/util';
 
 interface NamedBlocksDict {
-  [key: string]: Nullable<WireFormat.SerializedInlineBlock>;
+  [key: string]: Optional<WireFormat.SerializedInlineBlock>;
 }
 
 export class NamedBlocksImpl implements NamedBlocks {
   public names: string[];
 
-  constructor(private blocks: Nullable<NamedBlocksDict>) {
+  constructor(private blocks: Optional<NamedBlocksDict>) {
     this.names = blocks ? Object.keys(blocks) : [];
   }
 
@@ -21,10 +27,10 @@ export class NamedBlocksImpl implements NamedBlocks {
 
   has(name: string): boolean {
     let { blocks } = this;
-    return blocks !== null && name in blocks;
+    return blocks !== undefined && name in blocks;
   }
 
-  with(name: string, block: Nullable<SerializedInlineBlock>): NamedBlocks {
+  with(name: string, block: Optional<SerializedInlineBlock>): NamedBlocks {
     let { blocks } = this;
 
     if (blocks) {
@@ -35,14 +41,14 @@ export class NamedBlocksImpl implements NamedBlocks {
   }
 
   get hasAny(): boolean {
-    return this.blocks !== null;
+    return this.blocks !== undefined;
   }
 }
 
-export const EMPTY_BLOCKS = new NamedBlocksImpl(null);
+export const EMPTY_BLOCKS = new NamedBlocksImpl(undefined);
 
-export function namedBlocks(blocks: WireFormat.Core.Blocks): NamedBlocks {
-  if (blocks === null) {
+export function namedBlocks(blocks: Optional<WireFormat.Core.Blocks>): NamedBlocks {
+  if (!blocks) {
     return EMPTY_BLOCKS;
   }
 

@@ -1,23 +1,21 @@
 import type {
   CompileTimeComponent,
+  Optional,
   StatementSexpOpcode,
   WellKnownAttrName,
   WellKnownTagName,
   WireFormat,
 } from '@glimmer/interfaces';
+import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import {
-  VM_CLOSE_ELEMENT_OP,
-  VM_COMMENT_OP,
   VM_COMPONENT_ATTR_OP,
   VM_CONSTANT_REFERENCE_OP,
   VM_DEBUGGER_OP,
   VM_DUP_OP,
   VM_DYNAMIC_ATTR_OP,
   VM_DYNAMIC_CONTENT_TYPE_OP,
-  VM_DYNAMIC_MODIFIER_OP,
   VM_ENTER_LIST_OP,
   VM_EXIT_LIST_OP,
-  VM_FLUSH_ELEMENT_OP,
   VM_INVOKE_STATIC_OP,
   VM_ITERATE_OP,
   VM_JUMP_OP,
@@ -40,8 +38,6 @@ import {
 import { $fp, $sp, ContentType } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
-import type { EncodeOp } from '../opcode-builder/encoder';
-
 import {
   InvokeStaticBlock,
   InvokeStaticBlockWithStack,
@@ -63,6 +59,7 @@ import {
   PushPrimitiveReference,
 } from '../opcode-builder/helpers/vm';
 import { namedBlocks } from '../utils';
+import { CloseElement, Comment, FlushElement, LexicalModifier } from './api';
 import { Compilers } from './compilers';
 
 export const STATEMENTS = new Compilers<StatementSexpOpcode>();
@@ -82,31 +79,28 @@ export function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
 
-export const Comment = (encode: EncodeOp, comment: string): void =>
-  encode.op(VM_COMMENT_OP, encode.constant(comment));
-export const CloseElement = (encode: EncodeOp): void => encode.op(VM_CLOSE_ELEMENT_OP);
-export const FlushElement = (encode: EncodeOp): void => encode.op(VM_FLUSH_ELEMENT_OP);
-
 STATEMENTS.add(SexpOpcodes.Comment, (op, [, comment]) => Comment(op, comment));
 STATEMENTS.add(SexpOpcodes.CloseElement, (op) => CloseElement(op));
 STATEMENTS.add(SexpOpcodes.FlushElement, (op) => FlushElement(op));
 
-STATEMENTS.add(SexpOpcodes.ResolvedModifier, (encode, [, expression, positional, named]) => {
+STATEMENTS.add(SexpOpcodes.ResolvedModifier, (encode, [, expression, args]) => {
   encode.modifier(expression, (handle: number) => {
     encode.op(VM_PUSH_FRAME_OP);
-    SimpleArgs(encode, positional, named, false);
+    SimpleArgs(encode, args, false);
     encode.op(VM_MODIFIER_OP, handle);
     encode.op(VM_POP_FRAME_OP);
   });
 });
 
-STATEMENTS.add(SexpOpcodes.LexicalModifier, (encode, [, expression, positional, named]) => {
+STATEMENTS.add(SexpOpcodes.LexicalModifier, (encode, [, expression, args]) => {
   expr(encode, expression);
-  encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, positional, named, false);
-  encode.op(VM_DUP_OP, $fp, 1);
-  encode.op(VM_DYNAMIC_MODIFIER_OP);
-  encode.op(VM_POP_FRAME_OP);
+  LexicalModifier(
+    encode,
+    () => expr(encode, expression),
+    () => {
+      return SimpleArgs(encode, args, false);
+    }
+  );
 });
 
 STATEMENTS.add(SexpOpcodes.StaticAttr, (encode, [, name, value, namespace]) => {
@@ -176,21 +170,21 @@ STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, (encode, [, tag]) => {
   encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
-STATEMENTS.add(SexpOpcodes.Component, (encode, [, expr, elementBlock, named, blocks]) => {
+STATEMENTS.add(SexpOpcodes.Component, (encode, [, expr, args]) => {
   if (isGetFreeComponent(expr)) {
     encode.component(expr, (component: CompileTimeComponent) => {
-      InvokeComponent(encode, component, elementBlock, null, named, blocks);
+      InvokeComponent(encode, component, args);
     });
   } else {
     // otherwise, the component name was an expression, so resolve the expression
     // and invoke it as a dynamic component
-    InvokeDynamicComponent(encode, expr, elementBlock, null, named, blocks, true, true);
+    InvokeDynamicComponent(encode, expr, args, { atNames: true, curried: true });
   }
 });
 
 STATEMENTS.add(SexpOpcodes.Yield, (encode, [, to, params]) => YieldBlock(encode, to, params));
 
-STATEMENTS.add(SexpOpcodes.AttrSplat, (encode, [, to]) => YieldBlock(encode, to, null));
+STATEMENTS.add(SexpOpcodes.AttrSplat, (encode, [, to]) => YieldBlock(encode, to));
 
 STATEMENTS.add(SexpOpcodes.Debugger, (encode, [, locals, upvars, lexical]) => {
   encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
@@ -199,12 +193,12 @@ STATEMENTS.add(SexpOpcodes.Debugger, (encode, [, locals, upvars, lexical]) => {
 STATEMENTS.add(SexpOpcodes.UnknownAppend, (encode, [, value]) => {
   encode.appendAny(value, {
     ifComponent(component: CompileTimeComponent) {
-      InvokeComponent(encode, component, null, null, null, null);
+      InvokeComponent(encode, component);
     },
 
     ifHelper(handle: number) {
       encode.op(VM_PUSH_FRAME_OP);
-      Call(encode, handle, null, null);
+      Call(encode, handle);
       encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
       encode.op(VM_POP_FRAME_OP);
     },
@@ -226,7 +220,7 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
       encode.constant(value === null || value === undefined ? '' : String(value))
     );
   } else if (value[0] === SexpOpcodes.CallLexical) {
-    let [, expression, positional, named] = value;
+    let [, expression, args] = value;
 
     SwitchCases(
       encode,
@@ -240,31 +234,30 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
           encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
           InvokeNonStaticComponent(encode, {
             capabilities: true,
-            elementBlock: null,
-            positional,
-            named,
+            positional: args?.params,
+            named: args?.hash,
             atNames: false,
-            blocks: namedBlocks(null),
+            blocks: namedBlocks(undefined),
           });
         });
 
         when(ContentType.Helper, () => {
-          CallDynamic(encode, positional, named, () => {
+          CallDynamic(encode, args, () => {
             encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
           });
         });
       }
     );
   } else if (value[0] === SexpOpcodes.CallResolved) {
-    let [, expression, positional, named] = value;
+    let [, expression, args] = value;
 
     encode.appendInvokable(expression, {
       ifComponent(component: CompileTimeComponent) {
-        InvokeComponent(encode, component, null, positional, hashToArgs(named), null);
+        InvokeComponent(encode, component, compact({ hash: hashToArgs(args?.hash) }), args?.params);
       },
       ifHelper(handle: number) {
         encode.op(VM_PUSH_FRAME_OP);
-        Call(encode, handle, positional, named);
+        Call(encode, handle, args);
         encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
         encode.op(VM_POP_FRAME_OP);
       },
@@ -291,13 +284,23 @@ STATEMENTS.add(SexpOpcodes.TrustingAppend, (encode, [, value]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.Block, (encode, [, expr, positional, named, blocks]) => {
+STATEMENTS.add(SexpOpcodes.Block, (encode, [, expr, args]) => {
   if (isGetFreeComponent(expr)) {
     encode.component(expr, (component: CompileTimeComponent) => {
-      InvokeComponent(encode, component, null, positional, hashToArgs(named), blocks);
+      InvokeComponent(
+        encode,
+        component,
+        compact({
+          hash: hashToArgs(args?.hash),
+          blocks: args?.blocks,
+        }),
+        args?.params
+      );
     });
   } else {
-    InvokeDynamicComponent(encode, expr, null, positional, named, blocks, false, false);
+    InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
+      positional: args?.params,
+    });
   }
 });
 
@@ -408,24 +411,82 @@ STATEMENTS.add(SexpOpcodes.WithDynamicVars, (encode, [, named, block]) => {
   }
 });
 
-STATEMENTS.add(
-  SexpOpcodes.InvokeLexicalComponent,
-  (encode, [, expr, positional, named, blocks]) => {
-    InvokeDynamicComponent(encode, expr, null, positional, named, blocks, false, false);
-  }
-);
+STATEMENTS.add(SexpOpcodes.InvokeLexicalComponent, (encode, [, expr, args]) => {
+  InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
+    positional: args?.params,
+  });
+});
 
-STATEMENTS.add(
-  SexpOpcodes.InvokeResolvedComponent,
-  (encode, [, expr, positional, named, blocks]) => {
-    encode.component(expr, (component: CompileTimeComponent) => {
-      InvokeComponent(encode, component, null, positional, hashToArgs(named), blocks);
-    });
-  }
-);
+STATEMENTS.add(SexpOpcodes.InvokeResolvedComponent, (encode, [, expr, args]) => {
+  encode.component(expr, (component: CompileTimeComponent) => {
+    InvokeComponent(
+      encode,
+      component,
+      compact({ hash: hashToArgs(args?.hash), blocks: args?.blocks }),
+      args?.params
+    );
+  });
+});
 
-function hashToArgs(hash: WireFormat.Core.Hash | null): WireFormat.Core.Hash | null {
-  if (hash === null) return null;
+function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
+  if (!hash) return;
   let names = hash[0].map((key) => `@${key}`);
   return [names as [string, ...string[]], hash[1]];
+}
+
+type CompactObject<T> = Simplify<
+  RequireAtLeastOne<
+    {
+      [K in keyof T as undefined extends T[K] ? never : K]: T[K];
+    } & {
+      [K in keyof T as undefined extends T[K] ? K : never]?: NonNullable<T[K]>;
+    }
+  >
+>;
+
+/**
+ * Remove all `undefined` values from an object.
+ *
+ * The return type:
+ *
+ * - removes all properties whose value is literally `undefined`.
+ * - replaces properties whose value is `T | undefined` with an optional property with the value
+ *   `T`.
+ *
+ * Example:
+ *
+ * ```ts
+ * interface Foo {
+ *   foo?: number;
+ *   bar: number | undefined;
+ *   baz: number;
+ *   bat?: number | undefined;
+ * }
+ *
+ * const obj: Foo = {
+ *   bar: 123,
+ *   baz: 456,
+ *   bat: undefined
+ * };
+ *
+ * const compacted = compact(obj);
+ *
+ * // compacted is now:
+ * interface Foo {
+ *   foo?: number;
+ *   bar?: number;
+ *   baz: number;
+ *   bat?: number;
+ * }
+ * ```
+ */
+export function compact<T extends object>(
+  object: T | undefined
+): Optional<Simplify<CompactObject<T>>> {
+  if (!object) return;
+
+  const entries = Object.entries(object).filter(([_, v]) => v !== undefined);
+  if (entries.length === 0) return undefined;
+
+  return Object.fromEntries(entries) as Simplify<CompactObject<T>> | undefined;
 }
