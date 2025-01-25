@@ -116,11 +116,12 @@ export class ContentEncoder {
   }
 
   BlockArgs(
-    argsNode: mir.Args,
-    blocksNode: Nullable<mir.NamedBlocks>
+    argsNode: Pick<mir.Args, 'positional' | 'named'>,
+    blocksNode: Nullable<mir.NamedBlocks>,
+    insertAtPrefix: boolean = false
   ): Optional<WireFormat.Core.BlockArgs> {
     return compact({
-      ...EXPR.Args(argsNode),
+      ...EXPR.Args(argsNode, insertAtPrefix),
       blocks: blocksNode ? this.NamedBlocks(blocksNode) : undefined,
     });
   }
@@ -152,14 +153,27 @@ export class ContentEncoder {
     ]);
   }
 
-  Component({ tag, params, args: named, blocks }: mir.Component): WireFormat.Statements.Component {
+  Component({
+    tag,
+    params,
+    args: named,
+    blocks,
+  }: mir.Component):
+    | WireFormat.Statements.InvokeLexicalComponent
+    | WireFormat.Statements.Component {
     let wireTag = EXPR.expr(tag);
     let wirePositional = CONTENT.ElementParameters(params);
-    let wireNamed = EXPR.NamedArguments(named);
+    let wireNamed = EXPR.NamedArguments(named, false);
 
     let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
 
     const args = buildComponentArgs(wirePositional.toPresentArray(), wireNamed, wireNamedBlocks);
+
+    if (Array.isArray(wireTag) && wireTag[0] === SexpOpcodes.GetLexicalSymbol) {
+      // if the expression is something like `x.Foo`, then the component is dynamic, not
+      // a lexical variable.
+      if (wireTag.length === 2) return [SexpOpcodes.InvokeLexicalComponent, wireTag, args];
+    }
 
     return [SexpOpcodes.Component, wireTag, args];
   }
@@ -243,7 +257,7 @@ export class ContentEncoder {
   WithDynamicVars({ named, block }: mir.WithDynamicVars): WireFormat.Statements.WithDynamicVars {
     return [
       SexpOpcodes.WithDynamicVars,
-      EXPR.NamedArguments(named),
+      EXPR.NamedArguments(named, false),
       CONTENT.namedBlock(block.body, block.scope),
     ];
   }
@@ -255,13 +269,11 @@ export class ContentEncoder {
   }: mir.InvokeComponent): WireFormat.Statements.SomeInvokeComponent {
     const expr = EXPR.expr(definition);
 
-    return [
-      typeof expr === 'string' || callType(expr) === SexpOpcodes.CallLexical
-        ? SexpOpcodes.InvokeLexicalComponent
-        : SexpOpcodes.InvokeResolvedComponent,
-      expr,
-      this.BlockArgs(args, blocks),
-    ];
+    if (typeof expr === 'string' || callType(expr) === SexpOpcodes.CallLexical) {
+      return [SexpOpcodes.InvokeDynamicComponent, expr, this.BlockArgs(args, blocks)];
+    } else {
+      return [SexpOpcodes.InvokeResolvedComponent, expr, this.BlockArgs(args, blocks, true)];
+    }
   }
 }
 

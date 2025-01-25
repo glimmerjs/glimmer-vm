@@ -35,6 +35,7 @@ import type {
   IfInlineOpcode,
   IfOpcode,
   InElementOpcode,
+  InvokeDynamicComponentOpcode,
   InvokeLexicalComponentOpcode,
   InvokeResolvedComponentOpcode,
   LetOpcode,
@@ -234,7 +235,10 @@ export namespace Statements {
 
   export type SomeAppend = Append | TrustingAppend | UnknownAppend | UnknownTrustingAppend;
   export type SomeModifier = LexicalModifier | ResolvedModifier;
-  export type SomeInvokeComponent = InvokeLexicalComponent | InvokeResolvedComponent;
+  export type SomeInvokeComponent =
+    | InvokeDynamicComponent
+    | InvokeResolvedComponent
+    | InvokeLexicalComponent;
 
   export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
   export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
@@ -323,10 +327,16 @@ export namespace Statements {
     block: SerializedInlineBlock,
   ];
 
+  export type InvokeDynamicComponent = [
+    op: InvokeDynamicComponentOpcode,
+    definition: Expression,
+    args?: Optional<Core.BlockArgs>,
+  ];
+
   export type InvokeLexicalComponent = [
     op: InvokeLexicalComponentOpcode,
     definition: Expression,
-    args?: Optional<Core.BlockArgs>,
+    args?: Optional<Core.ComponentArgs>,
   ];
 
   export type InvokeResolvedComponent = [

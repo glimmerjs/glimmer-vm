@@ -9,6 +9,7 @@ import {
   VM_DYNAMIC_HELPER_OP,
   VM_FETCH_OP,
   VM_HELPER_OP,
+  VM_INVOKE_STATIC_OP,
   VM_POP_DYNAMIC_SCOPE_OP,
   VM_POP_FRAME_OP,
   VM_POP_OP,
@@ -82,25 +83,31 @@ export function Call(
  * @param positional An optional list of expressions to compile
  * @param named An optional list of named arguments (name + expression) to compile
  */
-export function CallDynamic(
+export function CallDynamicExpr(encode: EncodeOp, args?: Optional<WireFormat.Core.Args>): void {
+  encode.op(VM_PUSH_FRAME_OP);
+  SimpleArgs(encode, args, false);
+  encode.op(VM_DUP_OP, $fp, 1);
+  encode.op(VM_DYNAMIC_HELPER_OP);
+  encode.op(VM_POP_FRAME_OP);
+  encode.op(VM_POP_OP, 1);
+  encode.op(VM_FETCH_OP, $v0);
+}
+
+export function CallDynamicBlock(
   encode: EncodeOp,
-  args: Optional<WireFormat.Core.Args>,
-  append?: () => void
+  handle: number,
+  args?: Optional<WireFormat.Core.Args>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
   SimpleArgs(encode, args, false);
   encode.op(VM_DUP_OP, $fp, 1);
   encode.op(VM_DYNAMIC_HELPER_OP);
-  if (append) {
-    encode.op(VM_FETCH_OP, $v0);
-    append();
-    encode.op(VM_POP_FRAME_OP);
-    encode.op(VM_POP_OP, 1);
-  } else {
-    encode.op(VM_POP_FRAME_OP);
-    encode.op(VM_POP_OP, 1);
-    encode.op(VM_FETCH_OP, $v0);
-  }
+
+  encode.op(VM_FETCH_OP, $v0);
+  encode.op(VM_INVOKE_STATIC_OP, handle);
+
+  encode.op(VM_POP_FRAME_OP);
+  encode.op(VM_POP_OP, 1);
 }
 
 /**

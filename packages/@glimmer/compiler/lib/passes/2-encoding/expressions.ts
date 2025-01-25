@@ -108,8 +108,11 @@ export class ExpressionEncoder {
     return mapPresentArray(members, (member) => member.chars);
   }
 
-  Args(node: mir.Args): Optional<WireFormat.Core.Args> {
-    return this.#args(node.positional, node.named);
+  Args(
+    node: Pick<mir.Args, 'positional' | 'named'>,
+    insertAtPrefix: boolean = false
+  ): Optional<WireFormat.Core.Args> {
+    return this.#args(node.positional, node.named, insertAtPrefix);
   }
 
   Positional({ list }: mir.Positional): Optional<WireFormat.Core.Params> {
@@ -120,7 +123,10 @@ export class ExpressionEncoder {
     return [key.chars, EXPR.expr(value)];
   }
 
-  NamedArguments({ entries: pairs }: mir.NamedArguments): Optional<WireFormat.Core.Hash> {
+  NamedArguments(
+    { entries: pairs }: mir.NamedArguments,
+    insertAtPrefix: boolean
+  ): Optional<WireFormat.Core.Hash> {
     let list = pairs.toPresentArray();
 
     if (list) {
@@ -129,7 +135,7 @@ export class ExpressionEncoder {
 
       for (let pair of list) {
         let [name, value] = EXPR.NamedArgument(pair);
-        names.push(name);
+        names.push(insertAtPrefix ? `@${name}` : name);
         values.push(value);
       }
 
@@ -164,10 +170,11 @@ export class ExpressionEncoder {
 
   #args(
     positionalNode: mir.Positional,
-    namedNode: mir.NamedArguments
+    namedNode: mir.NamedArguments,
+    insertAtPrefix: boolean
   ): Optional<WireFormat.Core.Args> {
     const positional = this.Positional(positionalNode);
-    const named = this.NamedArguments(namedNode);
+    const named = this.NamedArguments(namedNode, insertAtPrefix);
 
     return compact({ params: positional, hash: named });
   }

@@ -68,24 +68,43 @@ export function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMeta
   return meta as unknown as ResolvedBlockMetadata;
 }
 
-/**
- * <Foo/>
- * <Foo></Foo>
- * <Foo @arg={{true}} />
- */
-export function resolveComponent(
-  resolver: Nullable<ClassicResolver>,
+export function getLexicalComponent(
   constants: ProgramConstants,
   meta: BlockMetadata,
-  expr: Expressions.Expression,
-  then: (component: CompileTimeComponent) => void
-): void {
+  expr: Expressions.Expression
+) {
   localAssert(
-    isGetFreeComponent(expr),
-    `Attempted to resolve a component with incorrect opcode (${JSON.stringify(expr)})`
+    Array.isArray(expr),
+    'Expected to find an expression when resolving a lexical component'
   );
 
-  let type = expr[0];
+  localAssert(
+    expr[0] === SexpOpcodes.GetLexicalSymbol,
+    `Expected GetLexicalSymbol, got: ${expr[0]}`
+  );
+
+  let {
+    scopeValues,
+    owner,
+    symbols: { lexical },
+  } = meta;
+  let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
+    expr[1]
+  ];
+
+  return constants.component(
+    definition as object,
+    expect(owner, 'BUG: expected owner when resolving component definition'),
+    false,
+    lexical?.at(expr[1])
+  );
+}
+
+export function resolveKeywordComponent(meta: BlockMetadata, expr: Expressions.Expression) {
+  localAssert(
+    Array.isArray(expr),
+    'Expected to find an expression when resolving a lexical component'
+  );
 
   if (import.meta.env.DEV && expr[0] === SexpOpcodes.GetStrictKeyword) {
     localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
@@ -97,48 +116,42 @@ export function resolveComponent(
       }`
     );
   }
+}
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
-    let {
-      scopeValues,
-      owner,
-      symbols: { lexical },
-    } = meta;
-    let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
-      expr[1]
-    ];
+/**
+ * <Foo/>
+ * <Foo></Foo>
+ * <Foo @arg={{true}} />
+ */
+export function resolveComponent(
+  resolver: Nullable<ClassicResolver>,
+  constants: ProgramConstants,
+  meta: BlockMetadata,
+  expr: Expressions.Expression
+): CompileTimeComponent {
+  localAssert(
+    isGetFreeComponent(expr),
+    `Attempted to resolve a component with incorrect opcode (${JSON.stringify(expr)})`
+  );
 
-    then(
-      constants.component(
-        definition as object,
-        expect(owner, 'BUG: expected owner when resolving component definition'),
-        false,
-        lexical?.at(expr[1])
-      )
+  let {
+    symbols: { upvars },
+    owner,
+  } = assertResolverInvariants(meta);
+
+  let name = unwrap(upvars[expr[1]]);
+  let definition = resolver?.lookupComponent?.(name, owner) ?? null;
+
+  if (import.meta.env.DEV && (typeof definition !== 'object' || definition === null)) {
+    localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
+
+    throw new Error(
+      `Attempted to resolve \`${name}\`, which was expected to be a component, but nothing was found.`
     );
-  } else {
-    let {
-      symbols: { upvars },
-      owner,
-    } = assertResolverInvariants(meta);
-
-    let name = unwrap(upvars[expr[1]]);
-    let definition = resolver?.lookupComponent?.(name, owner) ?? null;
-
-    if (import.meta.env.DEV && (typeof definition !== 'object' || definition === null)) {
-      localAssert(
-        !meta.isStrictMode,
-        'Strict mode errors should already be handled at compile time'
-      );
-
-      throw new Error(
-        `Attempted to resolve \`${name}\`, which was expected to be a component, but nothing was found.`
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-    then(constants.resolvedComponent(definition!, name));
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+  return constants.resolvedComponent(definition!, name);
 }
 
 /**

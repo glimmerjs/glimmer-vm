@@ -54,7 +54,7 @@ import { isGetFreeComponent } from '../opcode-builder/helpers/resolution';
 import { CompilePositional, SimpleArgs } from '../opcode-builder/helpers/shared';
 import {
   Call,
-  CallDynamic,
+  CallDynamicBlock,
   DynamicScope,
   PushPrimitiveReference,
 } from '../opcode-builder/helpers/vm';
@@ -97,9 +97,7 @@ STATEMENTS.add(SexpOpcodes.LexicalModifier, (encode, [, expression, args]) => {
   LexicalModifier(
     encode,
     () => expr(encode, expression),
-    () => {
-      return SimpleArgs(encode, args, false);
-    }
+    () => SimpleArgs(encode, args, false)
   );
 });
 
@@ -170,17 +168,9 @@ STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, (encode, [, tag]) => {
   encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
-STATEMENTS.add(SexpOpcodes.Component, (encode, [, expr, args]) => {
-  if (isGetFreeComponent(expr)) {
-    encode.component(expr, (component: CompileTimeComponent) => {
-      InvokeComponent(encode, component, args);
-    });
-  } else {
-    // otherwise, the component name was an expression, so resolve the expression
-    // and invoke it as a dynamic component
-    InvokeDynamicComponent(encode, expr, args, { atNames: true, curried: true });
-  }
-});
+export function isLexicalCall(expr: WireFormat.Expression) {
+  return Array.isArray(expr) && expr[0] === SexpOpcodes.GetLexicalSymbol;
+}
 
 STATEMENTS.add(SexpOpcodes.Yield, (encode, [, to, params]) => YieldBlock(encode, to, params));
 
@@ -242,9 +232,7 @@ STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
         });
 
         when(ContentType.Helper, () => {
-          CallDynamic(encode, args, () => {
-            encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
-          });
+          CallDynamicBlock(encode, encode.stdlibFn('cautious-non-dynamic-append'), args);
         });
       }
     );
@@ -286,7 +274,8 @@ STATEMENTS.add(SexpOpcodes.TrustingAppend, (encode, [, value]) => {
 
 STATEMENTS.add(SexpOpcodes.Block, (encode, [, expr, args]) => {
   if (isGetFreeComponent(expr)) {
-    encode.component(expr, (component: CompileTimeComponent) => {
+    if (isLexicalCall(expr)) {
+      const component = encode.getLexicalComponent(expr);
       InvokeComponent(
         encode,
         component,
@@ -296,7 +285,18 @@ STATEMENTS.add(SexpOpcodes.Block, (encode, [, expr, args]) => {
         }),
         args?.params
       );
-    });
+    } else {
+      const component = encode.resolveComponent(expr);
+      InvokeComponent(
+        encode,
+        component,
+        compact({
+          hash: hashToArgs(args?.hash),
+          blocks: args?.blocks,
+        }),
+        args?.params
+      );
+    }
   } else {
     InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
       positional: args?.params,
@@ -411,21 +411,36 @@ STATEMENTS.add(SexpOpcodes.WithDynamicVars, (encode, [, named, block]) => {
   }
 });
 
+STATEMENTS.add(SexpOpcodes.Component, (encode, [, expr, args]) => {
+  if (Array.isArray(expr) && expr[0] === SexpOpcodes.GetFreeAsComponentHead) {
+    const component = encode.resolveComponent(expr);
+    InvokeComponent(encode, component, args);
+  } else {
+    // otherwise, the component name was an expression, so resolve the expression
+    // and invoke it as a dynamic component
+    InvokeDynamicComponent(encode, expr, args, { atNames: true, curried: true });
+  }
+});
+
 STATEMENTS.add(SexpOpcodes.InvokeLexicalComponent, (encode, [, expr, args]) => {
+  const component = encode.getLexicalComponent(expr);
+  InvokeComponent(encode, component, args);
+});
+
+STATEMENTS.add(SexpOpcodes.InvokeDynamicComponent, (encode, [, expr, args]) => {
   InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
     positional: args?.params,
   });
 });
 
 STATEMENTS.add(SexpOpcodes.InvokeResolvedComponent, (encode, [, expr, args]) => {
-  encode.component(expr, (component: CompileTimeComponent) => {
-    InvokeComponent(
-      encode,
-      component,
-      compact({ hash: hashToArgs(args?.hash), blocks: args?.blocks }),
-      args?.params
-    );
-  });
+  const component = encode.resolveComponent(expr);
+  InvokeComponent(
+    encode,
+    component,
+    compact({ hash: args?.hash, blocks: args?.blocks }),
+    args?.params
+  );
 });
 
 function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
