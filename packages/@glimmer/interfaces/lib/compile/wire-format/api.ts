@@ -113,7 +113,7 @@ export namespace Expressions {
 
   export type GetSymbol = [GetSymbolOpcode, number];
   export type GetLexicalSymbol = [GetLexicalSymbolOpcode, number];
-  export type GetStrictFree = [GetStrictKeywordOpcode, number];
+  export type GetStrictKeyword = [GetStrictKeywordOpcode, number];
   export type GetFreeAsComponentOrHelperHead = [GetFreeAsComponentOrHelperHeadOpcode, number];
   export type GetFreeAsHelperHead = [GetFreeAsHelperHeadOpcode, number];
   export type GetFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number];
@@ -126,7 +126,7 @@ export namespace Expressions {
     | GetFreeAsHelperHead
     | GetFreeAsModifierHead
     | GetFreeAsComponentHead;
-  export type GetFree = GetStrictFree | GetContextualFree;
+  export type GetFree = GetStrictKeyword | GetContextualFree;
   export type GetVar = GetSymbol | GetLexicalSymbol | GetFree;
 
   export type GetPathSymbol = [GetSymbolOpcode, number, Path];
