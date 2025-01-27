@@ -23,17 +23,16 @@ import { debugToString, expect, isPresentArray, localAssert, unwrap } from '@gli
 import { InstructionEncoderImpl } from '@glimmer/encoder';
 import { dict, Stack } from '@glimmer/util';
 import { ARG_SHIFT, MACHINE_MASK, TYPE_SIZE } from '@glimmer/vm';
+import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type { ResolveAppendInvokableOptions, ResolveAppendOptions } from './helpers/resolution';
 
 import { compilableBlock } from '../compilable-template';
 import {
   assertResolverInvariants,
-  getLexicalComponent,
   resolveAppend,
   resolveAppendInvokable,
   resolveComponent,
-  resolveHelper,
   resolveModifier,
 } from './helpers/resolution';
 
@@ -122,12 +121,61 @@ export class EncodeOp {
   resolveComponent = (expr: Expressions.Expression): CompileTimeComponent =>
     resolveComponent(this.#context.resolver, this.#constants, this.#meta, expr);
 
-  getLexicalComponent = (expr: Expressions.Expression): CompileTimeComponent =>
-    getLexicalComponent(this.#constants, this.#meta, expr);
+  getLexicalComponent = (expr: Expressions.Expression): CompileTimeComponent => {
+    localAssert(
+      Array.isArray(expr),
+      'Expected to find an expression when resolving a lexical component'
+    );
 
-  /** Same as {@linkcode component}. */
-  helper = (expr: Expressions.Expression, then: (handle: number) => void): void =>
-    resolveHelper(this.#context.resolver, this.#constants, this.#meta, expr, then);
+    localAssert(
+      expr[0] === SexpOpcodes.GetLexicalSymbol,
+      `Expected GetLexicalSymbol, got: ${expr[0]}`
+    );
+
+    let {
+      scopeValues,
+      owner,
+      symbols: { lexical },
+    } = this.#meta;
+    let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
+      expr[1]
+    ];
+
+    return this.#constants.component(
+      definition as object,
+      expect(owner, 'BUG: expected owner when resolving component definition'),
+      false,
+      lexical?.at(expr[1])
+    );
+  };
+
+  /**
+   * (helper)
+   * (helper arg)
+   */
+  resolveHelper = (symbol: number): number => {
+    let {
+      symbols: { upvars },
+      owner,
+    } = assertResolverInvariants(this.#meta);
+
+    let name = unwrap(upvars[symbol]);
+    let helper = this.#resolver?.lookupHelper?.(name, owner) ?? null;
+
+    if (import.meta.env.DEV && helper === null) {
+      localAssert(
+        !this.#meta.isStrictMode,
+        'Strict mode errors should already be handled at compile time'
+      );
+
+      throw new Error(
+        `Attempted to resolve \`${name}\`, which was expected to be a helper, but nothing was found.`
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+    return this.#constants.helper(helper!, name);
+  };
 
   appendAny = (expr: Expressions.GetUnknownAppend, options: ResolveAppendOptions): void =>
     resolveAppend(this.#context.resolver, this.#constants, this.#meta, expr, options);
@@ -220,18 +268,7 @@ export class EncodeOp {
     then(this.#constants.modifier(modifier!, name));
   };
 
-  lexicalHelper = (symbol: number, then: (handle: number) => void) => {
-    const { scopeValues } = this.#meta;
-
-    const definition = expect(
-      scopeValues,
-      'BUG: scopeValues must exist if template symbol is used'
-    )[symbol];
-
-    then(this.#constants.helper(definition as object));
-  };
-
-  keywordHelper = (symbol: number, then: (handle: number) => void) => {
+  keywordHelper = (symbol: number): number => {
     let {
       symbols: { upvars },
     } = assertResolverInvariants(this.#meta);
@@ -256,7 +293,7 @@ export class EncodeOp {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-    then(this.#constants.helper(helper!, name));
+    return this.#constants.helper(helper!, name);
   };
 
   resolvedHelper = (upvar: number, then: (handle: number) => void) => {
@@ -443,13 +480,13 @@ export class EncodeOp {
     then(name, this.#meta.moduleName);
   };
 
-  lexical = (symbol: number, then: (handle: number) => void) => {
+  lexical = (symbol: number): number => {
     let value = expect(
       this.#meta.scopeValues,
       'BUG: Attempted to get a template local, but template does not have any'
     )[symbol];
 
-    then(this.#constants.value(value));
+    return this.#constants.value(value);
   };
 
   get #constants() {

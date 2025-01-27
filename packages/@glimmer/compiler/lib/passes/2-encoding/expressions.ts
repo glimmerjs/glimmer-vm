@@ -84,7 +84,7 @@ export class ExpressionEncoder {
     return [isTemplateLocal ? SexpOpcodes.GetLexicalSymbol : SexpOpcodes.GetSymbol, symbol];
   }
 
-  Keyword({ symbol }: ASTv2.KeywordExpression): WireFormat.Expressions.GetStrictFree {
+  Keyword({ symbol }: ASTv2.KeywordExpression): WireFormat.Expressions.GetStrictKeyword {
     return [SexpOpcodes.GetStrictKeyword, symbol];
   }
 

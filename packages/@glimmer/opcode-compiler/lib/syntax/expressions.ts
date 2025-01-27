@@ -16,6 +16,7 @@ import {
   VM_PUSH_FRAME_OP,
   VM_SPREAD_BLOCK_OP,
 } from '@glimmer/constants';
+import { localAssert } from '@glimmer/debug-util';
 import { $v0 } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
@@ -46,9 +47,13 @@ EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
 // export const CallDynamic = (op: BuildExpression, )
 
 EXPRESSIONS.add(SexpOpcodes.CallResolved, (encode, [, expression, args]) => {
-  encode.helper(expression, (handle: number) => {
-    Call(encode, handle, args);
-  });
+  localAssert(
+    Array.isArray(expression) && expression[0] === SexpOpcodes.GetFreeAsHelperHead,
+    'Expected a helper head'
+  );
+
+  const handle = encode.resolveHelper(expression[1]);
+  Call(encode, handle, args);
 });
 
 EXPRESSIONS.add(SexpOpcodes.CallLexical, (encode, [, expression, args]) => {
@@ -72,26 +77,19 @@ EXPRESSIONS.add(SexpOpcodes.GetSymbol, (encode, [, sym, path]) => {
 });
 
 EXPRESSIONS.add(SexpOpcodes.GetLexicalSymbol, (encode, [, sym, path]) => {
-  encode.lexical(sym, (handle) => {
-    encode.op(VM_CONSTANT_REFERENCE_OP, handle);
-    withPath(encode, path);
-  });
+  const handle = encode.lexical(sym);
+  encode.op(VM_CONSTANT_REFERENCE_OP, handle);
+  withPath(encode, path);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (encode, expr) => {
-  encode.local(expr[1], (_name: string) => {
-    encode.helper(expr, (handle: number) => {
-      Call(encode, handle, undefined);
-    });
-  });
+EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (encode, [, symbol]) => {
+  const handle = encode.keywordHelper(symbol);
+  Call(encode, handle, undefined);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHead, (encode, expr) => {
-  encode.local(expr[1], (_name: string) => {
-    encode.helper(expr, (handle: number) => {
-      Call(encode, handle, undefined);
-    });
-  });
+EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHead, (encode, [, symbol]) => {
+  const handle = encode.resolveHelper(symbol);
+  Call(encode, handle, undefined);
 });
 
 function withPath(encode: EncodeOp, path?: string[]) {

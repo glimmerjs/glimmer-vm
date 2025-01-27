@@ -68,38 +68,6 @@ export function assertResolverInvariants(meta: BlockMetadata): ResolvedBlockMeta
   return meta as unknown as ResolvedBlockMetadata;
 }
 
-export function getLexicalComponent(
-  constants: ProgramConstants,
-  meta: BlockMetadata,
-  expr: Expressions.Expression
-) {
-  localAssert(
-    Array.isArray(expr),
-    'Expected to find an expression when resolving a lexical component'
-  );
-
-  localAssert(
-    expr[0] === SexpOpcodes.GetLexicalSymbol,
-    `Expected GetLexicalSymbol, got: ${expr[0]}`
-  );
-
-  let {
-    scopeValues,
-    owner,
-    symbols: { lexical },
-  } = meta;
-  let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
-    expr[1]
-  ];
-
-  return constants.component(
-    definition as object,
-    expect(owner, 'BUG: expected owner when resolving component definition'),
-    false,
-    lexical?.at(expr[1])
-  );
-}
-
 export function resolveKeywordComponent(meta: BlockMetadata, expr: Expressions.Expression) {
   localAssert(
     Array.isArray(expr),
@@ -152,57 +120,6 @@ export function resolveComponent(
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
   return constants.resolvedComponent(definition!, name);
-}
-
-/**
- * (helper)
- * (helper arg)
- */
-export function resolveHelper(
-  resolver: Nullable<ClassicResolver>,
-  constants: ProgramConstants,
-  meta: BlockMetadata,
-  expr: Expressions.Expression,
-  then: (handle: number) => void
-): void {
-  localAssert(isGetFreeHelper(expr), 'Attempted to resolve a helper with incorrect opcode');
-
-  let type = expr[0];
-
-  if (type === SexpOpcodes.GetLexicalSymbol) {
-    let { scopeValues } = meta;
-    let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
-      expr[1]
-    ];
-
-    then(constants.helper(definition as object));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
-    then(
-      lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'helper')
-    );
-  } else {
-    let {
-      symbols: { upvars },
-      owner,
-    } = assertResolverInvariants(meta);
-
-    let name = unwrap(upvars[expr[1]]);
-    let helper = resolver?.lookupHelper?.(name, owner) ?? null;
-
-    if (import.meta.env.DEV && helper === null) {
-      localAssert(
-        !meta.isStrictMode,
-        'Strict mode errors should already be handled at compile time'
-      );
-
-      throw new Error(
-        `Attempted to resolve \`${name}\`, which was expected to be a helper, but nothing was found.`
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-    then(constants.helper(helper!, name));
-  }
 }
 
 /**
@@ -334,7 +251,7 @@ export function resolveAppendInvokable(
   } else if (type === SexpOpcodes.GetStrictKeyword) {
     ifHelper(
       lookupBuiltInHelper(
-        expr as Expressions.GetStrictFree,
+        expr as Expressions.GetStrictKeyword,
         resolver,
         meta,
         constants,
@@ -411,8 +328,8 @@ export function resolveAppend(
   }
 }
 
-function lookupBuiltInHelper(
-  expr: Expressions.GetStrictFree,
+export function lookupBuiltInHelper(
+  expr: Expressions.GetStrictKeyword,
   resolver: Nullable<ClassicResolver>,
   meta: BlockMetadata,
   constants: ResolutionTimeConstants,
