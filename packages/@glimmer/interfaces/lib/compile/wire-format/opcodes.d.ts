@@ -7,8 +7,9 @@ export type CommentOpcode = 5;
 export type LexicalModifierOpcode = 6;
 export type ResolvedModifierOpcode = 56;
 export type StrictModifierOpcode = 7;
-export type BlockOpcode = 8;
-export type StrictBlockOpcode = 9;
+export type ResolvedBlockOpcode = 8;
+export type LexicalBlockOpcode = 9;
+export type DynamicBlockOpcode = 57;
 export type ComponentOpcode = 10;
 
 export type OpenElementOpcode = 11;

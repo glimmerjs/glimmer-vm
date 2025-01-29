@@ -50,7 +50,6 @@ import {
 } from '../opcode-builder/helpers/components';
 import { Replayable, ReplayableIf, SwitchCases } from '../opcode-builder/helpers/conditional';
 import { expr } from '../opcode-builder/helpers/expr';
-import { isGetFreeComponent } from '../opcode-builder/helpers/resolution';
 import { CompilePositional, SimpleArgs } from '../opcode-builder/helpers/shared';
 import {
   Call,
@@ -272,36 +271,38 @@ STATEMENTS.add(SexpOpcodes.TrustingAppend, (encode, [, value]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.Block, (encode, [, expr, args]) => {
-  if (isGetFreeComponent(expr)) {
-    if (isLexicalCall(expr)) {
-      const component = encode.getLexicalComponent(expr);
-      InvokeComponent(
-        encode,
-        component,
-        compact({
-          hash: hashToArgs(args?.hash),
-          blocks: args?.blocks,
-        }),
-        args?.params
-      );
-    } else {
-      const component = encode.resolveComponent(expr);
-      InvokeComponent(
-        encode,
-        component,
-        compact({
-          hash: hashToArgs(args?.hash),
-          blocks: args?.blocks,
-        }),
-        args?.params
-      );
-    }
-  } else {
-    InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
-      positional: args?.params,
-    });
-  }
+STATEMENTS.add(SexpOpcodes.LexicalBlock, (encode, [, expr, args]) => {
+  const component = encode.getLexicalComponent(expr);
+
+  InvokeComponent(
+    encode,
+    component,
+    compact({
+      hash: hashToArgs(args?.hash),
+      blocks: args?.blocks,
+    }),
+    args?.params
+  );
+});
+
+STATEMENTS.add(SexpOpcodes.ResolvedBlock, (encode, [, expr, args]) => {
+  const component = encode.resolveComponent(expr);
+
+  InvokeComponent(
+    encode,
+    component,
+    compact({
+      hash: hashToArgs(args?.hash),
+      blocks: args?.blocks,
+    }),
+    args?.params
+  );
+});
+
+STATEMENTS.add(SexpOpcodes.DynamicBlock, (encode, [, expr, args]) => {
+  InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
+    positional: args?.params,
+  });
 });
 
 STATEMENTS.add(SexpOpcodes.InElement, (encode, [, block, guid, destination, insertBefore]) => {

@@ -8,7 +8,6 @@ import type {
   AppendOpcode,
   AttrOpcode,
   AttrSplatOpcode,
-  BlockOpcode,
   CallLexicalOpcode,
   CallResolvedOpcode,
   CloseElementOpcode,
@@ -20,6 +19,7 @@ import type {
   DebuggerOpcode,
   DynamicArgOpcode,
   DynamicAttrOpcode,
+  DynamicBlockOpcode,
   EachOpcode,
   FlushElementOpcode,
   GetDynamicVarOpcode,
@@ -39,11 +39,13 @@ import type {
   InvokeLexicalComponentOpcode,
   InvokeResolvedComponentOpcode,
   LetOpcode,
+  LexicalBlockOpcode,
   LexicalModifierOpcode,
   LogOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
+  ResolvedBlockOpcode,
   ResolvedModifierOpcode,
   StaticArgOpcode,
   StaticAttrOpcode,
@@ -239,6 +241,7 @@ export namespace Statements {
     | InvokeDynamicComponent
     | InvokeResolvedComponent
     | InvokeLexicalComponent;
+  export type SomeBlock = LexicalBlock | ResolvedBlock | DynamicBlock;
 
   export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
   export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
@@ -247,7 +250,22 @@ export namespace Statements {
   export type Comment = [CommentOpcode, string];
   export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.Args>];
   export type ResolvedModifier = [ResolvedModifierOpcode, Expression, args?: Optional<Core.Args>];
-  export type Block = [BlockOpcode, Expression, args?: Optional<Core.BlockArgs>];
+  export type ResolvedBlock = [
+    ResolvedBlockOpcode,
+    path: Expressions.GetVar,
+    args?: Optional<Core.BlockArgs>,
+  ];
+  export type LexicalBlock = [
+    LexicalBlockOpcode,
+    path: Expressions.GetVar,
+    args?: Optional<Core.BlockArgs>,
+  ];
+  export type DynamicBlock = [
+    DynamicBlockOpcode,
+    path: Expressions.Get,
+    args?: Optional<Core.BlockArgs>,
+  ];
+
   export type Component = [
     op: ComponentOpcode,
     tag: Expression,
@@ -352,8 +370,8 @@ export namespace Statements {
     | SomeAppend
     | SomeModifier
     | SomeInvokeComponent
+    | SomeBlock
     | Comment
-    | Block
     | Component
     | OpenElement
     | OpenElementWithSplat

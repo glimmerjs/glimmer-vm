@@ -155,7 +155,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.Block];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.ResolvedBlock];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -178,7 +178,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.Block];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.ResolvedBlock];
 
     localAssert(
       Array.isArray(componentNameExpr) &&

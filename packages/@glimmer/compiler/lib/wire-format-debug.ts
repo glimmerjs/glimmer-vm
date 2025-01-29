@@ -39,7 +39,7 @@ export default class WireFormatDebugger {
         case Op.TrustingAppend:
           return ['trusting-append', this.formatOpcode(opcode[1])];
 
-        case Op.Block:
+        case Op.ResolvedBlock:
           return ['block', this.formatOpcode(opcode[1]), this.formatBlockArgs(opcode[2])];
 
         case Op.InElement:

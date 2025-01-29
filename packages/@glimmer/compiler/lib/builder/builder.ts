@@ -4,11 +4,14 @@ import type {
   CallLexicalOpcode,
   CallResolvedOpcode,
   Dict,
+  DynamicBlockOpcode,
   Expressions,
   GetContextualFreeOpcode,
+  LexicalBlockOpcode,
   Nullable,
   Optional,
   PresentArray,
+  ResolvedBlockOpcode,
   UnknownInvokeOpcode,
   WireFormat,
 } from '@glimmer/interfaces';
@@ -44,6 +47,7 @@ import {
   THIS_VAR,
 } from '@glimmer/constants';
 import { exhausted, expect, isPresentArray, localAssert } from '@glimmer/debug-util';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever, dict, values } from '@glimmer/util';
 import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
 
@@ -309,7 +313,8 @@ export function buildStatement(
       );
 
       const args = buildBlockArgs(params, hash, blocks);
-      return [[Op.Block, path, args]];
+
+      return [[...blockType(path), args]];
     }
 
     case KEYWORD_HEAD: {
@@ -961,4 +966,80 @@ export function compact<T extends object>(
   if (entries.length === 0) return undefined;
 
   return Object.fromEntries(entries) as Simplify<CompactObject<T>> | undefined;
+}
+
+export function isGetLexical(
+  path: Expressions.Expression
+): path is WireFormat.Expressions.GetLexicalSymbol {
+  return Array.isArray(path) && path.length === 2 && path[0] === Op.GetLexicalSymbol;
+}
+
+export function isGetPath(path: Expressions.Expression): path is WireFormat.Expressions.GetPath {
+  if (!Array.isArray(path) || path.length !== 3) return false;
+
+  switch (path[0]) {
+    case Op.GetSymbol:
+    case Op.GetLexicalSymbol:
+      return true;
+    default:
+      return isGetContextualFree(path);
+  }
+}
+
+export function isGetVar(path: Expressions.Expression): path is WireFormat.Expressions.GetVar[0] {
+  if (!Array.isArray(path) || path.length !== 2) return false;
+
+  switch (path[0]) {
+    case Op.GetSymbol:
+    case Op.GetLexicalSymbol:
+    case Op.GetStrictKeyword:
+      return true;
+    default:
+      return isGetContextualFree(path);
+  }
+}
+
+export function isTupleExpression(
+  path: Expressions.Expression
+): path is WireFormat.Expressions.TupleExpression {
+  return Array.isArray(path);
+}
+
+export function isGetContextualFree(
+  path: Expressions.TupleExpression
+): path is WireFormat.Expressions.GetContextualFree {
+  switch (path[0]) {
+    case Op.GetFreeAsComponentOrHelperHead:
+    case Op.GetFreeAsHelperHead:
+    case Op.GetFreeAsModifierHead:
+    case Op.GetFreeAsComponentHead:
+      return true;
+    default:
+      return false;
+  }
+}
+
+export function isGet(expr: Expressions.Expression): expr is Expressions.Get {
+  return isGetVar(expr) || isGetPath(expr);
+}
+
+export function assertGet(expr: Expressions.Expression): asserts expr is Expressions.Get {
+  if (LOCAL_DEBUG) {
+    localAssert(isGet(expr), `Expected ${JSON.stringify(expr)} to be a Get`);
+  }
+}
+
+export function blockType(
+  path: Expressions.Get
+):
+  | [LexicalBlockOpcode, WireFormat.Expressions.GetLexicalSymbol]
+  | [ResolvedBlockOpcode, WireFormat.Expressions.GetContextualFree]
+  | [DynamicBlockOpcode, WireFormat.Expressions.GetPath] {
+  if (isGetLexical(path)) {
+    return [Op.LexicalBlock, path];
+  } else if (path.length === 2) {
+    return [Op.ResolvedBlock, path as WireFormat.Expressions.GetContextualFree];
+  } else {
+    return [Op.DynamicBlock, path];
+  }
 }

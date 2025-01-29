@@ -138,7 +138,7 @@ export class CallExpression extends node('CallExpression').fields<{
 
 export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
 export class InvokeBlock extends node('InvokeBlock').fields<{
-  head: ExpressionNode;
+  head: PathExpression;
   args: Args;
   blocks: NamedBlocks;
 }>() {}
