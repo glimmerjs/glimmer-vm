@@ -56,12 +56,6 @@ export interface NormalizedElement {
   block: Nullable<NormalizedBlock>;
 }
 
-export interface NormalizedAngleInvocation {
-  head: NormalizedExpression;
-  attrs: Nullable<NormalizedAttrs>;
-  block: Nullable<NormalizedBlock>;
-}
-
 export interface Variable {
   kind: VariableKind;
   name: string;

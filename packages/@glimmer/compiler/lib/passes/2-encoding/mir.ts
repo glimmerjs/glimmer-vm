@@ -79,7 +79,7 @@ export class NamedBlock extends node('NamedBlock').fields<{
 export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
   html: ExpressionNode;
 }>() {}
-export class AppendTextNode extends node('AppendTextNode').fields<{ text: ExpressionNode }>() {}
+export class AppendValue extends node('AppendValue').fields<{ value: ExpressionNode }>() {}
 export class AppendComment extends node('AppendComment').fields<{ value: SourceSlice }>() {}
 
 export class Component extends node('Component').fields<{
@@ -138,7 +138,7 @@ export class CallExpression extends node('CallExpression').fields<{
 
 export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
 export class InvokeBlock extends node('InvokeBlock').fields<{
-  head: PathExpression;
+  head: PathExpression | ASTv2.VariableReference;
   args: Args;
   blocks: NamedBlocks;
 }>() {}
@@ -211,7 +211,7 @@ export type Statement =
   | Debugger
   | Yield
   | AppendTrustedHTML
-  | AppendTextNode
+  | AppendValue
   | Component
   | SimpleElement
   | InvokeBlock

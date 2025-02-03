@@ -1,5 +1,10 @@
 // Statements
 export type AppendOpcode = 1;
+export type AppendResolvedOpcode = 100;
+export type AppendStaticOpcode = 104;
+export type AppendLexicalOpcode = 103;
+export type AppendResolvedHelperOpcode = 101;
+export type AppendBuiltinHelperOpcode = 102;
 export type UnknownAppendOpcode = 2;
 export type UnknownTrustingAppendOpcode = 3;
 export type TrustingAppendOpcode = 4;
@@ -8,9 +13,10 @@ export type LexicalModifierOpcode = 6;
 export type ResolvedModifierOpcode = 56;
 export type StrictModifierOpcode = 7;
 export type ResolvedBlockOpcode = 8;
-export type LexicalBlockOpcode = 9;
+export type LexicalBlockComponentOpcode = 9;
 export type DynamicBlockOpcode = 57;
-export type ComponentOpcode = 10;
+export type ResolvedComponentOpcode = 10;
+export type DynamicComponentOpcode = 58;
 
 export type OpenElementOpcode = 11;
 export type OpenElementWithSplatOpcode = 12;

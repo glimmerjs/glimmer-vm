@@ -7,7 +7,7 @@ import type {
   DynamicBlockOpcode,
   Expressions,
   GetContextualFreeOpcode,
-  LexicalBlockOpcode,
+  LexicalBlockComponentOpcode,
   Nullable,
   Optional,
   PresentArray,
@@ -54,7 +54,6 @@ import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-form
 import type {
   BuilderComment,
   BuilderStatement,
-  NormalizedAngleInvocation,
   NormalizedAttrs,
   NormalizedBlock,
   NormalizedBlocks,
@@ -239,13 +238,23 @@ export function buildAppend(
   trusted: boolean,
   expr: Expressions.Expression
 ): WireFormat.Statements.SomeAppend {
-  if (Array.isArray(expr) && expr[0] === Op.GetFreeAsComponentOrHelperHead) {
-    return trusted
-      ? [Op.UnknownTrustingAppend, expr as Expressions.GetUnknownAppend]
-      : [Op.UnknownAppend, expr as Expressions.GetUnknownAppend];
+  if (Array.isArray(expr)) {
+    if (expr[0] === Op.GetFreeAsComponentOrHelperHead) {
+      return trusted
+        ? [Op.UnknownTrustingAppend, expr as Expressions.GetUnknownAppend]
+        : [Op.UnknownAppend, expr as Expressions.GetUnknownAppend];
+    } else if (isInvokeResolved(expr)) {
+      return [Op.AppendResolved, expr];
+    } else if (isInvokeLexical(expr)) {
+      return [Op.AppendLexical, expr];
+    }
   }
 
-  return [trusted ? Op.TrustingAppend : Op.Append, expr];
+  if (Array.isArray(expr)) {
+    return [trusted ? Op.TrustingAppend : Op.Append, expr];
+  } else {
+    return [Op.AppendStatic, expr];
+  }
 }
 
 export function buildStatement(
@@ -280,22 +289,23 @@ export function buildStatement(
         symbols
       ) as WireFormat.Expressions.GetUnknownAppend;
 
-      if (Array.isArray(builtExpr) && builtExpr[0] === Op.GetFreeAsComponentOrHelperHead) {
-        return [trusted ? [Op.UnknownTrustingAppend, builtExpr] : [Op.UnknownAppend, builtExpr]];
-      }
-
-      const type = callType(builtExpr);
-      const call: WireFormat.Expressions.SomeHelper = [
-        type,
+      const type = headType(builtExpr);
+      const call: WireFormat.Expressions.SomeInvoke = [
+        CALL_TYPES[type],
         builtExpr,
         buildArgs(builtParams, builtHash),
       ];
 
-      return [[trusted ? Op.TrustingAppend : Op.Append, call]];
+      return [
+        [
+          trusted ? Op.TrustingAppend : type === 'lexical' ? Op.AppendLexical : Op.AppendResolved,
+          call,
+        ],
+      ];
     }
 
     case LITERAL_HEAD: {
-      return [[Op.Append, normalized.value]];
+      return [[Op.AppendStatic, normalized.value]];
     }
 
     case COMMENT_HEAD: {
@@ -312,7 +322,7 @@ export function buildStatement(
         symbols
       );
 
-      const args = buildBlockArgs(params, hash, blocks);
+      const args = buildBlockArgs(params, hash, blocks, { path });
 
       return [[...blockType(path), args]];
     }
@@ -427,34 +437,6 @@ function hasSplat(attrs: Nullable<NormalizedAttrs>): boolean {
   if (attrs === null) return false;
 
   return Object.keys(attrs).some((a) => attrs[a] === SPLAT_HEAD);
-}
-
-export function buildAngleInvocation(
-  { attrs, block, head }: NormalizedAngleInvocation,
-  symbols: Symbols
-): WireFormat.Statements.Component {
-  let paramList: Optional<WireFormat.Core.Splattributes>;
-  let named: Optional<WireFormat.Core.Hash> = undefined;
-  let blockList: WireFormat.Statement[] = [];
-
-  if (attrs) {
-    let built = buildElementParams(attrs, symbols);
-    paramList = built.params;
-    named = built.named;
-  }
-
-  if (block) blockList = buildNormalizedStatements(block, symbols);
-
-  const args: Optional<WireFormat.Core.ComponentArgs> = buildComponentArgs(paramList, named, [
-    ['default'],
-    [[blockList, []]],
-  ]);
-
-  return [
-    Op.Component,
-    buildExpression(head, VariableResolutionContext.ResolveAsComponentHead, symbols),
-    args,
-  ];
 }
 
 export function buildElementParams(
@@ -599,7 +581,7 @@ export function buildExpression(
         symbols
       );
 
-      return [callType(builtExpr), builtExpr, buildArgs(builtParams, builtHash)];
+      return [CALL_TYPES[headType(builtExpr)], builtExpr, buildArgs(builtParams, builtHash)];
     }
 
     case HAS_BLOCK_EXPR: {
@@ -825,7 +807,8 @@ export function buildBlocks(
 export function invokeType(
   expr: Expressions.Expression
 ): CallLexicalOpcode | CallResolvedOpcode | UnknownInvokeOpcode {
-  if (!Array.isArray(expr)) throw Error('Something is suspicious @fixme');
+  if (!Array.isArray(expr))
+    throw Error('Something is suspicious (expected invoke type to be an array) @fixme');
 
   let type = expr[0];
 
@@ -843,7 +826,27 @@ export function invokeType(
   }
 }
 
-export function callType(expr: Expressions.Expression): CallLexicalOpcode | CallResolvedOpcode {
+type CallType = 'lexical' | 'resolved' | 'keyword';
+
+export const APPEND_TYPES = {
+  resolved: Op.AppendResolved,
+  keyword: Op.AppendResolved,
+  lexical: Op.AppendLexical,
+};
+
+export const CALL_TYPES = {
+  resolved: Op.CallResolved,
+  keyword: Op.CallResolved,
+  lexical: Op.CallLexical,
+};
+
+export const MODIFIER_TYPES = {
+  resolved: Op.ResolvedModifier,
+  keyword: Op.ResolvedModifier,
+  lexical: Op.LexicalModifier,
+};
+
+export function headType(expr: Expressions.Expression): CallType {
   if (!Array.isArray(expr)) {
     throw Error('Something is suspicious @fixme');
   }
@@ -855,11 +858,13 @@ export function callType(expr: Expressions.Expression): CallLexicalOpcode | Call
     case Op.GetFreeAsModifierHead:
     case Op.GetFreeAsComponentHead:
     case Op.GetFreeAsComponentOrHelperHead:
+      return 'resolved';
+
     case Op.GetStrictKeyword:
-      return Op.CallResolved;
+      return 'keyword';
 
     default:
-      return Op.CallLexical;
+      return 'lexical';
   }
 }
 
@@ -877,14 +882,26 @@ export function buildComponentArgs(
 
 export function buildBlockArgs(
   params: Optional<WireFormat.Core.Params>,
-  hash: Optional<WireFormat.Core.Hash>,
-  blocks: Optional<WireFormat.Core.Blocks>
+  rawHash: Optional<WireFormat.Core.Hash>,
+  blocks: Optional<WireFormat.Core.Blocks>,
+  { path }: { path: WireFormat.Core.Expression }
 ): Optional<WireFormat.Core.BlockArgs> {
+  const hash: Optional<WireFormat.Core.Hash> =
+    isGet(path) && needsAtNames(path) ? addAtNames(rawHash) : rawHash;
+
   return compact({
     params,
     hash,
     blocks,
   });
+}
+
+function addAtNames(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
+  if (!hash) return;
+
+  const [keys, values] = hash;
+
+  return [keys.map((key) => `@${key}`) as PresentArray<string>, values];
 }
 
 function buildArgs(
@@ -986,6 +1003,28 @@ export function isGetPath(path: Expressions.Expression): path is WireFormat.Expr
   }
 }
 
+export function isInvokeLexical(
+  expr: Expressions.Expression
+): expr is WireFormat.Expressions.SomeInvoke {
+  if (!isTupleExpression(expr)) return false;
+
+  return expr[0] === Op.CallLexical;
+}
+
+export function isInvokeResolved(
+  expr: Expressions.Expression
+): expr is WireFormat.Expressions.SomeInvoke {
+  if (!isTupleExpression(expr)) return false;
+
+  return expr[0] === Op.CallResolved;
+}
+
+export function isGetSymbol(
+  path: Expressions.Expression
+): path is WireFormat.Expressions.GetSymbol | WireFormat.Expressions.GetPathSymbol {
+  return isTupleExpression(path) && path[0] === Op.GetSymbol;
+}
+
 export function isGetVar(path: Expressions.Expression): path is WireFormat.Expressions.GetVar[0] {
   if (!Array.isArray(path) || path.length !== 2) return false;
 
@@ -1029,14 +1068,18 @@ export function assertGet(expr: Expressions.Expression): asserts expr is Express
   }
 }
 
+export function needsAtNames(path: Expressions.Get): boolean {
+  return isGetLexical(path) || path.length === 2;
+}
+
 export function blockType(
   path: Expressions.Get
 ):
-  | [LexicalBlockOpcode, WireFormat.Expressions.GetLexicalSymbol]
+  | [LexicalBlockComponentOpcode, WireFormat.Expressions.GetLexicalSymbol]
   | [ResolvedBlockOpcode, WireFormat.Expressions.GetContextualFree]
   | [DynamicBlockOpcode, WireFormat.Expressions.GetPath] {
   if (isGetLexical(path)) {
-    return [Op.LexicalBlock, path];
+    return [Op.LexicalBlockComponent, path];
   } else if (path.length === 2) {
     return [Op.ResolvedBlock, path as WireFormat.Expressions.GetContextualFree];
   } else {

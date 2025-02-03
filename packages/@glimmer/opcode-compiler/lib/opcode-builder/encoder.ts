@@ -25,12 +25,12 @@ import { dict, Stack } from '@glimmer/util';
 import { ARG_SHIFT, MACHINE_MASK, TYPE_SIZE } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
-import type { ResolveAppendInvokableOptions, ResolveAppendOptions } from './helpers/resolution';
+import type { ResolveAppendInvokableOptions } from './helpers/resolution';
 
 import { compilableBlock } from '../compilable-template';
 import {
   assertResolverInvariants,
-  resolveAppend,
+  resolveAppendAny,
   resolveAppendInvokable,
   resolveComponent,
   resolveModifier,
@@ -118,7 +118,7 @@ export class EncodeOp {
    * evolve to calls into the correct kind of component, based on the known resolution when the
    * wire format is compiled.
    */
-  resolveComponent = (expr: Expressions.Expression): CompileTimeComponent =>
+  resolveComponent = (expr: Expressions.GetVar): CompileTimeComponent =>
     resolveComponent(this.#context.resolver, this.#constants, this.#meta, expr);
 
   getLexicalComponent = (expr: Expressions.Expression): CompileTimeComponent => {
@@ -177,8 +177,8 @@ export class EncodeOp {
     return this.#constants.helper(helper!, name);
   };
 
-  appendAny = (expr: Expressions.GetUnknownAppend, options: ResolveAppendOptions): void =>
-    resolveAppend(this.#context.resolver, this.#constants, this.#meta, expr, options);
+  appendAny = (expr: Expressions.GetUnknownAppend, options: ResolveAppendInvokableOptions): void =>
+    resolveAppendAny(this.#context.resolver, this.#constants, this.#meta, expr, options);
 
   appendInvokable = (expr: Expressions.Expression, then: ResolveAppendInvokableOptions): void =>
     resolveAppendInvokable(this.#context.resolver, this.#constants, this.#meta, expr, then);

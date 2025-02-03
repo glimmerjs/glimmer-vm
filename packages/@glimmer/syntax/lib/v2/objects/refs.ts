@@ -1,7 +1,7 @@
 import type { SourceSlice } from '../../source/slice';
 import type { FreeVarResolution } from './resolution';
 
-import { node } from './node';
+import { type AbstractNode, node } from './node';
 
 /**
  * Corresponds to `this` at the head of an expression.
@@ -39,3 +39,9 @@ export class FreeVarReference extends node('Free').fields<{
 }>() {}
 
 export type VariableReference = ThisReference | ArgReference | LocalVarReference | FreeVarReference;
+
+export function isVariableReference(node: AbstractNode): node is VariableReference {
+  return (
+    node.type === 'This' || node.type === 'Arg' || node.type === 'Local' || node.type === 'Free'
+  );
+}

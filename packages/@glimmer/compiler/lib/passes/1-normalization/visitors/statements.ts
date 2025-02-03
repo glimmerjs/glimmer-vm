@@ -1,9 +1,9 @@
-import { ASTv2 } from '@glimmer/syntax';
+import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../context';
 
 import { OptionalList } from '../../../shared/list';
-import { Ok, Result, ResultArray } from '../../../shared/result';
+import { Err, Ok, Result, ResultArray } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import { BLOCK_KEYWORDS } from '../keywords';
 import { APPEND_KEYWORDS } from '../keywords/append';
@@ -51,8 +51,17 @@ class NormalizationStatements {
     let head = VISIT_EXPRS.visit(node.callee, state);
     let args = VISIT_EXPRS.Args(node.args, state);
 
-    return Result.all(head, args).andThen(([head, args]) =>
-      this.NamedBlocks(node.blocks, state).mapOk(
+    return Result.all(head, args).andThen(([head, args]) => {
+      if (head.type !== 'PathExpression' && !ASTv2.isVariableReference(head)) {
+        return Err(
+          generateSyntaxError(
+            `expected a path expression or variable reference, got ${head.type}`,
+            head.loc
+          )
+        );
+      }
+
+      return this.NamedBlocks(node.blocks, state).mapOk(
         (blocks) =>
           new mir.InvokeBlock({
             loc: node.loc,
@@ -60,8 +69,8 @@ class NormalizationStatements {
             args,
             blocks,
           })
-      )
-    );
+      );
+    });
   }
 
   NamedBlocks(blocks: ASTv2.NamedBlocks, state: NormalizationState): Result<mir.NamedBlocks> {
@@ -119,18 +128,18 @@ class NormalizationStatements {
           html: value,
         });
       } else {
-        return new mir.AppendTextNode({
+        return new mir.AppendValue({
           loc: append.loc,
-          text: value,
+          value: value,
         });
       }
     });
   }
 
   TextNode(text: ASTv2.HtmlText): mir.Statement {
-    return new mir.AppendTextNode({
+    return new mir.AppendValue({
       loc: text.loc,
-      text: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
+      value: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
     });
   }
 

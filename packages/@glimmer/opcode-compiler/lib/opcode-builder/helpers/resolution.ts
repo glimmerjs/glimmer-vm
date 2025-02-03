@@ -95,13 +95,8 @@ export function resolveComponent(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  expr: Expressions.Expression
+  expr: Expressions.GetVar
 ): CompileTimeComponent {
-  localAssert(
-    isGetFreeComponent(expr),
-    `Attempted to resolve a component with incorrect opcode (${JSON.stringify(expr)})`
-  );
-
   let {
     symbols: { upvars },
     owner,
@@ -294,19 +289,15 @@ export interface ResolveAppendInvokableOptions {
   ifHelper: (handle: number) => void;
 }
 
-export interface ResolveAppendOptions extends ResolveAppendInvokableOptions {
-  ifValue: (handle: number) => void;
-}
-
 /**
  * {{maybeHelperOrComponent}}
  */
-export function resolveAppend(
+export function resolveAppendAny(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
   expr: Expressions.GetUnknownAppend,
-  { ifComponent, ifHelper }: ResolveAppendOptions
+  { ifComponent, ifHelper }: ResolveAppendInvokableOptions
 ): void {
   let {
     symbols: { upvars },

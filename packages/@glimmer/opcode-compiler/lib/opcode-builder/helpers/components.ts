@@ -105,7 +105,7 @@ export interface Component extends AnyComponent {
 export function InvokeComponent(
   encode: EncodeOp,
   component: CompileTimeComponent,
-  args?: Optional<WireFormat.Core.ComponentArgs>,
+  args?: Optional<WireFormat.Core.SomeArgs>,
   positional?: Optional<WireFormat.Core.Params>
 ): void {
   let { compilable, capabilities, handle } = component;
@@ -145,6 +145,7 @@ export function InvokeDynamicComponent(
 ): void {
   let splattributes =
     args?.splattributes && ([args.splattributes, []] as WireFormat.SerializedInlineBlock);
+
   let blocks = namedBlocks(args?.blocks);
 
   Replayable(

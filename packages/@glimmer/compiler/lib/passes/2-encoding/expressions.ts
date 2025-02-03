@@ -5,7 +5,7 @@ import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type * as mir from './mir';
 
-import { callType, compact } from '../../builder/builder';
+import { CALL_TYPES, compact, headType } from '../../builder/builder';
 
 export type HashPair = [string, WireFormat.Expression];
 
@@ -98,10 +98,10 @@ export class ExpressionEncoder {
     return [SexpOpcodes.Concat, parts.map((e) => EXPR.expr(e)).toArray()];
   }
 
-  CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.SomeHelper {
+  CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.SomeInvoke {
     const calleeExpr = EXPR.expr(callee);
 
-    return [callType(calleeExpr), calleeExpr, EXPR.Args(args)];
+    return [CALL_TYPES[headType(calleeExpr)], calleeExpr, EXPR.Args(args)];
   }
 
   Tail({ members }: mir.Tail): PresentArray<string> {

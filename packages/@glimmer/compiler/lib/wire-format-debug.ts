@@ -126,9 +126,6 @@ export default class WireFormatDebugger {
             this.formatArgs(opcode[2]),
           ];
 
-        case Op.Component:
-          return ['component', this.formatOpcode(opcode[1]), this.formatComponentArgs(opcode[2])];
-
         case Op.HasBlock:
           return ['has-block', this.formatOpcode(opcode[1])];
 
@@ -219,13 +216,61 @@ export default class WireFormatDebugger {
         case Op.GetDynamicVar:
           return ['-get-dynamic-vars', this.formatOpcode(opcode[1])];
 
+        case Op.InvokeLexicalComponent:
+          return ['component', this.formatOpcode(opcode[1]), this.formatComponentArgs(opcode[2])];
+
         case Op.InvokeDynamicComponent:
         case Op.InvokeResolvedComponent:
           return [
-            opcode[0] === Op.InvokeDynamicComponent ? 'component' : 'component:resolved',
+            opcode[0] === Op.InvokeDynamicComponent ? 'component:dynamic' : 'component:resolved',
             this.formatOpcode(opcode[1]),
             this.formatBlockArgs(opcode[2]),
           ];
+
+        case Op.LexicalBlockComponent:
+        case Op.DynamicBlock: {
+          const [op, path, args] = opcode;
+          return [
+            op === Op.DynamicBlock ? 'block:dynamic' : 'block',
+            this.formatOpcode(path),
+            this.formatBlockArgs(args),
+          ];
+        }
+
+        case Op.DynamicComponent:
+        case Op.ResolvedComponent: {
+          const [op, path, args] = opcode;
+          return [
+            op === Op.ResolvedComponent ? 'component:resolved' : 'component',
+            this.formatOpcode(path),
+            this.formatComponentArgs(args),
+          ];
+        }
+
+        case Op.AppendResolved:
+          return ['append:resolved-component', this.formatOpcode(opcode[1])];
+
+        case Op.AppendResolvedHelper:
+          return ['append:resolved-helper', this.formatOpcode(opcode[1])];
+
+        case Op.AppendBuiltinHelper:
+          return ['append:builtin-helper', this.formatOpcode(opcode[1])];
+
+        case Op.UnknownAppend:
+        case Op.UnknownTrustingAppend:
+          return [
+            opcode[0] === Op.UnknownTrustingAppend ? 'append:trusting' : 'append',
+            this.formatOpcode(opcode[1]),
+          ];
+
+        case Op.AppendStatic:
+          return ['append:static', this.formatOpcode(opcode[1])];
+
+        case Op.AppendLexical:
+          return ['append:lexical', this.formatOpcode(opcode[1])];
+
+        default:
+          exhausted(opcode);
       }
     } else {
       return opcode;

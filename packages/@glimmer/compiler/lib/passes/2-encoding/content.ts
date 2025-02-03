@@ -16,7 +16,7 @@ import type { BlockSymbolTable } from '@glimmer/syntax';
 import { assertPresentArray, exhausted, localAssert } from '@glimmer/debug-util';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
+import { isGetLexical, isGetVar, SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
@@ -25,9 +25,13 @@ import {
   blockType,
   buildAppend,
   buildComponentArgs,
-  callType,
   compact,
+  headType,
   isGet,
+  isGetSymbol,
+  isTupleExpression,
+  MODIFIER_TYPES,
+  needsAtNames,
 } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
@@ -71,8 +75,8 @@ export class ContentEncoder {
         return [Op.Debugger, ...stmt.scope.getDebugInfo(), {}];
       case 'AppendComment':
         return this.AppendComment(stmt);
-      case 'AppendTextNode':
-        return this.AppendTextNode(stmt);
+      case 'AppendValue':
+        return this.AppendValue(stmt);
       case 'AppendTrustedHTML':
         return this.AppendTrustedHTML(stmt);
       case 'Yield':
@@ -125,7 +129,7 @@ export class ContentEncoder {
   BlockArgs(
     argsNode: Pick<mir.Args, 'positional' | 'named'>,
     blocksNode: Nullable<mir.NamedBlocks>,
-    insertAtPrefix: boolean = false
+    { insertAtPrefix }: { insertAtPrefix: boolean }
   ): Optional<WireFormat.Core.BlockArgs> {
     return compact({
       ...EXPR.Args(argsNode, insertAtPrefix),
@@ -138,15 +142,18 @@ export class ContentEncoder {
 
     localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
 
-    return [...blockType(path), this.BlockArgs(args, blocks)];
+    return [
+      ...blockType(path),
+      this.BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+    ];
   }
 
   AppendTrustedHTML({ html }: mir.AppendTrustedHTML): WireFormat.Statements.TrustingAppend {
     return [Op.TrustingAppend, EXPR.expr(html)];
   }
 
-  AppendTextNode({ text }: mir.AppendTextNode): WireFormat.Statements.SomeAppend {
-    return buildAppend(false, EXPR.expr(text));
+  AppendValue({ value }: mir.AppendValue): WireFormat.Statements.SomeAppend {
+    return buildAppend(false, EXPR.expr(value));
   }
 
   AppendComment({ value }: mir.AppendComment): WireFormat.Statements.Comment {
@@ -164,6 +171,7 @@ export class ContentEncoder {
     ]);
   }
 
+  // This is used by the `{{component}}` keyword
   Component({
     tag,
     params,
@@ -171,7 +179,8 @@ export class ContentEncoder {
     blocks,
   }: mir.Component):
     | WireFormat.Statements.InvokeLexicalComponent
-    | WireFormat.Statements.Component {
+    | WireFormat.Statements.ResolvedComponent
+    | WireFormat.Statements.DynamicComponent {
     let wireTag = EXPR.expr(tag);
     let wirePositional = CONTENT.ElementParameters(params);
     let wireNamed = EXPR.NamedArguments(named, false);
@@ -180,13 +189,38 @@ export class ContentEncoder {
 
     const args = buildComponentArgs(wirePositional.toPresentArray(), wireNamed, wireNamedBlocks);
 
-    if (Array.isArray(wireTag) && wireTag[0] === Op.GetLexicalSymbol) {
+    localAssert(
+      isTupleExpression(wireTag),
+      `Expected ${JSON.stringify(wireTag)} to be a tuple expression`
+    );
+
+    // There are special cases for non-path expressions that refer to out-of-template variables:
+    // lexical variables and resolved variables.
+
+    if (isGetLexical(wireTag)) {
       // if the expression is something like `x.Foo`, then the component is dynamic, not
       // a lexical variable.
-      if (wireTag.length === 2) return [Op.InvokeLexicalComponent, wireTag, args];
+      return [
+        wireTag.length === 2 ? Op.InvokeLexicalComponent : Op.DynamicComponent,
+        wireTag,
+        args,
+      ];
     }
 
-    return [Op.Component, wireTag, args];
+    if (wireTag[0] === Op.GetFreeAsComponentHead) {
+      localAssert(
+        wireTag.length === 2,
+        `Unexpected free variable as component head with a path tail ${JSON.stringify(wireTag)}`
+      );
+
+      return [Op.ResolvedComponent, wireTag, args];
+    }
+
+    // The only remaining case here should be a reference to a local Handlebars variable (possibly a
+    // path).
+    localAssert(isGetSymbol(wireTag), `Expected ${JSON.stringify(wireTag)} to be a symbol`);
+
+    return [Op.DynamicComponent, wireTag, args];
   }
 
   ElementParameters({ body }: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
@@ -203,11 +237,7 @@ export class ContentEncoder {
         return [staticAttrOp(param.kind), ...staticAttr(param)];
       case 'Modifier': {
         const expr = EXPR.expr(param.callee);
-        return [
-          callType(expr) === Op.CallLexical ? Op.LexicalModifier : Op.ResolvedModifier,
-          EXPR.expr(param.callee),
-          EXPR.Args(param.args),
-        ];
+        return [MODIFIER_TYPES[headType(expr)], EXPR.expr(param.callee), EXPR.Args(param.args)];
       }
     }
   }
@@ -278,10 +308,23 @@ export class ContentEncoder {
   }: mir.InvokeComponent): WireFormat.Statements.SomeInvokeComponent {
     const expr = EXPR.expr(definition);
 
-    if (typeof expr === 'string' || callType(expr) === Op.CallLexical) {
-      return [Op.InvokeDynamicComponent, expr, this.BlockArgs(args, blocks)];
+    if (typeof expr === 'string' || headType(expr) === 'lexical') {
+      return [
+        Op.InvokeDynamicComponent,
+        expr,
+        this.BlockArgs(args, blocks, { insertAtPrefix: false }),
+      ];
     } else {
-      return [Op.InvokeResolvedComponent, expr, this.BlockArgs(args, blocks, true)];
+      localAssert(
+        Array.isArray(expr) && isGetVar(expr),
+        `Expected ${JSON.stringify(expr)} to be an array`
+      );
+
+      return [
+        Op.InvokeResolvedComponent,
+        expr,
+        this.BlockArgs(args, blocks, { insertAtPrefix: true }),
+      ];
     }
   }
 }

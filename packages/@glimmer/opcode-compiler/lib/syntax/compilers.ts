@@ -30,7 +30,10 @@ export class Compilers<TSexpOpcodes extends SexpOpcode> {
 
   compile(op: EncodeOp, sexp: SexpOpcodeMap[TSexpOpcodes]): void {
     let name = sexp[0];
-    let index = expect(this.names[name], `expected an implementation for ${name}`);
+    let index = expect(
+      this.names[name],
+      `expected an implementation for ${sexp[0]} (${JSON.stringify(sexp)})`
+    );
     let func = this.funcs[index];
     localAssert(!!func, `expected an implementation for ${sexp[0]}`);
 

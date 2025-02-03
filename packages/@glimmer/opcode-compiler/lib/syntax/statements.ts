@@ -9,7 +9,6 @@ import type {
 import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import {
   VM_COMPONENT_ATTR_OP,
-  VM_CONSTANT_REFERENCE_OP,
   VM_DEBUGGER_OP,
   VM_DUP_OP,
   VM_DYNAMIC_ATTR_OP,
@@ -36,7 +35,7 @@ import {
   VM_TO_BOOLEAN_OP,
 } from '@glimmer/constants';
 import { $fp, $sp, ContentType } from '@glimmer/vm';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import {
   InvokeStaticBlock,
@@ -78,11 +77,11 @@ export function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
 
-STATEMENTS.add(SexpOpcodes.Comment, (op, [, comment]) => Comment(op, comment));
-STATEMENTS.add(SexpOpcodes.CloseElement, (op) => CloseElement(op));
-STATEMENTS.add(SexpOpcodes.FlushElement, (op) => FlushElement(op));
+STATEMENTS.add(Op.Comment, (op, [, comment]) => Comment(op, comment));
+STATEMENTS.add(Op.CloseElement, (op) => CloseElement(op));
+STATEMENTS.add(Op.FlushElement, (op) => FlushElement(op));
 
-STATEMENTS.add(SexpOpcodes.ResolvedModifier, (encode, [, expression, args]) => {
+STATEMENTS.add(Op.ResolvedModifier, (encode, [, expression, args]) => {
   encode.modifier(expression, (handle: number) => {
     encode.op(VM_PUSH_FRAME_OP);
     SimpleArgs(encode, args, false);
@@ -91,7 +90,7 @@ STATEMENTS.add(SexpOpcodes.ResolvedModifier, (encode, [, expression, args]) => {
   });
 });
 
-STATEMENTS.add(SexpOpcodes.LexicalModifier, (encode, [, expression, args]) => {
+STATEMENTS.add(Op.LexicalModifier, (encode, [, expression, args]) => {
   expr(encode, expression);
   LexicalModifier(
     encode,
@@ -100,7 +99,7 @@ STATEMENTS.add(SexpOpcodes.LexicalModifier, (encode, [, expression, args]) => {
   );
 });
 
-STATEMENTS.add(SexpOpcodes.StaticAttr, (encode, [, name, value, namespace]) => {
+STATEMENTS.add(Op.StaticAttr, (encode, [, name, value, namespace]) => {
   encode.op(
     VM_STATIC_ATTR_OP,
     encode.constant(inflateAttrName(name)),
@@ -109,7 +108,7 @@ STATEMENTS.add(SexpOpcodes.StaticAttr, (encode, [, name, value, namespace]) => {
   );
 });
 
-STATEMENTS.add(SexpOpcodes.StaticComponentAttr, (encode, [, name, value, namespace]) => {
+STATEMENTS.add(Op.StaticComponentAttr, (encode, [, name, value, namespace]) => {
   encode.op(
     VM_STATIC_COMPONENT_ATTR_OP,
     encode.constant(inflateAttrName(name)),
@@ -118,7 +117,7 @@ STATEMENTS.add(SexpOpcodes.StaticComponentAttr, (encode, [, name, value, namespa
   );
 });
 
-STATEMENTS.add(SexpOpcodes.DynamicAttr, (encode, [, name, value, namespace]) => {
+STATEMENTS.add(Op.DynamicAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
   encode.op(
     VM_DYNAMIC_ATTR_OP,
@@ -128,7 +127,7 @@ STATEMENTS.add(SexpOpcodes.DynamicAttr, (encode, [, name, value, namespace]) => 
   );
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingDynamicAttr, (encode, [, name, value, namespace]) => {
+STATEMENTS.add(Op.TrustingDynamicAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
   encode.op(
     VM_DYNAMIC_ATTR_OP,
@@ -138,7 +137,7 @@ STATEMENTS.add(SexpOpcodes.TrustingDynamicAttr, (encode, [, name, value, namespa
   );
 });
 
-STATEMENTS.add(SexpOpcodes.ComponentAttr, (encode, [, name, value, namespace]) => {
+STATEMENTS.add(Op.ComponentAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
   encode.op(
     VM_COMPONENT_ATTR_OP,
@@ -148,7 +147,7 @@ STATEMENTS.add(SexpOpcodes.ComponentAttr, (encode, [, name, value, namespace]) =
   );
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingComponentAttr, (encode, [, name, value, namespace]) => {
+STATEMENTS.add(Op.TrustingComponentAttr, (encode, [, name, value, namespace]) => {
   expr(encode, value);
   encode.op(
     VM_COMPONENT_ATTR_OP,
@@ -158,28 +157,28 @@ STATEMENTS.add(SexpOpcodes.TrustingComponentAttr, (encode, [, name, value, names
   );
 });
 
-STATEMENTS.add(SexpOpcodes.OpenElement, (encode, [, tag]) => {
+STATEMENTS.add(Op.OpenElement, (encode, [, tag]) => {
   encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
-STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, (encode, [, tag]) => {
+STATEMENTS.add(Op.OpenElementWithSplat, (encode, [, tag]) => {
   encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
   encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
 export function isLexicalCall(expr: WireFormat.Expression) {
-  return Array.isArray(expr) && expr[0] === SexpOpcodes.GetLexicalSymbol;
+  return Array.isArray(expr) && expr[0] === Op.GetLexicalSymbol;
 }
 
-STATEMENTS.add(SexpOpcodes.Yield, (encode, [, to, params]) => YieldBlock(encode, to, params));
+STATEMENTS.add(Op.Yield, (encode, [, to, params]) => YieldBlock(encode, to, params));
 
-STATEMENTS.add(SexpOpcodes.AttrSplat, (encode, [, to]) => YieldBlock(encode, to));
+STATEMENTS.add(Op.AttrSplat, (encode, [, to]) => YieldBlock(encode, to));
 
-STATEMENTS.add(SexpOpcodes.Debugger, (encode, [, locals, upvars, lexical]) => {
+STATEMENTS.add(Op.Debugger, (encode, [, locals, upvars, lexical]) => {
   encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
 });
 
-STATEMENTS.add(SexpOpcodes.UnknownAppend, (encode, [, value]) => {
+STATEMENTS.add(Op.UnknownAppend, (encode, [, value]) => {
   encode.appendAny(value, {
     ifComponent(component: CompileTimeComponent) {
       InvokeComponent(encode, component);
@@ -191,73 +190,72 @@ STATEMENTS.add(SexpOpcodes.UnknownAppend, (encode, [, value]) => {
       encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
       encode.op(VM_POP_FRAME_OP);
     },
+  });
+});
 
-    ifValue(handle: number) {
+// This opcode refers to this syntax:
+//
+// {{}}
+STATEMENTS.add(Op.AppendResolved, (encode, [, value]) => {
+  let [, expression, args] = value;
+
+  encode.appendInvokable(expression, {
+    ifComponent(component: CompileTimeComponent) {
+      InvokeComponent(encode, component, compact({ hash: hashToArgs(args?.hash) }), args?.params);
+    },
+    ifHelper(handle: number) {
       encode.op(VM_PUSH_FRAME_OP);
-      encode.op(VM_CONSTANT_REFERENCE_OP, handle);
+      Call(encode, handle, args);
       encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
       encode.op(VM_POP_FRAME_OP);
     },
   });
 });
 
-STATEMENTS.add(SexpOpcodes.Append, (encode, [, value]) => {
-  // Special case for static values
-  if (!Array.isArray(value)) {
-    encode.op(
-      VM_TEXT_OP,
-      encode.constant(value === null || value === undefined ? '' : String(value))
-    );
-  } else if (value[0] === SexpOpcodes.CallLexical) {
-    let [, expression, args] = value;
+STATEMENTS.add(Op.AppendLexical, (encode, [, value]) => {
+  let [, expression, args] = value;
 
-    SwitchCases(
-      encode,
-      () => {
-        expr(encode, expression);
-        encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
-      },
-      (when) => {
-        when(ContentType.Component, () => {
-          encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
-          encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-          InvokeNonStaticComponent(encode, {
-            capabilities: true,
-            positional: args?.params,
-            named: args?.hash,
-            atNames: false,
-            blocks: namedBlocks(undefined),
-          });
+  SwitchCases(
+    encode,
+    () => {
+      expr(encode, expression);
+      encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
+    },
+    (when) => {
+      when(ContentType.Component, () => {
+        encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+        encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+        InvokeNonStaticComponent(encode, {
+          capabilities: true,
+          positional: args?.params,
+          named: args?.hash,
+          atNames: false,
+          blocks: namedBlocks(undefined),
         });
+      });
 
-        when(ContentType.Helper, () => {
-          CallDynamicBlock(encode, encode.stdlibFn('cautious-non-dynamic-append'), args);
-        });
-      }
-    );
-  } else if (value[0] === SexpOpcodes.CallResolved) {
-    let [, expression, args] = value;
-
-    encode.appendInvokable(expression, {
-      ifComponent(component: CompileTimeComponent) {
-        InvokeComponent(encode, component, compact({ hash: hashToArgs(args?.hash) }), args?.params);
-      },
-      ifHelper(handle: number) {
-        encode.op(VM_PUSH_FRAME_OP);
-        Call(encode, handle, args);
-        encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
-        encode.op(VM_POP_FRAME_OP);
-      },
-    });
-  } else {
-    encode.op(VM_PUSH_FRAME_OP);
-    expr(encode, value);
-    encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-append'));
-    encode.op(VM_POP_FRAME_OP);
-  }
+      when(ContentType.Helper, () => {
+        CallDynamicBlock(encode, encode.stdlibFn('cautious-non-dynamic-append'), args);
+      });
+    }
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingAppend, (encode, [, value]) => {
+STATEMENTS.add(Op.AppendStatic, (encode, [, value]) => {
+  encode.op(
+    VM_TEXT_OP,
+    encode.constant(value === null || value === undefined ? '' : String(value))
+  );
+});
+
+STATEMENTS.add(Op.Append, (encode, [, value]) => {
+  encode.op(VM_PUSH_FRAME_OP);
+  expr(encode, value);
+  encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-append'));
+  encode.op(VM_POP_FRAME_OP);
+});
+
+STATEMENTS.add(Op.TrustingAppend, (encode, [, value]) => {
   if (!Array.isArray(value)) {
     encode.op(
       VM_TEXT_OP,
@@ -271,41 +269,33 @@ STATEMENTS.add(SexpOpcodes.TrustingAppend, (encode, [, value]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.LexicalBlock, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.LexicalBlockComponent, (encode, [, expr, args]) => {
   const component = encode.getLexicalComponent(expr);
 
-  InvokeComponent(
-    encode,
-    component,
-    compact({
-      hash: hashToArgs(args?.hash),
-      blocks: args?.blocks,
-    }),
-    args?.params
-  );
+  InvokeComponent(encode, component, args, args?.params);
 });
 
-STATEMENTS.add(SexpOpcodes.ResolvedBlock, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.ResolvedBlock, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
 
   InvokeComponent(
     encode,
     component,
     compact({
-      hash: hashToArgs(args?.hash),
+      hash: args?.hash,
       blocks: args?.blocks,
     }),
     args?.params
   );
 });
 
-STATEMENTS.add(SexpOpcodes.DynamicBlock, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.DynamicBlock, (encode, [, expr, args]) => {
   InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
     positional: args?.params,
   });
 });
 
-STATEMENTS.add(SexpOpcodes.InElement, (encode, [, block, guid, destination, insertBefore]) => {
+STATEMENTS.add(Op.InElement, (encode, [, block, guid, destination, insertBefore]) => {
   ReplayableIf(
     encode,
 
@@ -332,7 +322,7 @@ STATEMENTS.add(SexpOpcodes.InElement, (encode, [, block, guid, destination, inse
   );
 });
 
-STATEMENTS.add(SexpOpcodes.If, (encode, [, condition, block, inverse]) =>
+STATEMENTS.add(Op.If, (encode, [, condition, block, inverse]) =>
   ReplayableIf(
     encode,
     () => {
@@ -354,7 +344,7 @@ STATEMENTS.add(SexpOpcodes.If, (encode, [, condition, block, inverse]) =>
   )
 );
 
-STATEMENTS.add(SexpOpcodes.Each, (encode, [, value, key, block, inverse]) =>
+STATEMENTS.add(Op.Each, (encode, [, value, key, block, inverse]) =>
   Replayable(
     encode,
 
@@ -394,12 +384,12 @@ STATEMENTS.add(SexpOpcodes.Each, (encode, [, value, key, block, inverse]) =>
   )
 );
 
-STATEMENTS.add(SexpOpcodes.Let, (encode, [, positional, block]) => {
+STATEMENTS.add(Op.Let, (encode, [, positional, block]) => {
   let count = CompilePositional(encode, positional);
   InvokeStaticBlockWithStack(encode, block, count);
 });
 
-STATEMENTS.add(SexpOpcodes.WithDynamicVars, (encode, [, named, block]) => {
+STATEMENTS.add(Op.WithDynamicVars, (encode, [, named, block]) => {
   if (named) {
     let [names, expressions] = named;
 
@@ -412,29 +402,29 @@ STATEMENTS.add(SexpOpcodes.WithDynamicVars, (encode, [, named, block]) => {
   }
 });
 
-STATEMENTS.add(SexpOpcodes.Component, (encode, [, expr, args]) => {
-  if (Array.isArray(expr) && expr[0] === SexpOpcodes.GetFreeAsComponentHead) {
-    const component = encode.resolveComponent(expr);
-    InvokeComponent(encode, component, args);
-  } else {
-    // otherwise, the component name was an expression, so resolve the expression
-    // and invoke it as a dynamic component
-    InvokeDynamicComponent(encode, expr, args, { atNames: true, curried: true });
-  }
+STATEMENTS.add(Op.ResolvedComponent, (encode, [, expr, args]) => {
+  const component = encode.resolveComponent(expr);
+  InvokeComponent(encode, component, args);
 });
 
-STATEMENTS.add(SexpOpcodes.InvokeLexicalComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.DynamicComponent, (encode, [, expr, args]) => {
+  // otherwise, the component name was an expression, so resolve the expression
+  // and invoke it as a dynamic component
+  InvokeDynamicComponent(encode, expr, args, { atNames: true, curried: true });
+});
+
+STATEMENTS.add(Op.InvokeLexicalComponent, (encode, [, expr, args]) => {
   const component = encode.getLexicalComponent(expr);
   InvokeComponent(encode, component, args);
 });
 
-STATEMENTS.add(SexpOpcodes.InvokeDynamicComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeDynamicComponent, (encode, [, expr, args]) => {
   InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
     positional: args?.params,
   });
 });
 
-STATEMENTS.add(SexpOpcodes.InvokeResolvedComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeResolvedComponent, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
   InvokeComponent(
     encode,

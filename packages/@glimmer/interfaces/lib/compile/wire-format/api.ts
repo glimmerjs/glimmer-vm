@@ -5,7 +5,12 @@ import type { PresentArray } from '../../array';
 import type { Nullable, Optional } from '../../core';
 import type { CurriedType } from '../../curry';
 import type {
+  AppendBuiltinHelperOpcode,
+  AppendLexicalOpcode,
   AppendOpcode,
+  AppendResolvedHelperOpcode,
+  AppendResolvedOpcode,
+  AppendStaticOpcode,
   AttrOpcode,
   AttrSplatOpcode,
   CallLexicalOpcode,
@@ -13,13 +18,13 @@ import type {
   CloseElementOpcode,
   CommentOpcode,
   ComponentAttrOpcode,
-  ComponentOpcode,
   ConcatOpcode,
   CurryOpcode,
   DebuggerOpcode,
   DynamicArgOpcode,
   DynamicAttrOpcode,
   DynamicBlockOpcode,
+  DynamicComponentOpcode,
   EachOpcode,
   FlushElementOpcode,
   GetDynamicVarOpcode,
@@ -39,13 +44,14 @@ import type {
   InvokeLexicalComponentOpcode,
   InvokeResolvedComponentOpcode,
   LetOpcode,
-  LexicalBlockOpcode,
+  LexicalBlockComponentOpcode,
   LexicalModifierOpcode,
   LogOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
   ResolvedBlockOpcode,
+  ResolvedComponentOpcode,
   ResolvedModifierOpcode,
   StaticArgOpcode,
   StaticAttrOpcode,
@@ -104,6 +110,12 @@ export namespace Core {
   }>;
 
   export type BlockArgs = RequireAtLeastOne<{ params: Params; hash: Hash; blocks: Blocks }>;
+
+  export type SomeArgs = Partial<{
+    splattributes?: Splattributes;
+    hash?: Hash;
+    blocks?: Blocks;
+  }>;
 }
 
 export type CoreSyntax = Core.Syntax;
@@ -132,7 +144,7 @@ export namespace Expressions {
   export type GetVar = GetSymbol | GetLexicalSymbol | GetFree;
 
   export type GetPathSymbol = [GetSymbolOpcode, number, Path];
-  export type GetPathTemplateSymbol = [GetLexicalSymbolOpcode, number, Path];
+  export type GetPathLexicalSymbol = [GetLexicalSymbolOpcode, number, Path];
   export type GetPathFreeAsComponentOrHelperHead = [
     GetFreeAsComponentOrHelperHeadOpcode,
     number,
@@ -147,7 +159,7 @@ export namespace Expressions {
     | GetPathFreeAsHelperHead
     | GetPathFreeAsModifierHead
     | GetPathFreeAsComponentHead;
-  export type GetPath = GetPathSymbol | GetPathTemplateSymbol | GetPathContextualFree;
+  export type GetPath = GetPathSymbol | GetPathLexicalSymbol | GetPathContextualFree;
 
   export type Get = GetVar | GetPath;
 
@@ -183,7 +195,7 @@ export namespace Expressions {
   export type HasBlockParams = [HasBlockParamsOpcode, Expression];
   export type Curry = [CurryOpcode, Expression, CurriedType, args?: Optional<Core.Args>];
 
-  export type SomeHelper = ResolvedHelper | ConstantHelper;
+  export type SomeInvoke = ResolvedHelper | ConstantHelper;
 
   export type IfInline = [
     op: IfInlineOpcode,
@@ -235,17 +247,35 @@ export namespace Statements {
   export type Blocks = Core.Blocks;
   export type Path = Core.Path;
 
-  export type SomeAppend = Append | TrustingAppend | UnknownAppend | UnknownTrustingAppend;
+  export type SomeAppend =
+    | Append
+    | AppendStatic
+    | AppendResolvedComponent
+    | AppendLexical
+    | AppendResolved
+    | AppendBuiltinHelper
+    | TrustingAppend
+    | UnknownAppend
+    | UnknownTrustingAppend;
   export type SomeModifier = LexicalModifier | ResolvedModifier;
   export type SomeInvokeComponent =
     | InvokeDynamicComponent
     | InvokeResolvedComponent
     | InvokeLexicalComponent;
-  export type SomeBlock = LexicalBlock | ResolvedBlock | DynamicBlock;
+  export type SomeBlock = LexicalBlockComponent | ResolvedBlock | DynamicBlock;
 
   export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
   export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
-  export type Append = [AppendOpcode, Expression];
+  export type Append = [AppendOpcode, TupleExpression];
+  export type AppendResolvedComponent = [AppendResolvedOpcode, target: Expressions.SomeInvoke];
+  export type AppendLexical = [AppendLexicalOpcode, target: Expressions.SomeInvoke];
+  export type AppendResolved = [AppendResolvedHelperOpcode, target: Expressions.SomeInvoke];
+  export type AppendBuiltinHelper = [AppendBuiltinHelperOpcode, target: Expressions.SomeInvoke];
+  export type AppendStatic = [
+    AppendStaticOpcode,
+    target: string | number | boolean | null | undefined,
+  ];
+
   export type TrustingAppend = [TrustingAppendOpcode, Expression];
   export type Comment = [CommentOpcode, string];
   export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.Args>];
@@ -255,9 +285,11 @@ export namespace Statements {
     path: Expressions.GetVar,
     args?: Optional<Core.BlockArgs>,
   ];
-  export type LexicalBlock = [
-    LexicalBlockOpcode,
+  export type LexicalBlockComponent = [
+    LexicalBlockComponentOpcode,
     path: Expressions.GetVar,
+    // Blocks don't have splattributes, so this is normal block args,
+    // not ComponentArgs.
     args?: Optional<Core.BlockArgs>,
   ];
   export type DynamicBlock = [
@@ -266,11 +298,19 @@ export namespace Statements {
     args?: Optional<Core.BlockArgs>,
   ];
 
-  export type Component = [
-    op: ComponentOpcode,
+  export type ResolvedComponent = [
+    op: ResolvedComponentOpcode,
+    // A resolved component is, by definition, not a dot-separated path
+    tag: Expressions.GetVar,
+    args?: Optional<Core.ComponentArgs>,
+  ];
+
+  export type DynamicComponent = [
+    op: DynamicComponentOpcode,
     tag: Expression,
     args?: Optional<Core.ComponentArgs>,
   ];
+
   export type OpenElement = [OpenElementOpcode, string | WellKnownTagName];
   export type OpenElementWithSplat = [OpenElementWithSplatOpcode, string | WellKnownTagName];
   export type FlushElement = [FlushElementOpcode];
@@ -359,7 +399,7 @@ export namespace Statements {
 
   export type InvokeResolvedComponent = [
     op: InvokeResolvedComponentOpcode,
-    definition: Expression,
+    definition: Expressions.GetVar,
     args?: Optional<Core.BlockArgs>,
   ];
 
@@ -372,7 +412,8 @@ export namespace Statements {
     | SomeInvokeComponent
     | SomeBlock
     | Comment
-    | Component
+    | ResolvedComponent
+    | DynamicComponent
     | OpenElement
     | OpenElementWithSplat
     | FlushElement

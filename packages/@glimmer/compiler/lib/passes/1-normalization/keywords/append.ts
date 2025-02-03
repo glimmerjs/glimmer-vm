@@ -128,16 +128,16 @@ export const APPEND_KEYWORDS = keywords('Append')
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
-    ): Result<mir.AppendTextNode> {
+    ): Result<mir.AppendValue> {
       let definitionResult = VISIT_EXPRS.visit(definition, state);
       let argsResult = VISIT_EXPRS.Args(args, state);
 
       return Result.all(definitionResult, argsResult).mapOk(([definition, args]) => {
-        let text = new mir.CallExpression({ callee: definition, args, loc: node.loc });
+        let value = new mir.CallExpression({ callee: definition, args, loc: node.loc });
 
-        return new mir.AppendTextNode({
+        return new mir.AppendValue({
           loc: node.loc,
-          text,
+          value,
         });
       });
     },

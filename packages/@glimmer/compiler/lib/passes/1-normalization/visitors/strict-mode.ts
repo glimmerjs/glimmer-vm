@@ -71,8 +71,8 @@ export default class StrictModeValidationPass {
       case 'AppendTrustedHTML':
         return this.AppendTrustedHTML(statement);
 
-      case 'AppendTextNode':
-        return this.AppendTextNode(statement);
+      case 'AppendValue':
+        return this.AppendValue(statement);
 
       case 'Component':
         return this.Component(statement);
@@ -249,11 +249,11 @@ export default class StrictModeValidationPass {
     return this.Expression(statement.html, statement);
   }
 
-  AppendTextNode(statement: mir.AppendTextNode): Result<null> {
-    if (statement.text.type === 'CallExpression') {
-      return this.Expression(statement.text, statement, COMPONENT_OR_HELPER_RESOLUTION);
+  AppendValue(statement: mir.AppendValue): Result<null> {
+    if (statement.value.type === 'CallExpression') {
+      return this.Expression(statement.value, statement, COMPONENT_OR_HELPER_RESOLUTION);
     } else {
-      return this.Expression(statement.text, statement);
+      return this.Expression(statement.value, statement);
     }
   }
 
