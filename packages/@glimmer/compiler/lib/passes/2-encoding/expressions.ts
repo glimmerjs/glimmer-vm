@@ -1,7 +1,7 @@
 import type { Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
 import { assertPresentArray, localAssert, mapPresentArray } from '@glimmer/debug-util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type * as mir from './mir';
 
@@ -9,175 +9,201 @@ import { CALL_TYPES, compact, headType } from '../../builder/builder';
 
 export type HashPair = [string, WireFormat.Expression];
 
-export class ExpressionEncoder {
-  expr(expr: mir.ExpressionNode): WireFormat.Expression {
-    switch (expr.type) {
-      case 'Missing':
-        return undefined;
-      case 'Literal':
-        return this.Literal(expr);
-      case 'Keyword':
-        return this.Keyword(expr);
-      case 'CallExpression':
-        return this.CallExpression(expr);
-      case 'PathExpression':
-        return this.PathExpression(expr);
-      case 'Arg':
-        return [SexpOpcodes.GetSymbol, expr.symbol];
-      case 'Local':
-        return this.Local(expr);
-      case 'This':
-        return [SexpOpcodes.GetSymbol, 0];
-      case 'Free':
-        return [expr.resolution.resolution(), expr.symbol];
-      case 'HasBlock':
-        return this.HasBlock(expr);
-      case 'HasBlockParams':
-        return this.HasBlockParams(expr);
-      case 'Curry':
-        return this.Curry(expr);
-      case 'Not':
-        return this.Not(expr);
-      case 'IfInline':
-        return this.IfInline(expr);
-      case 'InterpolateExpression':
-        return this.InterpolateExpression(expr);
-      case 'GetDynamicVar':
-        return this.GetDynamicVar(expr);
-      case 'Log':
-        return this.Log(expr);
-    }
-  }
-
-  Literal({
-    value,
-  }: ASTv2.LiteralExpression): WireFormat.Expressions.Value | WireFormat.Expressions.Undefined {
-    if (value === undefined) {
-      return [SexpOpcodes.Undefined];
-    } else {
-      return value;
-    }
-  }
-
-  Missing(): undefined {
-    return undefined;
-  }
-
-  HasBlock({ symbol }: mir.HasBlock): WireFormat.Expressions.HasBlock {
-    return [SexpOpcodes.HasBlock, [SexpOpcodes.GetSymbol, symbol]];
-  }
-
-  HasBlockParams({ symbol }: mir.HasBlockParams): WireFormat.Expressions.HasBlockParams {
-    return [SexpOpcodes.HasBlockParams, [SexpOpcodes.GetSymbol, symbol]];
-  }
-
-  Curry({ definition, curriedType, args }: mir.Curry): WireFormat.Expressions.Curry {
-    return [SexpOpcodes.Curry, EXPR.expr(definition), curriedType, this.Args(args)];
-  }
-
-  Local({
-    isTemplateLocal,
-    symbol,
-  }: ASTv2.LocalVarReference):
-    | WireFormat.Expressions.GetSymbol
-    | WireFormat.Expressions.GetLexicalSymbol {
-    return [isTemplateLocal ? SexpOpcodes.GetLexicalSymbol : SexpOpcodes.GetSymbol, symbol];
-  }
-
-  Keyword({ symbol }: ASTv2.KeywordExpression): WireFormat.Expressions.GetStrictKeyword {
-    return [SexpOpcodes.GetStrictKeyword, symbol];
-  }
-
-  PathExpression({ head, tail }: mir.PathExpression): WireFormat.Expressions.GetPath {
-    let getOp = EXPR.expr(head) as WireFormat.Expressions.GetVar;
-    localAssert(getOp[0] !== SexpOpcodes.GetStrictKeyword, '[BUG] keyword in a PathExpression');
-    return [...getOp, EXPR.Tail(tail)];
-  }
-
-  InterpolateExpression({ parts }: mir.InterpolateExpression): WireFormat.Expressions.Concat {
-    return [SexpOpcodes.Concat, parts.map((e) => EXPR.expr(e)).toArray()];
-  }
-
-  CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.SomeInvoke {
-    const calleeExpr = EXPR.expr(callee);
-
-    return [CALL_TYPES[headType(calleeExpr)], calleeExpr, EXPR.Args(args)];
-  }
-
-  Tail({ members }: mir.Tail): PresentArray<string> {
-    return mapPresentArray(members, (member) => member.chars);
-  }
-
-  Args(
-    node: Pick<mir.Args, 'positional' | 'named'>,
-    insertAtPrefix: boolean = false
-  ): Optional<WireFormat.Core.Args> {
-    return this.#args(node.positional, node.named, insertAtPrefix);
-  }
-
-  Positional({ list }: mir.Positional): Optional<WireFormat.Core.Params> {
-    return list.map((l) => EXPR.expr(l)).toPresentArray();
-  }
-
-  NamedArgument({ key, value }: mir.NamedArgument): HashPair {
-    return [key.chars, EXPR.expr(value)];
-  }
-
-  NamedArguments(
-    { entries: pairs }: mir.NamedArguments,
-    insertAtPrefix: boolean
-  ): Optional<WireFormat.Core.Hash> {
-    let list = pairs.toPresentArray();
-
-    if (list) {
-      let names: string[] = [];
-      let values: WireFormat.Expression[] = [];
-
-      for (let pair of list) {
-        let [name, value] = EXPR.NamedArgument(pair);
-        names.push(insertAtPrefix ? `@${name}` : name);
-        values.push(value);
-      }
-
-      assertPresentArray(names);
-      assertPresentArray(values);
-
-      return [names, values];
-    }
-  }
-
-  Not({ value }: mir.Not): WireFormat.Expressions.Not {
-    return [SexpOpcodes.Not, EXPR.expr(value)];
-  }
-
-  IfInline({ condition, truthy, falsy }: mir.IfInline): WireFormat.Expressions.IfInline {
-    let expr = [SexpOpcodes.IfInline, EXPR.expr(condition), EXPR.expr(truthy)];
-
-    if (falsy) {
-      expr.push(EXPR.expr(falsy));
-    }
-
-    return expr as WireFormat.Expressions.IfInline;
-  }
-
-  GetDynamicVar({ name }: mir.GetDynamicVar): WireFormat.Expressions.GetDynamicVar {
-    return [SexpOpcodes.GetDynamicVar, EXPR.expr(name)];
-  }
-
-  Log({ positional }: mir.Log): WireFormat.Expressions.Log {
-    return [SexpOpcodes.Log, this.Positional(positional)];
-  }
-
-  #args(
-    positionalNode: mir.Positional,
-    namedNode: mir.NamedArguments,
-    insertAtPrefix: boolean
-  ): Optional<WireFormat.Core.Args> {
-    const positional = this.Positional(positionalNode);
-    const named = this.NamedArguments(namedNode, insertAtPrefix);
-
-    return compact({ params: positional, hash: named });
+export function expr(expr: ASTv2.LocalVarReference): WireFormat.Expressions.GetVar;
+export function expr(expr: ASTv2.ResolvedVarReference): WireFormat.Expressions.GetResolved;
+export function expr(expr: mir.ExpressionNode): WireFormat.Expression;
+export function expr(expr: mir.ExpressionNode): WireFormat.Expression {
+  switch (expr.type) {
+    case 'Missing':
+      return undefined;
+    case 'Literal':
+      return Literal(expr);
+    case 'Keyword':
+      return Keyword(expr);
+    case 'CallExpression':
+      return CallExpression(expr);
+    case 'PathExpression':
+      return PathExpression(expr);
+    case 'Arg':
+      return Arg(expr);
+    case 'Local':
+      return Local(expr);
+    case 'This':
+      return This();
+    case 'Resolved':
+      return Resolved(expr);
+    case 'HasBlock':
+      return HasBlock(expr);
+    case 'HasBlockParams':
+      return HasBlockParams(expr);
+    case 'Curry':
+      return Curry(expr);
+    case 'Not':
+      return Not(expr);
+    case 'IfExpression':
+      return IfInline(expr);
+    case 'InterpolateExpression':
+      return InterpolateExpression(expr);
+    case 'GetDynamicVar':
+      return GetDynamicVar(expr);
+    case 'Log':
+      return Log(expr);
   }
 }
 
-export const EXPR = new ExpressionEncoder();
+function args(
+  positionalNode: mir.Positional,
+  namedNode: mir.NamedArguments,
+  insertAtPrefix: boolean
+): Optional<WireFormat.Core.Args> {
+  const positional = Positional(positionalNode);
+  const named = NamedArguments(namedNode, insertAtPrefix);
+
+  return compact({ params: positional, hash: named });
+}
+
+export function Resolved({
+  resolution,
+  symbol,
+}: ASTv2.ResolvedVarReference): WireFormat.Expressions.GetResolvedOrKeyword {
+  return [resolution.resolution(), symbol];
+}
+
+export function Positional({ list }: mir.Positional): Optional<WireFormat.Core.Params> {
+  return list.map((l) => expr(l)).toPresentArray();
+}
+
+export function NamedArgument({ key, value }: mir.NamedArgument): HashPair {
+  return [key.chars, expr(value)];
+}
+
+export function NamedArguments(
+  { entries: pairs }: mir.NamedArguments,
+  insertAtPrefix: boolean
+): Optional<WireFormat.Core.Hash> {
+  let list = pairs.toPresentArray();
+
+  if (list) {
+    let names: string[] = [];
+    let values: WireFormat.Expression[] = [];
+
+    for (let pair of list) {
+      let [name, value] = NamedArgument(pair);
+      names.push(insertAtPrefix ? `@${name}` : name);
+      values.push(value);
+    }
+
+    assertPresentArray(names);
+    assertPresentArray(values);
+
+    return [names, values];
+  }
+}
+
+export function This(): WireFormat.Expressions.GetLocalSymbol {
+  return [Op.GetLocalSymbol, 0];
+}
+
+export function Arg({ symbol }: ASTv2.ArgReference): WireFormat.Expressions.GetLocalSymbol {
+  return [Op.GetLocalSymbol, symbol];
+}
+
+export function Literal({
+  value,
+}: ASTv2.LiteralExpression): WireFormat.Expressions.Value | WireFormat.Expressions.Undefined {
+  if (value === undefined) {
+    return [Op.Undefined];
+  } else {
+    return value;
+  }
+}
+
+export function Missing(): undefined {
+  return undefined;
+}
+
+export function HasBlock({ symbol }: mir.HasBlock): WireFormat.Expressions.HasBlock {
+  return [Op.HasBlock, [Op.GetLocalSymbol, symbol]];
+}
+
+export function HasBlockParams({
+  symbol,
+}: mir.HasBlockParams): WireFormat.Expressions.HasBlockParams {
+  return [Op.HasBlockParams, [Op.GetLocalSymbol, symbol]];
+}
+
+export function Curry({ definition, curriedType, args }: mir.Curry): WireFormat.Expressions.Curry {
+  return [Op.Curry, expr(definition), curriedType, Args(args)];
+}
+
+export function Local({
+  referenceType,
+  symbol,
+}: ASTv2.LocalVarReference):
+  | WireFormat.Expressions.GetLocalSymbol
+  | WireFormat.Expressions.GetLexicalSymbol {
+  return [referenceType === 'lexical' ? Op.GetLexicalSymbol : Op.GetLocalSymbol, symbol];
+}
+
+export function Keyword({
+  symbol,
+}: ASTv2.KeywordExpression): WireFormat.Expressions.GetStrictKeyword {
+  return [Op.GetStrictKeyword, symbol];
+}
+
+export function PathExpression({ head, tail }: mir.PathExpression): WireFormat.Expressions.GetPath {
+  let getOp = expr(head) as WireFormat.Expressions.GetVar;
+  localAssert(getOp[0] !== Op.GetStrictKeyword, '[BUG] keyword in a PathExpression');
+  return [...getOp, Tail(tail)];
+}
+
+export function InterpolateExpression({
+  parts,
+}: mir.InterpolateExpression): WireFormat.Expressions.Concat {
+  return [Op.Concat, parts.map((e) => expr(e)).toArray()];
+}
+
+export function CallExpression({
+  callee,
+  args,
+}: mir.CallExpression): WireFormat.Expressions.SomeInvoke {
+  const calleeExpr = expr(callee);
+  return [CALL_TYPES[headType(calleeExpr, 'expr:call')], calleeExpr, Args(args)];
+}
+
+export function Tail({ members }: mir.Tail): PresentArray<string> {
+  return mapPresentArray(members, (member) => member.chars);
+}
+
+export function Args(
+  node: Pick<mir.Args, 'positional' | 'named'>,
+  insertAtPrefix: boolean = false
+): Optional<WireFormat.Core.Args> {
+  return args(node.positional, node.named, insertAtPrefix);
+}
+
+export function Not({ value }: mir.Not): WireFormat.Expressions.Not {
+  return [Op.Not, expr(value)];
+}
+
+export function IfInline({
+  condition,
+  truthy,
+  falsy,
+}: mir.IfExpression): WireFormat.Expressions.IfInline {
+  let expression = [Op.IfInline, expr(condition), expr(truthy)];
+
+  if (falsy) {
+    expression.push(expr(falsy));
+  }
+
+  return expression as WireFormat.Expressions.IfInline;
+}
+
+export function GetDynamicVar({ name }: mir.GetDynamicVar): WireFormat.Expressions.GetDynamicVar {
+  return [Op.GetDynamicVar, expr(name)];
+}
+
+export function Log({ positional }: mir.Log): WireFormat.Expressions.Log {
+  return [Op.Log, Positional(positional)];
+}

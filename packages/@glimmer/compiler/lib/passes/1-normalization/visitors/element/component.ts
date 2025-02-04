@@ -29,7 +29,7 @@ export class ClassifiedComponent implements Classified {
     );
   }
 
-  toStatement(component: ClassifiedElement, { args, params }: PreparedArgs): Result<mir.Statement> {
+  toStatement(component: ClassifiedElement, { args, params }: PreparedArgs): Result<mir.Content> {
     let { element, state } = component;
 
     return this.blocks(state).mapOk(

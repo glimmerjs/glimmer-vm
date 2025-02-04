@@ -20,7 +20,7 @@ export interface Classified {
   readonly dynamicFeatures: boolean;
 
   arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.NamedArgument>;
-  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Statement>;
+  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Content>;
 }
 
 export class ClassifiedElement {
@@ -34,7 +34,7 @@ export class ClassifiedElement {
     this.delegate = delegate;
   }
 
-  toStatement(): Result<mir.Statement> {
+  toStatement(): Result<mir.Content> {
     return this.prepare().andThen((prepared) => this.delegate.toStatement(this, prepared));
   }
 

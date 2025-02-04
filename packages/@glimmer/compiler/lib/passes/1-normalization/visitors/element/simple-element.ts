@@ -26,7 +26,7 @@ export class ClassifiedSimpleElement implements Classified {
     );
   }
 
-  toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<mir.Statement> {
+  toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<mir.Content> {
     let { state, element } = classified;
 
     let body = VISIT_STMTS.visitList(this.element.body, state);

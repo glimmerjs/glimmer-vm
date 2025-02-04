@@ -61,7 +61,7 @@ export const APPEND_KEYWORDS = keywords('Append')
         target: src.SourceSlice;
         positional: ASTv2.PositionalArguments;
       }
-    ): Result<mir.Statement> {
+    ): Result<mir.Content> {
       return VISIT_EXPRS.Positional(positional, state).mapOk(
         (positional) =>
           new mir.Yield({
@@ -97,7 +97,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     }: {
       node: ASTv2.AppendContent;
       state: NormalizationState;
-    }): Result<mir.Statement> {
+    }): Result<mir.Content> {
       return Ok(new mir.Debugger({ loc: node.loc, scope }));
     },
   })
@@ -107,19 +107,38 @@ export const APPEND_KEYWORDS = keywords('Append')
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
-    ): Result<mir.InvokeComponent> {
+    ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
       let definitionResult = VISIT_EXPRS.visit(definition, state);
       let argsResult = VISIT_EXPRS.Args(args, state);
 
-      return Result.all(definitionResult, argsResult).mapOk(
-        ([definition, args]) =>
-          new mir.InvokeComponent({
+      return Result.all(definitionResult, argsResult).andThen(([definition, args]) => {
+        if (definition.type === 'Literal') {
+          if (typeof definition.value !== 'string') {
+            return Err(
+              generateSyntaxError(
+                `Expected literal component name to be a string, but received ${definition.value}`,
+                definition.loc
+              )
+            );
+          }
+
+          return Ok(
+            new mir.InvokeResolvedComponentKeyword({
+              loc: node.loc,
+              definition: definition.value,
+              args,
+            })
+          );
+        }
+
+        return Ok(
+          new mir.InvokeComponentKeyword({
             loc: node.loc,
             definition,
             args,
-            blocks: null,
           })
-      );
+        );
+      });
     },
   })
   .kw('helper', {

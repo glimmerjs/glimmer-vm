@@ -20,7 +20,7 @@ function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.T
 function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
   return (
     opcode: Expressions.Expression
-  ): opcode is Expressions.GetFree | Expressions.GetLexicalSymbol => {
+  ): opcode is Expressions.GetResolvedOrKeyword | Expressions.GetLexicalSymbol => {
     if (!isGetLikeTuple(opcode)) return false;
 
     let type = opcode[0];

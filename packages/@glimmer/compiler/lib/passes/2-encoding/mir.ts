@@ -1,4 +1,4 @@
-import type { CurriedType, PresentArray } from '@glimmer/interfaces';
+import type { CurriedType, Optional, PresentArray } from '@glimmer/interfaces';
 import type {
   ASTv2,
   BlockSymbolTable,
@@ -10,11 +10,17 @@ import { node } from '@glimmer/syntax';
 
 import type { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 
+/**
+ * Represents the root of a parsed template.
+ */
 export class Template extends node('Template').fields<{
   scope: ProgramSymbolTable;
-  body: Statement[];
+  body: Content[];
 }>() {}
 
+/**
+ * Syntax: `{{#in-element ...}} ... {{/in-element}}`
+ */
 export class InElement extends node('InElement').fields<{
   guid: string;
   insertBefore: ExpressionNode | Missing;
@@ -22,20 +28,50 @@ export class InElement extends node('InElement').fields<{
   block: NamedBlock;
 }>() {}
 
+/**
+ * Used internally in the `unless` keywords.
+ */
 export class Not extends node('Not').fields<{ value: ExpressionNode }>() {}
 
-export class If extends node('If').fields<{
+/**
+ * Syntaxes
+ *
+ * - `{{#if ...}} ... {{/if}}`
+ * - `{{#unless ...}} ... {{/unless}}`
+ *
+ * The `unless` keyword is implemented as a special case of the `if` keyword:
+ *
+ * ```hbs
+ * {{#unless condition}}
+ *   ...
+ * {{/unless}}
+ * ```
+ *
+ * is compiled into:
+ *
+ * ```hbs
+ * {{#if (%not condition)}}
+ *   ...
+ * {{/if}}
+ * ```
+ *
+ * where `%not` is the above {@linkcode Not} node.
+ */
+export class IfContent extends node('IfContent').fields<{
   condition: ExpressionNode;
   block: NamedBlock;
   inverse: NamedBlock | null;
 }>() {}
 
-export class IfInline extends node('IfInline').fields<{
-  condition: ExpressionNode;
-  truthy: ExpressionNode;
-  falsy: ExpressionNode | null;
-}>() {}
-
+/**
+ * Syntax:
+ *
+ * ```hbs
+ * {{#each <expr> key=<expr> as |y|}}
+ *   ...
+ * {{/each}}
+ * ```
+ */
 export class Each extends node('Each').fields<{
   value: ExpressionNode;
   key: ExpressionNode | null;
@@ -43,44 +79,96 @@ export class Each extends node('Each').fields<{
   inverse: NamedBlock | null;
 }>() {}
 
+/**
+ * Syntax:
+ *
+ * ```hbs
+ * {{#let <expr> as |y|}}
+ *   ...
+ * {{/let}}
+ * ```
+ */
 export class Let extends node('Let').fields<{
   positional: Positional;
   block: NamedBlock;
 }>() {}
 
+/**
+ * Syntax:
+ *
+ * ```hbs
+ * {{#-with-dynamic-vars <expr>}}
+ *   ...
+ * {{/with}}
+ * ```
+ */
 export class WithDynamicVars extends node('WithDynamicVars').fields<{
   named: NamedArguments;
   block: NamedBlock;
 }>() {}
 
+/**
+ * Syntax:
+ *
+ * - `(-get-dynamic-var <expr>)`
+ * - `{{-get-dynamic-var <expr>}}`
+ */
 export class GetDynamicVar extends node('GetDynamicVar').fields<{
   name: ExpressionNode;
 }>() {}
 
+/**
+ * Syntax:
+ *
+ * - `{{log ...}}`
+ * - `(log ...)`
+ */
 export class Log extends node('Log').fields<{
   positional: Positional;
 }>() {}
 
-export class InvokeComponent extends node('InvokeComponent').fields<{
-  definition: ExpressionNode;
+/**
+ * Syntax:
+ *
+ * - `{{component <expr>}}`
+ * - `{{#component <expr>}}`
+ */
+export class InvokeComponentKeyword extends node('InvokeComponentKeyword').fields<{
+  definition: Exclude<ExpressionNode, ASTv2.LiteralExpression>;
   args: Args;
-  blocks: NamedBlocks | null;
+  blocks?: Optional<NamedBlocks>;
 }>() {}
 
-export class NamedBlocks extends node('NamedBlocks').fields<{
-  blocks: OptionalList<NamedBlock>;
+/**
+ * Syntax:
+ *
+ * - `{{component "name-to-resolve"}}`
+ * - `{{#component "name-to-resolve"}}`
+ */
+export class InvokeResolvedComponentKeyword extends node('InvokeResolvedComponentKeyword').fields<{
+  definition: string;
+  args: Args;
+  blocks?: Optional<NamedBlocks>;
 }>() {}
 
-export class NamedBlock extends node('NamedBlock').fields<{
-  scope: BlockSymbolTable;
-  name: SourceSlice;
-  body: Statement[];
-}>() {}
 export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
   html: ExpressionNode;
 }>() {}
+
+/**
+ * Syntax:
+ *
+ * - `{{<expr>}}` where `expr` is not a resolved or lexical reference.
+ */
 export class AppendValue extends node('AppendValue').fields<{ value: ExpressionNode }>() {}
 export class AppendComment extends node('AppendComment').fields<{ value: SourceSlice }>() {}
+
+export class Yield extends node('Yield').fields<{
+  target: SourceSlice;
+  to: number;
+  positional: Positional;
+}>() {}
+export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
 
 export class Component extends node('Component').fields<{
   tag: ExpressionNode;
@@ -116,7 +204,7 @@ export class DynamicAttr extends node('DynamicAttr').fields<{
 export class SimpleElement extends node('SimpleElement').fields<{
   tag: SourceSlice;
   params: ElementParameters;
-  body: Statement[];
+  body: Content[];
   dynamicFeatures: boolean;
 }>() {}
 
@@ -124,16 +212,34 @@ export class ElementParameters extends node('ElementParameters').fields<{
   body: AnyOptionalList<ElementParameter>;
 }>() {}
 
-export class Yield extends node('Yield').fields<{
-  target: SourceSlice;
-  to: number;
-  positional: Positional;
-}>() {}
-export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
-
 export class CallExpression extends node('CallExpression').fields<{
   callee: ExpressionNode;
   args: Args;
+}>() {}
+
+/**
+ * Syntax: `(if ...)`
+ *
+ * The expression form of `unless` is implemented similarly to the block form:
+ *
+ * ```hbs
+ * {{#let (unless x y z) as |z|}}
+ *   ...
+ * {{/let}}
+ * ```
+ *
+ * is compiled into:
+ *
+ * ```hbs
+ * {{#let (if (%not x) y z) as |z|}}
+ *   ...
+ * {{/let}}
+ * ```
+ */
+export class IfExpression extends node('IfExpression').fields<{
+  condition: ExpressionNode;
+  truthy: ExpressionNode;
+  falsy: ExpressionNode | null;
 }>() {}
 
 export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
@@ -178,6 +284,16 @@ export class Args extends node('Args').fields<{
 }>() {}
 export class Tail extends node('Tail').fields<{ members: PresentArray<SourceSlice> }>() {}
 
+export class NamedBlocks extends node('NamedBlocks').fields<{
+  blocks: OptionalList<NamedBlock>;
+}>() {}
+
+export class NamedBlock extends node('NamedBlock').fields<{
+  scope: BlockSymbolTable;
+  name: SourceSlice;
+  body: Content[];
+}>() {}
+
 export type ExpressionNode =
   | ASTv2.LiteralExpression
   | ASTv2.KeywordExpression
@@ -187,7 +303,7 @@ export type ExpressionNode =
   | InterpolateExpression
   | CallExpression
   | Not
-  | IfInline
+  | IfExpression
   | HasBlock
   | HasBlockParams
   | Curry
@@ -205,8 +321,8 @@ export type Internal =
   | NamedBlock
   | NamedBlocks
   | ElementParameters;
-export type ExprLike = ExpressionNode | Internal;
-export type Statement =
+
+export type Content =
   | InElement
   | Debugger
   | Yield
@@ -216,8 +332,9 @@ export type Statement =
   | SimpleElement
   | InvokeBlock
   | AppendComment
-  | If
+  | IfContent
   | Each
   | Let
   | WithDynamicVars
-  | InvokeComponent;
+  | InvokeComponentKeyword
+  | InvokeResolvedComponentKeyword;

@@ -80,8 +80,8 @@ export type HeadKind =
 export type LOCAL_VAR = 'Local';
 export const LOCAL_VAR: LOCAL_VAR = 'Local';
 
-export type FREE_VAR = 'Free';
-export const FREE_VAR: FREE_VAR = 'Free';
+export type FREE_VAR = 'Resolved';
+export const FREE_VAR: FREE_VAR = 'Resolved';
 
 export type ARG_VAR = 'Arg';
 export const ARG_VAR: ARG_VAR = 'Arg';

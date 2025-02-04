@@ -169,7 +169,7 @@ export default class WireFormatDebugger {
         case Op.GetFreeAsModifierHead:
           return ['GetFreeAsModifierHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetSymbol: {
+        case Op.GetLocalSymbol: {
           if (opcode[1] === 0) {
             return ['get-symbol', 'this', opcode[2]];
           } else {
@@ -219,25 +219,19 @@ export default class WireFormatDebugger {
         case Op.InvokeLexicalComponent:
           return ['component', this.formatOpcode(opcode[1]), this.formatComponentArgs(opcode[2])];
 
-        case Op.InvokeDynamicComponent:
-        case Op.InvokeResolvedComponent:
+        case Op.InvokeComponentKeyword:
           return [
-            opcode[0] === Op.InvokeDynamicComponent ? 'component:dynamic' : 'component:resolved',
+            'component:keyword',
             this.formatOpcode(opcode[1]),
             this.formatBlockArgs(opcode[2]),
           ];
 
-        case Op.LexicalBlockComponent:
         case Op.DynamicBlock: {
-          const [op, path, args] = opcode;
-          return [
-            op === Op.DynamicBlock ? 'block:dynamic' : 'block',
-            this.formatOpcode(path),
-            this.formatBlockArgs(args),
-          ];
+          const [, path, args] = opcode;
+          return ['block', this.formatOpcode(path), this.formatBlockArgs(args)];
         }
 
-        case Op.DynamicComponent:
+        case Op.InvokeDynamicComponent:
         case Op.ResolvedComponent: {
           const [op, path, args] = opcode;
           return [

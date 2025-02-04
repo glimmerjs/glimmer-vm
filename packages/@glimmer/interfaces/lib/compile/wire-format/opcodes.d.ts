@@ -16,7 +16,7 @@ export type ResolvedBlockOpcode = 8;
 export type LexicalBlockComponentOpcode = 9;
 export type DynamicBlockOpcode = 57;
 export type ResolvedComponentOpcode = 10;
-export type DynamicComponentOpcode = 58;
+export type InvokeDynamicComponentOpcode = 58;
 
 export type OpenElementOpcode = 11;
 export type OpenElementWithSplatOpcode = 12;
@@ -45,7 +45,7 @@ export type UnknownInvokeOpcode = 30;
 export type ConcatOpcode = 31;
 
 // Get a local value via symbol
-export type GetSymbolOpcode = 32; // GetPath + 0-2,
+export type GetLocalSymbolOpcode = 32; // GetPath + 0-2,
 // Lexical symbols are values that are in scope in the template in strict mode
 export type GetLexicalSymbolOpcode = 33;
 // If a free variable is not a lexical symbol in strict mode, it must be a keyword.
@@ -53,11 +53,11 @@ export type GetLexicalSymbolOpcode = 33;
 export type GetStrictKeywordOpcode = 34;
 
 // a component or helper (`{{<expr> x}}` in append position)
-export type GetFreeAsComponentOrHelperHeadOpcode = 35;
+export type ResolveAsComponentOrHelperHeadOpcode = 35;
 // a call head `(x)`
-export type GetFreeAsHelperHeadOpcode = 37;
-export type GetFreeAsModifierHeadOpcode = 38;
-export type GetFreeAsComponentHeadOpcode = 39;
+export type ResolveAsHelperHeadOpcode = 37;
+export type ResolveAsModifierHeadOpcode = 38;
+export type ResolveAsComponentHeadOpcode = 39;
 
 // Keyword Statements
 export type InElementOpcode = 40;
@@ -65,7 +65,7 @@ export type IfOpcode = 41;
 export type EachOpcode = 42;
 export type LetOpcode = 44;
 export type WithDynamicVarsOpcode = 45;
-export type InvokeDynamicComponentOpcode = 46;
+export type InvokeComponentKeywordOpcode = 46;
 export type InvokeResolvedComponentOpcode = 47;
 export type InvokeLexicalComponentOpcode = 55;
 
@@ -78,15 +78,21 @@ export type IfInlineOpcode = 52;
 export type GetDynamicVarOpcode = 53;
 export type LogOpcode = 54;
 
-export type GetStartOpcode = GetSymbolOpcode;
-export type GetEndOpcode = GetFreeAsComponentHeadOpcode;
-export type GetLooseFreeEndOpcode = GetFreeAsComponentHeadOpcode;
+export type GetStartOpcode = GetLocalSymbolOpcode;
+export type GetEndOpcode = ResolveAsComponentHeadOpcode;
+export type GetLooseFreeEndOpcode = ResolveAsComponentHeadOpcode;
 
-export type GetContextualFreeOpcode =
-  | GetFreeAsComponentOrHelperHeadOpcode
-  | GetFreeAsHelperHeadOpcode
-  | GetFreeAsModifierHeadOpcode
-  | GetFreeAsComponentHeadOpcode
+export type GetResolvedOpcode =
+  | ResolveAsComponentOrHelperHeadOpcode
+  | ResolveAsHelperHeadOpcode
+  | ResolveAsModifierHeadOpcode
+  | ResolveAsComponentHeadOpcode;
+
+export type GetResolvedOrKeywordOpcode =
+  | ResolveAsComponentOrHelperHeadOpcode
+  | ResolveAsHelperHeadOpcode
+  | ResolveAsModifierHeadOpcode
+  | ResolveAsComponentHeadOpcode
   | GetStrictKeywordOpcode;
 
 export type AttrOpcode =

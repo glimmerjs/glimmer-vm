@@ -53,8 +53,8 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let [statements] = wire.block;
     let [[, componentNameExpr], ...divExpr] = statements as [
-      WireFormat.Statements.Component,
-      ...WireFormat.Statement[],
+      WireFormat.Contents.Component,
+      ...WireFormat.Content[],
     ];
 
     assert.deepEqual(wire.scope?.(), [hello]);
@@ -80,8 +80,8 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let [statements] = wire.block;
     let [[, componentNameExpr], ...divExpr] = statements as [
-      WireFormat.Statements.Component,
-      ...WireFormat.Statement[],
+      WireFormat.Contents.Component,
+      ...WireFormat.Content[],
     ];
 
     assert.deepEqual(wire.scope?.(), [f]);
@@ -108,7 +108,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     );
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.Component];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Contents.Component];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -131,8 +131,8 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, , letBlock]] = block[0] as [WireFormat.Statements.Let];
-    let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Statements.Component];
+    let [[, , letBlock]] = block[0] as [WireFormat.Contents.Let];
+    let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Contents.Component];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -155,7 +155,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.ResolvedBlock];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Contents.ResolvedBlock];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -178,7 +178,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.ResolvedBlock];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Contents.ResolvedBlock];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -224,11 +224,11 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     ]);
   });
 
-  test('when "this" is not in locals, it compiles to GetSymbol', (assert) => {
+  test('when "this" is not in locals, it compiles to GetSymbolOrPath', (assert) => {
     let wire = compile(`{{this.message}}`, [], (source) => eval(source));
     assert.strictEqual(wire.scope, undefined);
     assert.deepEqual(wire.block[0], [
-      [SexpOpcodes.Append, [SexpOpcodes.GetSymbol, 0, ['message']]],
+      [SexpOpcodes.Append, [SexpOpcodes.GetLocalSymbol, 0, ['message']]],
     ]);
   });
 });

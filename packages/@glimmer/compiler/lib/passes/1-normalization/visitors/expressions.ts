@@ -163,7 +163,7 @@ export class NormalizeExpressions {
 }
 
 export function convertPathToCallIfKeyword(path: ASTv2.ExpressionNode): ASTv2.ExpressionNode {
-  if (path.type === 'Path' && path.ref.type === 'Free' && path.ref.name in KEYWORDS_TYPES) {
+  if (path.type === 'Path' && path.ref.type === 'Resolved' && path.ref.name in KEYWORDS_TYPES) {
     return new ASTv2.CallExpression({
       callee: path,
       args: ASTv2.Args.empty(path.loc),

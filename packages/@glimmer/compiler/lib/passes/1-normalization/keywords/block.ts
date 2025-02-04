@@ -132,7 +132,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
       { condition }: { condition: ASTv2.ExpressionNode }
-    ): Result<mir.If> {
+    ): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
@@ -142,7 +142,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          new mir.IfContent({
             loc: node.loc,
             condition,
             block,
@@ -194,7 +194,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
       { condition }: { condition: ASTv2.ExpressionNode }
-    ): Result<mir.If> {
+    ): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
@@ -204,7 +204,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          new mir.IfContent({
             loc: node.loc,
             condition: new mir.Not({ value: condition, loc: node.loc }),
             block,
@@ -367,19 +367,42 @@ export const BLOCK_KEYWORDS = keywords('Block')
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
-    ): Result<mir.InvokeComponent> {
+    ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
       let definitionResult = VISIT_EXPRS.visit(definition, state);
       let argsResult = VISIT_EXPRS.Args(args, state);
       let blocksResult = VISIT_STMTS.NamedBlocks(node.blocks, state);
 
-      return Result.all(definitionResult, argsResult, blocksResult).mapOk(
-        ([definition, args, blocks]) =>
-          new mir.InvokeComponent({
-            loc: node.loc,
-            definition,
-            args,
-            blocks,
-          })
+      return Result.all(definitionResult, argsResult, blocksResult).andThen(
+        ([definition, args, blocks]) => {
+          if (definition.type === 'Literal') {
+            if (typeof definition.value !== 'string') {
+              return Err(
+                generateSyntaxError(
+                  `Expected literal component name to be a string, but received ${definition.value}`,
+                  definition.loc
+                )
+              );
+            }
+
+            return Ok(
+              new mir.InvokeResolvedComponentKeyword({
+                loc: node.loc,
+                definition: definition.value,
+                args,
+                blocks,
+              })
+            );
+          }
+
+          return Ok(
+            new mir.InvokeComponentKeyword({
+              loc: node.loc,
+              definition,
+              args,
+              blocks,
+            })
+          );
+        }
       );
     },
   });

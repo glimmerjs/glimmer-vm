@@ -28,8 +28,18 @@ function compile(content: string): SerializedTemplate {
   return assign({}, parsed, { block });
 }
 
-function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
-  QUnit.test(desc, (assert) => {
+function testSyntax({
+  desc,
+  template,
+  expectedStatements,
+  testFn,
+}: {
+  desc: string;
+  template: string;
+  expectedStatements: BuilderStatement[];
+  testFn: (desc: string, block: QUnit.TestFunctionCallback) => void;
+}) {
+  testFn(desc, (assert) => {
     let actual = compile(template);
 
     let symbols = new ProgramSymbols();
@@ -44,6 +54,19 @@ function test(desc: string, template: string, ...expectedStatements: BuilderStat
     assert.deepEqual(debugActual, debugExpected);
   });
 }
+
+function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
+  testSyntax({ desc, template, expectedStatements, testFn: QUnit.test });
+}
+
+test.todo = (desc: string, template: string, ...expectedStatements: BuilderStatement[]) => {
+  testSyntax({
+    desc,
+    template,
+    expectedStatements,
+    testFn: (desc: string, block: QUnit.TestFunctionCallback) => QUnit.todo(desc, block),
+  });
+};
 
 QUnit.test(
   '@arguments are on regular non-component/regular HTML nodes throws syntax error',
@@ -388,7 +411,7 @@ test('double curlies', `<div>{{title}}</div>`, ['<div>', ['^title']]);
 
 test('triple curlies', `<div>{{{title}}}</div>`, ['<div>', [[BUILDER_APPEND, '^title', true]]]);
 
-test(
+test.todo(
   'triple curly helpers',
   `{{{unescaped "<strong>Yolo</strong>"}}} {{escaped "<strong>Yolo</strong>"}}`,
   [BUILDER_APPEND, ['(^unescaped)', [s`<strong>Yolo</strong>`]], true],

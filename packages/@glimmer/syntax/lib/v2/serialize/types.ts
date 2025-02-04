@@ -38,8 +38,8 @@ export interface SerializedLocalVarReference extends SerializedBaseNode {
   name: string;
 }
 
-export interface SerializedFreeVarReference extends SerializedBaseNode {
-  type: 'Free';
+export interface SerializedResolvedVarReference extends SerializedBaseNode {
+  type: 'Resolved';
   name: string;
   resolution: ASTv2.SerializedResolution;
 }
@@ -48,7 +48,7 @@ export type SerializedVariableReference =
   | SerializedThisReference
   | SerializedArgReference
   | SerializedLocalVarReference
-  | SerializedFreeVarReference;
+  | SerializedResolvedVarReference;
 
 export interface SerializedCallNode extends SerializedBaseNode {
   callee: SerializedExpressionNode;
@@ -61,7 +61,7 @@ export interface SerializedCallExpression extends SerializedCallNode {
 
 export interface SerializedDeprecatedCallExpression extends SerializedBaseNode {
   type: 'DeprecatedCall';
-  callee: SerializedFreeVarReference;
+  callee: SerializedResolvedVarReference;
 }
 
 export type SerializedExpressionNode =
@@ -113,7 +113,7 @@ export interface SerializedInvokeBlock extends SerializedCallNode {
 }
 
 export interface SerializedInvokeComponent extends SerializedBaseNode {
-  type: 'InvokeComponent';
+  type: 'ComponentKeywordExpr';
   callee: SerializedExpressionNode;
   blocks: SerializedNamedBlocks;
   attrs: SerializedAttrNode[];

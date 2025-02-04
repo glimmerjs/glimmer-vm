@@ -1,4 +1,4 @@
-import type { Expressions, Statement, Statements } from '@glimmer/interfaces';
+import type { Expressions, Content, Contents } from '@glimmer/interfaces';
 
 import { opcodes as Op } from './lib/opcodes';
 
@@ -14,9 +14,9 @@ export function is<T>(variant: number): (value: unknown) => value is T {
 }
 
 // Statements
-export const isFlushElement = is<Statements.FlushElement>(Op.FlushElement);
+export const isFlushElement = is<Contents.FlushElement>(Op.FlushElement);
 
-export function isAttribute(val: Statement): val is Statements.Attribute {
+export function isAttribute(val: Content): val is Contents.Attribute {
   return (
     val[0] === Op.StaticAttr ||
     val[0] === Op.DynamicAttr ||
@@ -43,10 +43,10 @@ export function isGetPath(expr: Expressions.TupleExpression): expr is Expression
 export function isGet(expr: Expressions.TupleExpression): expr is Expressions.Get {
   const [opcode] = expr;
 
-  return opcode === Op.GetSymbol || opcode === Op.GetLexicalSymbol || isGetFree(expr);
+  return opcode === Op.GetLocalSymbol || opcode === Op.GetLexicalSymbol || isGetFree(expr);
 }
 
-export function isGetFree(expr: Expressions.TupleExpression): expr is Expressions.GetFree {
+export function isGetFree(expr: Expressions.TupleExpression): expr is Expressions.GetResolvedOrKeyword {
   const [opcode] = expr;
   return opcode === Op.GetStrictKeyword || isGetContextualFree(expr);
 }
@@ -59,7 +59,7 @@ export function isGetLexical(
 
 export function isGetContextualFree(
   expr: Expressions.TupleExpression
-): expr is Expressions.GetContextualFree | Expressions.GetPathContextualFree {
+): expr is Expressions.GetResolved | Expressions.GetPathContextualFree {
   const [opcode] = expr;
   switch (opcode) {
     case Op.GetFreeAsComponentHead:

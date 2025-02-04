@@ -1,7 +1,7 @@
 import type {
   CompileTimeComponent,
+  ContentSexpOpcode,
   Optional,
-  StatementSexpOpcode,
   WellKnownAttrName,
   WellKnownTagName,
   WireFormat,
@@ -60,7 +60,7 @@ import { namedBlocks } from '../utils';
 import { CloseElement, Comment, FlushElement, LexicalModifier } from './api';
 import { Compilers } from './compilers';
 
-export const STATEMENTS = new Compilers<StatementSexpOpcode>();
+export const STATEMENTS = new Compilers<ContentSexpOpcode>();
 
 const INFLATE_ATTR_TABLE: {
   [I in WellKnownAttrName]: string;
@@ -269,12 +269,6 @@ STATEMENTS.add(Op.TrustingAppend, (encode, [, value]) => {
   }
 });
 
-STATEMENTS.add(Op.LexicalBlockComponent, (encode, [, expr, args]) => {
-  const component = encode.getLexicalComponent(expr);
-
-  InvokeComponent(encode, component, args, args?.params);
-});
-
 STATEMENTS.add(Op.ResolvedBlock, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
 
@@ -407,31 +401,21 @@ STATEMENTS.add(Op.ResolvedComponent, (encode, [, expr, args]) => {
   InvokeComponent(encode, component, args);
 });
 
-STATEMENTS.add(Op.DynamicComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeDynamicComponent, (encode, [, expr, args]) => {
   // otherwise, the component name was an expression, so resolve the expression
   // and invoke it as a dynamic component
   InvokeDynamicComponent(encode, expr, args, { atNames: true, curried: true });
 });
 
-STATEMENTS.add(Op.InvokeLexicalComponent, (encode, [, expr, args]) => {
-  const component = encode.getLexicalComponent(expr);
-  InvokeComponent(encode, component, args);
-});
-
-STATEMENTS.add(Op.InvokeDynamicComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeComponentKeyword, (encode, [, expr, args]) => {
   InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
     positional: args?.params,
   });
 });
 
-STATEMENTS.add(Op.InvokeResolvedComponent, (encode, [, expr, args]) => {
-  const component = encode.resolveComponent(expr);
-  InvokeComponent(
-    encode,
-    component,
-    compact({ hash: args?.hash, blocks: args?.blocks }),
-    args?.params
-  );
+STATEMENTS.add(Op.InvokeLexicalComponent, (encode, [, expr, args]) => {
+  const component = encode.getLexicalComponent(expr);
+  InvokeComponent(encode, component, args);
 });
 
 function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {

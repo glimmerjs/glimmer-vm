@@ -94,7 +94,7 @@ function translateIfUnlessInlineKeyword(type: string) {
       truthy: ASTv2.ExpressionNode;
       falsy: ASTv2.ExpressionNode | null;
     }
-  ): Result<mir.IfInline> => {
+  ): Result<mir.IfExpression> => {
     let conditionResult = VISIT_EXPRS.visit(condition, state);
     let truthyResult = VISIT_EXPRS.visit(truthy, state);
     let falsyResult = falsy ? VISIT_EXPRS.visit(falsy, state) : Ok(null);
@@ -105,7 +105,7 @@ function translateIfUnlessInlineKeyword(type: string) {
           condition = new mir.Not({ value: condition, loc: node.loc });
         }
 
-        return new mir.IfInline({
+        return new mir.IfExpression({
           loc: node.loc,
           condition,
           truthy,
@@ -123,7 +123,7 @@ export function ifUnlessInlineKeyword(type: string): KeywordDelegate<
     truthy: ASTv2.ExpressionNode;
     falsy: ASTv2.ExpressionNode | null;
   },
-  mir.IfInline
+  mir.IfExpression
 > {
   return {
     assert: assertIfUnlessInlineKeyword(type),

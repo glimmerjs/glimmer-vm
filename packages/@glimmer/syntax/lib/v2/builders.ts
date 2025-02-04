@@ -184,7 +184,7 @@ export class Builder {
     context: ASTv2.FreeVarResolution;
     symbol: number;
     loc: SourceSpan;
-  }): ASTv2.FreeVarReference {
+  }): ASTv2.ResolvedVarReference {
     localAssert(
       name !== 'this',
       `You called builders.freeVar() with 'this'. Call builders.this instead`
@@ -194,7 +194,7 @@ export class Builder {
       `You called builders.freeVar() with '${name}'. Call builders.at('${name}') instead`
     );
 
-    return new ASTv2.FreeVarReference({
+    return new ASTv2.ResolvedVarReference({
       name,
       resolution: context,
       symbol,
@@ -205,7 +205,7 @@ export class Builder {
   localVar(
     name: string,
     symbol: number,
-    isTemplateLocal: boolean,
+    isLexical: boolean,
     loc: SourceSpan
   ): ASTv2.VariableReference {
     localAssert(
@@ -216,7 +216,7 @@ export class Builder {
     return new ASTv2.LocalVarReference({
       loc,
       name,
-      isTemplateLocal,
+      referenceType: isLexical ? 'lexical' : 'dynamic',
       symbol,
     });
   }

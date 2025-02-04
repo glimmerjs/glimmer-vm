@@ -2,9 +2,7 @@ import type {
   AttrOpcode,
   ComponentAttrOpcode,
   DynamicAttrOpcode,
-  Nullable,
   Optional,
-  SerializedInlineBlock,
   StaticAttrOpcode,
   StaticComponentAttrOpcode,
   TrustingComponentAttrOpcode,
@@ -16,27 +14,26 @@ import type { BlockSymbolTable } from '@glimmer/syntax';
 import { assertPresentArray, exhausted, localAssert } from '@glimmer/debug-util';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { isGetLexical, isGetVar, SexpOpcodes as Op } from '@glimmer/wire-format';
+import { isGetLexical, SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
 import {
-  blockType,
   buildAppend,
   buildComponentArgs,
   compact,
   headType,
   isGet,
-  isGetSymbol,
+  isGetSymbolOrPath,
   isTupleExpression,
   MODIFIER_TYPES,
   needsAtNames,
 } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
-import { EXPR } from './expressions';
+import { Args, expr, NamedArguments, Positional } from './expressions';
 
-class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
+class WireContent<S extends WireFormat.Content = WireFormat.Content> {
   constructor(private statements: readonly S[]) {}
 
   toArray(): readonly S[] {
@@ -44,292 +41,323 @@ class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   }
 }
 
-export class ContentEncoder {
-  list(statements: mir.Statement[]): WireFormat.Statement[] {
-    let out: WireFormat.Statement[] = [];
+export function ContentList(statements: mir.Content[]): WireFormat.Content[] {
+  let out: WireFormat.Content[] = [];
 
-    for (let statement of statements) {
-      let result = CONTENT.content(statement);
+  for (let statement of statements) {
+    let result = Content(statement);
 
-      if (result instanceof WireStatements) {
-        out.push(...result.toArray());
-      } else {
-        out.push(result);
-      }
-    }
-
-    return out;
-  }
-
-  content(stmt: mir.Statement): WireFormat.Statement | WireStatements {
-    if (LOCAL_TRACE_LOGGING) {
-      LOCAL_LOGGER.debug(`encoding`, stmt);
-    }
-
-    return this.visitContent(stmt);
-  }
-
-  private visitContent(stmt: mir.Statement): WireFormat.Statement | WireStatements {
-    switch (stmt.type) {
-      case 'Debugger':
-        return [Op.Debugger, ...stmt.scope.getDebugInfo(), {}];
-      case 'AppendComment':
-        return this.AppendComment(stmt);
-      case 'AppendValue':
-        return this.AppendValue(stmt);
-      case 'AppendTrustedHTML':
-        return this.AppendTrustedHTML(stmt);
-      case 'Yield':
-        return this.Yield(stmt);
-      case 'Component':
-        return this.Component(stmt);
-      case 'SimpleElement':
-        return this.SimpleElement(stmt);
-      case 'InElement':
-        return this.InElement(stmt);
-      case 'InvokeBlock':
-        return this.InvokeBlock(stmt);
-      case 'If':
-        return this.If(stmt);
-      case 'Each':
-        return this.Each(stmt);
-      case 'Let':
-        return this.Let(stmt);
-      case 'WithDynamicVars':
-        return this.WithDynamicVars(stmt);
-      case 'InvokeComponent':
-        return this.InvokeComponent(stmt);
-      default:
-        return exhausted(stmt);
-    }
-  }
-
-  Yield({ to, positional }: mir.Yield): WireFormat.Statements.Yield {
-    return [Op.Yield, to, EXPR.Positional(positional)];
-  }
-
-  InElement({
-    guid,
-    insertBefore,
-    destination,
-    block,
-  }: mir.InElement): WireFormat.Statements.InElement {
-    let wireBlock = CONTENT.NamedBlock(block)[1];
-    // let guid = args.guid;
-    let wireDestination = EXPR.expr(destination);
-    let wireInsertBefore = EXPR.expr(insertBefore);
-
-    if (wireInsertBefore === undefined) {
-      return [Op.InElement, wireBlock, guid, wireDestination];
+    if (result instanceof WireContent) {
+      out.push(...result.toArray());
     } else {
-      return [Op.InElement, wireBlock, guid, wireDestination, wireInsertBefore];
+      out.push(result);
     }
   }
 
-  BlockArgs(
-    argsNode: Pick<mir.Args, 'positional' | 'named'>,
-    blocksNode: Nullable<mir.NamedBlocks>,
-    { insertAtPrefix }: { insertAtPrefix: boolean }
-  ): Optional<WireFormat.Core.BlockArgs> {
-    return compact({
-      ...EXPR.Args(argsNode, insertAtPrefix),
-      blocks: blocksNode ? this.NamedBlocks(blocksNode) : undefined,
-    });
+  return out;
+}
+
+function visitContent(stmt: mir.Content): WireFormat.Content | WireContent {
+  switch (stmt.type) {
+    case 'Debugger':
+      return Debugger(stmt);
+    case 'AppendComment':
+      return AppendComment(stmt);
+    case 'AppendValue':
+      return AppendValue(stmt);
+    case 'AppendTrustedHTML':
+      return AppendTrustedHTML(stmt);
+    case 'Yield':
+      return Yield(stmt);
+    case 'Component':
+      return Component(stmt);
+    case 'SimpleElement':
+      return SimpleElement(stmt);
+    case 'InElement':
+      return InElement(stmt);
+    case 'InvokeBlock':
+      return InvokeBlock(stmt);
+    case 'IfContent':
+      return IfContent(stmt);
+    case 'Each':
+      return Each(stmt);
+    case 'Let':
+      return Let(stmt);
+    case 'WithDynamicVars':
+      return WithDynamicVars(stmt);
+    case 'InvokeComponentKeyword':
+      return InvokeComponentKeyword(stmt);
+    case 'InvokeResolvedComponentKeyword':
+      return InvokeResolvedComponentKeyword(stmt);
+    default:
+      return exhausted(stmt);
+  }
+}
+
+export function Content(stmt: mir.Content): WireFormat.Content | WireContent {
+  if (LOCAL_TRACE_LOGGING) {
+    LOCAL_LOGGER.debug(`encoding`, stmt);
   }
 
-  InvokeBlock({ head, args, blocks }: mir.InvokeBlock): WireFormat.Statements.SomeBlock {
-    const path = EXPR.expr(head);
+  return visitContent(stmt);
+}
 
-    localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
+export function Debugger({ scope }: mir.Debugger): WireFormat.Contents.Debugger {
+  return [Op.Debugger, ...scope.getDebugInfo(), {}];
+}
 
+export function Yield({ to, positional }: mir.Yield): WireFormat.Contents.Yield {
+  return [Op.Yield, to, Positional(positional)];
+}
+
+export function InElement({
+  guid,
+  insertBefore,
+  destination,
+  block,
+}: mir.InElement): WireFormat.Contents.InElement {
+  let wireBlock = NamedBlock(block)[1];
+  // let guid = args.guid;
+  let wireDestination = expr(destination);
+  let wireInsertBefore = expr(insertBefore);
+
+  if (wireInsertBefore === undefined) {
+    return [Op.InElement, wireBlock, guid, wireDestination];
+  } else {
+    return [Op.InElement, wireBlock, guid, wireDestination, wireInsertBefore];
+  }
+}
+
+export function BlockArgs(
+  argsNode: Pick<mir.Args, 'positional' | 'named'>,
+  blocksNode: Optional<mir.NamedBlocks>,
+  { insertAtPrefix }: { insertAtPrefix: boolean }
+): Optional<WireFormat.Core.BlockArgs> {
+  return compact({
+    ...Args(argsNode, insertAtPrefix),
+    blocks: blocksNode ? NamedBlocks(blocksNode) : undefined,
+  });
+}
+
+export function InvokeBlock({
+  head,
+  args,
+  blocks,
+}: mir.InvokeBlock): WireFormat.Contents.SomeBlock {
+  const path = expr(head);
+
+  localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
+
+  if (head.type === 'Local' && head.referenceType === 'lexical') {
     return [
-      ...blockType(path),
-      this.BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+      Op.InvokeLexicalComponent,
+      expr(head),
+      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+    ];
+  } else if (head.type === 'Resolved') {
+    return [
+      Op.ResolvedBlock,
+      expr(head),
+      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
     ];
   }
 
-  AppendTrustedHTML({ html }: mir.AppendTrustedHTML): WireFormat.Statements.TrustingAppend {
-    return [Op.TrustingAppend, EXPR.expr(html)];
+  return [Op.DynamicBlock, path, BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) })];
+}
+
+export function AppendTrustedHTML({
+  html,
+}: mir.AppendTrustedHTML): WireFormat.Contents.TrustingAppend {
+  return [Op.TrustingAppend, expr(html)];
+}
+
+export function AppendValue({ value }: mir.AppendValue): WireFormat.Contents.SomeAppend {
+  return buildAppend(false, expr(value));
+}
+
+export function AppendComment({ value }: mir.AppendComment): WireFormat.Contents.Comment {
+  return [Op.Comment, value.chars];
+}
+
+export function SimpleElement({
+  tag,
+  params,
+  body,
+  dynamicFeatures,
+}: mir.SimpleElement): WireContent {
+  let op = dynamicFeatures ? Op.OpenElementWithSplat : Op.OpenElement;
+  return new WireContent<WireFormat.Content | WireFormat.ElementParameter>([
+    [op, deflateTagName(tag.chars)],
+    ...ElementParameters(params).toArray(),
+    [Op.FlushElement],
+    ...ContentList(body),
+    [Op.CloseElement],
+  ]);
+}
+
+// This is used by the `{{component}}` keyword
+export function Component({
+  tag,
+  params,
+  args: named,
+  blocks,
+}: mir.Component):
+  | WireFormat.Contents.InvokeLexicalComponent
+  | WireFormat.Contents.ResolvedComponent
+  | WireFormat.Contents.DynamicComponent {
+  let wireTag = expr(tag);
+  let wirePositional = ElementParameters(params);
+  let wireNamed = NamedArguments(named, false);
+
+  let wireNamedBlocks = NamedBlocks(blocks);
+
+  const args = buildComponentArgs(wirePositional.toPresentArray(), wireNamed, wireNamedBlocks);
+
+  localAssert(
+    isTupleExpression(wireTag),
+    `Expected ${JSON.stringify(wireTag)} to be a tuple expression`
+  );
+
+  // There are special cases for non-path expressions that refer to out-of-template variables:
+  // lexical variables and resolved variables.
+
+  if (isGetLexical(wireTag)) {
+    // if the expression is something like `x.Foo`, then the component is dynamic, not
+    // a lexical variable.
+    return [
+      wireTag.length === 2 ? Op.InvokeLexicalComponent : Op.InvokeDynamicComponent,
+      wireTag,
+      args,
+    ];
   }
 
-  AppendValue({ value }: mir.AppendValue): WireFormat.Statements.SomeAppend {
-    return buildAppend(false, EXPR.expr(value));
-  }
-
-  AppendComment({ value }: mir.AppendComment): WireFormat.Statements.Comment {
-    return [Op.Comment, value.chars];
-  }
-
-  SimpleElement({ tag, params, body, dynamicFeatures }: mir.SimpleElement): WireStatements {
-    let op = dynamicFeatures ? Op.OpenElementWithSplat : Op.OpenElement;
-    return new WireStatements<WireFormat.Statement | WireFormat.ElementParameter>([
-      [op, deflateTagName(tag.chars)],
-      ...CONTENT.ElementParameters(params).toArray(),
-      [Op.FlushElement],
-      ...CONTENT.list(body),
-      [Op.CloseElement],
-    ]);
-  }
-
-  // This is used by the `{{component}}` keyword
-  Component({
-    tag,
-    params,
-    args: named,
-    blocks,
-  }: mir.Component):
-    | WireFormat.Statements.InvokeLexicalComponent
-    | WireFormat.Statements.ResolvedComponent
-    | WireFormat.Statements.DynamicComponent {
-    let wireTag = EXPR.expr(tag);
-    let wirePositional = CONTENT.ElementParameters(params);
-    let wireNamed = EXPR.NamedArguments(named, false);
-
-    let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
-
-    const args = buildComponentArgs(wirePositional.toPresentArray(), wireNamed, wireNamedBlocks);
-
+  if (wireTag[0] === Op.GetFreeAsComponentHead) {
     localAssert(
-      isTupleExpression(wireTag),
-      `Expected ${JSON.stringify(wireTag)} to be a tuple expression`
+      wireTag.length === 2,
+      `Unexpected free variable as component head with a path tail ${JSON.stringify(wireTag)}`
     );
 
-    // There are special cases for non-path expressions that refer to out-of-template variables:
-    // lexical variables and resolved variables.
+    return [Op.ResolvedComponent, wireTag, args];
+  }
 
-    if (isGetLexical(wireTag)) {
-      // if the expression is something like `x.Foo`, then the component is dynamic, not
-      // a lexical variable.
+  // The only remaining case here should be a reference to a local Handlebars variable (possibly a
+  // path).
+  localAssert(isGetSymbolOrPath(wireTag), `Expected ${JSON.stringify(wireTag)} to be a symbol`);
+
+  return [Op.InvokeDynamicComponent, wireTag, args];
+}
+
+export function ElementParameters({
+  body,
+}: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
+  return body.map((p) => ElementParameter(p));
+}
+
+export function ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
+  switch (param.type) {
+    case 'SplatAttr':
+      return [Op.AttrSplat, param.symbol];
+    case 'DynamicAttr':
+      return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
+    case 'StaticAttr':
+      return [staticAttrOp(param.kind), ...staticAttr(param)];
+    case 'Modifier': {
+      const expression = expr(param.callee);
       return [
-        wireTag.length === 2 ? Op.InvokeLexicalComponent : Op.DynamicComponent,
-        wireTag,
-        args,
-      ];
-    }
-
-    if (wireTag[0] === Op.GetFreeAsComponentHead) {
-      localAssert(
-        wireTag.length === 2,
-        `Unexpected free variable as component head with a path tail ${JSON.stringify(wireTag)}`
-      );
-
-      return [Op.ResolvedComponent, wireTag, args];
-    }
-
-    // The only remaining case here should be a reference to a local Handlebars variable (possibly a
-    // path).
-    localAssert(isGetSymbol(wireTag), `Expected ${JSON.stringify(wireTag)} to be a symbol`);
-
-    return [Op.DynamicComponent, wireTag, args];
-  }
-
-  ElementParameters({ body }: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
-    return body.map((p) => CONTENT.ElementParameter(p));
-  }
-
-  ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
-    switch (param.type) {
-      case 'SplatAttr':
-        return [Op.AttrSplat, param.symbol];
-      case 'DynamicAttr':
-        return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
-      case 'StaticAttr':
-        return [staticAttrOp(param.kind), ...staticAttr(param)];
-      case 'Modifier': {
-        const expr = EXPR.expr(param.callee);
-        return [MODIFIER_TYPES[headType(expr)], EXPR.expr(param.callee), EXPR.Args(param.args)];
-      }
-    }
-  }
-
-  NamedBlocks({ blocks: blocksNode }: mir.NamedBlocks): Optional<WireFormat.Core.Blocks> {
-    const blocks = blocksNode.toPresentArray();
-    if (!blocks) return;
-
-    let names: string[] = [];
-    let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
-
-    for (const block of blocks) {
-      const [name, serializedBlock] = this.NamedBlock(block);
-
-      names.push(name);
-      serializedBlocks.push(serializedBlock);
-    }
-
-    assertPresentArray(names);
-    assertPresentArray(serializedBlocks);
-
-    return [names, serializedBlocks];
-  }
-
-  NamedBlock({ name, body, scope }: mir.NamedBlock): WireFormat.Core.NamedBlock {
-    return [name.chars === 'inverse' ? 'else' : name.chars, this.namedBlock(body, scope)];
-  }
-
-  namedBlock(body: mir.Statement[], scope: BlockSymbolTable): SerializedInlineBlock {
-    return [CONTENT.list(body), scope.slots];
-  }
-
-  If({ condition, block, inverse }: mir.If): WireFormat.Statements.If {
-    return [
-      Op.If,
-      EXPR.expr(condition),
-      CONTENT.NamedBlock(block)[1],
-      inverse ? CONTENT.NamedBlock(inverse)[1] : null,
-    ];
-  }
-
-  Each({ value, key, block, inverse }: mir.Each): WireFormat.Statements.Each {
-    return [
-      Op.Each,
-      EXPR.expr(value),
-      key ? EXPR.expr(key) : null,
-      CONTENT.NamedBlock(block)[1],
-      inverse ? CONTENT.NamedBlock(inverse)[1] : null,
-    ];
-  }
-
-  Let({ positional, block }: mir.Let): WireFormat.Statements.Let {
-    return [Op.Let, EXPR.Positional(positional), CONTENT.NamedBlock(block)[1]];
-  }
-
-  WithDynamicVars({ named, block }: mir.WithDynamicVars): WireFormat.Statements.WithDynamicVars {
-    return [
-      Op.WithDynamicVars,
-      EXPR.NamedArguments(named, false),
-      CONTENT.namedBlock(block.body, block.scope),
-    ];
-  }
-
-  InvokeComponent({
-    definition,
-    args,
-    blocks,
-  }: mir.InvokeComponent): WireFormat.Statements.SomeInvokeComponent {
-    const expr = EXPR.expr(definition);
-
-    if (typeof expr === 'string' || headType(expr) === 'lexical') {
-      return [
-        Op.InvokeDynamicComponent,
-        expr,
-        this.BlockArgs(args, blocks, { insertAtPrefix: false }),
-      ];
-    } else {
-      localAssert(
-        Array.isArray(expr) && isGetVar(expr),
-        `Expected ${JSON.stringify(expr)} to be an array`
-      );
-
-      return [
-        Op.InvokeResolvedComponent,
-        expr,
-        this.BlockArgs(args, blocks, { insertAtPrefix: true }),
+        MODIFIER_TYPES[headType(expression, 'modifier')],
+        expr(param.callee),
+        Args(param.args),
       ];
     }
   }
 }
 
-export const CONTENT = new ContentEncoder();
+export function NamedBlocks({
+  blocks: blocksNode,
+}: mir.NamedBlocks): Optional<WireFormat.Core.Blocks> {
+  const blocks = blocksNode.toPresentArray();
+  if (!blocks) return;
+
+  let names: string[] = [];
+  let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
+
+  for (const block of blocks) {
+    const [name, serializedBlock] = NamedBlock(block);
+
+    names.push(name);
+    serializedBlocks.push(serializedBlock);
+  }
+
+  assertPresentArray(names);
+  assertPresentArray(serializedBlocks);
+
+  return [names, serializedBlocks];
+}
+
+export function NamedBlock({ name, body, scope }: mir.NamedBlock): WireFormat.Core.NamedBlock {
+  return [name.chars === 'inverse' ? 'else' : name.chars, namedBlock(body, scope)];
+}
+
+export function namedBlock(
+  body: mir.Content[],
+  scope: BlockSymbolTable
+): WireFormat.SerializedInlineBlock {
+  return [ContentList(body), scope.slots];
+}
+
+export function IfContent({ condition, block, inverse }: mir.IfContent): WireFormat.Contents.If {
+  return [Op.If, expr(condition), NamedBlock(block)[1], inverse ? NamedBlock(inverse)[1] : null];
+}
+
+export function Each({ value, key, block, inverse }: mir.Each): WireFormat.Contents.Each {
+  return [
+    Op.Each,
+    expr(value),
+    key ? expr(key) : null,
+    NamedBlock(block)[1],
+    inverse ? NamedBlock(inverse)[1] : null,
+  ];
+}
+
+export function Let({ positional, block }: mir.Let): WireFormat.Contents.Let {
+  return [Op.Let, Positional(positional), NamedBlock(block)[1]];
+}
+
+export function WithDynamicVars({
+  named,
+  block,
+}: mir.WithDynamicVars): WireFormat.Contents.WithDynamicVars {
+  return [Op.WithDynamicVars, NamedArguments(named, false), namedBlock(block.body, block.scope)];
+}
+
+export function InvokeComponentKeyword({
+  definition,
+  args,
+  blocks,
+}: mir.InvokeComponentKeyword): WireFormat.Contents.SomeInvokeComponent {
+  const expression = expr(definition);
+  const type = headType(expression, 'component');
+
+  localAssert(type !== 'keyword', `[BUG] {{component <KW>}} is not a valid node`);
+
+  return [
+    Op.InvokeComponentKeyword,
+    expression,
+    BlockArgs(args, blocks, { insertAtPrefix: false }),
+  ];
+}
+
+export function InvokeResolvedComponentKeyword({
+  definition,
+  args,
+  blocks,
+}: mir.InvokeResolvedComponentKeyword): WireFormat.Contents.SomeInvokeComponent {
+  return [
+    Op.InvokeComponentKeyword,
+    definition,
+    BlockArgs(args, blocks, { insertAtPrefix: false }),
+  ];
+}
 
 export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
 
@@ -350,7 +378,7 @@ export type DynamicAttrArgs = [
 ];
 
 function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {
-  let out: DynamicAttrArgs = [deflateAttrName(name.chars), EXPR.expr(value)];
+  let out: DynamicAttrArgs = [deflateAttrName(name.chars), expr(value)];
 
   if (namespace) {
     out.push(namespace);

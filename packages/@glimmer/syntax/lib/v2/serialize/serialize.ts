@@ -11,7 +11,7 @@ import type {
   SerializedContentNode,
   SerializedElementModifier,
   SerializedExpressionNode,
-  SerializedFreeVarReference,
+  SerializedResolvedVarReference,
   SerializedGlimmerComment,
   SerializedHtmlComment,
   SerializedHtmlOrSplatAttr,
@@ -35,9 +35,9 @@ import type {
 import { SourceSlice } from '../../source/slice';
 
 export class RefSerializer {
-  keyword(keyword: ASTv2.KeywordExpression): SerializedFreeVarReference {
+  keyword(keyword: ASTv2.KeywordExpression): SerializedResolvedVarReference {
     return {
-      type: 'Free',
+      type: 'Resolved',
       loc: keyword.loc.serialize(),
       resolution: 'Strict',
       name: keyword.name,
@@ -52,9 +52,9 @@ export class RefSerializer {
     };
   }
 
-  free(ref: ASTv2.FreeVarReference): SerializedFreeVarReference {
+  resolved(ref: ASTv2.ResolvedVarReference): SerializedResolvedVarReference {
     return {
-      type: 'Free',
+      type: 'Resolved',
       loc: ref.loc.serialize(),
       resolution: ref.resolution.serialize(),
       name: ref.name,
@@ -205,7 +205,7 @@ export class ContentSerializer {
 
   invokeComponent(node: ASTv2.InvokeComponent): SerializedInvokeComponent {
     return {
-      type: 'InvokeComponent',
+      type: 'ComponentKeywordExpr',
       loc: node.loc.serialize(),
       callee: visit.expr(node.callee),
       blocks: INTERNAL.namedBlocks(node.blocks),
@@ -309,8 +309,8 @@ const visit = {
     switch (ref.type) {
       case 'Arg':
         return REF.arg(ref);
-      case 'Free':
-        return REF.free(ref);
+      case 'Resolved':
+        return REF.resolved(ref);
       case 'Local':
         return REF.local(ref);
       case 'This':

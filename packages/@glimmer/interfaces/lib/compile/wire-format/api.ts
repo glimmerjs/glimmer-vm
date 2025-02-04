@@ -24,32 +24,31 @@ import type {
   DynamicArgOpcode,
   DynamicAttrOpcode,
   DynamicBlockOpcode,
-  DynamicComponentOpcode,
   EachOpcode,
   FlushElementOpcode,
   GetDynamicVarOpcode,
-  GetFreeAsComponentHeadOpcode,
-  GetFreeAsComponentOrHelperHeadOpcode,
-  GetFreeAsHelperHeadOpcode,
-  GetFreeAsModifierHeadOpcode,
   GetLexicalSymbolOpcode,
+  GetLocalSymbolOpcode,
   GetStrictKeywordOpcode,
-  GetSymbolOpcode,
   HasBlockOpcode,
   HasBlockParamsOpcode,
   IfInlineOpcode,
   IfOpcode,
   InElementOpcode,
+  InvokeComponentKeywordOpcode,
   InvokeDynamicComponentOpcode,
   InvokeLexicalComponentOpcode,
   InvokeResolvedComponentOpcode,
   LetOpcode,
-  LexicalBlockComponentOpcode,
   LexicalModifierOpcode,
   LogOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
+  ResolveAsComponentHeadOpcode,
+  ResolveAsComponentOrHelperHeadOpcode,
+  ResolveAsHelperHeadOpcode,
+  ResolveAsModifierHeadOpcode,
   ResolvedBlockOpcode,
   ResolvedComponentOpcode,
   ResolvedModifierOpcode,
@@ -69,21 +68,21 @@ import type {
 export type * from './opcodes.js';
 export type * from './resolution.js';
 
-export type TupleSyntax = Statement | TupleExpression;
+export type TupleSyntax = Content | TupleExpression;
 
 export type TemplateReference = Nullable<SerializedBlock>;
 export type YieldTo = number;
 
-export type StatementSexpOpcode = Statement[0];
-export type StatementSexpOpcodeMap = {
-  [TSexpOpcode in Statement[0]]: Extract<Statement, { 0: TSexpOpcode }>;
+export type ContentSexpOpcode = Content[0];
+export type ContentSexpOpcodeMap = {
+  [TSexpOpcode in Content[0]]: Extract<Content, { 0: TSexpOpcode }>;
 };
 export type ExpressionSexpOpcode = TupleExpression[0];
 export type ExpressionSexpOpcodeMap = {
   [TSexpOpcode in TupleExpression[0]]: Extract<TupleExpression, { 0: TSexpOpcode }>;
 };
 
-export interface SexpOpcodeMap extends ExpressionSexpOpcodeMap, StatementSexpOpcodeMap {}
+export interface SexpOpcodeMap extends ExpressionSexpOpcodeMap, ContentSexpOpcodeMap {}
 export type SexpOpcode = keyof SexpOpcodeMap;
 
 export namespace Core {
@@ -125,34 +124,34 @@ export namespace Expressions {
   export type Params = Core.Params;
   export type Hash = Core.Hash;
 
-  export type GetSymbol = [GetSymbolOpcode, number];
+  export type GetLocalSymbol = [GetLocalSymbolOpcode, number];
   export type GetLexicalSymbol = [GetLexicalSymbolOpcode, number];
   export type GetStrictKeyword = [GetStrictKeywordOpcode, number];
-  export type GetFreeAsComponentOrHelperHead = [GetFreeAsComponentOrHelperHeadOpcode, number];
-  export type GetFreeAsHelperHead = [GetFreeAsHelperHeadOpcode, number];
-  export type GetFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number];
-  export type GetFreeAsComponentHead = [GetFreeAsComponentHeadOpcode, number];
+  export type GetFreeAsComponentOrHelperHead = [ResolveAsComponentOrHelperHeadOpcode, number];
+  export type GetFreeAsHelperHead = [ResolveAsHelperHeadOpcode, number];
+  export type GetFreeAsModifierHead = [ResolveAsModifierHeadOpcode, number];
+  export type GetFreeAsComponentHead = [ResolveAsComponentHeadOpcode, number];
 
   export type GetUnknownAppend = GetFreeAsComponentOrHelperHead | GetFreeAsHelperHead;
 
-  export type GetContextualFree =
+  export type GetResolved =
     | GetFreeAsComponentOrHelperHead
     | GetFreeAsHelperHead
     | GetFreeAsModifierHead
     | GetFreeAsComponentHead;
-  export type GetFree = GetStrictKeyword | GetContextualFree;
-  export type GetVar = GetSymbol | GetLexicalSymbol | GetFree;
+  export type GetResolvedOrKeyword = GetStrictKeyword | GetResolved;
+  export type GetVar = GetLocalSymbol | GetLexicalSymbol | GetResolvedOrKeyword;
 
-  export type GetPathSymbol = [GetSymbolOpcode, number, Path];
+  export type GetPathSymbol = [GetLocalSymbolOpcode, number, Path];
   export type GetPathLexicalSymbol = [GetLexicalSymbolOpcode, number, Path];
   export type GetPathFreeAsComponentOrHelperHead = [
-    GetFreeAsComponentOrHelperHeadOpcode,
+    ResolveAsComponentOrHelperHeadOpcode,
     number,
     Path,
   ];
-  export type GetPathFreeAsHelperHead = [GetFreeAsHelperHeadOpcode, number, Path];
-  export type GetPathFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number, Path];
-  export type GetPathFreeAsComponentHead = [GetFreeAsComponentHeadOpcode, number, Path];
+  export type GetPathFreeAsHelperHead = [ResolveAsHelperHeadOpcode, number, Path];
+  export type GetPathFreeAsModifierHead = [ResolveAsModifierHeadOpcode, number, Path];
+  export type GetPathFreeAsComponentHead = [ResolveAsComponentHeadOpcode, number, Path];
 
   export type GetPathContextualFree =
     | GetPathFreeAsComponentOrHelperHead
@@ -240,7 +239,7 @@ export type ATag = 3;
 
 export type WellKnownTagName = DivTag | SpanTag | PTag | ATag;
 
-export namespace Statements {
+export namespace Contents {
   export type Expression = Expressions.Expression | undefined;
   export type Params = Core.Params;
   export type Hash = Core.Hash;
@@ -258,11 +257,8 @@ export namespace Statements {
     | UnknownAppend
     | UnknownTrustingAppend;
   export type SomeModifier = LexicalModifier | ResolvedModifier;
-  export type SomeInvokeComponent =
-    | InvokeDynamicComponent
-    | InvokeResolvedComponent
-    | InvokeLexicalComponent;
-  export type SomeBlock = LexicalBlockComponent | ResolvedBlock | DynamicBlock;
+  export type SomeInvokeComponent = InvokeDynamicComponent | InvokeLexicalComponent;
+  export type SomeBlock = ResolvedBlock | DynamicBlock | InvokeLexicalComponent;
 
   export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
   export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
@@ -285,13 +281,6 @@ export namespace Statements {
     path: Expressions.GetVar,
     args?: Optional<Core.BlockArgs>,
   ];
-  export type LexicalBlockComponent = [
-    LexicalBlockComponentOpcode,
-    path: Expressions.GetVar,
-    // Blocks don't have splattributes, so this is normal block args,
-    // not ComponentArgs.
-    args?: Optional<Core.BlockArgs>,
-  ];
   export type DynamicBlock = [
     DynamicBlockOpcode,
     path: Expressions.Get,
@@ -306,7 +295,7 @@ export namespace Statements {
   ];
 
   export type DynamicComponent = [
-    op: DynamicComponentOpcode,
+    op: InvokeDynamicComponentOpcode,
     tag: Expression,
     args?: Optional<Core.ComponentArgs>,
   ];
@@ -386,7 +375,7 @@ export namespace Statements {
   ];
 
   export type InvokeDynamicComponent = [
-    op: InvokeDynamicComponentOpcode,
+    op: InvokeComponentKeywordOpcode,
     definition: Expression,
     args?: Optional<Core.BlockArgs>,
   ];
@@ -399,14 +388,14 @@ export namespace Statements {
 
   export type InvokeResolvedComponent = [
     op: InvokeResolvedComponentOpcode,
-    definition: Expressions.GetVar,
+    definition: string,
     args?: Optional<Core.BlockArgs>,
   ];
 
   /**
    * A Handlebars statement
    */
-  export type Statement =
+  export type Content =
     | SomeAppend
     | SomeModifier
     | SomeInvokeComponent
@@ -445,12 +434,12 @@ export namespace Statements {
 }
 
 /** A Handlebars statement */
-export type Statement = Statements.Statement;
-export type Attribute = Statements.Attribute;
-export type Argument = Statements.Argument;
-export type ElementParameter = Statements.ElementParameter;
+export type Content = Contents.Content;
+export type Attribute = Contents.Attribute;
+export type Argument = Contents.Argument;
+export type ElementParameter = Contents.ElementParameter;
 
-export type SexpSyntax = Statement | TupleExpression;
+export type SexpSyntax = Content | TupleExpression;
 // TODO this undefined is related to the other TODO in this file
 export type Syntax = SexpSyntax | Expressions.Value | undefined;
 
@@ -465,15 +454,15 @@ export type SyntaxWithInternal =
 /**
  * A JSON object that the Block was serialized into.
  */
-export type SerializedBlock = [statements: Statements.Statement[]];
+export type SerializedBlock = [statements: Contents.Content[]];
 
-export type SerializedInlineBlock = [statements: Statements.Statement[], parameters: number[]];
+export type SerializedInlineBlock = [statements: Contents.Content[], parameters: number[]];
 
 /**
  * A JSON object that the compiled TemplateBlock was serialized into.
  */
 export type SerializedTemplateBlock = [
-  statements: Statements.Statement[],
+  statements: Contents.Content[],
   locals: string[],
   upvars: string[],
   lexicalSymbols?: string[],

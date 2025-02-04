@@ -10,7 +10,7 @@ import type {
   Nullable,
   SerializedBlock,
   SerializedInlineBlock,
-  Statement,
+  Content,
   SymbolTable,
   WireFormat,
 } from '@glimmer/interfaces';
@@ -36,7 +36,7 @@ class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplat
   compiled: Nullable<HandleResult> = null;
 
   constructor(
-    readonly statements: WireFormat.Statement[],
+    readonly statements: WireFormat.Content[],
     readonly meta: BlockMetadata,
     // Part of CompilableTemplate
     readonly symbolTable: S,
@@ -79,7 +79,7 @@ function maybeCompile(
 }
 
 export function compileStatements(
-  statements: Statement[],
+  statements: Content[],
   meta: BlockMetadata,
   syntaxContext: EvaluationContext
 ): HandleResult {

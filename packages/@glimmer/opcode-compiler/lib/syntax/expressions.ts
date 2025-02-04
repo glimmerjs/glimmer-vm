@@ -65,14 +65,14 @@ EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, args]) => {
   Curry(op, type, expr, args);
 });
 
-export const GetSymbol = (encode: EncodeOp, sym: number): void => {
+export const GetLocalSymbol = (encode: EncodeOp, sym: number): void => {
   encode.op(VM_GET_VARIABLE_OP, sym);
 };
 
 export const GetPath = (encode: EncodeOp, path: string[]): void => withPath(encode, path);
 
-EXPRESSIONS.add(SexpOpcodes.GetSymbol, (encode, [, sym, path]) => {
-  GetSymbol(encode, sym);
+EXPRESSIONS.add(SexpOpcodes.GetLocalSymbol, (encode, [, sym, path]) => {
+  GetLocalSymbol(encode, sym);
   if (path) GetPath(encode, path);
 });
 
