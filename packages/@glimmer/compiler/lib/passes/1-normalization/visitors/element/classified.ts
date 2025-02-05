@@ -7,7 +7,7 @@ import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
 import { MODIFIER_KEYWORDS } from '../../keywords';
-import { convertPathToCallIfKeyword, VISIT_EXPRS } from '../expressions';
+import { convertPathToCallIfKeyword, visit, visitArgs } from '../expressions';
 
 export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 
@@ -57,7 +57,7 @@ export class ClassifiedElement {
       );
     }
 
-    return VISIT_EXPRS.visit(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
+    return visit(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
       let isTrusting = attr.trusting;
 
       return new mir.DynamicAttr({
@@ -80,8 +80,8 @@ export class ClassifiedElement {
       return translated;
     }
 
-    let head = VISIT_EXPRS.visit(modifier.callee, this.state);
-    let args = VISIT_EXPRS.Args(modifier.args, this.state);
+    let head = visit(modifier.callee, this.state);
+    let args = visitArgs(modifier.args, this.state);
 
     return Result.all(head, args).mapOk(
       ([head, args]) =>

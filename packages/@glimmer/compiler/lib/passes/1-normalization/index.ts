@@ -7,7 +7,7 @@ import type { Result } from '../../shared/result';
 
 import * as mir from '../2-encoding/mir';
 import { NormalizationState } from './context';
-import { VISIT_STMTS } from './visitors/statements';
+import { visitList } from './visitors/statements';
 import StrictModeValidationPass from './visitors/strict-mode';
 
 /**
@@ -65,7 +65,7 @@ export default function normalize(
     done();
   }
 
-  let body = VISIT_STMTS.visitList(root.body, state);
+  let body = visitList(root.body, state);
 
   if (LOCAL_TRACE_LOGGING) {
     const logger = DebugLogger.configured();

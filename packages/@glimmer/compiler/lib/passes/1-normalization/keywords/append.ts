@@ -5,7 +5,7 @@ import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { VISIT_EXPRS } from '../visitors/expressions';
+import { visit, visitPositional, visitArgs } from '../visitors/expressions';
 import { keywords } from './impl';
 import { toAppend } from './utils/call-to-append';
 import { assertCurryKeyword } from './utils/curry';
@@ -62,7 +62,7 @@ export const APPEND_KEYWORDS = keywords('Append')
         positional: ASTv2.PositionalArguments;
       }
     ): Result<mir.Content> {
-      return VISIT_EXPRS.Positional(positional, state).mapOk(
+      return visitPositional(positional, state).mapOk(
         (positional) =>
           new mir.Yield({
             loc: node.loc,
@@ -108,8 +108,8 @@ export const APPEND_KEYWORDS = keywords('Append')
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
     ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
-      let definitionResult = VISIT_EXPRS.visit(definition, state);
-      let argsResult = VISIT_EXPRS.Args(args, state);
+      let definitionResult = visit(definition, state);
+      let argsResult = visitArgs(args, state);
 
       return Result.all(definitionResult, argsResult).andThen(([definition, args]) => {
         if (definition.type === 'Literal') {
@@ -148,8 +148,8 @@ export const APPEND_KEYWORDS = keywords('Append')
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
     ): Result<mir.AppendValue> {
-      let definitionResult = VISIT_EXPRS.visit(definition, state);
-      let argsResult = VISIT_EXPRS.Args(args, state);
+      let definitionResult = visit(definition, state);
+      let argsResult = visitArgs(args, state);
 
       return Result.all(definitionResult, argsResult).mapOk(([definition, args]) => {
         let value = new mir.CallExpression({ callee: definition, args, loc: node.loc });

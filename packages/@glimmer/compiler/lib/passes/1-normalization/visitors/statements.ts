@@ -12,143 +12,154 @@ import { ClassifiedComponent } from './element/component';
 import { ClassifiedSimpleElement } from './element/simple-element';
 import { VISIT_EXPRS } from './expressions';
 
-class NormalizationStatements {
-  visitList(
-    nodes: readonly ASTv2.ContentNode[],
-    state: NormalizationState
-  ): Result<OptionalList<mir.Content>> {
-    return new ResultArray(nodes.map((e) => VISIT_STMTS.visit(e, state)))
-      .toOptionalList()
-      .mapOk((list) => list.filter((s: mir.Content | null): s is mir.Content => s !== null));
-  }
+export function visitList(
+  nodes: readonly ASTv2.ContentNode[],
+  state: NormalizationState
+): Result<OptionalList<mir.Content>> {
+  return new ResultArray(nodes.map((e) => visit(e, state)))
+    .toOptionalList()
+    .mapOk((list) => list.filter((s: mir.Content | null): s is mir.Content => s !== null));
+}
 
-  visit(node: ASTv2.ContentNode, state: NormalizationState): Result<mir.Content | null> {
-    switch (node.type) {
-      case 'GlimmerComment':
-        return Ok(null);
-      case 'AppendContent':
-        return this.AppendContent(node, state);
-      case 'HtmlText':
-        return Ok(this.TextNode(node));
-      case 'HtmlComment':
-        return Ok(this.HtmlComment(node));
-      case 'InvokeBlock':
-        return this.InvokeBlock(node, state);
-      case 'InvokeComponent':
-        return this.InvokeComponent(node, state);
-      case 'SimpleElement':
-        return this.SimpleElement(node, state);
-    }
-  }
+export function visitNamedBlocks(
+  blocks: ASTv2.NamedBlocks,
+  state: NormalizationState
+): Result<mir.NamedBlocks> {
+  let list = new ResultArray(blocks.blocks.map((b) => visitNamedBlock(b, state)));
 
-  InvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<mir.Content> {
-    let translated = BLOCK_KEYWORDS.translate(node, state);
+  return list
+    .toArray()
+    .mapOk((list) => new mir.NamedBlocks({ loc: blocks.loc, blocks: OptionalList(list) }));
+}
 
-    if (translated !== null) {
-      return translated;
-    }
+export function visitNamedBlock(
+  named: ASTv2.NamedBlock,
+  state: NormalizationState
+): Result<mir.NamedBlock> {
+  let body = state.visitBlock(named.block);
 
-    let head = VISIT_EXPRS.visit(node.callee, state);
-    let args = VISIT_EXPRS.Args(node.args, state);
-
-    return Result.all(head, args).andThen(([head, args]) => {
-      if (head.type !== 'PathExpression' && !ASTv2.isVariableReference(head)) {
-        return Err(
-          generateSyntaxError(
-            `expected a path expression or variable reference, got ${head.type}`,
-            head.loc
-          )
-        );
-      }
-
-      return this.NamedBlocks(node.blocks, state).mapOk(
-        (blocks) =>
-          new mir.InvokeBlock({
-            loc: node.loc,
-            head,
-            args,
-            blocks,
-          })
-      );
+  return body.mapOk((body) => {
+    return new mir.NamedBlock({
+      loc: named.loc,
+      name: named.name,
+      body: body.toArray(),
+      scope: named.block.scope,
     });
-  }
+  });
+}
 
-  NamedBlocks(blocks: ASTv2.NamedBlocks, state: NormalizationState): Result<mir.NamedBlocks> {
-    let list = new ResultArray(blocks.blocks.map((b) => this.NamedBlock(b, state)));
-
-    return list
-      .toArray()
-      .mapOk((list) => new mir.NamedBlocks({ loc: blocks.loc, blocks: OptionalList(list) }));
-  }
-
-  NamedBlock(named: ASTv2.NamedBlock, state: NormalizationState): Result<mir.NamedBlock> {
-    let body = state.visitBlock(named.block);
-
-    return body.mapOk((body) => {
-      return new mir.NamedBlock({
-        loc: named.loc,
-        name: named.name,
-        body: body.toArray(),
-        scope: named.block.scope,
-      });
-    });
-  }
-
-  SimpleElement(element: ASTv2.SimpleElement, state: NormalizationState): Result<mir.Content> {
-    return new ClassifiedElement(
-      element,
-      new ClassifiedSimpleElement(element.tag, element, hasDynamicFeatures(element)),
-      state
-    ).toStatement();
-  }
-
-  InvokeComponent(component: ASTv2.InvokeComponent, state: NormalizationState): Result<mir.Content> {
-    return VISIT_EXPRS.visit(component.callee, state).andThen((callee) =>
-      new ClassifiedElement(
-        component,
-        new ClassifiedComponent(callee, component),
-        state
-      ).toStatement()
-    );
-  }
-
-  AppendContent(append: ASTv2.AppendContent, state: NormalizationState): Result<mir.Content> {
-    let translated = APPEND_KEYWORDS.translate(append, state);
-
-    if (translated !== null) {
-      return translated;
-    }
-
-    let value = VISIT_EXPRS.visit(append.value, state);
-
-    return value.mapOk((value) => {
-      if (append.trusting) {
-        return new mir.AppendTrustedHTML({
-          loc: append.loc,
-          html: value,
-        });
-      } else {
-        return new mir.AppendValue({
-          loc: append.loc,
-          value: value,
-        });
-      }
-    });
-  }
-
-  TextNode(text: ASTv2.HtmlText): mir.Content {
-    return new mir.AppendValue({
-      loc: text.loc,
-      value: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
-    });
-  }
-
-  HtmlComment(comment: ASTv2.HtmlComment): mir.Content {
-    return new mir.AppendComment({
-      loc: comment.loc,
-      value: comment.text,
-    });
+function visit(node: ASTv2.ContentNode, state: NormalizationState): Result<mir.Content | null> {
+  switch (node.type) {
+    case 'GlimmerComment':
+      return Ok(null);
+    case 'AppendContent':
+      return visitAppendContent(node, state);
+    case 'HtmlText':
+      return Ok(visitTextNode(node));
+    case 'HtmlComment':
+      return Ok(visitHtmlComment(node));
+    case 'InvokeBlock':
+      return visitInvokeBlock(node, state);
+    case 'InvokeComponent':
+      return visitInvokeComponent(node, state);
+    case 'SimpleElement':
+      return visitSimpleElement(node, state);
   }
 }
 
-export const VISIT_STMTS = new NormalizationStatements();
+function visitInvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<mir.Content> {
+  let translated = BLOCK_KEYWORDS.translate(node, state);
+
+  if (translated !== null) {
+    return translated;
+  }
+
+  let head = VISIT_EXPRS.visit(node.callee, state);
+  let args = VISIT_EXPRS.Args(node.args, state);
+
+  return Result.all(head, args).andThen(([head, args]) => {
+    if (head.type !== 'PathExpression' && !ASTv2.isVariableReference(head)) {
+      return Err(
+        generateSyntaxError(
+          `expected a path expression or variable reference, got ${head.type}`,
+          head.loc
+        )
+      );
+    }
+
+    return visitNamedBlocks(node.blocks, state).mapOk(
+      (blocks) =>
+        new mir.InvokeBlock({
+          loc: node.loc,
+          head,
+          args,
+          blocks,
+        })
+    );
+  });
+}
+
+function visitSimpleElement(
+  element: ASTv2.SimpleElement,
+  state: NormalizationState
+): Result<mir.Content> {
+  return new ClassifiedElement(
+    element,
+    new ClassifiedSimpleElement(element.tag, element, hasDynamicFeatures(element)),
+    state
+  ).toStatement();
+}
+
+function visitInvokeComponent(
+  component: ASTv2.InvokeComponent,
+  state: NormalizationState
+): Result<mir.Content> {
+  return VISIT_EXPRS.visit(component.callee, state).andThen((callee) =>
+    new ClassifiedElement(
+      component,
+      new ClassifiedComponent(callee, component),
+      state
+    ).toStatement()
+  );
+}
+
+function visitAppendContent(
+  append: ASTv2.AppendContent,
+  state: NormalizationState
+): Result<mir.Content> {
+  let translated = APPEND_KEYWORDS.translate(append, state);
+
+  if (translated !== null) {
+    return translated;
+  }
+
+  let value = VISIT_EXPRS.visit(append.value, state);
+
+  return value.mapOk((value) => {
+    if (append.trusting) {
+      return new mir.AppendTrustedHTML({
+        loc: append.loc,
+        html: value,
+      });
+    } else {
+      return new mir.AppendValue({
+        loc: append.loc,
+        value: value,
+      });
+    }
+  });
+}
+
+function visitTextNode(text: ASTv2.HtmlText): mir.Content {
+  return new mir.AppendValue({
+    loc: text.loc,
+    value: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
+  });
+}
+
+function visitHtmlComment(comment: ASTv2.HtmlComment): mir.Content {
+  return new mir.AppendComment({
+    loc: comment.loc,
+    value: comment.text,
+  });
+}
