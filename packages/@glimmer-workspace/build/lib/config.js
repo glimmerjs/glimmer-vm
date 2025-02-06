@@ -1,6 +1,6 @@
 // @ts-check
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import replace from '@rollup/plugin-replace';
@@ -12,6 +12,7 @@ import ts from 'typescript';
 import { $, chalk } from 'zx';
 
 import inline from './inline.js';
+import { workspace } from '@glimmer-workspace/eslint-plugin';
 
 const { ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
 
@@ -89,42 +90,48 @@ export function typescript(pkg, env) {
   return [
     rollupSWC({
       swc: {
+        sourceMaps: false,
+        minify: false,
         jsc: {
           parser: {
             syntax: 'typescript',
             // decorators: true,
           },
           target: 'es2022',
+          experimental: {
+            disableAllLints: true,
+            // emitIsolatedDts: true,
+          },
           transform: {
             // legacyDecorator: true,
           },
         },
       },
     }),
-    {
-      name: 'Build Declarations',
-      closeBundle: async function () {
-        const types = ['@glimmer-workspace/env'];
-        if (pkg.devDependencies['@types/node']) {
-          types.push('node');
-        }
+    // {
+    //   name: 'Build Declarations',
+    //   closeBundle: async function () {
+    //     const types = ['@glimmer-workspace/env'];
+    //     if (pkg.devDependencies['@types/node']) {
+    //       types.push('node');
+    //     }
 
-        const start = performance.now();
-        await $({
-          verbose: true,
-          stdio: 'inherit',
-          cwd: pkg.root,
-        })`pnpm tsc --skipLibCheck --declaration --declarationDir dist/${env} --emitDeclarationOnly --module esnext --moduleResolution bundler ${
-          pkg.exports
-        } --types ${types.join(',')} --target esnext --strict`;
-        const duration = performance.now() - start;
-        console.error(
-          `${chalk.green('created')} ${chalk.green.bold(`dist/${env}/index.d.ts`)} ${chalk.green(
-            'in'
-          )} ${chalk.green.bold(ms(duration))}`
-        );
-      },
-    },
+    //     const start = performance.now();
+    //     await $({
+    //       verbose: true,
+    //       stdio: 'inherit',
+    //       cwd: pkg.root,
+    //     })`pnpm tsc --skipLibCheck --declaration --declarationDir dist/${env} --emitDeclarationOnly --module esnext --moduleResolution bundler ${
+    //       pkg.exports
+    //     } --types ${types.join(',')} --target esnext --strict`;
+    //     const duration = performance.now() - start;
+    //     console.error(
+    //       `${chalk.green('created')} ${chalk.green.bold(`dist/${env}/index.d.ts`)} ${chalk.green(
+    //         'in'
+    //       )} ${chalk.green.bold(ms(duration))}`
+    //     );
+    //   },
+    // },
 
     // rollupTS({
     //   compilerOptions: ts,

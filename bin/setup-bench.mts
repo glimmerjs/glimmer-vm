@@ -96,7 +96,7 @@ const pnpm = await which('pnpm');
   await $`rm -rf ${EXPERIMENT_DIRS.root}`;
   await $`mkdir -p ${EXPERIMENT_DIRS.bench}`;
   await $`cp -r ${EXPERIMENT_DIRS.src}/* ${EXPERIMENT_DIRS.bench}/`;
-  await $`${pnpm} build --output-logs=new-only`;
+  await $`${pnpm} turbo prepack --output-logs=new-only`;
   await buildKrausestDeps({
     roots: { benchmark: EXPERIMENT_DIRS.bench, workspace: WORKSPACE_ROOT },
   });
@@ -142,7 +142,7 @@ console.info({
   await $`cp -r ${EXPERIMENT_DIRS.src}/* ${CONTROL_DIRS.bench}/`;
 
   await $({ cwd: CONTROL_DIRS.repo })`${pnpm} install`;
-  await $({ cwd: CONTROL_DIRS.repo })`${pnpm} build --output-logs=new-only`;
+  await $({ cwd: CONTROL_DIRS.repo })`${pnpm} turbo prepack --output-logs=new-only`;
 
   const benchmarkEnv = join(CONTROL_DIRS.repo, 'packages/@glimmer-workspace/benchmark-env');
 

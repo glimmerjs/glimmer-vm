@@ -41,6 +41,7 @@
       "@glimmer/reference": "file:packages/@glimmer/reference.tgz",
       "@glimmer/util": "file:packages/@glimmer/util.tgz",
       "@glimmer/validator": "file:packages/@glimmer/validator.tgz",
+      "@glimmer/wire-format": "file:packages/@glimmer/wire-format.tgz",
       "@glimmer-workspace/env": "file:packages/@glimmer-workspace/env.tgz"
     }
   }
