@@ -1,0 +1,60 @@
+{
+  "name": "@glimmer/ember",
+  "version": "0.94.1",
+  "license": "MIT",
+  "description": "Point of integration to ember.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
+    "directory": "packages/@glimmer/ember-integration"
+  },
+  "type": "module",
+  "exports": {
+    "./*": "./lib/*.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      "./*": {
+        "types": "./dist/*.d.ts",
+        "default": "./dist/*.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepack": "rollup -c rollup.config.mjs",
+    "test:publint": "publint"
+  },
+  "dependencies": {
+    "@glimmer/compiler": "workspace:*",
+    "@glimmer/destroyable": "workspace:*",
+    "@glimmer/global-context": "workspace:*",
+    "@glimmer/interfaces": "workspace:*",
+    "@glimmer/manager": "workspace:*",
+    "@glimmer/node": "workspace:*",
+    "@glimmer/opcode-compiler": "workspace:*",
+    "@glimmer/owner": "workspace:*",
+    "@glimmer/reference": "workspace:*",
+    "@glimmer/runtime": "workspace:*",
+    "@glimmer/syntax": "workspace:*",
+    "@glimmer/util": "workspace:*",
+    "@glimmer/validator": "workspace:*",
+    "@glimmer/vm": "workspace:*"
+  },
+  "devDependencies": {
+    "@embroider/addon-dev": "^7.1.1",
+    "@glimmer-workspace/build-support": "workspace:*",
+    "@glimmer-workspace/env": "workspace:*",
+    "@glimmer/local-debug-flags": "workspace:*",
+    "@glint/core": "^1.5.2",
+    "@rollup/plugin-swc": "^0.4.0",
+    "@types/qunit": "^2.19.9",
+    "eslint": "^9.18.0",
+    "publint": "^0.3.2",
+    "rollup": "^4.31.0-0",
+    "typescript": "^5.7.3"
+  }
+}

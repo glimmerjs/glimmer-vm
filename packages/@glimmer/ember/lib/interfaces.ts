@@ -1,0 +1,15 @@
+export type {
+  CapturedArguments,
+  CapturedRenderNode,
+  ComponentManager,
+  Dict,
+  HelperManager,
+  ModifierCapabilities,
+  ModifierManager,
+  SerializedTemplateWithLazyBlock,
+  ResolveAsModifierHeadResolution,
+  ResolveAsHelperHeadResolution,
+  ResolveAsComponentHeadResolution,
+  ResolveAsComponentOrHelperHeadResolution,
+  TemplateFactory,
+} from '@glimmer/interfaces';
