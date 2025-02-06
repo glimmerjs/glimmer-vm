@@ -7,7 +7,7 @@ export type AppendResolvedHelperOpcode = 101;
 export type AppendBuiltinHelperOpcode = 102;
 export type UnknownAppendOpcode = 2;
 export type UnknownTrustingAppendOpcode = 3;
-export type TrustingAppendOpcode = 4;
+export type AppendTrustedHtmlOpcode = 4;
 export type CommentOpcode = 5;
 export type LexicalModifierOpcode = 6;
 export type ResolvedModifierOpcode = 56;
@@ -15,7 +15,6 @@ export type StrictModifierOpcode = 7;
 export type ResolvedBlockOpcode = 8;
 export type LexicalBlockComponentOpcode = 9;
 export type DynamicBlockOpcode = 57;
-export type ResolvedComponentOpcode = 10;
 export type InvokeDynamicComponentOpcode = 58;
 
 export type OpenElementOpcode = 11;

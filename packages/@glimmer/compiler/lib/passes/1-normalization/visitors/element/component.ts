@@ -5,7 +5,7 @@ import type { NormalizationState } from '../../context';
 import type { Classified, ClassifiedElement, PreparedArgs } from './classified';
 
 import * as mir from '../../../2-encoding/mir';
-import { convertPathToCallIfKeyword, visit } from '../expressions';
+import { convertPathToCallIfKeyword, visitExpr } from '../expressions';
 import { visitNamedBlocks } from '../statements';
 
 export class ClassifiedComponent implements Classified {
@@ -19,7 +19,7 @@ export class ClassifiedComponent implements Classified {
   arg(attr: ASTv2.ComponentArg, { state }: ClassifiedElement): Result<mir.NamedArgument> {
     let name = attr.name;
 
-    return visit(convertPathToCallIfKeyword(attr.value), state).mapOk(
+    return visitExpr(convertPathToCallIfKeyword(attr.value), state).mapOk(
       (value) =>
         new mir.NamedArgument({
           loc: attr.loc,

@@ -140,7 +140,11 @@ export function buildStatement(
 
       return [
         [
-          trusted ? Op.TrustingAppend : type === 'lexical' ? Op.AppendLexical : Op.AppendResolved,
+          trusted
+            ? Op.AppendTrustedHtml
+            : type === 'lexical'
+              ? Op.AppendLexical
+              : Op.AppendResolved,
           call,
         ],
       ];
@@ -166,6 +170,7 @@ export function buildStatement(
 
       const args = buildBlockArgs(params, hash, blocks, { path });
 
+      // @ts-expect-error
       return [[...blockType(path), args]];
     }
 
@@ -533,7 +538,9 @@ function getSymbolForVar(kind: Exclude<VariableKind, FREE_VAR>, symbols: Symbols
   }
 }
 
-export function expressionContextOp(context: VariableResolutionContext): GetResolvedOrKeywordOpcode {
+export function expressionContextOp(
+  context: VariableResolutionContext
+): GetResolvedOrKeywordOpcode {
   switch (context) {
     case VariableResolutionContext.Strict:
       return Op.GetStrictKeyword;
@@ -728,13 +735,22 @@ export function blockType(
   | [InvokeLexicalComponentOpcode, WireFormat.Expressions.GetLexicalSymbol]
   | [ResolvedBlockOpcode, WireFormat.Expressions.GetResolved]
   | [DynamicBlockOpcode, WireFormat.Expressions.GetPath] {
-  if (isGetLexical(path)) {
-    return [Op.InvokeLexicalComponent, path];
-  } else if (path.length === 2) {
-    return [Op.ResolvedBlock, path as WireFormat.Expressions.GetResolved];
-  } else {
-    return [Op.DynamicBlock, path];
+  if (path.length === 2) {
+    if (isGetLexical(path)) {
+      return [Op.InvokeLexicalComponent, path];
+    } else {
+      localAssert(
+        path[0] !== Op.GetFreeAsHelperHead &&
+          path[0] !== Op.GetFreeAsModifierHead &&
+          path[0] !== Op.GetLocalSymbol &&
+          path[0] !== Op.GetStrictKeyword,
+        '[BUG] resolved block with non-resolved path'
+      );
+      return [Op.ResolvedBlock, path];
+    }
   }
+
+  return [Op.DynamicBlock, path];
 }
 
 export const NEWLINE = '\n';

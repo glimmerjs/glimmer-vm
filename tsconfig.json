@@ -13,6 +13,7 @@
     "noImplicitReturns": false,
     "noUnusedLocals": false,
     "stripInternal": true,
+    "skipLibCheck": true,
     // TODO: Remove these and use the decorators manually to avoid infecting
     // the entire codebase with legacy transpilation semantics.
     "experimentalDecorators": true,

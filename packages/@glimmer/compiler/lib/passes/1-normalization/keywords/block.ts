@@ -6,7 +6,12 @@ import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { visit, visitPositional, visitNamedArguments, visitArgs } from '../visitors/expressions';
+import {
+  visitArgs,
+  visitExpr,
+  visitNamedArguments,
+  visitPositional,
+} from '../visitors/expressions';
 import { visitNamedBlock, visitNamedBlocks } from '../visitors/statements';
 import { keywords } from './impl';
 import { assertCurryKeyword } from './utils/curry';
@@ -51,7 +56,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     ): Result<mir.InElement> {
       let named = node.blocks.get('default');
       let body = visitNamedBlock(named, state);
-      let destinationResult = visit(destination, state);
+      let destinationResult = visitExpr(destination, state);
 
       return Result.all(body, destinationResult)
         .andThen(
@@ -61,7 +66,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
             insertBefore: mir.ExpressionNode;
           }> => {
             if (insertBefore) {
-              return visit(insertBefore, state).mapOk((insertBefore) => ({
+              return visitExpr(insertBefore, state).mapOk((insertBefore) => ({
                 body,
                 destination,
                 insertBefore,
@@ -136,7 +141,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let conditionResult = visit(condition, state);
+      let conditionResult = visitExpr(condition, state);
       let blockResult = visitNamedBlock(block, state);
       let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
@@ -198,7 +203,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let conditionResult = visit(condition, state);
+      let conditionResult = visitExpr(condition, state);
       let blockResult = visitNamedBlock(block, state);
       let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
@@ -263,8 +268,8 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let valueResult = visit(value, state);
-      let keyResult = key ? visit(key, state) : Ok(null);
+      let valueResult = visitExpr(value, state);
+      let keyResult = key ? visitExpr(key, state) : Ok(null);
 
       let blockResult = visitNamedBlock(block, state);
       let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
@@ -368,7 +373,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
     ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
-      let definitionResult = visit(definition, state);
+      let definitionResult = visitExpr(definition, state);
       let argsResult = visitArgs(args, state);
       let blocksResult = visitNamedBlocks(node.blocks, state);
 

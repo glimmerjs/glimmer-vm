@@ -5,7 +5,7 @@ import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { visit, visitPositional, visitArgs } from '../visitors/expressions';
+import { visitArgs, visitExpr, visitPositional } from '../visitors/expressions';
 import { keywords } from './impl';
 import { toAppend } from './utils/call-to-append';
 import { assertCurryKeyword } from './utils/curry';
@@ -108,7 +108,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
     ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
-      let definitionResult = visit(definition, state);
+      let definitionResult = visitExpr(definition, state);
       let argsResult = visitArgs(args, state);
 
       return Result.all(definitionResult, argsResult).andThen(([definition, args]) => {
@@ -148,7 +148,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
     ): Result<mir.AppendValue> {
-      let definitionResult = visit(definition, state);
+      let definitionResult = visitExpr(definition, state);
       let argsResult = visitArgs(args, state);
 
       return Result.all(definitionResult, argsResult).mapOk(([definition, args]) => {

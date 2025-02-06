@@ -255,7 +255,7 @@ STATEMENTS.add(Op.Append, (encode, [, value]) => {
   encode.op(VM_POP_FRAME_OP);
 });
 
-STATEMENTS.add(Op.TrustingAppend, (encode, [, value]) => {
+STATEMENTS.add(Op.AppendTrustedHtml, (encode, [, value]) => {
   if (!Array.isArray(value)) {
     encode.op(
       VM_TEXT_OP,
@@ -396,7 +396,7 @@ STATEMENTS.add(Op.WithDynamicVars, (encode, [, named, block]) => {
   }
 });
 
-STATEMENTS.add(Op.ResolvedComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeResolvedComponent, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
   InvokeComponent(encode, component, args);
 });

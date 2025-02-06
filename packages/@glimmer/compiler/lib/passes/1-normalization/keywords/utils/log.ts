@@ -7,7 +7,7 @@ import type { GenericKeywordNode, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { VISIT_EXPRS } from '../../visitors/expressions';
+import { visitPositional } from '../../visitors/expressions';
 
 function assertLogKeyword(node: GenericKeywordNode): Result<ASTv2.PositionalArguments> {
   let {
@@ -25,7 +25,7 @@ function translateLogKeyword(
   { node, state }: { node: ASTv2.CallExpression | ASTv2.AppendContent; state: NormalizationState },
   positional: ASTv2.PositionalArguments
 ): Result<mir.Log> {
-  return VISIT_EXPRS.Positional(positional, state).mapOk(
+  return visitPositional(positional, state).mapOk(
     (positional) => new mir.Log({ positional, loc: node.loc })
   );
 }

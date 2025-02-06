@@ -54,12 +54,9 @@
     "**/.DS_Store": true,
     "**/.git": true,
     "**/dist": true,
+    "ts-dist": true,
     "**/node_modules": true,
     "tracerbench-results": true
-  },
-  "files.watcherExclude": {
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true
   },
   "inline-bookmarks.expert.custom.styles": {
     "active": {

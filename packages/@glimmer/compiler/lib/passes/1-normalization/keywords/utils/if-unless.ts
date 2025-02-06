@@ -6,7 +6,7 @@ import type { KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { visit } from '../../visitors/expressions';
+import { visitExpr } from '../../visitors/expressions';
 
 function assertIfUnlessInlineKeyword(type: string) {
   return (
@@ -95,9 +95,9 @@ function translateIfUnlessInlineKeyword(type: string) {
       falsy: ASTv2.ExpressionNode | null;
     }
   ): Result<mir.IfExpression> => {
-    let conditionResult = visit(condition, state);
-    let truthyResult = visit(truthy, state);
-    let falsyResult = falsy ? visit(falsy, state) : Ok(null);
+    let conditionResult = visitExpr(condition, state);
+    let truthyResult = visitExpr(truthy, state);
+    let falsyResult = falsy ? visitExpr(falsy, state) : Ok(null);
 
     return Result.all(conditionResult, truthyResult, falsyResult).mapOk(
       ([condition, truthy, falsy]) => {

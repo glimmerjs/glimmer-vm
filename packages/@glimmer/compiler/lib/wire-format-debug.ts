@@ -36,7 +36,7 @@ export default class WireFormatDebugger {
       switch (opcode[0]) {
         case Op.Append:
           return ['append', this.formatOpcode(opcode[1])];
-        case Op.TrustingAppend:
+        case Op.AppendTrustedHtml:
           return ['trusting-append', this.formatOpcode(opcode[1])];
 
         case Op.ResolvedBlock:
@@ -232,10 +232,10 @@ export default class WireFormatDebugger {
         }
 
         case Op.InvokeDynamicComponent:
-        case Op.ResolvedComponent: {
+        case Op.InvokeResolvedComponent: {
           const [op, path, args] = opcode;
           return [
-            op === Op.ResolvedComponent ? 'component:resolved' : 'component',
+            op === Op.InvokeResolvedComponent ? 'component:resolved' : 'component',
             this.formatOpcode(path),
             this.formatComponentArgs(args),
           ];

@@ -4,7 +4,7 @@ import type { OptionalList } from '../../shared/list';
 import type { Result } from '../../shared/result';
 import type * as mir from '../2-encoding/mir';
 
-import { visitList } from './visitors/statements';
+import { visitStatements } from './visitors/statements';
 
 /**
  * This is the mutable state for this compiler pass.
@@ -33,7 +33,7 @@ export class NormalizationState {
     this._currentScope = block.scope;
 
     try {
-      return visitList(block.body, this);
+      return visitStatements(block.body, this);
     } finally {
       this._currentScope = oldBlock;
     }

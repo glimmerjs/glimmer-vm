@@ -53,7 +53,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let [statements] = wire.block;
     let [[, componentNameExpr], ...divExpr] = statements as [
-      WireFormat.Contents.Component,
+      WireFormat.Content.SomeInvokeComponent,
       ...WireFormat.Content[],
     ];
 
@@ -80,7 +80,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let [statements] = wire.block;
     let [[, componentNameExpr], ...divExpr] = statements as [
-      WireFormat.Contents.Component,
+      WireFormat.Content.SomeInvokeComponent,
       ...WireFormat.Content[],
     ];
 
@@ -108,7 +108,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     );
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Contents.Component];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -131,8 +131,8 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, , letBlock]] = block[0] as [WireFormat.Contents.Let];
-    let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Contents.Component];
+    let [[, , letBlock]] = block[0] as [WireFormat.Content.Let];
+    let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -155,7 +155,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Contents.ResolvedBlock];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
       Array.isArray(componentNameExpr) &&
@@ -178,7 +178,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Contents.ResolvedBlock];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Content.ResolvedBlock];
 
     localAssert(
       Array.isArray(componentNameExpr) &&

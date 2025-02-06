@@ -7,7 +7,7 @@ import type { KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { visit, visitArgs } from '../../visitors/expressions';
+import { visitExpr, visitArgs } from '../../visitors/expressions';
 
 const CurriedTypeToReadableType = {
   [CURRIED_COMPONENT]: 'component',
@@ -78,7 +78,7 @@ function translateCurryKeyword(curriedType: CurriedType) {
     }: { node: ASTv2.CallExpression | ASTv2.AppendContent; state: NormalizationState },
     { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
   ): Result<mir.Curry> => {
-    let definitionResult = visit(definition, state);
+    let definitionResult = visitExpr(definition, state);
     let argsResult = visitArgs(args, state);
 
     return Result.all(definitionResult, argsResult).mapOk(

@@ -10,9 +10,9 @@ import { APPEND_KEYWORDS } from '../keywords/append';
 import { ClassifiedElement, hasDynamicFeatures } from './element/classified';
 import { ClassifiedComponent } from './element/component';
 import { ClassifiedSimpleElement } from './element/simple-element';
-import { VISIT_EXPRS } from './expressions';
+import { visitArgs, visitExpr } from './expressions';
 
-export function visitList(
+export function visitStatements(
   nodes: readonly ASTv2.ContentNode[],
   state: NormalizationState
 ): Result<OptionalList<mir.Content>> {
@@ -74,8 +74,8 @@ function visitInvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): R
     return translated;
   }
 
-  let head = VISIT_EXPRS.visit(node.callee, state);
-  let args = VISIT_EXPRS.Args(node.args, state);
+  let head = visitExpr(node.callee, state);
+  let args = visitArgs(node.args, state);
 
   return Result.all(head, args).andThen(([head, args]) => {
     if (head.type !== 'PathExpression' && !ASTv2.isVariableReference(head)) {
@@ -114,7 +114,7 @@ function visitInvokeComponent(
   component: ASTv2.InvokeComponent,
   state: NormalizationState
 ): Result<mir.Content> {
-  return VISIT_EXPRS.visit(component.callee, state).andThen((callee) =>
+  return visitExpr(component.callee, state).andThen((callee) =>
     new ClassifiedElement(
       component,
       new ClassifiedComponent(callee, component),
@@ -133,7 +133,7 @@ function visitAppendContent(
     return translated;
   }
 
-  let value = VISIT_EXPRS.visit(append.value, state);
+  let value = visitExpr(append.value, state);
 
   return value.mapOk((value) => {
     if (append.trusting) {
@@ -158,7 +158,7 @@ function visitTextNode(text: ASTv2.HtmlText): mir.Content {
 }
 
 function visitHtmlComment(comment: ASTv2.HtmlComment): mir.Content {
-  return new mir.AppendComment({
+  return new mir.AppendHtmlComment({
     loc: comment.loc,
     value: comment.text,
   });

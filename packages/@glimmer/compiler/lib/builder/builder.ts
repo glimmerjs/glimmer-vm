@@ -157,7 +157,7 @@ export interface BuilderGetFree {
 export function buildAppend(
   trusted: boolean,
   expr: Expressions.Expression
-): WireFormat.Contents.SomeAppend {
+): WireFormat.Content.SomeAppend {
   if (Array.isArray(expr)) {
     if (expr[0] === Op.GetFreeAsComponentOrHelperHead) {
       return trusted
@@ -171,7 +171,7 @@ export function buildAppend(
   }
 
   if (Array.isArray(expr)) {
-    return [trusted ? Op.TrustingAppend : Op.Append, expr];
+    return [trusted ? Op.AppendTrustedHtml : Op.Append, expr];
   } else {
     return [Op.AppendStatic, expr];
   }

@@ -11,6 +11,7 @@ import type {
   AppendResolvedHelperOpcode,
   AppendResolvedOpcode,
   AppendStaticOpcode,
+  AppendTrustedHtmlOpcode,
   AttrOpcode,
   AttrSplatOpcode,
   CallLexicalOpcode,
@@ -50,12 +51,10 @@ import type {
   ResolveAsHelperHeadOpcode,
   ResolveAsModifierHeadOpcode,
   ResolvedBlockOpcode,
-  ResolvedComponentOpcode,
   ResolvedModifierOpcode,
   StaticArgOpcode,
   StaticAttrOpcode,
   StaticComponentAttrOpcode,
-  TrustingAppendOpcode,
   TrustingComponentAttrOpcode,
   TrustingDynamicAttrOpcode,
   UndefinedOpcode,
@@ -239,7 +238,7 @@ export type ATag = 3;
 
 export type WellKnownTagName = DivTag | SpanTag | PTag | ATag;
 
-export namespace Contents {
+export namespace Content {
   export type Expression = Expressions.Expression | undefined;
   export type Params = Core.Params;
   export type Hash = Core.Hash;
@@ -247,22 +246,26 @@ export namespace Contents {
   export type Path = Core.Path;
 
   export type SomeAppend =
-    | Append
+    | AppendValue
     | AppendStatic
     | AppendResolvedComponent
     | AppendLexical
     | AppendResolved
     | AppendBuiltinHelper
-    | TrustingAppend
+    | AppendTrustedHtml
     | UnknownAppend
     | UnknownTrustingAppend;
   export type SomeModifier = LexicalModifier | ResolvedModifier;
-  export type SomeInvokeComponent = InvokeDynamicComponent | InvokeLexicalComponent;
+  export type SomeInvokeComponent =
+    | InvokeComponentKeyword
+    | InvokeLexicalComponent
+    | InvokeDynamicComponent
+    | InvokeResolvedComponent;
   export type SomeBlock = ResolvedBlock | DynamicBlock | InvokeLexicalComponent;
 
   export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
   export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
-  export type Append = [AppendOpcode, TupleExpression];
+  export type AppendValue = [AppendOpcode, TupleExpression];
   export type AppendResolvedComponent = [AppendResolvedOpcode, target: Expressions.SomeInvoke];
   export type AppendLexical = [AppendLexicalOpcode, target: Expressions.SomeInvoke];
   export type AppendResolved = [AppendResolvedHelperOpcode, target: Expressions.SomeInvoke];
@@ -272,8 +275,8 @@ export namespace Contents {
     target: string | number | boolean | null | undefined,
   ];
 
-  export type TrustingAppend = [TrustingAppendOpcode, Expression];
-  export type Comment = [CommentOpcode, string];
+  export type AppendTrustedHtml = [AppendTrustedHtmlOpcode, Expression];
+  export type AppendHtmlComment = [CommentOpcode, string];
   export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.Args>];
   export type ResolvedModifier = [ResolvedModifierOpcode, Expression, args?: Optional<Core.Args>];
   export type ResolvedBlock = [
@@ -285,19 +288,6 @@ export namespace Contents {
     DynamicBlockOpcode,
     path: Expressions.Get,
     args?: Optional<Core.BlockArgs>,
-  ];
-
-  export type ResolvedComponent = [
-    op: ResolvedComponentOpcode,
-    // A resolved component is, by definition, not a dot-separated path
-    tag: Expressions.GetVar,
-    args?: Optional<Core.ComponentArgs>,
-  ];
-
-  export type DynamicComponent = [
-    op: InvokeDynamicComponentOpcode,
-    tag: Expression,
-    args?: Optional<Core.ComponentArgs>,
   ];
 
   export type OpenElement = [OpenElementOpcode, string | WellKnownTagName];
@@ -374,7 +364,7 @@ export namespace Contents {
     block: SerializedInlineBlock,
   ];
 
-  export type InvokeDynamicComponent = [
+  export type InvokeComponentKeyword = [
     op: InvokeComponentKeywordOpcode,
     definition: Expression,
     args?: Optional<Core.BlockArgs>,
@@ -388,8 +378,15 @@ export namespace Contents {
 
   export type InvokeResolvedComponent = [
     op: InvokeResolvedComponentOpcode,
-    definition: string,
-    args?: Optional<Core.BlockArgs>,
+    // A resolved component is, by definition, not a dot-separated path
+    tag: Expressions.GetVar,
+    args?: Optional<Core.ComponentArgs>,
+  ];
+
+  export type InvokeDynamicComponent = [
+    op: InvokeDynamicComponentOpcode,
+    tag: Expression,
+    args?: Optional<Core.ComponentArgs>,
   ];
 
   /**
@@ -400,9 +397,9 @@ export namespace Contents {
     | SomeModifier
     | SomeInvokeComponent
     | SomeBlock
-    | Comment
-    | ResolvedComponent
-    | DynamicComponent
+    | AppendHtmlComment
+    | InvokeResolvedComponent
+    | InvokeDynamicComponent
     | OpenElement
     | OpenElementWithSplat
     | FlushElement
@@ -433,11 +430,11 @@ export namespace Contents {
   export type ElementParameter = Attribute | Argument | ComponentFeature;
 }
 
-/** A Handlebars statement */
-export type Content = Contents.Content;
-export type Attribute = Contents.Attribute;
-export type Argument = Contents.Argument;
-export type ElementParameter = Contents.ElementParameter;
+/** Appends content (`{{}}`, `<>`, or block) */
+export type Content = Content.Content;
+export type Attribute = Content.Attribute;
+export type Argument = Content.Argument;
+export type ElementParameter = Content.ElementParameter;
 
 export type SexpSyntax = Content | TupleExpression;
 // TODO this undefined is related to the other TODO in this file
@@ -454,15 +451,15 @@ export type SyntaxWithInternal =
 /**
  * A JSON object that the Block was serialized into.
  */
-export type SerializedBlock = [statements: Contents.Content[]];
+export type SerializedBlock = [statements: Content.Content[]];
 
-export type SerializedInlineBlock = [statements: Contents.Content[], parameters: number[]];
+export type SerializedInlineBlock = [statements: Content.Content[], parameters: number[]];
 
 /**
  * A JSON object that the compiled TemplateBlock was serialized into.
  */
 export type SerializedTemplateBlock = [
-  statements: Contents.Content[],
+  statements: Content.Content[],
   locals: string[],
   upvars: string[],
   lexicalSymbols?: string[],

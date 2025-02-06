@@ -83,7 +83,7 @@ export default class StrictModeValidationPass {
       case 'InvokeBlock':
         return this.InvokeBlock(statement);
 
-      case 'AppendComment':
+      case 'AppendHtmlComment':
         return Ok(null);
 
       case 'IfContent':

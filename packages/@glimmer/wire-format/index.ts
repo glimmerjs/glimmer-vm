@@ -1,4 +1,4 @@
-import type { Expressions, Content, Contents } from '@glimmer/interfaces';
+import type { Content, Expressions } from '@glimmer/interfaces';
 
 import { opcodes as Op } from './lib/opcodes';
 
@@ -14,9 +14,9 @@ export function is<T>(variant: number): (value: unknown) => value is T {
 }
 
 // Statements
-export const isFlushElement = is<Contents.FlushElement>(Op.FlushElement);
+export const isFlushElement = is<Content.FlushElement>(Op.FlushElement);
 
-export function isAttribute(val: Content): val is Contents.Attribute {
+export function isAttribute(val: Content): val is Content.Attribute {
   return (
     val[0] === Op.StaticAttr ||
     val[0] === Op.DynamicAttr ||
@@ -46,7 +46,9 @@ export function isGet(expr: Expressions.TupleExpression): expr is Expressions.Ge
   return opcode === Op.GetLocalSymbol || opcode === Op.GetLexicalSymbol || isGetFree(expr);
 }
 
-export function isGetFree(expr: Expressions.TupleExpression): expr is Expressions.GetResolvedOrKeyword {
+export function isGetFree(
+  expr: Expressions.TupleExpression
+): expr is Expressions.GetResolvedOrKeyword {
   const [opcode] = expr;
   return opcode === Op.GetStrictKeyword || isGetContextualFree(expr);
 }

@@ -161,7 +161,7 @@ export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
  * - `{{<expr>}}` where `expr` is not a resolved or lexical reference.
  */
 export class AppendValue extends node('AppendValue').fields<{ value: ExpressionNode }>() {}
-export class AppendComment extends node('AppendComment').fields<{ value: SourceSlice }>() {}
+export class AppendHtmlComment extends node('AppendHtmlComment').fields<{ value: SourceSlice }>() {}
 
 export class Yield extends node('Yield').fields<{
   target: SourceSlice;
@@ -331,7 +331,7 @@ export type Content =
   | Component
   | SimpleElement
   | InvokeBlock
-  | AppendComment
+  | AppendHtmlComment
   | IfContent
   | Each
   | Let
