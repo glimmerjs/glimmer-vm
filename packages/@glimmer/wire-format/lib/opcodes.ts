@@ -17,7 +17,6 @@ import type {
   DebuggerOpcode,
   DynamicArgOpcode,
   DynamicAttrOpcode,
-  DynamicBlockOpcode,
   EachOpcode,
   FlushElementOpcode,
   GetDynamicVarOpcode,
@@ -30,11 +29,13 @@ import type {
   IfOpcode,
   InElementOpcode,
   InvokeComponentKeywordOpcode,
+  InvokeDynamicBlockOpcode,
   InvokeDynamicComponentOpcode,
-  InvokeLexicalComponentOpcode,
-  InvokeResolvedComponentOpcode,
+  InvokeLexicalAngleComponentOpcode,
+  InvokeLexicalBlockComponentOpcode,
+  InvokeResolvedAngleComponentOpcode,
+  InvokeResolvedBlockComponentOpcode,
   LetOpcode,
-  LexicalBlockComponentOpcode,
   LexicalModifierOpcode,
   LogOpcode,
   NotOpcode,
@@ -44,7 +45,6 @@ import type {
   ResolveAsComponentOrHelperHeadOpcode,
   ResolveAsHelperHeadOpcode,
   ResolveAsModifierHeadOpcode,
-  ResolvedBlockOpcode,
   ResolvedModifierOpcode,
   StaticArgOpcode,
   StaticAttrOpcode,
@@ -59,6 +59,7 @@ import type {
   WithDynamicVarsOpcode,
   YieldOpcode,
 } from '@glimmer/interfaces';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 export const opcodes = {
   Append: 1 satisfies AppendOpcode,
@@ -70,19 +71,19 @@ export const opcodes = {
   UnknownAppend: 2 satisfies UnknownAppendOpcode,
   UnknownTrustingAppend: 3 satisfies UnknownTrustingAppendOpcode,
 
-  LexicalBlockComponent: 9 satisfies LexicalBlockComponentOpcode,
   InvokeDynamicComponent: 58 satisfies InvokeDynamicComponentOpcode,
   InvokeComponentKeyword: 46 satisfies InvokeComponentKeywordOpcode,
-  InvokeResolvedComponent: 47 satisfies InvokeResolvedComponentOpcode,
-  InvokeLexicalComponent: 55 satisfies InvokeLexicalComponentOpcode,
+  InvokeResolvedAngleComponent: 47 satisfies InvokeResolvedAngleComponentOpcode,
+  InvokeResolvedBlockComponent: 8 satisfies InvokeResolvedBlockComponentOpcode,
+  InvokeLexicalAngleComponent: 55 satisfies InvokeLexicalAngleComponentOpcode,
+  InvokeLexicalBlockComponent: 105 satisfies InvokeLexicalBlockComponentOpcode,
+  InvokeDynamicBlock: 57 satisfies InvokeDynamicBlockOpcode,
 
   AppendTrustedHtml: 4 satisfies AppendTrustedHtmlOpcode,
   Comment: 5 satisfies CommentOpcode,
   LexicalModifier: 6 satisfies LexicalModifierOpcode,
   ResolvedModifier: 56 satisfies ResolvedModifierOpcode,
   StrictModifier: 7 satisfies StrictModifierOpcode,
-  DynamicBlock: 57 satisfies DynamicBlockOpcode,
-  ResolvedBlock: 8 satisfies ResolvedBlockOpcode,
   OpenElement: 11 satisfies OpenElementOpcode,
   OpenElementWithSplat: 12 satisfies OpenElementWithSplatOpcode,
   FlushElement: 13 satisfies FlushElementOpcode,
@@ -123,3 +124,17 @@ export const opcodes = {
   GetDynamicVar: 53 satisfies GetDynamicVarOpcode,
   Log: 54 satisfies LogOpcode,
 } as const;
+
+if (LOCAL_DEBUG) {
+  const seen = new Map<number, string>();
+
+  for (const [name, opcode] of Object.entries(opcodes)) {
+    if (seen.has(opcode)) {
+      throw new Error(
+        `Duplicate opcode: ${opcode} is registered as both ${seen.get(opcode)} and ${name}`
+      );
+    } else {
+      seen.set(opcode, name);
+    }
+  }
+}

@@ -1671,6 +1671,9 @@ importers:
       '@glimmer-workspace/env':
         specifier: workspace:*
         version: link:../../@glimmer-workspace/env
+      '@glimmer/local-debug-flags':
+        specifier: workspace:*
+        version: link:../local-debug-flags
       eslint:
         specifier: ^9.18.0
         version: 9.18.0(jiti@2.4.2)

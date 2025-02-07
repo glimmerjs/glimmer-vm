@@ -23,6 +23,7 @@ import {
   VM_POP_FRAME_OP,
   VM_POP_OP,
   VM_POP_REMOTE_ELEMENT_OP,
+  VM_PUSH_COMPONENT_DEFINITION_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   VM_PUSH_FRAME_OP,
   VM_PUSH_REMOTE_ELEMENT_OP,
@@ -43,9 +44,10 @@ import {
   YieldBlock,
 } from '../opcode-builder/helpers/blocks';
 import {
-  InvokeComponent,
   InvokeDynamicComponent,
-  InvokeNonStaticComponent,
+  InvokeEarlyBoundComponent,
+  InvokeReplayableComponentExpression,
+  InvokeResolvedComponent,
 } from '../opcode-builder/helpers/components';
 import { Replayable, ReplayableIf, SwitchCases } from '../opcode-builder/helpers/conditional';
 import { expr } from '../opcode-builder/helpers/expr';
@@ -181,7 +183,8 @@ STATEMENTS.add(Op.Debugger, (encode, [, locals, upvars, lexical]) => {
 STATEMENTS.add(Op.UnknownAppend, (encode, [, value]) => {
   encode.appendAny(value, {
     ifComponent(component: CompileTimeComponent) {
-      InvokeComponent(encode, component);
+      encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+      InvokeResolvedComponent(encode, component);
     },
 
     ifHelper(handle: number) {
@@ -193,15 +196,21 @@ STATEMENTS.add(Op.UnknownAppend, (encode, [, value]) => {
   });
 });
 
-// This opcode refers to this syntax:
-//
-// {{}}
+// This corresponds to the `{{foo}}` syntax, where `foo` is not an in-scope variable. It is
+// therefore resolved as either a component or a helper, which is determined at opcode compile time
+// by attempting to resolve the name first as a component, and if that fails, as a helper.
 STATEMENTS.add(Op.AppendResolved, (encode, [, value]) => {
   let [, expression, args] = value;
 
   encode.appendInvokable(expression, {
     ifComponent(component: CompileTimeComponent) {
-      InvokeComponent(encode, component, compact({ hash: hashToArgs(args?.hash) }), args?.params);
+      encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+      InvokeResolvedComponent(
+        encode,
+        component,
+        compact({ hash: hashToArgs(args?.hash) }),
+        args?.params
+      );
     },
     ifHelper(handle: number) {
       encode.op(VM_PUSH_FRAME_OP);
@@ -212,6 +221,9 @@ STATEMENTS.add(Op.AppendResolved, (encode, [, value]) => {
   });
 });
 
+// This corresponds to the `{{foo}}` syntax, where `foo` is a lexical, in-scope variable. This value
+// could still be a component or a helper, which is (@todo implement this) determined at opcode
+// compile time by evaluating the expression.
 STATEMENTS.add(Op.AppendLexical, (encode, [, value]) => {
   let [, expression, args] = value;
 
@@ -225,11 +237,10 @@ STATEMENTS.add(Op.AppendLexical, (encode, [, value]) => {
       when(ContentType.Component, () => {
         encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
         encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-        InvokeNonStaticComponent(encode, {
+        InvokeDynamicComponent(encode, {
           capabilities: true,
           positional: args?.params,
-          named: args?.hash,
-          atNames: false,
+          named: hashToArgs(args?.hash),
           blocks: namedBlocks(undefined),
         });
       });
@@ -269,10 +280,11 @@ STATEMENTS.add(Op.AppendTrustedHtml, (encode, [, value]) => {
   }
 });
 
-STATEMENTS.add(Op.ResolvedBlock, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeResolvedBlockComponent, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
 
-  InvokeComponent(
+  InvokeResolvedComponent(
     encode,
     component,
     compact({
@@ -283,10 +295,15 @@ STATEMENTS.add(Op.ResolvedBlock, (encode, [, expr, args]) => {
   );
 });
 
-STATEMENTS.add(Op.DynamicBlock, (encode, [, expr, args]) => {
-  InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
-    positional: args?.params,
-  });
+STATEMENTS.add(Op.InvokeDynamicBlock, (encode, [, expr, args]) => {
+  InvokeReplayableComponentExpression(
+    encode,
+    expr,
+    compact({ hash: args?.hash, blocks: args?.blocks }),
+    {
+      positional: args?.params,
+    }
+  );
 });
 
 STATEMENTS.add(Op.InElement, (encode, [, block, guid, destination, insertBefore]) => {
@@ -396,29 +413,48 @@ STATEMENTS.add(Op.WithDynamicVars, (encode, [, named, block]) => {
   }
 });
 
-STATEMENTS.add(Op.InvokeResolvedComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeResolvedAngleComponent, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
-  InvokeComponent(encode, component, args);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+  InvokeResolvedComponent(encode, component, args);
 });
 
 STATEMENTS.add(Op.InvokeDynamicComponent, (encode, [, expr, args]) => {
   // otherwise, the component name was an expression, so resolve the expression
   // and invoke it as a dynamic component
-  InvokeDynamicComponent(encode, expr, args, { atNames: true, curried: true });
+  InvokeReplayableComponentExpression(encode, expr, args, { curried: true });
 });
 
 STATEMENTS.add(Op.InvokeComponentKeyword, (encode, [, expr, args]) => {
-  InvokeDynamicComponent(encode, expr, compact({ hash: args?.hash, blocks: args?.blocks }), {
-    positional: args?.params,
-  });
+  InvokeReplayableComponentExpression(
+    encode,
+    expr,
+    compact({ hash: args?.hash, blocks: args?.blocks }),
+    {
+      positional: args?.params,
+    }
+  );
 });
 
-STATEMENTS.add(Op.InvokeLexicalComponent, (encode, [, expr, args]) => {
+STATEMENTS.add(Op.InvokeLexicalAngleComponent, (encode, [, expr, args]) => {
   const component = encode.getLexicalComponent(expr);
-  InvokeComponent(encode, component, args);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+  InvokeEarlyBoundComponent(encode, component, args);
 });
 
-function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
+STATEMENTS.add(Op.InvokeLexicalBlockComponent, (encode, [, expr, args]) => {
+  const component = encode.getLexicalComponent(expr);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+  InvokeEarlyBoundComponent(encode, component, args);
+});
+
+/**
+ * This function inserts `@` before each named argument. It has to be done at this late stage
+ * because, in some cases, the `{{}}` is ambiguous: it might be a helper or a component, and we only
+ * discover which once we resolve the value. If the value is a helper, we want to pass the named
+ * arguments as-is, and if it's a component, we want to pass them with the `@` prefix.
+ */
+export function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
   if (!hash) return;
   let names = hash[0].map((key) => `@${key}`);
   return [names as [string, ...string[]], hash[1]];

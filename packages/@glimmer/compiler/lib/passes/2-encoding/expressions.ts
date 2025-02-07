@@ -9,10 +9,17 @@ import { CALL_TYPES, compact, headType } from '../../builder/builder';
 
 export type HashPair = [string, WireFormat.Expression];
 
-export function encodeExpr(expr: ASTv2.LocalVarReference): WireFormat.Expressions.GetVar;
+export function encodeMaybeExpr(
+  expr: mir.ExpressionNode | mir.Missing
+): WireFormat.Expression | undefined {
+  return expr.type === 'Missing' ? undefined : encodeExpr(expr);
+}
+
 export function encodeExpr(expr: ASTv2.ResolvedVarReference): WireFormat.Expressions.GetResolved;
 export function encodeExpr(expr: mir.ExpressionNode): WireFormat.Expression;
-export function encodeExpr(expr: mir.ExpressionNode): WireFormat.Expression {
+export function encodeExpr(
+  expr: mir.ExpressionNode | mir.Missing
+): WireFormat.Expression | undefined {
   switch (expr.type) {
     case 'Missing':
       return undefined;

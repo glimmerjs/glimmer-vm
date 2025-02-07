@@ -1,5 +1,7 @@
 import type { BuilderOp, HighLevelOp, SexpOpcode, SexpOpcodeMap } from '@glimmer/interfaces';
-import { expect, localAssert } from '@glimmer/debug-util';
+import { unwrap } from '@glimmer/debug-util';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { EncodeOp } from '../opcode-builder/encoder';
 
@@ -30,12 +32,16 @@ export class Compilers<TSexpOpcodes extends SexpOpcode> {
 
   compile(op: EncodeOp, sexp: SexpOpcodeMap[TSexpOpcodes]): void {
     let name = sexp[0];
-    let index = expect(
-      this.names[name],
-      `expected an implementation for ${sexp[0]} (${JSON.stringify(sexp)})`
-    );
-    let func = this.funcs[index];
-    localAssert(!!func, `expected an implementation for ${sexp[0]}`);
+    const index = this.names[name];
+
+    if (LOCAL_DEBUG && index === undefined) {
+      const opName = Object.entries(Op).find(([_, value]) => value === name);
+      throw new Error(
+        `expected an implementation for ${opName?.[0]} (${name}) (${JSON.stringify(sexp)})`
+      );
+    }
+
+    let func = unwrap(this.funcs[index as number]);
 
     func(op, sexp);
   }

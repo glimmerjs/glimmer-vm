@@ -3,14 +3,14 @@ import type {
   AttrNamespace,
   CallLexicalOpcode,
   CallResolvedOpcode,
-  DynamicBlockOpcode,
   Expressions,
   GetResolvedOrKeywordOpcode,
-  InvokeLexicalComponentOpcode,
+  InvokeDynamicBlockOpcode,
+  InvokeLexicalAngleComponentOpcode,
+  InvokeResolvedBlockComponentOpcode,
   Nullable,
   Optional,
   PresentArray,
-  ResolvedBlockOpcode,
   UnknownInvokeOpcode,
   WireFormat,
 } from '@glimmer/interfaces';
@@ -732,12 +732,13 @@ export function upsert<T>(array: Optional<PresentArray<T>>, ...values: PresentAr
 export function blockType(
   path: Expressions.Get
 ):
-  | [InvokeLexicalComponentOpcode, WireFormat.Expressions.GetLexicalSymbol]
-  | [ResolvedBlockOpcode, WireFormat.Expressions.GetResolved]
-  | [DynamicBlockOpcode, WireFormat.Expressions.GetPath] {
+  | [InvokeLexicalAngleComponentOpcode, WireFormat.Expressions.GetLexicalSymbol]
+  | [InvokeResolvedBlockComponentOpcode, WireFormat.Expressions.GetResolved]
+  | [InvokeDynamicBlockOpcode, WireFormat.Expressions.GetPath] {
   if (path.length === 2) {
     if (isGetLexical(path)) {
-      return [Op.InvokeLexicalComponent, path];
+      // @fixme is this possible?
+      return [Op.InvokeLexicalAngleComponent, path];
     } else {
       localAssert(
         path[0] !== Op.GetFreeAsHelperHead &&
@@ -746,11 +747,11 @@ export function blockType(
           path[0] !== Op.GetStrictKeyword,
         '[BUG] resolved block with non-resolved path'
       );
-      return [Op.ResolvedBlock, path];
+      return [Op.InvokeResolvedBlockComponent, path];
     }
   }
 
-  return [Op.DynamicBlock, path];
+  return [Op.InvokeDynamicBlock, path];
 }
 
 export const NEWLINE = '\n';

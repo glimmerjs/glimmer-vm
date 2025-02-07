@@ -74,13 +74,13 @@ export default class StrictModeValidationPass {
       case 'AppendValue':
         return this.AppendValue(statement);
 
-      case 'Component':
-        return this.Component(statement);
+      case 'AngleBracketComponent':
+        return this.AngleBracketComponent(statement);
 
       case 'SimpleElement':
         return this.SimpleElement(statement);
 
-      case 'InvokeBlock':
+      case 'InvokeBlockComponent':
         return this.InvokeBlock(statement);
 
       case 'AppendHtmlComment':
@@ -117,7 +117,7 @@ export default class StrictModeValidationPass {
   }
 
   Expression(
-    expression: mir.ExpressionNode,
+    expression: mir.ExpressionNode | mir.Missing,
     span: HasSourceSpan = expression,
     resolution?: ResolutionType
   ): Result<null> {
@@ -260,7 +260,7 @@ export default class StrictModeValidationPass {
     }
   }
 
-  Component(statement: mir.Component): Result<null> {
+  AngleBracketComponent(statement: mir.AngleBracketComponent): Result<null> {
     return this.Expression(statement.tag, statement, COMPONENT_RESOLUTION)
       .andThen(() => this.ElementParameters(statement.params))
       .andThen(() => this.NamedArguments(statement.args))
@@ -271,7 +271,7 @@ export default class StrictModeValidationPass {
     return this.ElementParameters(statement.params).andThen(() => this.Statements(statement.body));
   }
 
-  InvokeBlock(statement: mir.InvokeBlock): Result<null> {
+  InvokeBlock(statement: mir.InvokeBlockComponent): Result<null> {
     return this.Expression(statement.head, statement.head, COMPONENT_RESOLUTION)
       .andThen(() => this.Args(statement.args))
       .andThen(() => this.NamedBlocks(statement.blocks));

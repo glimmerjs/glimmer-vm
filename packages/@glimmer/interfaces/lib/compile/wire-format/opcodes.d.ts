@@ -12,9 +12,8 @@ export type CommentOpcode = 5;
 export type LexicalModifierOpcode = 6;
 export type ResolvedModifierOpcode = 56;
 export type StrictModifierOpcode = 7;
-export type ResolvedBlockOpcode = 8;
-export type LexicalBlockComponentOpcode = 9;
-export type DynamicBlockOpcode = 57;
+export type InvokeResolvedBlockComponentOpcode = 8;
+export type InvokeDynamicBlockOpcode = 57;
 export type InvokeDynamicComponentOpcode = 58;
 
 export type OpenElementOpcode = 11;
@@ -65,8 +64,9 @@ export type EachOpcode = 42;
 export type LetOpcode = 44;
 export type WithDynamicVarsOpcode = 45;
 export type InvokeComponentKeywordOpcode = 46;
-export type InvokeResolvedComponentOpcode = 47;
-export type InvokeLexicalComponentOpcode = 55;
+export type InvokeResolvedAngleComponentOpcode = 47;
+export type InvokeLexicalAngleComponentOpcode = 55;
+export type InvokeLexicalBlockComponentOpcode = 105;
 
 // Keyword Expressions
 export type HasBlockOpcode = 48;

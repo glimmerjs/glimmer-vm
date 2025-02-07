@@ -107,13 +107,13 @@ export interface SerializedHtmlComment extends SerializedBaseNode {
   text: SerializedSourceSlice;
 }
 
-export interface SerializedInvokeBlock extends SerializedCallNode {
-  type: 'InvokeBlock';
+export interface SerializedInvokeBlockComponent extends SerializedCallNode {
+  type: 'InvokeBlockComponent';
   blocks: SerializedNamedBlocks;
 }
 
-export interface SerializedInvokeComponent extends SerializedBaseNode {
-  type: 'ComponentKeywordExpr';
+export interface SerializedInvokeAngleBracketComponent extends SerializedBaseNode {
+  type: 'InvokeAngleBracketComponent';
   callee: SerializedExpressionNode;
   blocks: SerializedNamedBlocks;
   attrs: SerializedAttrNode[];
@@ -164,6 +164,6 @@ export type SerializedContentNode =
   | SerializedHtmlComment
   | SerializedHtmlText
   | SerializedGlimmerComment
-  | SerializedInvokeBlock
-  | SerializedInvokeComponent
+  | SerializedInvokeBlockComponent
+  | SerializedInvokeAngleBracketComponent
   | SerializedSimpleElement;

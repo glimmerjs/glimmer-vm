@@ -170,7 +170,7 @@ export class Yield extends node('Yield').fields<{
 }>() {}
 export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
 
-export class Component extends node('Component').fields<{
+export class AngleBracketComponent extends node('AngleBracketComponent').fields<{
   tag: ExpressionNode;
   params: ElementParameters;
   args: NamedArguments;
@@ -243,7 +243,7 @@ export class IfExpression extends node('IfExpression').fields<{
 }>() {}
 
 export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
-export class InvokeBlock extends node('InvokeBlock').fields<{
+export class InvokeBlockComponent extends node('InvokeBlockComponent').fields<{
   head: PathExpression | ASTv2.VariableReference;
   args: Args;
   blocks: NamedBlocks;
@@ -294,11 +294,12 @@ export class NamedBlock extends node('NamedBlock').fields<{
   body: Content[];
 }>() {}
 
+export type MaybeMissingExpressionNode = ExpressionNode | Missing;
+
 export type ExpressionNode =
   | ASTv2.LiteralExpression
   | ASTv2.KeywordExpression
   | ASTv2.VariableReference
-  | Missing
   | PathExpression
   | InterpolateExpression
   | CallExpression
@@ -328,9 +329,9 @@ export type Content =
   | Yield
   | AppendTrustedHTML
   | AppendValue
-  | Component
+  | AngleBracketComponent
   | SimpleElement
-  | InvokeBlock
+  | InvokeBlockComponent
   | AppendHtmlComment
   | IfContent
   | Each

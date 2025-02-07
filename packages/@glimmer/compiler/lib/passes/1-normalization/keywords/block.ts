@@ -63,7 +63,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
           ([body, destination]): Result<{
             body: mir.NamedBlock;
             destination: mir.ExpressionNode;
-            insertBefore: mir.ExpressionNode;
+            insertBefore: mir.MaybeMissingExpressionNode;
           }> => {
             if (insertBefore) {
               return visitExpr(insertBefore, state).mapOk((insertBefore) => ({

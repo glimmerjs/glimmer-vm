@@ -21,7 +21,7 @@ export type ContentNode =
   | HtmlComment
   | AppendContent
   | InvokeBlock
-  | InvokeComponent
+  | InvokeAngleBracketComponent
   | SimpleElement
   | GlimmerComment;
 
@@ -68,7 +68,9 @@ interface InvokeComponentFields {
  * named blocks, `blocks` contains a single named block named `"default"`. When a component
  * invocation is self-closing, `blocks` is empty.
  */
-export class InvokeComponent extends node('InvokeComponent').fields<InvokeComponentFields>() {
+export class InvokeAngleBracketComponent extends node(
+  'InvokeAngleBracketComponent'
+).fields<InvokeComponentFields>() {
   get args(): Args {
     let entries = this.componentArgs.map((a) => a.toNamedArgument());
 
@@ -106,4 +108,4 @@ export class SimpleElement extends node('SimpleElement').fields<SimpleElementOpt
   }
 }
 
-export type ElementNode = NamedBlock | InvokeComponent | SimpleElement;
+export type ElementNode = NamedBlock | InvokeAngleBracketComponent | SimpleElement;

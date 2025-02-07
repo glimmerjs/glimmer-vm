@@ -13,7 +13,7 @@ export class ClassifiedComponent implements Classified {
 
   constructor(
     private tag: mir.ExpressionNode,
-    private element: ASTv2.InvokeComponent
+    private element: ASTv2.InvokeAngleBracketComponent
   ) {}
 
   arg(attr: ASTv2.ComponentArg, { state }: ClassifiedElement): Result<mir.NamedArgument> {
@@ -34,7 +34,7 @@ export class ClassifiedComponent implements Classified {
 
     return this.blocks(state).mapOk(
       (blocks) =>
-        new mir.Component({
+        new mir.AngleBracketComponent({
           loc: element.loc,
           tag: this.tag,
           params,

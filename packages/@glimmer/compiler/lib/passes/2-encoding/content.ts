@@ -1,5 +1,6 @@
 import type {
   AttrOpcode,
+  Buildable,
   ComponentAttrOpcode,
   DynamicAttrOpcode,
   Optional,
@@ -31,13 +32,19 @@ import {
   needsAtNames,
 } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
-import { encodeArgs, encodeExpr, encodeNamedArguments, encodePositional } from './expressions';
+import {
+  encodeArgs,
+  encodeExpr,
+  encodeMaybeExpr,
+  encodeNamedArguments,
+  encodePositional,
+} from './expressions';
 
 class WireContent<S extends WireFormat.Content = WireFormat.Content> {
-  constructor(private statements: readonly S[]) {}
+  constructor(private statements: readonly Buildable<S>[]) {}
 
   toArray(): readonly S[] {
-    return this.statements;
+    return this.statements.map(compactSexpr);
   }
 }
 
@@ -50,11 +57,19 @@ export function encodeContentList(statements: mir.Content[]): WireFormat.Content
     if (result instanceof WireContent) {
       out.push(...result.toArray());
     } else {
-      out.push(result);
+      out.push(compactSexpr(result));
     }
   }
 
   return out;
+}
+
+export function compactSexpr<T extends WireFormat.Content>(content: Buildable<T>): T {
+  while (content.length > 1 && content.at(-1) === undefined) {
+    content.pop();
+  }
+
+  return content as unknown as T;
 }
 
 function encodeContent(stmt: mir.Debugger): WireFormat.Content.Debugger;
@@ -62,10 +77,10 @@ function encodeContent(stmt: mir.AppendHtmlComment): WireFormat.Content.AppendHt
 function encodeContent(stmt: mir.AppendValue): WireFormat.Content.AppendValue;
 function encodeContent(stmt: mir.AppendTrustedHTML): WireFormat.Content.AppendTrustedHtml;
 function encodeContent(stmt: mir.Yield): WireFormat.Content.Yield;
-function encodeContent(stmt: mir.Component): WireFormat.Content.SomeInvokeComponent;
+function encodeContent(stmt: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent;
 function encodeContent(stmt: mir.SimpleElement): WireContent;
 function encodeContent(stmt: mir.InElement): WireFormat.Content.InElement;
-function encodeContent(stmt: mir.InvokeBlock): WireFormat.Content.SomeBlock;
+function encodeContent(stmt: mir.InvokeBlockComponent): WireFormat.Content.SomeBlock;
 function encodeContent(stmt: mir.IfContent): WireFormat.Content.If;
 function encodeContent(stmt: mir.Each): WireFormat.Content.Each;
 function encodeContent(stmt: mir.Let): WireFormat.Content.Let;
@@ -74,7 +89,7 @@ function encodeContent(
   stmt: mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword
 ): WireFormat.Content.InvokeComponentKeyword;
 function encodeContent(stmt: mir.Content): WireFormat.Content | WireContent;
-function encodeContent(stmt: mir.Content): WireFormat.Content | WireContent {
+function encodeContent(stmt: mir.Content): Buildable<WireFormat.Content> | WireContent {
   if (LOCAL_TRACE_LOGGING) {
     LOCAL_LOGGER.debug(`encoding`, stmt);
   }
@@ -90,14 +105,14 @@ function encodeContent(stmt: mir.Content): WireFormat.Content | WireContent {
       return AppendTrustedHTML(stmt);
     case 'Yield':
       return Yield(stmt);
-    case 'Component':
-      return Component(stmt);
+    case 'AngleBracketComponent':
+      return AngleBracketComponent(stmt);
     case 'SimpleElement':
       return SimpleElement(stmt);
     case 'InElement':
       return InElement(stmt);
-    case 'InvokeBlock':
-      return InvokeBlock(stmt);
+    case 'InvokeBlockComponent':
+      return InvokeBlockComponent(stmt);
     case 'IfContent':
       return IfContent(stmt);
     case 'Each':
@@ -115,7 +130,7 @@ function encodeContent(stmt: mir.Content): WireFormat.Content | WireContent {
   }
 }
 
-export function Debugger({ scope }: mir.Debugger): WireFormat.Content.Debugger {
+export function Debugger({ scope }: mir.Debugger): Buildable<WireFormat.Content.Debugger> {
   return [Op.Debugger, ...scope.getDebugInfo(), {}];
 }
 
@@ -128,17 +143,40 @@ export function InElement({
   insertBefore,
   destination,
   block,
-}: mir.InElement): WireFormat.Content.InElement {
-  let wireBlock = NamedBlock(block)[1];
-  // let guid = args.guid;
-  let wireDestination = encodeExpr(destination);
-  let wireInsertBefore = encodeExpr(insertBefore);
+}: mir.InElement): Buildable<WireFormat.Content.InElement> {
+  return [
+    Op.InElement,
+    namedBlock(block.body, block.scope),
+    guid,
+    encodeExpr(destination),
+    encodeMaybeExpr(insertBefore),
+  ];
+}
 
-  if (wireInsertBefore === undefined) {
-    return [Op.InElement, wireBlock, guid, wireDestination];
-  } else {
-    return [Op.InElement, wireBlock, guid, wireDestination, wireInsertBefore];
+export function InvokeBlockComponent({
+  head,
+  args,
+  blocks,
+}: mir.InvokeBlockComponent): Buildable<WireFormat.Content.SomeBlock> {
+  const path = encodeExpr(head);
+
+  localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
+
+  if (head.type === 'Local' && head.referenceType === 'lexical') {
+    return [
+      Op.InvokeLexicalBlockComponent,
+      encodeExpr(head),
+      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+    ];
+  } else if (head.type === 'Resolved') {
+    return [
+      Op.InvokeResolvedBlockComponent,
+      encodeExpr(head),
+      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+    ];
   }
+
+  return [Op.InvokeDynamicBlock, path, BlockArgs(args, blocks, { insertAtPrefix: true })];
 }
 
 export function BlockArgs(
@@ -150,29 +188,6 @@ export function BlockArgs(
     ...encodeArgs(argsNode, insertAtPrefix),
     blocks: blocksNode ? NamedBlocks(blocksNode) : undefined,
   });
-}
-
-export function InvokeBlock({ head, args, blocks }: mir.InvokeBlock): WireFormat.Content.SomeBlock {
-  const path = encodeExpr(head);
-
-  localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
-
-  if (head.type === 'Local' && head.referenceType === 'lexical') {
-    // @ts-expect-error
-    return [
-      Op.InvokeLexicalComponent,
-      encodeExpr(head),
-      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
-    ];
-  } else if (head.type === 'Resolved') {
-    return [
-      Op.ResolvedBlock,
-      encodeExpr(head),
-      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
-    ];
-  }
-
-  return [Op.DynamicBlock, path, BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) })];
 }
 
 export function AppendTrustedHTML({
@@ -207,13 +222,12 @@ export function SimpleElement({
   ]);
 }
 
-// This is used by the `{{component}}` keyword
-export function Component({
+export function AngleBracketComponent({
   tag,
   params,
   args: named,
   blocks,
-}: mir.Component): WireFormat.Content.SomeInvokeComponent {
+}: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent {
   let wireTag = encodeExpr(tag);
   let wirePositional = ElementParameters(params);
   let wireNamed = encodeNamedArguments(named, false);
@@ -234,7 +248,7 @@ export function Component({
     // if the expression is something like `x.Foo`, then the component is dynamic, not
     // a lexical variable.
     return [
-      wireTag.length === 2 ? Op.InvokeLexicalComponent : Op.InvokeDynamicComponent,
+      wireTag.length === 2 ? Op.InvokeLexicalAngleComponent : Op.InvokeDynamicComponent,
       wireTag,
       args,
     ];
@@ -246,7 +260,7 @@ export function Component({
       `Unexpected free variable as component head with a path tail ${JSON.stringify(wireTag)}`
     );
 
-    return [Op.InvokeResolvedComponent, wireTag, args];
+    return [Op.InvokeResolvedAngleComponent, wireTag, args];
   }
 
   // The only remaining case here should be a reference to a local Handlebars variable (possibly a
@@ -358,11 +372,7 @@ export function InvokeComponentKeyword({
 
   localAssert(type !== 'keyword', `[BUG] {{component <KW>}} is not a valid node`);
 
-  return [
-    Op.InvokeComponentKeyword,
-    expression,
-    BlockArgs(args, blocks, { insertAtPrefix: false }),
-  ];
+  return [Op.InvokeComponentKeyword, expression, BlockArgs(args, blocks, { insertAtPrefix: true })];
 }
 
 export function InvokeResolvedComponentKeyword({
@@ -370,11 +380,7 @@ export function InvokeResolvedComponentKeyword({
   args,
   blocks,
 }: mir.InvokeResolvedComponentKeyword): WireFormat.Content.InvokeComponentKeyword {
-  return [
-    Op.InvokeComponentKeyword,
-    definition,
-    BlockArgs(args, blocks, { insertAtPrefix: false }),
-  ];
+  return [Op.InvokeComponentKeyword, definition, BlockArgs(args, blocks, { insertAtPrefix: true })];
 }
 
 export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];

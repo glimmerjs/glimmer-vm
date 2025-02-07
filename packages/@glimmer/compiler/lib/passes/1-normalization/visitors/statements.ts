@@ -12,11 +12,11 @@ import { ClassifiedComponent } from './element/component';
 import { ClassifiedSimpleElement } from './element/simple-element';
 import { visitArgs, visitExpr } from './expressions';
 
-export function visitStatements(
+export function visitContentList(
   nodes: readonly ASTv2.ContentNode[],
   state: NormalizationState
 ): Result<OptionalList<mir.Content>> {
-  return new ResultArray(nodes.map((e) => visit(e, state)))
+  return new ResultArray(nodes.map((e) => visitContent(e, state)))
     .toOptionalList()
     .mapOk((list) => list.filter((s: mir.Content | null): s is mir.Content => s !== null));
 }
@@ -30,6 +30,28 @@ export function visitNamedBlocks(
   return list
     .toArray()
     .mapOk((list) => new mir.NamedBlocks({ loc: blocks.loc, blocks: OptionalList(list) }));
+}
+
+function visitContent(
+  node: ASTv2.ContentNode,
+  state: NormalizationState
+): Result<mir.Content | null> {
+  switch (node.type) {
+    case 'GlimmerComment':
+      return Ok(null);
+    case 'AppendContent':
+      return visitAppendContent(node, state);
+    case 'HtmlText':
+      return Ok(visitTextNode(node));
+    case 'HtmlComment':
+      return Ok(visitHtmlComment(node));
+    case 'InvokeBlock':
+      return visitInvokeBlock(node, state);
+    case 'InvokeAngleBracketComponent':
+      return visitInvokeAngleBracketComponent(node, state);
+    case 'SimpleElement':
+      return visitSimpleElement(node, state);
+  }
 }
 
 export function visitNamedBlock(
@@ -46,25 +68,6 @@ export function visitNamedBlock(
       scope: named.block.scope,
     });
   });
-}
-
-function visit(node: ASTv2.ContentNode, state: NormalizationState): Result<mir.Content | null> {
-  switch (node.type) {
-    case 'GlimmerComment':
-      return Ok(null);
-    case 'AppendContent':
-      return visitAppendContent(node, state);
-    case 'HtmlText':
-      return Ok(visitTextNode(node));
-    case 'HtmlComment':
-      return Ok(visitHtmlComment(node));
-    case 'InvokeBlock':
-      return visitInvokeBlock(node, state);
-    case 'InvokeComponent':
-      return visitInvokeComponent(node, state);
-    case 'SimpleElement':
-      return visitSimpleElement(node, state);
-  }
 }
 
 function visitInvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<mir.Content> {
@@ -89,7 +92,7 @@ function visitInvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): R
 
     return visitNamedBlocks(node.blocks, state).mapOk(
       (blocks) =>
-        new mir.InvokeBlock({
+        new mir.InvokeBlockComponent({
           loc: node.loc,
           head,
           args,
@@ -110,8 +113,8 @@ function visitSimpleElement(
   ).toStatement();
 }
 
-function visitInvokeComponent(
-  component: ASTv2.InvokeComponent,
+function visitInvokeAngleBracketComponent(
+  component: ASTv2.InvokeAngleBracketComponent,
   state: NormalizationState
 ): Result<mir.Content> {
   return visitExpr(component.callee, state).andThen((callee) =>

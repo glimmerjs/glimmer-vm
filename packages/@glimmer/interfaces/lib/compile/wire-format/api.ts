@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import type { RequireAtLeastOne, UndefinedOnPartialDeep } from 'type-fest';
+import type { RequireAtLeastOne, Simplify } from 'type-fest';
 
 import type { PresentArray } from '../../array';
 import type { Nullable, Optional } from '../../core';
@@ -24,7 +24,6 @@ import type {
   DebuggerOpcode,
   DynamicArgOpcode,
   DynamicAttrOpcode,
-  DynamicBlockOpcode,
   EachOpcode,
   FlushElementOpcode,
   GetDynamicVarOpcode,
@@ -37,9 +36,12 @@ import type {
   IfOpcode,
   InElementOpcode,
   InvokeComponentKeywordOpcode,
+  InvokeDynamicBlockOpcode,
   InvokeDynamicComponentOpcode,
-  InvokeLexicalComponentOpcode,
-  InvokeResolvedComponentOpcode,
+  InvokeLexicalAngleComponentOpcode,
+  InvokeLexicalBlockComponentOpcode,
+  InvokeResolvedAngleComponentOpcode,
+  InvokeResolvedBlockComponentOpcode,
   LetOpcode,
   LexicalModifierOpcode,
   LogOpcode,
@@ -50,7 +52,6 @@ import type {
   ResolveAsComponentOrHelperHeadOpcode,
   ResolveAsHelperHeadOpcode,
   ResolveAsModifierHeadOpcode,
-  ResolvedBlockOpcode,
   ResolvedModifierOpcode,
   StaticArgOpcode,
   StaticAttrOpcode,
@@ -182,9 +183,7 @@ export namespace Expressions {
     | Not
     | Log;
 
-  // TODO get rid of undefined, which is just here to allow trailing undefined in attrs
-  // it would be better to handle that as an over-the-wire encoding concern
-  export type Expression = TupleExpression | Value | undefined;
+  export type Expression = TupleExpression | Value;
 
   export type Concat = [ConcatOpcode, Core.ConcatParams];
   export type ResolvedHelper = [CallResolvedOpcode, Expression, args?: Optional<Core.Args>];
@@ -239,7 +238,7 @@ export type ATag = 3;
 export type WellKnownTagName = DivTag | SpanTag | PTag | ATag;
 
 export namespace Content {
-  export type Expression = Expressions.Expression | undefined;
+  export type Expression = Expressions.Expression;
   export type Params = Core.Params;
   export type Hash = Core.Hash;
   export type Blocks = Core.Blocks;
@@ -258,10 +257,14 @@ export namespace Content {
   export type SomeModifier = LexicalModifier | ResolvedModifier;
   export type SomeInvokeComponent =
     | InvokeComponentKeyword
-    | InvokeLexicalComponent
+    | InvokeLexicalAngleComponent
     | InvokeDynamicComponent
     | InvokeResolvedComponent;
-  export type SomeBlock = ResolvedBlock | DynamicBlock | InvokeLexicalComponent;
+  export type SomeBlock =
+    | ResolvedBlock
+    | DynamicBlock
+    | InvokeLexicalAngleComponent
+    | InvokeLexicalBlockComponent;
 
   export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
   export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
@@ -280,12 +283,12 @@ export namespace Content {
   export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.Args>];
   export type ResolvedModifier = [ResolvedModifierOpcode, Expression, args?: Optional<Core.Args>];
   export type ResolvedBlock = [
-    ResolvedBlockOpcode,
+    InvokeResolvedBlockComponentOpcode,
     path: Expressions.GetVar,
     args?: Optional<Core.BlockArgs>,
   ];
   export type DynamicBlock = [
-    DynamicBlockOpcode,
+    InvokeDynamicBlockOpcode,
     path: Expressions.Get,
     args?: Optional<Core.BlockArgs>,
   ];
@@ -370,14 +373,20 @@ export namespace Content {
     args?: Optional<Core.BlockArgs>,
   ];
 
-  export type InvokeLexicalComponent = [
-    op: InvokeLexicalComponentOpcode,
+  export type InvokeLexicalAngleComponent = [
+    op: InvokeLexicalAngleComponentOpcode,
     definition: Expression,
     args?: Optional<Core.ComponentArgs>,
   ];
 
+  export type InvokeLexicalBlockComponent = [
+    op: InvokeLexicalBlockComponentOpcode,
+    definition: Expression,
+    args?: Optional<Core.BlockArgs>,
+  ];
+
   export type InvokeResolvedComponent = [
-    op: InvokeResolvedComponentOpcode,
+    op: InvokeResolvedAngleComponentOpcode,
     // A resolved component is, by definition, not a dot-separated path
     tag: Expressions.GetVar,
     args?: Optional<Core.ComponentArgs>,
@@ -496,4 +505,20 @@ export interface SerializedTemplateWithLazyBlock {
  */
 export type TemplateJavascript = string;
 
-export type Buildable<T extends unknown[]> = UndefinedOnPartialDeep<T>;
+// Helper to get the keys of T that are optional in a tuple T.
+type OptionalIndices<T extends readonly unknown[]> = {
+  [K in keyof T]-?: object extends Pick<T, K> ? K : never;
+}[number];
+
+// Main type: for required indices keep the type as-is; for optional indices make the element optional and widen its type by | undefined.
+export type Buildable<T extends readonly unknown[]> = Simplify<
+  T extends infer Sexp extends readonly unknown[]
+    ? // Intersect two mapped types: one for required elements, one for optional.
+      { [K in Exclude<keyof Sexp, OptionalIndices<Sexp>>]: Sexp[K] } & {
+        [K in OptionalIndices<Sexp>]?: Sexp[K] | undefined;
+      } extends infer O
+      ? // Reconstruct the tuple type from the intersection.
+        { [K in keyof Sexp]: K extends keyof O ? O[K] : never }
+      : never
+    : never
+>;

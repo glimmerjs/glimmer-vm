@@ -39,7 +39,7 @@ export default class WireFormatDebugger {
         case Op.AppendTrustedHtml:
           return ['trusting-append', this.formatOpcode(opcode[1])];
 
-        case Op.ResolvedBlock:
+        case Op.InvokeResolvedBlockComponent:
           return ['block', this.formatOpcode(opcode[1]), this.formatBlockArgs(opcode[2])];
 
         case Op.InElement:
@@ -178,7 +178,9 @@ export default class WireFormatDebugger {
         }
 
         case Op.GetLexicalSymbol: {
-          return ['get-template-symbol', opcode[1], opcode[2]];
+          return opcode.length === 3
+            ? ['get-lexical-symbol', opcode[1], opcode[2]]
+            : ['get-lexical-symbol', opcode[1]];
         }
 
         case Op.If:
@@ -216,26 +218,33 @@ export default class WireFormatDebugger {
         case Op.GetDynamicVar:
           return ['-get-dynamic-vars', this.formatOpcode(opcode[1])];
 
-        case Op.InvokeLexicalComponent:
-          return ['component', this.formatOpcode(opcode[1]), this.formatComponentArgs(opcode[2])];
+        case Op.InvokeLexicalAngleComponent:
+          return [
+            '<AngleBracket>',
+            this.formatOpcode(opcode[1]),
+            this.formatComponentArgs(opcode[2]),
+          ];
+
+        case Op.InvokeLexicalBlockComponent:
+          return ['{{#curly}}>', this.formatOpcode(opcode[1]), this.formatBlockArgs(opcode[2])];
 
         case Op.InvokeComponentKeyword:
           return [
-            'component:keyword',
+            '{{component ...}}',
             this.formatOpcode(opcode[1]),
             this.formatBlockArgs(opcode[2]),
           ];
 
-        case Op.DynamicBlock: {
+        case Op.InvokeDynamicBlock: {
           const [, path, args] = opcode;
           return ['block', this.formatOpcode(path), this.formatBlockArgs(args)];
         }
 
         case Op.InvokeDynamicComponent:
-        case Op.InvokeResolvedComponent: {
+        case Op.InvokeResolvedAngleComponent: {
           const [op, path, args] = opcode;
           return [
-            op === Op.InvokeResolvedComponent ? 'component:resolved' : 'component',
+            op === Op.InvokeResolvedAngleComponent ? 'component:resolved' : 'component',
             this.formatOpcode(path),
             this.formatComponentArgs(args),
           ];

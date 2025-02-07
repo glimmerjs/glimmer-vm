@@ -26,8 +26,7 @@ export function CompileArgs(
   encode: EncodeOp,
   positional: Optional<WireFormat.Core.Params>,
   named: Optional<WireFormat.Core.Hash>,
-  blocks: NamedBlocks,
-  atNames: boolean
+  blocks: NamedBlocks
 ): void {
   let blockNames: string[] = blocks.names;
   for (const name of blockNames) {
@@ -38,7 +37,7 @@ export function CompileArgs(
 
   let flags = count << 4;
 
-  if (atNames) flags |= 0b1000;
+  flags |= 0b1000;
 
   if (blocks.hasAny) {
     flags |= 0b111;

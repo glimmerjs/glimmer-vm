@@ -2,6 +2,7 @@ import type {
   CapabilityMask,
   CompilableProgram,
   CompileTimeComponent,
+  EarlyBoundCompileTimeComponent,
   LayoutWithContext,
   NamedBlocks,
   Nullable,
@@ -37,7 +38,6 @@ import {
   VM_PREPARE_ARGS_OP,
   VM_PRIMITIVE_REFERENCE_OP,
   VM_PUSH_ARGS_OP,
-  VM_PUSH_COMPONENT_DEFINITION_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   VM_PUSH_DYNAMIC_SCOPE_OP,
   VM_PUSH_EMPTY_ARGS_OP,
@@ -54,7 +54,7 @@ import {
   VM_SET_VARIABLE_OP,
   VM_VIRTUAL_ROOT_SCOPE_OP,
 } from '@glimmer/constants';
-import { unwrap } from '@glimmer/debug-util';
+import { localAssert, unwrap } from '@glimmer/debug-util';
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse } from '@glimmer/util';
 import { $s0, $s1, $sp, InternalComponentCapabilities } from '@glimmer/vm';
@@ -95,59 +95,73 @@ export interface Component extends AnyComponent {
   // that the component requires all capabilities
   capabilities: CapabilityMask | true;
 
-  // are the arguments supplied as atNames?
-  atNames: boolean;
-
   // do we have the layout statically or will we need to look it up at runtime?
   layout?: CompilableProgram;
 }
 
-export function InvokeComponent(
+export function InvokeEarlyBoundComponent(
+  encode: EncodeOp,
+  component: EarlyBoundCompileTimeComponent,
+  args?: Optional<WireFormat.Core.SomeArgs>,
+  positional?: Optional<WireFormat.Core.Params>
+): void {
+  const { compilable, capabilities, handle } = component;
+
+  localAssert(compilable, `BUG: Lexical component ${handle} does not have a template`);
+
+  InvokeStaticComponent(encode, {
+    capabilities,
+    layout: compilable,
+    splattributes: splattributesBlock(args?.splattributes),
+    positional,
+    named: args?.hash,
+    blocks: namedBlocks(args?.blocks),
+  });
+}
+
+function splattributesBlock(
+  splattributes: Optional<WireFormat.Core.Splattributes>
+): Optional<WireFormat.SerializedInlineBlock> {
+  return splattributes && ([splattributes, []] as WireFormat.SerializedInlineBlock);
+}
+
+/**
+ * A resolved component may be late-bound (which means that its component is not present at the time
+ * that the component is compiled). If `component.compilable` is `null`, then we use a special
+ * compilation that doesn't attempt to use capabilities to specialize the opcodes, which  means that
+ * late-bound components are always assumed to have all capabilities.
+ */
+export function InvokeResolvedComponent(
   encode: EncodeOp,
   component: CompileTimeComponent,
   args?: Optional<WireFormat.Core.SomeArgs>,
   positional?: Optional<WireFormat.Core.Params>
 ): void {
-  let { compilable, capabilities, handle } = component;
+  if (component.compilable) {
+    return InvokeEarlyBoundComponent(encode, component, args, positional);
+  }
+
+  const { capabilities } = component;
 
   let splattributes =
     args?.splattributes && ([args.splattributes, []] as WireFormat.SerializedInlineBlock);
   let blocks = namedBlocks(args?.blocks);
 
-  if (compilable) {
-    encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
-    InvokeStaticComponent(encode, {
-      capabilities: capabilities,
-      layout: compilable,
-      splattributes,
-      positional,
-      named: args?.hash,
-      blocks,
-    });
-  } else {
-    encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, handle);
-    InvokeNonStaticComponent(encode, {
-      capabilities: capabilities,
-      splattributes,
-      positional,
-      named: args?.hash,
-      atNames: true,
-      blocks,
-    });
-  }
+  InvokeDynamicComponent(encode, {
+    capabilities,
+    splattributes,
+    positional,
+    named: args?.hash,
+    blocks,
+  });
 }
 
-export function InvokeDynamicComponent(
+export function InvokeReplayableComponentExpression(
   encode: EncodeOp,
   definition: WireFormat.Core.Expression,
   args: Optional<WireFormat.Core.ComponentArgs>,
-  options?: { positional?: Optional<WireFormat.Core.Params>; atNames?: boolean; curried?: boolean }
+  options?: { positional?: Optional<WireFormat.Core.Params>; curried?: boolean }
 ): void {
-  let splattributes =
-    args?.splattributes && ([args.splattributes, []] as WireFormat.SerializedInlineBlock);
-
-  let blocks = namedBlocks(args?.blocks);
-
   Replayable(
     encode,
 
@@ -167,13 +181,13 @@ export function InvokeDynamicComponent(
       }
 
       encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-      InvokeNonStaticComponent(encode, {
+
+      InvokeDynamicComponent(encode, {
         capabilities: true,
-        splattributes,
+        splattributes: splattributesBlock(args?.splattributes),
         positional: options?.positional,
         named: args?.hash,
-        blocks,
-        atNames: options?.atNames ?? false,
+        blocks: namedBlocks(args?.blocks),
       });
       encode.mark('ELSE');
     }
@@ -189,12 +203,11 @@ function InvokeStaticComponent(
   let bailOut = hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
 
   if (bailOut) {
-    InvokeNonStaticComponent(encode, {
+    InvokeDynamicComponent(encode, {
       capabilities,
       splattributes,
       positional,
       named,
-      atNames: true,
       blocks,
       layout,
     });
@@ -364,17 +377,9 @@ function InvokeStaticComponent(
   encode.op(VM_LOAD_OP, $s0);
 }
 
-export function InvokeNonStaticComponent(
+export function InvokeDynamicComponent(
   encode: EncodeOp,
-  {
-    capabilities,
-    splattributes,
-    positional,
-    named,
-    atNames,
-    blocks: namedBlocks,
-    layout,
-  }: Component
+  { capabilities, splattributes, positional, named, blocks: namedBlocks, layout }: Component
 ): void {
   let bindableBlocks = !!namedBlocks;
   let bindableAtNames =
@@ -389,7 +394,7 @@ export function InvokeNonStaticComponent(
   encode.op(VM_LOAD_OP, $s0);
 
   encode.op(VM_PUSH_FRAME_OP);
-  CompileArgs(encode, positional, named, blocks, atNames);
+  CompileArgs(encode, positional, named, blocks);
   encode.op(VM_PREPARE_ARGS_OP, $s0);
 
   invokePreparedComponent(encode, blocks.has('default'), bindableBlocks, bindableAtNames, () => {

@@ -366,8 +366,8 @@ export class BuildElement {
     );
   }
 
-  selfClosingComponent(callee: ASTv2.ExpressionNode, loc: SourceSpan): ASTv2.InvokeComponent {
-    return new ASTv2.InvokeComponent(
+  selfClosingComponent(callee: ASTv2.ExpressionNode, loc: SourceSpan): ASTv2.InvokeAngleBracketComponent {
+    return new ASTv2.InvokeAngleBracketComponent(
       assign(
         {
           loc,
@@ -388,11 +388,11 @@ export class BuildElement {
     children: ASTv2.ContentNode[],
     symbols: BlockSymbolTable,
     loc: SourceSpan
-  ): ASTv2.InvokeComponent {
+  ): ASTv2.InvokeAngleBracketComponent {
     let block = this.builder.block(symbols, children, loc);
     let namedBlock = this.builder.namedBlock(SourceSlice.synthetic('default'), block, loc); // BUILDER.simpleNamedBlock('default', children, symbols, loc);
 
-    return new ASTv2.InvokeComponent(
+    return new ASTv2.InvokeAngleBracketComponent(
       assign(
         {
           loc,
@@ -408,8 +408,8 @@ export class BuildElement {
     callee: ASTv2.ExpressionNode,
     blocks: PresentArray<ASTv2.NamedBlock>,
     loc: SourceSpan
-  ): ASTv2.InvokeComponent {
-    return new ASTv2.InvokeComponent(
+  ): ASTv2.InvokeAngleBracketComponent {
+    return new ASTv2.InvokeAngleBracketComponent(
       assign(
         {
           loc,

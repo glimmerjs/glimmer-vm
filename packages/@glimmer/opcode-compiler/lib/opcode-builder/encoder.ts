@@ -5,6 +5,7 @@ import type {
   CompileTimeComponent,
   ComponentDefinition,
   Dict,
+  EarlyBoundCompileTimeComponent,
   Encoder,
   EncoderError,
   EvaluationContext,
@@ -121,7 +122,7 @@ export class EncodeOp {
   resolveComponent = (expr: Expressions.GetVar): CompileTimeComponent =>
     resolveComponent(this.#context.resolver, this.#constants, this.#meta, expr);
 
-  getLexicalComponent = (expr: Expressions.Expression): CompileTimeComponent => {
+  getLexicalComponent = (expr: Expressions.Expression): EarlyBoundCompileTimeComponent => {
     localAssert(
       Array.isArray(expr),
       'Expected to find an expression when resolving a lexical component'
@@ -141,12 +142,16 @@ export class EncodeOp {
       expr[1]
     ];
 
-    return this.#constants.component(
+    const component = this.#constants.component(
       definition as object,
       expect(owner, 'BUG: expected owner when resolving component definition'),
       false,
       lexical?.at(expr[1])
     );
+
+    localAssert(component.compilable, `BUG: lexical components may not be late bound`);
+
+    return component as EarlyBoundCompileTimeComponent;
   };
 
   /**

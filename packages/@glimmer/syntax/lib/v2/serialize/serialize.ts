@@ -11,14 +11,13 @@ import type {
   SerializedContentNode,
   SerializedElementModifier,
   SerializedExpressionNode,
-  SerializedResolvedVarReference,
   SerializedGlimmerComment,
   SerializedHtmlComment,
   SerializedHtmlOrSplatAttr,
   SerializedHtmlText,
   SerializedInterpolateExpression,
-  SerializedInvokeBlock,
-  SerializedInvokeComponent,
+  SerializedInvokeAngleBracketComponent,
+  SerializedInvokeBlockComponent,
   SerializedLiteralExpression,
   SerializedLocalVarReference,
   SerializedNamed,
@@ -27,6 +26,7 @@ import type {
   SerializedNamedBlocks,
   SerializedPathExpression,
   SerializedPositional,
+  SerializedResolvedVarReference,
   SerializedSimpleElement,
   SerializedThisReference,
   SerializedVariableReference,
@@ -190,12 +190,12 @@ export class ContentSerializer {
     };
   }
 
-  invokeBlock(node: ASTv2.InvokeBlock): SerializedInvokeBlock {
+  invokeBlock(node: ASTv2.InvokeBlock): SerializedInvokeBlockComponent {
     let args = ARGS.args(node.args);
     let callee = visit.expr(node.callee);
 
     return {
-      type: 'InvokeBlock',
+      type: 'InvokeBlockComponent',
       loc: node.loc.serialize(),
       args,
       callee,
@@ -203,9 +203,11 @@ export class ContentSerializer {
     };
   }
 
-  invokeComponent(node: ASTv2.InvokeComponent): SerializedInvokeComponent {
+  invokeAngleBracketComponent(
+    node: ASTv2.InvokeAngleBracketComponent
+  ): SerializedInvokeAngleBracketComponent {
     return {
-      type: 'ComponentKeywordExpr',
+      type: 'InvokeAngleBracketComponent',
       loc: node.loc.serialize(),
       callee: visit.expr(node.callee),
       blocks: INTERNAL.namedBlocks(node.blocks),
@@ -330,8 +332,8 @@ const visit = {
         return CONTENT.htmlText(node);
       case 'InvokeBlock':
         return CONTENT.invokeBlock(node);
-      case 'InvokeComponent':
-        return CONTENT.invokeComponent(node);
+      case 'InvokeAngleBracketComponent':
+        return CONTENT.invokeAngleBracketComponent(node);
       case 'SimpleElement':
         return CONTENT.simpleElement(node);
     }
