@@ -1,4 +1,5 @@
 export {
+  getInternalHelperManager,
   helperCapabilities,
   componentCapabilities,
   modifierCapabilities,
@@ -6,6 +7,10 @@ export {
   getCustomTagFor,
   setModifierManager,
   setHelperManager,
+  setInternalHelperManager,
   setComponentManager,
   setComponentTemplate,
+  getInternalComponentManager,
+  setCustomTagFor,
+  setInternalModifierManager,
 } from '@glimmer/manager';

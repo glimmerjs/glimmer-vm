@@ -1,4 +1,11 @@
 export {
+  ALLOW_CYCLES,
+  combine,
+  createUpdatableTag,
+  createTag,
+  beginUntrackFrame,
+  endUntrackFrame,
+  dirtyTag,
   CONSTANT_TAG,
   CURRENT_TAG,
   consumeTag,
@@ -16,4 +23,4 @@ export {
   track,
   trackedData,
 } from '@glimmer/validator';
-export type { Cache, Tag, TagMeta, UpdatableTag } from '@glimmer/validator';
+export type { Cache, Tag, TagMeta, UpdatableTag, DirtyableTag, Revision } from '@glimmer/validator';

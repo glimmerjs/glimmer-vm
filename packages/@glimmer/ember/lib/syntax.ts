@@ -1,2 +1,9 @@
-export { preprocess, print } from '@glimmer/syntax';
-export type { AST, ASTPlugin } from '@glimmer/syntax';
+export { preprocess, print, builders } from '@glimmer/syntax';
+export type {
+  AST,
+  ASTPlugin,
+  PrecompileOptions,
+  ASTPluginEnvironment,
+  ASTPluginBuilder,
+  PrecompileOptionsWithLexicalScope,
+} from '@glimmer/syntax';
