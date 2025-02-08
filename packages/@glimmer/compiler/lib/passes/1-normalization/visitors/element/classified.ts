@@ -7,7 +7,7 @@ import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
 import { MODIFIER_KEYWORDS } from '../../keywords';
-import { convertPathToCallIfKeyword, VISIT_EXPRS } from '../expressions';
+import { convertPathToCallIfKeyword, visitExpr, visitArgs } from '../expressions';
 
 export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 
@@ -20,7 +20,7 @@ export interface Classified {
   readonly dynamicFeatures: boolean;
 
   arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.NamedArgument>;
-  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Statement>;
+  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Content>;
 }
 
 export class ClassifiedElement {
@@ -34,7 +34,7 @@ export class ClassifiedElement {
     this.delegate = delegate;
   }
 
-  toStatement(): Result<mir.Statement> {
+  toStatement(): Result<mir.Content> {
     return this.prepare().andThen((prepared) => this.delegate.toStatement(this, prepared));
   }
 
@@ -57,7 +57,7 @@ export class ClassifiedElement {
       );
     }
 
-    return VISIT_EXPRS.visit(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
+    return visitExpr(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
       let isTrusting = attr.trusting;
 
       return new mir.DynamicAttr({
@@ -80,8 +80,8 @@ export class ClassifiedElement {
       return translated;
     }
 
-    let head = VISIT_EXPRS.visit(modifier.callee, this.state);
-    let args = VISIT_EXPRS.Args(modifier.args, this.state);
+    let head = visitExpr(modifier.callee, this.state);
+    let args = visitArgs(modifier.args, this.state);
 
     return Result.all(head, args).mapOk(
       ([head, args]) =>

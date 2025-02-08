@@ -1,7 +1,7 @@
 import type { SerializedSourceSpan } from '../../source/span';
 import type { Args } from './args';
 import type { ElementModifier } from './attr-block';
-import type { AppendContent, ContentNode, InvokeBlock, InvokeComponent } from './content';
+import type { AppendContent, ContentNode, InvokeBlock, InvokeAngleBracketComponent } from './content';
 import type { CallExpression, KeywordExpression, PathExpression } from './expr';
 import type { BaseNodeFields } from './node';
 
@@ -24,5 +24,5 @@ export type CallNode =
   | CallExpression
   | InvokeBlock
   | AppendContent
-  | InvokeComponent
+  | InvokeAngleBracketComponent
   | ElementModifier;

@@ -6,7 +6,7 @@ import type { Classified, ClassifiedElement, PreparedArgs } from './classified';
 
 import { Err } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { VISIT_STMTS } from '../statements';
+import { visitContentList } from '../statements';
 
 export class ClassifiedSimpleElement implements Classified {
   constructor(
@@ -26,10 +26,10 @@ export class ClassifiedSimpleElement implements Classified {
     );
   }
 
-  toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<mir.Statement> {
+  toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<mir.Content> {
     let { state, element } = classified;
 
-    let body = VISIT_STMTS.visitList(this.element.body, state);
+    let body = visitContentList(this.element.body, state);
 
     return body.mapOk(
       (body) =>

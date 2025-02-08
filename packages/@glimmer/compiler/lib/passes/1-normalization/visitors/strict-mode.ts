@@ -33,7 +33,7 @@ export default class StrictModeValidationPass {
     return this.Statements(this.template.body).mapOk(() => this.template);
   }
 
-  Statements(statements: mir.Statement[]): Result<null> {
+  Statements(statements: mir.Content[]): Result<null> {
     let result = Ok(null);
 
     for (let statement of statements) {
@@ -57,7 +57,7 @@ export default class StrictModeValidationPass {
     return this.Statements(block.body);
   }
 
-  Statement(statement: mir.Statement): Result<null> {
+  Statement(statement: mir.Content): Result<null> {
     switch (statement.type) {
       case 'InElement':
         return this.InElement(statement);
@@ -71,23 +71,24 @@ export default class StrictModeValidationPass {
       case 'AppendTrustedHTML':
         return this.AppendTrustedHTML(statement);
 
-      case 'AppendTextNode':
-        return this.AppendTextNode(statement);
+      case 'AppendValueCautiously':
+        return this.AppendValueCautiously(statement);
 
-      case 'Component':
-        return this.Component(statement);
+      case 'AngleBracketComponent':
+        return this.AngleBracketComponent(statement);
 
       case 'SimpleElement':
         return this.SimpleElement(statement);
 
-      case 'InvokeBlock':
+      case 'InvokeBlockComponent':
         return this.InvokeBlock(statement);
 
-      case 'AppendComment':
+      case 'AppendHtmlComment':
+      case 'AppendHtmlText':
         return Ok(null);
 
-      case 'If':
-        return this.If(statement);
+      case 'IfContent':
+        return this.IfContent(statement);
 
       case 'Each':
         return this.Each(statement);
@@ -98,8 +99,11 @@ export default class StrictModeValidationPass {
       case 'WithDynamicVars':
         return this.WithDynamicVars(statement);
 
-      case 'InvokeComponent':
-        return this.InvokeComponent(statement);
+      case 'InvokeComponentKeyword':
+        return this.InvokeComponentKeyword(statement);
+
+      case 'InvokeResolvedComponentKeyword':
+        return this.InvokeResolvedComponentKeyword(statement);
     }
   }
 
@@ -114,7 +118,7 @@ export default class StrictModeValidationPass {
   }
 
   Expression(
-    expression: mir.ExpressionNode,
+    expression: mir.ExpressionNode | mir.Missing,
     span: HasSourceSpan = expression,
     resolution?: ResolutionType
   ): Result<null> {
@@ -133,7 +137,7 @@ export default class StrictModeValidationPass {
       case 'PathExpression':
         return this.Expression(expression.head, span, resolution);
 
-      case 'Free':
+      case 'Resolved':
         return this.errorFor(expression.name, span, resolution);
 
       case 'InterpolateExpression':
@@ -145,8 +149,8 @@ export default class StrictModeValidationPass {
       case 'Not':
         return this.Expression(expression.value, span, resolution);
 
-      case 'IfInline':
-        return this.IfInline(expression);
+      case 'IfExpression':
+        return this.IfExpression(expression);
 
       case 'Curry':
         return this.Curry(expression);
@@ -249,15 +253,15 @@ export default class StrictModeValidationPass {
     return this.Expression(statement.html, statement);
   }
 
-  AppendTextNode(statement: mir.AppendTextNode): Result<null> {
-    if (statement.text.type === 'CallExpression') {
-      return this.Expression(statement.text, statement, COMPONENT_OR_HELPER_RESOLUTION);
+  AppendValueCautiously(statement: mir.AppendValueCautiously): Result<null> {
+    if (statement.value.type === 'CallExpression') {
+      return this.Expression(statement.value, statement, COMPONENT_OR_HELPER_RESOLUTION);
     } else {
-      return this.Expression(statement.text, statement);
+      return this.Expression(statement.value, statement);
     }
   }
 
-  Component(statement: mir.Component): Result<null> {
+  AngleBracketComponent(statement: mir.AngleBracketComponent): Result<null> {
     return this.Expression(statement.tag, statement, COMPONENT_RESOLUTION)
       .andThen(() => this.ElementParameters(statement.params))
       .andThen(() => this.NamedArguments(statement.args))
@@ -268,13 +272,13 @@ export default class StrictModeValidationPass {
     return this.ElementParameters(statement.params).andThen(() => this.Statements(statement.body));
   }
 
-  InvokeBlock(statement: mir.InvokeBlock): Result<null> {
+  InvokeBlock(statement: mir.InvokeBlockComponent): Result<null> {
     return this.Expression(statement.head, statement.head, COMPONENT_RESOLUTION)
       .andThen(() => this.Args(statement.args))
       .andThen(() => this.NamedBlocks(statement.blocks));
   }
 
-  If(statement: mir.If): Result<null> {
+  IfContent(statement: mir.IfContent): Result<null> {
     return this.Expression(statement.condition, statement)
       .andThen(() => this.NamedBlock(statement.block))
       .andThen(() => {
@@ -313,16 +317,17 @@ export default class StrictModeValidationPass {
     return this.NamedArguments(statement.named).andThen(() => this.NamedBlock(statement.block));
   }
 
-  InvokeComponent(statement: mir.InvokeComponent): Result<null> {
-    return this.Expression(statement.definition, statement, COMPONENT_RESOLUTION)
-      .andThen(() => this.Args(statement.args))
-      .andThen(() => {
-        if (statement.blocks) {
-          return this.NamedBlocks(statement.blocks);
-        } else {
-          return Ok(null);
-        }
-      });
+  InvokeComponentKeyword(statement: mir.InvokeComponentKeyword): Result<null> {
+    return this.Expression(statement.definition, statement, COMPONENT_RESOLUTION).andThen(() =>
+      this.Args(statement.args)
+    );
+  }
+
+  InvokeResolvedComponentKeyword(statement: mir.InvokeResolvedComponentKeyword): Result<null> {
+    return this.Args(statement.args).andThen(() => {
+      if (statement.blocks) this.NamedBlocks(statement.blocks);
+      return Ok(null);
+    });
   }
 
   InterpolateExpression(
@@ -349,7 +354,7 @@ export default class StrictModeValidationPass {
     );
   }
 
-  IfInline(expression: mir.IfInline): Result<null> {
+  IfExpression(expression: mir.IfExpression): Result<null> {
     return this.Expression(expression.condition)
       .andThen(() => this.Expression(expression.truthy))
       .andThen(() => {

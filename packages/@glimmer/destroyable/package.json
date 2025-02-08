@@ -42,7 +42,7 @@
     "@glimmer/debug-util": "workspace:*",
     "eslint": "^9.18.0",
     "publint": "^0.3.2",
-    "rollup": "^4.31.0-0",
+    "rollup": "^4.34.4",
     "typescript": "*"
   }
 }

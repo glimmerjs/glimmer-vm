@@ -5,7 +5,7 @@ import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { VISIT_EXPRS } from '../visitors/expressions';
+import { visitArgs, visitExpr, visitPositional } from '../visitors/expressions';
 import { keywords } from './impl';
 import { toAppend } from './utils/call-to-append';
 import { assertCurryKeyword } from './utils/curry';
@@ -61,8 +61,8 @@ export const APPEND_KEYWORDS = keywords('Append')
         target: src.SourceSlice;
         positional: ASTv2.PositionalArguments;
       }
-    ): Result<mir.Statement> {
-      return VISIT_EXPRS.Positional(positional, state).mapOk(
+    ): Result<mir.Content> {
+      return visitPositional(positional, state).mapOk(
         (positional) =>
           new mir.Yield({
             loc: node.loc,
@@ -97,7 +97,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     }: {
       node: ASTv2.AppendContent;
       state: NormalizationState;
-    }): Result<mir.Statement> {
+    }): Result<mir.Content> {
       return Ok(new mir.Debugger({ loc: node.loc, scope }));
     },
   })
@@ -107,19 +107,38 @@ export const APPEND_KEYWORDS = keywords('Append')
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
-    ): Result<mir.InvokeComponent> {
-      let definitionResult = VISIT_EXPRS.visit(definition, state);
-      let argsResult = VISIT_EXPRS.Args(args, state);
+    ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
+      let definitionResult = visitExpr(definition, state);
+      let argsResult = visitArgs(args, state);
 
-      return Result.all(definitionResult, argsResult).mapOk(
-        ([definition, args]) =>
-          new mir.InvokeComponent({
+      return Result.all(definitionResult, argsResult).andThen(([definition, args]) => {
+        if (definition.type === 'Literal') {
+          if (typeof definition.value !== 'string') {
+            return Err(
+              generateSyntaxError(
+                `Expected literal component name to be a string, but received ${definition.value}`,
+                definition.loc
+              )
+            );
+          }
+
+          return Ok(
+            new mir.InvokeResolvedComponentKeyword({
+              loc: node.loc,
+              definition: definition.value,
+              args,
+            })
+          );
+        }
+
+        return Ok(
+          new mir.InvokeComponentKeyword({
             loc: node.loc,
             definition,
             args,
-            blocks: null,
           })
-      );
+        );
+      });
     },
   })
   .kw('helper', {
@@ -128,16 +147,16 @@ export const APPEND_KEYWORDS = keywords('Append')
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
-    ): Result<mir.AppendTextNode> {
-      let definitionResult = VISIT_EXPRS.visit(definition, state);
-      let argsResult = VISIT_EXPRS.Args(args, state);
+    ): Result<mir.AppendValueCautiously> {
+      let definitionResult = visitExpr(definition, state);
+      let argsResult = visitArgs(args, state);
 
       return Result.all(definitionResult, argsResult).mapOk(([definition, args]) => {
-        let text = new mir.CallExpression({ callee: definition, args, loc: node.loc });
+        let value = new mir.CallExpression({ callee: definition, args, loc: node.loc });
 
-        return new mir.AppendTextNode({
+        return new mir.AppendValueCautiously({
           loc: node.loc,
-          text,
+          value,
         });
       });
     },

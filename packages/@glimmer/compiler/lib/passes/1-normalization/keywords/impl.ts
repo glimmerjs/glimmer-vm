@@ -48,7 +48,7 @@ class KeywordImpl<
 
     let path = getCalleeExpression(node);
 
-    if (path !== null && path.type === 'Path' && path.ref.type === 'Free') {
+    if (path !== null && path.type === 'Path' && path.ref.type === 'Resolved') {
       return path.ref.name === this.keyword;
     } else {
       return false;
@@ -170,7 +170,7 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
 
     let path = getCalleeExpression(node);
 
-    if (path && path.type === 'Path' && path.ref.type === 'Free' && isKeyword(path.ref.name)) {
+    if (path && path.type === 'Path' && path.ref.type === 'Resolved' && isKeyword(path.ref.name)) {
       let { name } = path.ref as { name: keyof typeof KEYWORDS_TYPES };
 
       let usedType = this._type;

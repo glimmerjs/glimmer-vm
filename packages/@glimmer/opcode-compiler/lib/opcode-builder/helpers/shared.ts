@@ -2,14 +2,15 @@ import type {
   BlockMetadata,
   LayoutWithContext,
   NamedBlocks,
-  Nullable,
+  Optional,
   WireFormat,
 } from '@glimmer/interfaces';
-import { VM_PUSH_ARGS_OP, VM_PUSH_EMPTY_ARGS_OP } from '@glimmer/constants';
+import { VM_PUSH_ARGS_OP } from '@glimmer/constants';
 import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { EncodeOp } from '../encoder';
 
+import { CallArgs, CallArgsWithAtNames, EmptyArgs } from '../../syntax/api';
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
 
@@ -22,22 +23,21 @@ import { expr } from './expr';
  * @param args.atNames
  */
 export function CompileArgs(
-  op: PushStatementOp,
-  positional: WireFormat.Core.Params,
-  named: WireFormat.Core.Hash,
-  blocks: NamedBlocks,
-  atNames: boolean
+  encode: EncodeOp,
+  positional: Optional<WireFormat.Core.Params>,
+  named: Optional<WireFormat.Core.Hash>,
+  blocks: NamedBlocks
 ): void {
   let blockNames: string[] = blocks.names;
   for (const name of blockNames) {
-    PushYieldableBlock(op, blocks.get(name));
+    PushYieldableBlock(encode, blocks.get(name));
   }
 
-  let count = CompilePositional(op, positional);
+  let count = CompilePositional(encode, positional);
 
   let flags = count << 4;
 
-  if (atNames) flags |= 0b1000;
+  flags |= 0b1000;
 
   if (blocks.hasAny) {
     flags |= 0b111;
@@ -49,41 +49,35 @@ export function CompileArgs(
     names = named[0];
     let val = named[1];
     for (let i = 0; i < val.length; i++) {
-      expr(op, val[i]);
+      expr(encode, val[i]);
     }
   }
 
-  op(VM_PUSH_ARGS_OP, names as string[], blockNames, flags);
+  encode.op(VM_PUSH_ARGS_OP, encode.array(names as string[]), encode.array(blockNames), flags);
 }
 
 export function SimpleArgs(
-  op: PushExpressionOp,
-  positional: Nullable<WireFormat.Core.Params>,
-  named: Nullable<WireFormat.Core.Hash>,
+  encode: EncodeOp,
+  args: Optional<WireFormat.Core.Args>,
   atNames: boolean
 ): void {
-  if (positional === null && named === null) {
-    op(VM_PUSH_EMPTY_ARGS_OP);
-    return;
+  if (!args) {
+    return EmptyArgs(encode);
   }
 
-  let count = CompilePositional(op, positional);
+  const count = CompilePositional(encode, args.params);
 
-  let flags = count << 4;
+  if (args.hash) {
+    const [names, vals] = args.hash;
 
-  if (atNames) flags |= 0b1000;
-
-  let names = EMPTY_STRING_ARRAY;
-
-  if (named) {
-    names = named[0];
-    let val = named[1];
-    for (let i = 0; i < val.length; i++) {
-      expr(op, val[i]);
+    for (const val of vals) {
+      expr(encode, val);
     }
-  }
 
-  op(VM_PUSH_ARGS_OP, names, EMPTY_STRING_ARRAY, flags);
+    return atNames ? CallArgsWithAtNames(encode, count, names) : CallArgs(encode, count, names);
+  } else {
+    return CallArgs(encode, count, EMPTY_STRING_ARRAY);
+  }
 }
 
 /**
@@ -93,13 +87,13 @@ export function SimpleArgs(
  * @param positional an optional list of positional arguments
  */
 export function CompilePositional(
-  op: PushExpressionOp,
-  positional: Nullable<WireFormat.Core.Params>
+  encode: EncodeOp,
+  positional: Optional<WireFormat.Core.Params>
 ): number {
-  if (positional === null) return 0;
+  if (!positional) return 0;
 
   for (let i = 0; i < positional.length; i++) {
-    expr(op, positional[i]);
+    expr(encode, positional[i]);
   }
 
   return positional.length;

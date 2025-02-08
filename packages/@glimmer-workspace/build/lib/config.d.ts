@@ -27,6 +27,7 @@ export interface PackageJSON {
   readonly types: string;
   readonly private: boolean;
   readonly name: string;
+  readonly devDependencies?: Record<string, string>;
 }
 
 type SimpleExternal = { [P in string]: 'inline' | 'external' };

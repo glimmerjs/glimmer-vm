@@ -5,8 +5,8 @@
  * 2. Namespaced resolution
  */
 
-import type { GetContextualFreeOpcode } from '@glimmer/interfaces';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import type { GetResolvedOrKeywordOpcode } from '@glimmer/interfaces';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { FreeVarNamespace } from './constants';
 
@@ -19,7 +19,8 @@ import { COMPONENT_VAR_NS, HELPER_VAR_NS, MODIFIER_VAR_NS } from './constants';
  * 2. in an local variable invocation with dot paths
  */
 export const STRICT_RESOLUTION = {
-  resolution: (): GetContextualFreeOpcode => SexpOpcodes.GetStrictKeyword,
+  isResolvedAppendable: false,
+  resolution: (): GetResolvedOrKeywordOpcode => Op.GetStrictKeyword,
   serialize: (): SerializedResolution => 'Strict',
   isAngleBracket: false as const,
 };
@@ -97,18 +98,22 @@ export class LooseModeResolution {
     readonly isAngleBracket = false
   ) {}
 
-  resolution(): GetContextualFreeOpcode {
+  get isResolvedAppendable(): boolean {
+    return this.resolution() === Op.GetFreeAsComponentOrHelperHead;
+  }
+
+  resolution(): GetResolvedOrKeywordOpcode {
     if (this.namespaces.length === 1) {
       switch (this.namespaces[0]) {
         case HELPER_VAR_NS:
-          return SexpOpcodes.GetFreeAsHelperHead;
+          return Op.GetFreeAsHelperHead;
         case MODIFIER_VAR_NS:
-          return SexpOpcodes.GetFreeAsModifierHead;
+          return Op.GetFreeAsModifierHead;
         case COMPONENT_VAR_NS:
-          return SexpOpcodes.GetFreeAsComponentHead;
+          return Op.GetFreeAsComponentHead;
       }
     } else {
-      return SexpOpcodes.GetFreeAsComponentOrHelperHead;
+      return Op.GetFreeAsComponentOrHelperHead;
     }
   }
 

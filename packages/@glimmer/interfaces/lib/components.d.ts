@@ -17,7 +17,7 @@ export interface ComponentDefinition<
   D extends ComponentDefinitionState = ComponentDefinitionState,
   I = ComponentInstanceState,
   M extends InternalComponentManager<I, D> = InternalComponentManager<I, D>,
-> {
+> extends CompileTimeComponent {
   resolvedName: string | null;
   handle: number;
   state: D;

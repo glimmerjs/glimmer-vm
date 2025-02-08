@@ -7,6 +7,10 @@ export interface BaseNodeFields {
   loc: SourceSpan;
 }
 
+export interface AbstractNode extends BaseNodeFields {
+  type: string;
+}
+
 /**
  * This is a convenience function for creating ASTv2 nodes, with an optional name and the node's
  * options.

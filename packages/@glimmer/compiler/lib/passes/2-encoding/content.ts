@@ -1,7 +1,9 @@
 import type {
   AttrOpcode,
+  Buildable,
   ComponentAttrOpcode,
   DynamicAttrOpcode,
+  Optional,
   StaticAttrOpcode,
   StaticComponentAttrOpcode,
   TrustingComponentAttrOpcode,
@@ -9,232 +11,409 @@ import type {
   WellKnownAttrName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { exhausted } from '@glimmer/debug-util';
+import type { BlockSymbolTable } from '@glimmer/syntax';
+import { assertPresentArray, exhausted, localAssert } from '@glimmer/debug-util';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { isGetLexical, SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
+import {
+  buildComponentArgs,
+  compact,
+  headType,
+  isGet,
+  isGetSymbolOrPath,
+  isTupleExpression,
+  MODIFIER_TYPES,
+  needsAtNames,
+} from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
-import { EXPR } from './expressions';
+import {
+  encodeArgs,
+  encodeExpr,
+  encodeMaybeExpr,
+  encodeNamedArguments,
+  encodePositional,
+} from './expressions';
 
-class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
-  constructor(private statements: readonly S[]) {}
+class WireContent<S extends WireFormat.Content = WireFormat.Content> {
+  constructor(private statements: readonly Buildable<S>[]) {}
 
   toArray(): readonly S[] {
-    return this.statements;
+    return this.statements.map(compactSexpr);
   }
 }
 
-export class ContentEncoder {
-  list(statements: mir.Statement[]): WireFormat.Statement[] {
-    let out: WireFormat.Statement[] = [];
+export function encodeContentList(statements: mir.Content[]): WireFormat.Content[] {
+  let out: WireFormat.Content[] = [];
 
-    for (let statement of statements) {
-      let result = CONTENT.content(statement);
+  for (let statement of statements) {
+    let result = encodeContent(statement);
 
-      if (result instanceof WireStatements) {
-        out.push(...result.toArray());
-      } else {
-        out.push(result);
-      }
-    }
-
-    return out;
-  }
-
-  content(stmt: mir.Statement): WireFormat.Statement | WireStatements {
-    if (LOCAL_TRACE_LOGGING) {
-      LOCAL_LOGGER.debug(`encoding`, stmt);
-    }
-
-    return this.visitContent(stmt);
-  }
-
-  private visitContent(stmt: mir.Statement): WireFormat.Statement | WireStatements {
-    switch (stmt.type) {
-      case 'Debugger':
-        return [SexpOpcodes.Debugger, ...stmt.scope.getDebugInfo(), {}];
-      case 'AppendComment':
-        return this.AppendComment(stmt);
-      case 'AppendTextNode':
-        return this.AppendTextNode(stmt);
-      case 'AppendTrustedHTML':
-        return this.AppendTrustedHTML(stmt);
-      case 'Yield':
-        return this.Yield(stmt);
-      case 'Component':
-        return this.Component(stmt);
-      case 'SimpleElement':
-        return this.SimpleElement(stmt);
-      case 'InElement':
-        return this.InElement(stmt);
-      case 'InvokeBlock':
-        return this.InvokeBlock(stmt);
-      case 'If':
-        return this.If(stmt);
-      case 'Each':
-        return this.Each(stmt);
-      case 'Let':
-        return this.Let(stmt);
-      case 'WithDynamicVars':
-        return this.WithDynamicVars(stmt);
-      case 'InvokeComponent':
-        return this.InvokeComponent(stmt);
-      default:
-        return exhausted(stmt);
-    }
-  }
-
-  Yield({ to, positional }: mir.Yield): WireFormat.Statements.Yield {
-    return [SexpOpcodes.Yield, to, EXPR.Positional(positional)];
-  }
-
-  InElement({
-    guid,
-    insertBefore,
-    destination,
-    block,
-  }: mir.InElement): WireFormat.Statements.InElement {
-    let wireBlock = CONTENT.NamedBlock(block)[1];
-    // let guid = args.guid;
-    let wireDestination = EXPR.expr(destination);
-    let wireInsertBefore = EXPR.expr(insertBefore);
-
-    if (wireInsertBefore === undefined) {
-      return [SexpOpcodes.InElement, wireBlock, guid, wireDestination];
+    if (result instanceof WireContent) {
+      out.push(...result.toArray());
     } else {
-      return [SexpOpcodes.InElement, wireBlock, guid, wireDestination, wireInsertBefore];
+      out.push(compactSexpr(result));
     }
   }
 
-  InvokeBlock({ head, args, blocks }: mir.InvokeBlock): WireFormat.Statements.Block {
-    return [SexpOpcodes.Block, EXPR.expr(head), ...EXPR.Args(args), CONTENT.NamedBlocks(blocks)];
+  return out;
+}
+
+export function compactSexpr<T extends WireFormat.Content>(content: Buildable<T>): T {
+  while (content.length > 1 && content.at(-1) === undefined) {
+    content.pop();
   }
 
-  AppendTrustedHTML({ html }: mir.AppendTrustedHTML): WireFormat.Statements.TrustingAppend {
-    return [SexpOpcodes.TrustingAppend, EXPR.expr(html)];
+  return content as unknown as T;
+}
+
+function encodeContent(stmt: mir.Debugger): WireFormat.Content.Debugger;
+function encodeContent(stmt: mir.AppendHtmlComment): WireFormat.Content.AppendHtmlText;
+function encodeContent(stmt: mir.AppendHtmlComment): WireFormat.Content.AppendHtmlComment;
+function encodeContent(stmt: mir.AppendValueCautiously): WireFormat.Content.AppendValueCautiously;
+function encodeContent(stmt: mir.AppendTrustedHTML): WireFormat.Content.AppendTrustedHtml;
+function encodeContent(stmt: mir.Yield): WireFormat.Content.Yield;
+function encodeContent(stmt: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent;
+function encodeContent(stmt: mir.SimpleElement): WireContent;
+function encodeContent(stmt: mir.InElement): WireFormat.Content.InElement;
+function encodeContent(stmt: mir.InvokeBlockComponent): WireFormat.Content.SomeBlock;
+function encodeContent(stmt: mir.IfContent): WireFormat.Content.If;
+function encodeContent(stmt: mir.Each): WireFormat.Content.Each;
+function encodeContent(stmt: mir.Let): WireFormat.Content.Let;
+function encodeContent(stmt: mir.WithDynamicVars): WireFormat.Content.WithDynamicVars;
+function encodeContent(
+  stmt: mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword
+): WireFormat.Content.InvokeComponentKeyword;
+function encodeContent(stmt: mir.Content): WireFormat.Content | WireContent;
+function encodeContent(stmt: mir.Content): Buildable<WireFormat.Content> | WireContent {
+  if (LOCAL_TRACE_LOGGING) {
+    LOCAL_LOGGER.debug(`encoding`, stmt);
   }
 
-  AppendTextNode({ text }: mir.AppendTextNode): WireFormat.Statements.Append {
-    return [SexpOpcodes.Append, EXPR.expr(text)];
-  }
-
-  AppendComment({ value }: mir.AppendComment): WireFormat.Statements.Comment {
-    return [SexpOpcodes.Comment, value.chars];
-  }
-
-  SimpleElement({ tag, params, body, dynamicFeatures }: mir.SimpleElement): WireStatements {
-    let op = dynamicFeatures ? SexpOpcodes.OpenElementWithSplat : SexpOpcodes.OpenElement;
-    return new WireStatements<WireFormat.Statement | WireFormat.ElementParameter>([
-      [op, deflateTagName(tag.chars)],
-      ...CONTENT.ElementParameters(params).toArray(),
-      [SexpOpcodes.FlushElement],
-      ...CONTENT.list(body),
-      [SexpOpcodes.CloseElement],
-    ]);
-  }
-
-  Component({ tag, params, args, blocks }: mir.Component): WireFormat.Statements.Component {
-    let wireTag = EXPR.expr(tag);
-    let wirePositional = CONTENT.ElementParameters(params);
-    let wireNamed = EXPR.NamedArguments(args);
-
-    let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
-
-    return [
-      SexpOpcodes.Component,
-      wireTag,
-      wirePositional.toPresentArray(),
-      wireNamed,
-      wireNamedBlocks,
-    ];
-  }
-
-  ElementParameters({ body }: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
-    return body.map((p) => CONTENT.ElementParameter(p));
-  }
-
-  ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
-    switch (param.type) {
-      case 'SplatAttr':
-        return [SexpOpcodes.AttrSplat, param.symbol];
-      case 'DynamicAttr':
-        return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
-      case 'StaticAttr':
-        return [staticAttrOp(param.kind), ...staticAttr(param)];
-      case 'Modifier':
-        return [SexpOpcodes.Modifier, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
-    }
-  }
-
-  NamedBlocks({ blocks }: mir.NamedBlocks): WireFormat.Core.Blocks {
-    let names: string[] = [];
-    let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
-
-    for (let block of blocks.toArray()) {
-      let [name, serializedBlock] = CONTENT.NamedBlock(block);
-
-      names.push(name);
-      serializedBlocks.push(serializedBlock);
-    }
-
-    return names.length > 0 ? [names, serializedBlocks] : null;
-  }
-
-  NamedBlock({ name, body, scope }: mir.NamedBlock): WireFormat.Core.NamedBlock {
-    let nameChars = name.chars;
-    if (nameChars === 'inverse') {
-      nameChars = 'else';
-    }
-    return [nameChars, [CONTENT.list(body), scope.slots]];
-  }
-
-  If({ condition, block, inverse }: mir.If): WireFormat.Statements.If {
-    return [
-      SexpOpcodes.If,
-      EXPR.expr(condition),
-      CONTENT.NamedBlock(block)[1],
-      inverse ? CONTENT.NamedBlock(inverse)[1] : null,
-    ];
-  }
-
-  Each({ value, key, block, inverse }: mir.Each): WireFormat.Statements.Each {
-    return [
-      SexpOpcodes.Each,
-      EXPR.expr(value),
-      key ? EXPR.expr(key) : null,
-      CONTENT.NamedBlock(block)[1],
-      inverse ? CONTENT.NamedBlock(inverse)[1] : null,
-    ];
-  }
-
-  Let({ positional, block }: mir.Let): WireFormat.Statements.Let {
-    return [SexpOpcodes.Let, EXPR.Positional(positional), CONTENT.NamedBlock(block)[1]];
-  }
-
-  WithDynamicVars({ named, block }: mir.WithDynamicVars): WireFormat.Statements.WithDynamicVars {
-    return [SexpOpcodes.WithDynamicVars, EXPR.NamedArguments(named), CONTENT.NamedBlock(block)[1]];
-  }
-
-  InvokeComponent({
-    definition,
-    args,
-    blocks,
-  }: mir.InvokeComponent): WireFormat.Statements.InvokeComponent {
-    return [
-      SexpOpcodes.InvokeComponent,
-      EXPR.expr(definition),
-      EXPR.Positional(args.positional),
-      EXPR.NamedArguments(args.named),
-      blocks ? CONTENT.NamedBlocks(blocks) : null,
-    ];
+  switch (stmt.type) {
+    case 'Debugger':
+      return Debugger(stmt);
+    case 'AppendHtmlComment':
+      return AppendComment(stmt);
+    case 'AppendHtmlText':
+      return AppendText(stmt);
+    case 'AppendValueCautiously':
+      return AppendValueCautiously(stmt);
+    case 'AppendTrustedHTML':
+      return AppendTrustedHTML(stmt);
+    case 'Yield':
+      return Yield(stmt);
+    case 'AngleBracketComponent':
+      return AngleBracketComponent(stmt);
+    case 'SimpleElement':
+      return SimpleElement(stmt);
+    case 'InElement':
+      return InElement(stmt);
+    case 'InvokeBlockComponent':
+      return InvokeBlockComponent(stmt);
+    case 'IfContent':
+      return IfContent(stmt);
+    case 'Each':
+      return Each(stmt);
+    case 'Let':
+      return Let(stmt);
+    case 'WithDynamicVars':
+      return WithDynamicVars(stmt);
+    case 'InvokeComponentKeyword':
+      return InvokeComponentKeyword(stmt);
+    case 'InvokeResolvedComponentKeyword':
+      return InvokeResolvedComponentKeyword(stmt);
+    default:
+      return exhausted(stmt);
   }
 }
 
-export const CONTENT = new ContentEncoder();
+export function Debugger({ scope }: mir.Debugger): Buildable<WireFormat.Content.Debugger> {
+  return [Op.Debugger, ...scope.getDebugInfo(), {}];
+}
+
+export function Yield({ to, positional }: mir.Yield): WireFormat.Content.Yield {
+  return [Op.Yield, to, encodePositional(positional)];
+}
+
+export function InElement({
+  guid,
+  insertBefore,
+  destination,
+  block,
+}: mir.InElement): Buildable<WireFormat.Content.InElement> {
+  return [
+    Op.InElement,
+    namedBlock(block.body, block.scope),
+    guid,
+    encodeExpr(destination),
+    encodeMaybeExpr(insertBefore),
+  ];
+}
+
+export function InvokeBlockComponent({
+  head,
+  args,
+  blocks,
+}: mir.InvokeBlockComponent): Buildable<WireFormat.Content.SomeBlock> {
+  const path = encodeExpr(head);
+
+  localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
+
+  if (head.type === 'Local' && head.referenceType === 'lexical') {
+    return [
+      Op.InvokeLexicalBlockComponent,
+      encodeExpr(head),
+      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+    ];
+  } else if (head.type === 'Resolved') {
+    return [
+      Op.InvokeResolvedBlockComponent,
+      encodeExpr(head),
+      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+    ];
+  }
+
+  return [Op.InvokeDynamicBlock, path, BlockArgs(args, blocks, { insertAtPrefix: true })];
+}
+
+export function BlockArgs(
+  argsNode: Pick<mir.Args, 'positional' | 'named'>,
+  blocksNode: Optional<mir.NamedBlocks>,
+  { insertAtPrefix }: { insertAtPrefix: boolean }
+): Optional<WireFormat.Core.BlockArgs> {
+  return compact({
+    ...encodeArgs(argsNode, insertAtPrefix),
+    blocks: blocksNode ? NamedBlocks(blocksNode) : undefined,
+  });
+}
+
+export function AppendTrustedHTML({
+  html,
+}: mir.AppendTrustedHTML): WireFormat.Content.AppendTrustedHtml {
+  return [Op.AppendTrustedHtml, encodeExpr(html)];
+}
+
+export function AppendValueCautiously({
+  value,
+}: mir.AppendValueCautiously): WireFormat.Content.SomeAppend {
+  switch (value.type) {
+    case 'Resolved': {
+      return [Op.AppendResolvedInvokable, value.symbol];
+    }
+    case 'CallExpression': {
+      const args = encodeArgs(value.args);
+
+      return isResolvedAppendable(value.callee)
+        ? [Op.AppendResolvedInvokable, value.callee.symbol, args]
+        : [Op.AppendDynamicInvokable, encodeExpr(value.callee), args];
+    }
+
+    case 'Literal':
+      return [Op.AppendStatic, encodeExpr(value)];
+  }
+
+  return [Op.AppendValueCautiously, encodeExpr(value)];
+}
+
+function isResolvedAppendable(
+  value: mir.ExpressionNode
+): value is Extract<mir.ExpressionNode, { type: 'Resolved' }> {
+  return value.type === 'Resolved' && value.isResolvedAppendable;
+}
+
+export function AppendComment({
+  value,
+}: mir.AppendHtmlComment): WireFormat.Content.AppendHtmlComment {
+  return [Op.Comment, value.chars];
+}
+
+export function AppendText({ value }: mir.AppendHtmlText): WireFormat.Content.AppendHtmlText {
+  return [Op.AppendHtmlText, value];
+}
+
+export function SimpleElement({
+  tag,
+  params,
+  body,
+  dynamicFeatures,
+}: mir.SimpleElement): WireContent {
+  let op = dynamicFeatures ? Op.OpenElementWithSplat : Op.OpenElement;
+  return new WireContent<WireFormat.Content | WireFormat.ElementParameter>([
+    [op, deflateTagName(tag.chars)],
+    ...ElementParameters(params).toArray(),
+    [Op.FlushElement],
+    ...encodeContentList(body),
+    [Op.CloseElement],
+  ]);
+}
+
+export function AngleBracketComponent({
+  tag,
+  params,
+  args: named,
+  blocks,
+}: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent {
+  let wireTag = encodeExpr(tag);
+  let wirePositional = ElementParameters(params);
+  let wireNamed = encodeNamedArguments(named, false);
+
+  let wireNamedBlocks = NamedBlocks(blocks);
+
+  const args = buildComponentArgs(wirePositional.toPresentArray(), wireNamed, wireNamedBlocks);
+
+  localAssert(
+    isTupleExpression(wireTag),
+    `Expected ${JSON.stringify(wireTag)} to be a tuple expression`
+  );
+
+  // There are special cases for non-path expressions that refer to out-of-template variables:
+  // lexical variables and resolved variables.
+
+  if (isGetLexical(wireTag)) {
+    // if the expression is something like `x.Foo`, then the component is dynamic, not
+    // a lexical variable.
+    return [
+      wireTag.length === 2 ? Op.InvokeLexicalAngleComponent : Op.InvokeDynamicComponent,
+      wireTag,
+      args,
+    ];
+  }
+
+  if (wireTag[0] === Op.GetFreeAsComponentHead) {
+    localAssert(
+      wireTag.length === 2,
+      `Unexpected free variable as component head with a path tail ${JSON.stringify(wireTag)}`
+    );
+
+    return [Op.InvokeResolvedAngleComponent, wireTag, args];
+  }
+
+  // The only remaining case here should be a reference to a local Handlebars variable (possibly a
+  // path).
+  localAssert(isGetSymbolOrPath(wireTag), `Expected ${JSON.stringify(wireTag)} to be a symbol`);
+
+  return [Op.InvokeDynamicComponent, wireTag, args];
+}
+
+export function ElementParameters({
+  body,
+}: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
+  return body.map((p) => ElementParameter(p));
+}
+
+export function ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
+  switch (param.type) {
+    case 'SplatAttr':
+      return [Op.AttrSplat, param.symbol];
+    case 'DynamicAttr':
+      return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
+    case 'StaticAttr':
+      return [staticAttrOp(param.kind), ...staticAttr(param)];
+    case 'Modifier': {
+      const expression = encodeExpr(param.callee);
+      return [
+        MODIFIER_TYPES[headType(expression, 'modifier')],
+        encodeExpr(param.callee),
+        encodeArgs(param.args),
+      ];
+    }
+  }
+}
+
+export function NamedBlocks({
+  blocks: blocksNode,
+}: mir.NamedBlocks): Optional<WireFormat.Core.Blocks> {
+  const blocks = blocksNode.toPresentArray();
+  if (!blocks) return;
+
+  let names: string[] = [];
+  let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
+
+  for (const block of blocks) {
+    const [name, serializedBlock] = NamedBlock(block);
+
+    names.push(name);
+    serializedBlocks.push(serializedBlock);
+  }
+
+  assertPresentArray(names);
+  assertPresentArray(serializedBlocks);
+
+  return [names, serializedBlocks];
+}
+
+export function NamedBlock({ name, body, scope }: mir.NamedBlock): WireFormat.Core.NamedBlock {
+  return [name.chars === 'inverse' ? 'else' : name.chars, namedBlock(body, scope)];
+}
+
+export function namedBlock(
+  body: mir.Content[],
+  scope: BlockSymbolTable
+): WireFormat.SerializedInlineBlock {
+  return [encodeContentList(body), scope.slots];
+}
+
+export function IfContent({ condition, block, inverse }: mir.IfContent): WireFormat.Content.If {
+  return [
+    Op.If,
+    encodeExpr(condition),
+    NamedBlock(block)[1],
+    inverse ? NamedBlock(inverse)[1] : null,
+  ];
+}
+
+export function Each({ value, key, block, inverse }: mir.Each): WireFormat.Content.Each {
+  return [
+    Op.Each,
+    encodeExpr(value),
+    key ? encodeExpr(key) : null,
+    NamedBlock(block)[1],
+    inverse ? NamedBlock(inverse)[1] : null,
+  ];
+}
+
+export function Let({ positional, block }: mir.Let): WireFormat.Content.Let {
+  return [Op.Let, encodePositional(positional), NamedBlock(block)[1]];
+}
+
+export function WithDynamicVars({
+  named,
+  block,
+}: mir.WithDynamicVars): WireFormat.Content.WithDynamicVars {
+  return [
+    Op.WithDynamicVars,
+    encodeNamedArguments(named, false),
+    namedBlock(block.body, block.scope),
+  ];
+}
+
+export function InvokeComponentKeyword({
+  definition,
+  args,
+  blocks,
+}: mir.InvokeComponentKeyword): WireFormat.Content.InvokeComponentKeyword {
+  const expression = encodeExpr(definition);
+
+  localAssert(
+    expression[0] !== Op.GetStrictKeyword,
+    `[BUG] {{component <KW>}} is not a valid node`
+  );
+
+  return [Op.InvokeComponentKeyword, expression, BlockArgs(args, blocks, { insertAtPrefix: true })];
+}
+
+export function InvokeResolvedComponentKeyword({
+  definition,
+  args,
+  blocks,
+}: mir.InvokeResolvedComponentKeyword): WireFormat.Content.InvokeComponentKeyword {
+  return [Op.InvokeComponentKeyword, definition, BlockArgs(args, blocks, { insertAtPrefix: true })];
+}
 
 export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
 
@@ -255,7 +434,7 @@ export type DynamicAttrArgs = [
 ];
 
 function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {
-  let out: DynamicAttrArgs = [deflateAttrName(name.chars), EXPR.expr(value)];
+  let out: DynamicAttrArgs = [deflateAttrName(name.chars), encodeExpr(value)];
 
   if (namespace) {
     out.push(namespace);
@@ -267,9 +446,9 @@ function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrAr
 function staticAttrOp(kind: { component: boolean }): StaticAttrOpcode | StaticComponentAttrOpcode;
 function staticAttrOp(kind: { component: boolean }): AttrOpcode {
   if (kind.component) {
-    return SexpOpcodes.StaticComponentAttr;
+    return Op.StaticComponentAttr;
   } else {
-    return SexpOpcodes.StaticAttr;
+    return Op.StaticAttr;
   }
 }
 
@@ -281,8 +460,8 @@ function dynamicAttrOp(
   | ComponentAttrOpcode
   | DynamicAttrOpcode {
   if (kind.component) {
-    return kind.trusting ? SexpOpcodes.TrustingComponentAttr : SexpOpcodes.ComponentAttr;
+    return kind.trusting ? Op.TrustingComponentAttr : Op.ComponentAttr;
   } else {
-    return kind.trusting ? SexpOpcodes.TrustingDynamicAttr : SexpOpcodes.DynamicAttr;
+    return kind.trusting ? Op.TrustingDynamicAttr : Op.DynamicAttr;
   }
 }

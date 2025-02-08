@@ -28,8 +28,18 @@ function compile(content: string): SerializedTemplate {
   return assign({}, parsed, { block });
 }
 
-function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
-  QUnit.test(desc, (assert) => {
+function testSyntax({
+  desc,
+  template,
+  expectedStatements,
+  testFn,
+}: {
+  desc: string;
+  template: string;
+  expectedStatements: BuilderStatement[];
+  testFn: (desc: string, block: QUnit.TestFunctionCallback) => void;
+}) {
+  testFn(desc, (assert) => {
     let actual = compile(template);
 
     let symbols = new ProgramSymbols();
@@ -44,6 +54,19 @@ function test(desc: string, template: string, ...expectedStatements: BuilderStat
     assert.deepEqual(debugActual, debugExpected);
   });
 }
+
+function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
+  testSyntax({ desc, template, expectedStatements, testFn: QUnit.test });
+}
+
+test.todo = (desc: string, template: string, ...expectedStatements: BuilderStatement[]) => {
+  testSyntax({
+    desc,
+    template,
+    expectedStatements,
+    testFn: (desc: string, block: QUnit.TestFunctionCallback) => QUnit.todo(desc, block),
+  });
+};
 
 QUnit.test(
   '@arguments are on regular non-component/regular HTML nodes throws syntax error',

@@ -1,23 +1,20 @@
 import type {
   CompileTimeComponent,
-  StatementSexpOpcode,
+  ContentSexpOpcode,
+  Optional,
   WellKnownAttrName,
   WellKnownTagName,
   WireFormat,
 } from '@glimmer/interfaces';
+import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import {
-  VM_CLOSE_ELEMENT_OP,
-  VM_COMMENT_OP,
   VM_COMPONENT_ATTR_OP,
-  VM_CONSTANT_REFERENCE_OP,
   VM_DEBUGGER_OP,
   VM_DUP_OP,
   VM_DYNAMIC_ATTR_OP,
   VM_DYNAMIC_CONTENT_TYPE_OP,
-  VM_DYNAMIC_MODIFIER_OP,
   VM_ENTER_LIST_OP,
   VM_EXIT_LIST_OP,
-  VM_FLUSH_ELEMENT_OP,
   VM_INVOKE_STATIC_OP,
   VM_ITERATE_OP,
   VM_JUMP_OP,
@@ -26,6 +23,7 @@ import {
   VM_POP_FRAME_OP,
   VM_POP_OP,
   VM_POP_REMOTE_ELEMENT_OP,
+  VM_PUSH_COMPONENT_DEFINITION_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   VM_PUSH_FRAME_OP,
   VM_PUSH_REMOTE_ELEMENT_OP,
@@ -38,9 +36,7 @@ import {
   VM_TO_BOOLEAN_OP,
 } from '@glimmer/constants';
 import { $fp, $sp, ContentType } from '@glimmer/vm';
-import { SexpOpcodes } from '@glimmer/wire-format';
-
-import type { PushStatementOp } from './compilers';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import {
   InvokeStaticBlock,
@@ -48,30 +44,25 @@ import {
   YieldBlock,
 } from '../opcode-builder/helpers/blocks';
 import {
-  InvokeComponent,
   InvokeDynamicComponent,
-  InvokeNonStaticComponent,
+  InvokeEarlyBoundComponent,
+  InvokeReplayableComponentExpression,
+  InvokeResolvedComponent,
 } from '../opcode-builder/helpers/components';
 import { Replayable, ReplayableIf, SwitchCases } from '../opcode-builder/helpers/conditional';
 import { expr } from '../opcode-builder/helpers/expr';
-import {
-  isGetFreeComponent,
-  isGetFreeComponentOrHelper,
-  isGetFreeModifier,
-} from '../opcode-builder/helpers/resolution';
 import { CompilePositional, SimpleArgs } from '../opcode-builder/helpers/shared';
 import {
   Call,
-  CallDynamic,
+  CallDynamicBlock,
   DynamicScope,
   PushPrimitiveReference,
 } from '../opcode-builder/helpers/vm';
-import { HighLevelBuilderOpcodes, HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
-import { debugSymbolsOperand, labelOperand, stdlibOperand } from '../opcode-builder/operands';
 import { namedBlocks } from '../utils';
+import { CloseElement, Comment, FlushElement, HtmlText, LexicalModifier } from './api';
 import { Compilers } from './compilers';
 
-export const STATEMENTS = new Compilers<PushStatementOp, StatementSexpOpcode>();
+export const STATEMENTS = new Compilers<ContentSexpOpcode>();
 
 const INFLATE_ATTR_TABLE: {
   [I in WellKnownAttrName]: string;
@@ -88,301 +79,426 @@ export function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
 
-STATEMENTS.add(SexpOpcodes.Comment, (op, sexp) => op(VM_COMMENT_OP, sexp[1]));
-STATEMENTS.add(SexpOpcodes.CloseElement, (op) => op(VM_CLOSE_ELEMENT_OP));
-STATEMENTS.add(SexpOpcodes.FlushElement, (op) => op(VM_FLUSH_ELEMENT_OP));
+STATEMENTS.add(Op.Comment, (op, [, comment]) => Comment(op, comment));
+STATEMENTS.add(Op.AppendHtmlText, (op, [, text]) => HtmlText(op, text));
+STATEMENTS.add(Op.CloseElement, (op) => CloseElement(op));
+STATEMENTS.add(Op.FlushElement, (op) => FlushElement(op));
 
-STATEMENTS.add(SexpOpcodes.Modifier, (op, [, expression, positional, named]) => {
-  if (isGetFreeModifier(expression)) {
-    op(HighLevelResolutionOpcodes.Modifier, expression, (handle: number) => {
-      op(VM_PUSH_FRAME_OP);
-      SimpleArgs(op, positional, named, false);
-      op(VM_MODIFIER_OP, handle);
-      op(VM_POP_FRAME_OP);
-    });
-  } else {
-    expr(op, expression);
-    op(VM_PUSH_FRAME_OP);
-    SimpleArgs(op, positional, named, false);
-    op(VM_DUP_OP, $fp, 1);
-    op(VM_DYNAMIC_MODIFIER_OP);
-    op(VM_POP_FRAME_OP);
-  }
+STATEMENTS.add(Op.ResolvedModifier, (encode, [, expression, args]) => {
+  encode.modifier(expression, (handle: number) => {
+    encode.op(VM_PUSH_FRAME_OP);
+    SimpleArgs(encode, args, false);
+    encode.op(VM_MODIFIER_OP, handle);
+    encode.op(VM_POP_FRAME_OP);
+  });
 });
 
-STATEMENTS.add(SexpOpcodes.StaticAttr, (op, [, name, value, namespace]) => {
-  op(VM_STATIC_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
+STATEMENTS.add(Op.LexicalModifier, (encode, [, expression, args]) => {
+  expr(encode, expression);
+  LexicalModifier(
+    encode,
+    () => expr(encode, expression),
+    () => SimpleArgs(encode, args, false)
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.StaticComponentAttr, (op, [, name, value, namespace]) => {
-  op(VM_STATIC_COMPONENT_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
+STATEMENTS.add(Op.StaticAttr, (encode, [, name, value, namespace]) => {
+  encode.op(
+    VM_STATIC_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(value as string),
+    encode.constant(namespace ?? null)
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.DynamicAttr, (op, [, name, value, namespace]) => {
-  expr(op, value);
-  op(VM_DYNAMIC_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
+STATEMENTS.add(Op.StaticComponentAttr, (encode, [, name, value, namespace]) => {
+  encode.op(
+    VM_STATIC_COMPONENT_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(value as string),
+    encode.constant(namespace ?? null)
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingDynamicAttr, (op, [, name, value, namespace]) => {
-  expr(op, value);
-  op(VM_DYNAMIC_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
+STATEMENTS.add(Op.DynamicAttr, (encode, [, name, value, namespace]) => {
+  expr(encode, value);
+  encode.op(
+    VM_DYNAMIC_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(false),
+    encode.constant(namespace ?? null)
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.ComponentAttr, (op, [, name, value, namespace]) => {
-  expr(op, value);
-  op(VM_COMPONENT_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
+STATEMENTS.add(Op.TrustingDynamicAttr, (encode, [, name, value, namespace]) => {
+  expr(encode, value);
+  encode.op(
+    VM_DYNAMIC_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(true),
+    encode.constant(namespace ?? null)
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingComponentAttr, (op, [, name, value, namespace]) => {
-  expr(op, value);
-  op(VM_COMPONENT_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
+STATEMENTS.add(Op.ComponentAttr, (encode, [, name, value, namespace]) => {
+  expr(encode, value);
+  encode.op(
+    VM_COMPONENT_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(false),
+    encode.constant(namespace ?? null)
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.OpenElement, (op, [, tag]) => {
-  op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));
+STATEMENTS.add(Op.TrustingComponentAttr, (encode, [, name, value, namespace]) => {
+  expr(encode, value);
+  encode.op(
+    VM_COMPONENT_ATTR_OP,
+    encode.constant(inflateAttrName(name)),
+    encode.constant(true),
+    encode.constant(namespace ?? null)
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, (op, [, tag]) => {
-  op(VM_PUT_COMPONENT_OPERATIONS_OP);
-  op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));
+STATEMENTS.add(Op.OpenElement, (encode, [, tag]) => {
+  encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
-STATEMENTS.add(SexpOpcodes.Component, (op, [, expr, elementBlock, named, blocks]) => {
-  if (isGetFreeComponent(expr)) {
-    op(HighLevelResolutionOpcodes.Component, expr, (component: CompileTimeComponent) => {
-      InvokeComponent(op, component, elementBlock, null, named, blocks);
-    });
-  } else {
-    // otherwise, the component name was an expression, so resolve the expression
-    // and invoke it as a dynamic component
-    InvokeDynamicComponent(op, expr, elementBlock, null, named, blocks, true, true);
-  }
+STATEMENTS.add(Op.OpenElementWithSplat, (encode, [, tag]) => {
+  encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
+  encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
-STATEMENTS.add(SexpOpcodes.Yield, (op, [, to, params]) => YieldBlock(op, to, params));
+export function isLexicalCall(expr: WireFormat.Expression) {
+  return Array.isArray(expr) && expr[0] === Op.GetLexicalSymbol;
+}
 
-STATEMENTS.add(SexpOpcodes.AttrSplat, (op, [, to]) => YieldBlock(op, to, null));
+STATEMENTS.add(Op.Yield, (encode, [, to, params]) => YieldBlock(encode, to, params));
 
-STATEMENTS.add(SexpOpcodes.Debugger, (op, [, locals, upvars, lexical]) => {
-  op(VM_DEBUGGER_OP, debugSymbolsOperand(locals, upvars, lexical));
+STATEMENTS.add(Op.AttrSplat, (encode, [, to]) => YieldBlock(encode, to));
+
+STATEMENTS.add(Op.Debugger, (encode, [, locals, upvars, lexical]) => {
+  encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
 });
 
-STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
-  // Special case for static values
-  if (!Array.isArray(value)) {
-    op(VM_TEXT_OP, value === null || value === undefined ? '' : String(value));
-  } else if (isGetFreeComponentOrHelper(value)) {
-    op(HighLevelResolutionOpcodes.OptionalComponentOrHelper, value, {
-      ifComponent(component: CompileTimeComponent) {
-        InvokeComponent(op, component, null, null, null, null);
-      },
-
-      ifHelper(handle: number) {
-        op(VM_PUSH_FRAME_OP);
-        Call(op, handle, null, null);
-        op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
-        op(VM_POP_FRAME_OP);
-      },
-
-      ifValue(handle: number) {
-        op(VM_PUSH_FRAME_OP);
-        op(VM_CONSTANT_REFERENCE_OP, handle);
-        op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
-        op(VM_POP_FRAME_OP);
-      },
-    });
-  } else if (value[0] === SexpOpcodes.Call) {
-    let [, expression, positional, named] = value;
-
-    if (isGetFreeComponentOrHelper(expression)) {
-      op(HighLevelResolutionOpcodes.ComponentOrHelper, expression, {
-        ifComponent(component: CompileTimeComponent) {
-          InvokeComponent(op, component, null, positional, hashToArgs(named), null);
-        },
-        ifHelper(handle: number) {
-          op(VM_PUSH_FRAME_OP);
-          Call(op, handle, positional, named);
-          op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
-          op(VM_POP_FRAME_OP);
-        },
-      });
-    } else {
-      SwitchCases(
-        op,
-        () => {
-          expr(op, expression);
-          op(VM_DYNAMIC_CONTENT_TYPE_OP);
-        },
-        (when) => {
-          when(ContentType.Component, () => {
-            op(VM_RESOLVE_CURRIED_COMPONENT_OP);
-            op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-            InvokeNonStaticComponent(op, {
-              capabilities: true,
-              elementBlock: null,
-              positional,
-              named,
-              atNames: false,
-              blocks: namedBlocks(null),
-            });
-          });
-
-          when(ContentType.Helper, () => {
-            CallDynamic(op, positional, named, () => {
-              op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-non-dynamic-append'));
-            });
-          });
-        }
+// In classic mode only, this corresponds to `{{name ...args}}` where `name` is not an in-scope
+// variable. In strict mode, this is a syntax error.
+//
+// In classic mode, `name` is resolved first as a component, and then as a helper. If either
+// succeeds, it is compiled into the appropriate invocation. If neither succeeds, it turns into an
+// early error.
+STATEMENTS.add(Op.AppendResolvedInvokable, (encode, [, callee, args]) => {
+  encode.append(callee, {
+    ifComponent(component: CompileTimeComponent) {
+      encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+      InvokeResolvedComponent(
+        encode,
+        component,
+        compact({ hash: hashToArgs(args?.hash) }),
+        args?.params
       );
+    },
+    ifHelper(handle: number) {
+      encode.op(VM_PUSH_FRAME_OP);
+      Call(encode, handle, args);
+      encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
+      encode.op(VM_POP_FRAME_OP);
+    },
+  });
+});
+
+// This corresponds to `{{<expr> ...args}}` where `<expr>` only references in-scope variables (and
+// no resolved variables).
+//
+// This generates code that allows the expression to change between a component and helper value. If
+// the value changes, the output is cleared the right behavior occurs.
+//
+// @todo Specialize the lexical variable case, since we can determine what kind of callee we're
+// looking at at compile time.
+STATEMENTS.add(Op.AppendDynamicInvokable, (encode, [, callee, args]) => {
+  SwitchCases(
+    encode,
+    () => {
+      expr(encode, callee);
+      encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
+    },
+    (when) => {
+      when(ContentType.Component, () => {
+        encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+        encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+        InvokeDynamicComponent(encode, {
+          capabilities: true,
+          positional: args?.params,
+          named: hashToArgs(args?.hash),
+          blocks: namedBlocks(undefined),
+        });
+      });
+
+      when(ContentType.Helper, () => {
+        CallDynamicBlock(encode, encode.stdlibFn('cautious-non-dynamic-append'), args);
+      });
     }
-  } else {
-    op(VM_PUSH_FRAME_OP);
-    expr(op, value);
-    op(VM_INVOKE_STATIC_OP, stdlibOperand('cautious-append'));
-    op(VM_POP_FRAME_OP);
-  }
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.TrustingAppend, (op, [, value]) => {
-  if (!Array.isArray(value)) {
-    op(VM_TEXT_OP, value === null || value === undefined ? '' : String(value));
-  } else {
-    op(VM_PUSH_FRAME_OP);
-    expr(op, value);
-    op(VM_INVOKE_STATIC_OP, stdlibOperand('trusting-append'));
-    op(VM_POP_FRAME_OP);
-  }
+// This syntax corresponds to `{{name}}`, where `name` **is** an in-scope variable. Its value is
+// dynamic, and the behavior is determined by the `cautious-append` stdlib function.
+STATEMENTS.add(Op.AppendValueCautiously, (encode, [, value]) => {
+  encode.op(VM_PUSH_FRAME_OP);
+  expr(encode, value);
+  encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-append'));
+  encode.op(VM_POP_FRAME_OP);
 });
 
-STATEMENTS.add(SexpOpcodes.Block, (op, [, expr, positional, named, blocks]) => {
-  if (isGetFreeComponent(expr)) {
-    op(HighLevelResolutionOpcodes.Component, expr, (component: CompileTimeComponent) => {
-      InvokeComponent(op, component, null, positional, hashToArgs(named), blocks);
-    });
-  } else {
-    InvokeDynamicComponent(op, expr, null, positional, named, blocks, false, false);
-  }
+STATEMENTS.add(Op.AppendStatic, (encode, [, expr]) => {
+  const value = Array.isArray(expr) ? undefined : expr;
+
+  encode.op(
+    VM_TEXT_OP,
+    encode.constant(value === null || value === undefined ? '' : String(value))
+  );
 });
 
-STATEMENTS.add(SexpOpcodes.InElement, (op, [, block, guid, destination, insertBefore]) => {
+STATEMENTS.add(Op.AppendTrustedHtml, (encode, [, value]) => {
+  encode.op(VM_PUSH_FRAME_OP);
+  expr(encode, value);
+  encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('trusting-append'));
+  encode.op(VM_POP_FRAME_OP);
+});
+
+STATEMENTS.add(Op.InvokeResolvedBlockComponent, (encode, [, expr, args]) => {
+  const component = encode.resolveComponent(expr);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+
+  InvokeResolvedComponent(
+    encode,
+    component,
+    compact({
+      hash: args?.hash,
+      blocks: args?.blocks,
+    }),
+    args?.params
+  );
+});
+
+STATEMENTS.add(Op.InvokeDynamicBlock, (encode, [, expr, args]) => {
+  InvokeReplayableComponentExpression(
+    encode,
+    expr,
+    compact({ hash: args?.hash, blocks: args?.blocks }),
+    {
+      positional: args?.params,
+    }
+  );
+});
+
+STATEMENTS.add(Op.InElement, (encode, [, block, guid, destination, insertBefore]) => {
   ReplayableIf(
-    op,
+    encode,
 
     () => {
-      expr(op, guid);
+      expr(encode, guid);
 
       if (insertBefore === undefined) {
-        PushPrimitiveReference(op, undefined);
+        PushPrimitiveReference(encode, undefined);
       } else {
-        expr(op, insertBefore);
+        expr(encode, insertBefore);
       }
 
-      expr(op, destination);
-      op(VM_DUP_OP, $sp, 0);
+      expr(encode, destination);
+      encode.op(VM_DUP_OP, $sp, 0);
 
       return 4;
     },
 
     () => {
-      op(VM_PUSH_REMOTE_ELEMENT_OP);
-      InvokeStaticBlock(op, block);
-      op(VM_POP_REMOTE_ELEMENT_OP);
+      encode.op(VM_PUSH_REMOTE_ELEMENT_OP);
+      InvokeStaticBlock(encode, block);
+      encode.op(VM_POP_REMOTE_ELEMENT_OP);
     }
   );
 });
 
-STATEMENTS.add(SexpOpcodes.If, (op, [, condition, block, inverse]) =>
+STATEMENTS.add(Op.If, (encode, [, condition, block, inverse]) =>
   ReplayableIf(
-    op,
+    encode,
     () => {
-      expr(op, condition);
-      op(VM_TO_BOOLEAN_OP);
+      expr(encode, condition);
+      encode.op(VM_TO_BOOLEAN_OP);
 
       return 1;
     },
 
     () => {
-      InvokeStaticBlock(op, block);
+      InvokeStaticBlock(encode, block);
     },
 
     inverse
       ? () => {
-          InvokeStaticBlock(op, inverse);
+          InvokeStaticBlock(encode, inverse);
         }
       : undefined
   )
 );
 
-STATEMENTS.add(SexpOpcodes.Each, (op, [, value, key, block, inverse]) =>
+STATEMENTS.add(Op.Each, (encode, [, value, key, block, inverse]) =>
   Replayable(
-    op,
+    encode,
 
     () => {
       if (key) {
-        expr(op, key);
+        expr(encode, key);
       } else {
-        PushPrimitiveReference(op, null);
+        PushPrimitiveReference(encode, null);
       }
 
-      expr(op, value);
+      expr(encode, value);
 
       return 2;
     },
 
     () => {
-      op(VM_ENTER_LIST_OP, labelOperand('BODY'), labelOperand('ELSE'));
-      op(VM_PUSH_FRAME_OP);
-      op(VM_DUP_OP, $fp, 1);
-      op(VM_RETURN_TO_OP, labelOperand('ITER'));
-      op(HighLevelBuilderOpcodes.Label, 'ITER');
-      op(VM_ITERATE_OP, labelOperand('BREAK'));
-      op(HighLevelBuilderOpcodes.Label, 'BODY');
-      InvokeStaticBlockWithStack(op, block, 2);
-      op(VM_POP_OP, 2);
-      op(VM_JUMP_OP, labelOperand('FINALLY'));
-      op(HighLevelBuilderOpcodes.Label, 'BREAK');
-      op(VM_POP_FRAME_OP);
-      op(VM_EXIT_LIST_OP);
-      op(VM_JUMP_OP, labelOperand('FINALLY'));
-      op(HighLevelBuilderOpcodes.Label, 'ELSE');
+      encode.op(VM_ENTER_LIST_OP, encode.to('BODY'), encode.to('ELSE'));
+      encode.op(VM_PUSH_FRAME_OP);
+      encode.op(VM_DUP_OP, $fp, 1);
+      encode.op(VM_RETURN_TO_OP, encode.to('ITER'));
+      encode.mark('ITER');
+      encode.op(VM_ITERATE_OP, encode.to('BREAK'));
+      encode.mark('BODY');
+      InvokeStaticBlockWithStack(encode, block, 2);
+      encode.op(VM_POP_OP, 2);
+      encode.op(VM_JUMP_OP, encode.to('FINALLY'));
+      encode.mark('BREAK');
+      encode.op(VM_POP_FRAME_OP);
+      encode.op(VM_EXIT_LIST_OP);
+      encode.op(VM_JUMP_OP, encode.to('FINALLY'));
+      encode.mark('ELSE');
 
       if (inverse) {
-        InvokeStaticBlock(op, inverse);
+        InvokeStaticBlock(encode, inverse);
       }
     }
   )
 );
 
-STATEMENTS.add(SexpOpcodes.Let, (op, [, positional, block]) => {
-  let count = CompilePositional(op, positional);
-  InvokeStaticBlockWithStack(op, block, count);
+STATEMENTS.add(Op.Let, (encode, [, positional, block]) => {
+  let count = CompilePositional(encode, positional);
+  InvokeStaticBlockWithStack(encode, block, count);
 });
 
-STATEMENTS.add(SexpOpcodes.WithDynamicVars, (op, [, named, block]) => {
+STATEMENTS.add(Op.WithDynamicVars, (encode, [, named, block]) => {
   if (named) {
     let [names, expressions] = named;
 
-    CompilePositional(op, expressions);
-    DynamicScope(op, names, () => {
-      InvokeStaticBlock(op, block);
+    CompilePositional(encode, expressions);
+    DynamicScope(encode, names, () => {
+      InvokeStaticBlockWithStack(encode, block, expressions.length);
     });
   } else {
-    InvokeStaticBlock(op, block);
+    InvokeStaticBlockWithStack(encode, block, 0);
   }
 });
 
-STATEMENTS.add(SexpOpcodes.InvokeComponent, (op, [, expr, positional, named, blocks]) => {
-  if (isGetFreeComponent(expr)) {
-    op(HighLevelResolutionOpcodes.Component, expr, (component: CompileTimeComponent) => {
-      InvokeComponent(op, component, null, positional, hashToArgs(named), blocks);
-    });
-  } else {
-    InvokeDynamicComponent(op, expr, null, positional, named, blocks, false, false);
-  }
+STATEMENTS.add(Op.InvokeResolvedAngleComponent, (encode, [, expr, args]) => {
+  const component = encode.resolveComponent(expr);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+  InvokeResolvedComponent(encode, component, args);
 });
 
-function hashToArgs(hash: WireFormat.Core.Hash | null): WireFormat.Core.Hash | null {
-  if (hash === null) return null;
+STATEMENTS.add(Op.InvokeDynamicComponent, (encode, [, expr, args]) => {
+  // otherwise, the component name was an expression, so resolve the expression
+  // and invoke it as a dynamic component
+  InvokeReplayableComponentExpression(encode, expr, args, { curried: true });
+});
+
+STATEMENTS.add(Op.InvokeComponentKeyword, (encode, [, expr, args]) => {
+  InvokeReplayableComponentExpression(
+    encode,
+    expr,
+    compact({ hash: args?.hash, blocks: args?.blocks }),
+    {
+      positional: args?.params,
+    }
+  );
+});
+
+STATEMENTS.add(Op.InvokeLexicalAngleComponent, (encode, [, expr, args]) => {
+  const component = encode.getLexicalComponent(expr);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+  InvokeEarlyBoundComponent(encode, component, args);
+});
+
+STATEMENTS.add(Op.InvokeLexicalBlockComponent, (encode, [, expr, args]) => {
+  const component = encode.getLexicalComponent(expr);
+  encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+  InvokeEarlyBoundComponent(encode, component, args);
+});
+
+/**
+ * This function inserts `@` before each named argument. It has to be done at this late stage
+ * because, in some cases, the `{{}}` is ambiguous: it might be a helper or a component, and we only
+ * discover which once we resolve the value. If the value is a helper, we want to pass the named
+ * arguments as-is, and if it's a component, we want to pass them with the `@` prefix.
+ */
+export function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
+  if (!hash) return;
   let names = hash[0].map((key) => `@${key}`);
   return [names as [string, ...string[]], hash[1]];
+}
+
+type CompactObject<T> = Simplify<
+  RequireAtLeastOne<
+    {
+      [K in keyof T as undefined extends T[K] ? never : K]: T[K];
+    } & {
+      [K in keyof T as undefined extends T[K] ? K : never]?: NonNullable<T[K]>;
+    }
+  >
+>;
+
+/**
+ * Remove all `undefined` values from an object.
+ *
+ * The return type:
+ *
+ * - removes all properties whose value is literally `undefined`.
+ * - replaces properties whose value is `T | undefined` with an optional property with the value
+ *   `T`.
+ *
+ * Example:
+ *
+ * ```ts
+ * interface Foo {
+ *   foo?: number;
+ *   bar: number | undefined;
+ *   baz: number;
+ *   bat?: number | undefined;
+ * }
+ *
+ * const obj: Foo = {
+ *   bar: 123,
+ *   baz: 456,
+ *   bat: undefined
+ * };
+ *
+ * const compacted = compact(obj);
+ *
+ * // compacted is now:
+ * interface Foo {
+ *   foo?: number;
+ *   bar?: number;
+ *   baz: number;
+ *   bat?: number;
+ * }
+ * ```
+ */
+export function compact<T extends object>(
+  object: T | undefined
+): Optional<Simplify<CompactObject<T>>> {
+  if (!object) return;
+
+  const entries = Object.entries(object).filter(([_, v]) => v !== undefined);
+  if (entries.length === 0) return undefined;
+
+  return Object.fromEntries(entries) as Simplify<CompactObject<T>> | undefined;
 }

@@ -10,17 +10,17 @@ export function toAppend<T>({
 }: KeywordDelegate<GenericKeywordNode, T, mir.ExpressionNode>): KeywordDelegate<
   GenericKeywordNode,
   T,
-  mir.AppendTextNode
+  mir.AppendValueCautiously
 > {
   return {
     assert,
     translate(
       { node, state }: { node: GenericKeywordNode; state: NormalizationState },
       value: T
-    ): Result<mir.AppendTextNode> {
+    ): Result<mir.AppendValueCautiously> {
       let result = translate({ node, state }, value);
 
-      return result.mapOk((text) => new mir.AppendTextNode({ text, loc: node.loc }));
+      return result.mapOk((value) => new mir.AppendValueCautiously({ value, loc: node.loc }));
     },
   };
 }

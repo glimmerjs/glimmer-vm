@@ -6,8 +6,13 @@ import type { NormalizationState } from '../context';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { VISIT_EXPRS } from '../visitors/expressions';
-import { VISIT_STMTS } from '../visitors/statements';
+import {
+  visitArgs,
+  visitExpr,
+  visitNamedArguments,
+  visitPositional,
+} from '../visitors/expressions';
+import { visitNamedBlock, visitNamedBlocks } from '../visitors/statements';
 import { keywords } from './impl';
 import { assertCurryKeyword } from './utils/curry';
 
@@ -50,18 +55,18 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }: { insertBefore: ASTv2.ExpressionNode | null; destination: ASTv2.ExpressionNode }
     ): Result<mir.InElement> {
       let named = node.blocks.get('default');
-      let body = VISIT_STMTS.NamedBlock(named, state);
-      let destinationResult = VISIT_EXPRS.visit(destination, state);
+      let body = visitNamedBlock(named, state);
+      let destinationResult = visitExpr(destination, state);
 
       return Result.all(body, destinationResult)
         .andThen(
           ([body, destination]): Result<{
             body: mir.NamedBlock;
             destination: mir.ExpressionNode;
-            insertBefore: mir.ExpressionNode;
+            insertBefore: mir.MaybeMissingExpressionNode;
           }> => {
             if (insertBefore) {
-              return VISIT_EXPRS.visit(insertBefore, state).mapOk((insertBefore) => ({
+              return visitExpr(insertBefore, state).mapOk((insertBefore) => ({
                 body,
                 destination,
                 insertBefore,
@@ -132,17 +137,17 @@ export const BLOCK_KEYWORDS = keywords('Block')
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
       { condition }: { condition: ASTv2.ExpressionNode }
-    ): Result<mir.If> {
+    ): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let conditionResult = VISIT_EXPRS.visit(condition, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
-      let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
+      let conditionResult = visitExpr(condition, state);
+      let blockResult = visitNamedBlock(block, state);
+      let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          new mir.IfContent({
             loc: node.loc,
             condition,
             block,
@@ -194,17 +199,17 @@ export const BLOCK_KEYWORDS = keywords('Block')
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
       { condition }: { condition: ASTv2.ExpressionNode }
-    ): Result<mir.If> {
+    ): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let conditionResult = VISIT_EXPRS.visit(condition, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
-      let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
+      let conditionResult = visitExpr(condition, state);
+      let blockResult = visitNamedBlock(block, state);
+      let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          new mir.IfContent({
             loc: node.loc,
             condition: new mir.Not({ value: condition, loc: node.loc }),
             block,
@@ -263,11 +268,11 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let valueResult = VISIT_EXPRS.visit(value, state);
-      let keyResult = key ? VISIT_EXPRS.visit(key, state) : Ok(null);
+      let valueResult = visitExpr(value, state);
+      let keyResult = key ? visitExpr(key, state) : Ok(null);
 
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
-      let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
+      let blockResult = visitNamedBlock(block, state);
+      let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
       return Result.all(valueResult, keyResult, blockResult, inverseResult).mapOk(
         ([value, key, block, inverse]) =>
@@ -322,8 +327,8 @@ export const BLOCK_KEYWORDS = keywords('Block')
     ): Result<mir.Let> {
       let block = node.blocks.get('default');
 
-      let positionalResult = VISIT_EXPRS.Positional(positional, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
+      let positionalResult = visitPositional(positional, state);
+      let blockResult = visitNamedBlock(block, state);
 
       return Result.all(positionalResult, blockResult).mapOk(
         ([positional, block]) =>
@@ -348,8 +353,8 @@ export const BLOCK_KEYWORDS = keywords('Block')
     ): Result<mir.WithDynamicVars> {
       let block = node.blocks.get('default');
 
-      let namedResult = VISIT_EXPRS.NamedArguments(named, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
+      let namedResult = visitNamedArguments(named, state);
+      let blockResult = visitNamedBlock(block, state);
 
       return Result.all(namedResult, blockResult).mapOk(
         ([named, block]) =>
@@ -367,19 +372,42 @@ export const BLOCK_KEYWORDS = keywords('Block')
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
       { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
-    ): Result<mir.InvokeComponent> {
-      let definitionResult = VISIT_EXPRS.visit(definition, state);
-      let argsResult = VISIT_EXPRS.Args(args, state);
-      let blocksResult = VISIT_STMTS.NamedBlocks(node.blocks, state);
+    ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
+      let definitionResult = visitExpr(definition, state);
+      let argsResult = visitArgs(args, state);
+      let blocksResult = visitNamedBlocks(node.blocks, state);
 
-      return Result.all(definitionResult, argsResult, blocksResult).mapOk(
-        ([definition, args, blocks]) =>
-          new mir.InvokeComponent({
-            loc: node.loc,
-            definition,
-            args,
-            blocks,
-          })
+      return Result.all(definitionResult, argsResult, blocksResult).andThen(
+        ([definition, args, blocks]) => {
+          if (definition.type === 'Literal') {
+            if (typeof definition.value !== 'string') {
+              return Err(
+                generateSyntaxError(
+                  `Expected literal component name to be a string, but received ${definition.value}`,
+                  definition.loc
+                )
+              );
+            }
+
+            return Ok(
+              new mir.InvokeResolvedComponentKeyword({
+                loc: node.loc,
+                definition: definition.value,
+                args,
+                blocks,
+              })
+            );
+          }
+
+          return Ok(
+            new mir.InvokeComponentKeyword({
+              loc: node.loc,
+              definition,
+              args,
+              blocks,
+            })
+          );
+        }
       );
     },
   });
