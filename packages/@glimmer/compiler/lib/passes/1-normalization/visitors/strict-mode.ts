@@ -71,8 +71,8 @@ export default class StrictModeValidationPass {
       case 'AppendTrustedHTML':
         return this.AppendTrustedHTML(statement);
 
-      case 'AppendValue':
-        return this.AppendValue(statement);
+      case 'AppendValueCautiously':
+        return this.AppendValueCautiously(statement);
 
       case 'AngleBracketComponent':
         return this.AngleBracketComponent(statement);
@@ -84,6 +84,7 @@ export default class StrictModeValidationPass {
         return this.InvokeBlock(statement);
 
       case 'AppendHtmlComment':
+      case 'AppendHtmlText':
         return Ok(null);
 
       case 'IfContent':
@@ -252,7 +253,7 @@ export default class StrictModeValidationPass {
     return this.Expression(statement.html, statement);
   }
 
-  AppendValue(statement: mir.AppendValue): Result<null> {
+  AppendValueCautiously(statement: mir.AppendValueCautiously): Result<null> {
     if (statement.value.type === 'CallExpression') {
       return this.Expression(statement.value, statement, COMPONENT_OR_HELPER_RESOLUTION);
     } else {

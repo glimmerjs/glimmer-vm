@@ -1,8 +1,6 @@
 import type { VariableKind } from '@glimmer/constants';
 import type {
   AttrNamespace,
-  CallLexicalOpcode,
-  CallResolvedOpcode,
   Expressions,
   GetResolvedOrKeywordOpcode,
   InvokeDynamicBlockOpcode,
@@ -11,7 +9,6 @@ import type {
   Nullable,
   Optional,
   PresentArray,
-  UnknownInvokeOpcode,
   WireFormat,
 } from '@glimmer/interfaces';
 import {
@@ -23,7 +20,6 @@ import {
   BUILDER_COMMENT,
   BUILDER_LITERAL,
   CALL_EXPR,
-  CALL_HEAD,
   COMMENT_HEAD,
   CONCAT_EXPR,
   DYNAMIC_COMPONENT_HEAD,
@@ -66,15 +62,7 @@ import type {
   Variable,
 } from './builder-interface';
 
-import {
-  buildAppend,
-  CALL_TYPES,
-  compact,
-  headType,
-  isGet,
-  needsAtNames,
-  ProgramSymbols,
-} from '../builder';
+import { compact, isGet, isInvokeResolved, needsAtNames, ProgramSymbols } from '../builder';
 import { normalizeStatement } from './builder-interface';
 
 export function buildStatements(
@@ -105,49 +93,17 @@ export function buildStatement(
 ): WireFormat.Content[] {
   switch (normalized.kind) {
     case APPEND_PATH_HEAD: {
-      return [buildAppend(normalized.trusted, buildGetPath(normalized.path, symbols))];
+      const path = buildGetPath(normalized.path, symbols);
+      return [normalized.trusted ? [Op.AppendTrustedHtml, path] : buildAppendCautiously(path)];
     }
 
     case APPEND_EXPR_HEAD: {
-      return [
-        buildAppend(
-          normalized.trusted,
-          buildExpression(normalized.expr, normalized.trusted ? 'TrustedAppend' : 'Append', symbols)
-        ),
-      ];
-    }
-
-    case CALL_HEAD: {
-      let { head: path, params, hash, trusted } = normalized;
-      let builtParams: Optional<WireFormat.Core.Params> = params
-        ? buildParams(params, symbols)
-        : undefined;
-      let builtHash: Optional<WireFormat.Core.Hash> = hash ? buildHash(hash, symbols) : undefined;
-      let builtExpr = buildCallHead(
-        path,
-        trusted
-          ? VariableResolutionContext.ResolveAsHelperHead
-          : VariableResolutionContext.ResolveAsComponentOrHelperHead,
+      const expr = buildExpression(
+        normalized.expr,
+        normalized.trusted ? 'TrustedAppend' : 'Append',
         symbols
-      ) as WireFormat.Expressions.GetUnknownAppend;
-
-      const type = headType(builtExpr, 'stmt:call-head');
-      const call: WireFormat.Expressions.SomeInvoke = [
-        CALL_TYPES[type],
-        builtExpr,
-        buildArgs(builtParams, builtHash),
-      ];
-
-      return [
-        [
-          trusted
-            ? Op.AppendTrustedHtml
-            : type === 'lexical'
-              ? Op.AppendLexical
-              : Op.AppendResolved,
-          call,
-        ],
-      ];
+      );
+      return [normalized.trusted ? [Op.AppendTrustedHtml, expr] : buildAppendCautiously(expr)];
     }
 
     case LITERAL_HEAD: {
@@ -189,6 +145,26 @@ export function buildStatement(
 
     default:
       assertNever(normalized);
+  }
+}
+
+export function buildAppendCautiously(expr: Expressions.Expression): WireFormat.Content.SomeAppend {
+  if (Array.isArray(expr)) {
+    if (expr[0] === Op.GetFreeAsComponentOrHelperHead) {
+      return [Op.AppendResolvedInvokable, expr[1]];
+    } else if (isInvokeResolved(expr)) {
+      const [, callee, args] = expr;
+
+      return [Op.AppendResolvedInvokable, callee, args];
+    }
+
+    return [Op.AppendValueCautiously, expr];
+  }
+
+  if (typeof expr === 'string') {
+    return [Op.AppendHtmlText, expr];
+  } else {
+    return [Op.AppendStatic, expr];
   }
 }
 
@@ -401,11 +377,15 @@ export function buildExpression(
         symbols
       );
 
-      return [
-        CALL_TYPES[headType(builtExpr, 'stmt:call-expr')],
-        builtExpr,
-        buildArgs(builtParams, builtHash),
-      ];
+      if (builtExpr.length === 2) {
+        switch (builtExpr[0]) {
+          case Op.GetFreeAsHelperHead:
+          case Op.GetFreeAsComponentOrHelperHead:
+            return [Op.CallResolved, builtExpr[1], buildArgs(builtParams, builtHash)];
+        }
+      }
+
+      return [Op.CallDynamicValue, builtExpr, buildArgs(builtParams, builtHash)];
     }
 
     case HAS_BLOCK_EXPR: {
@@ -638,35 +618,6 @@ export function buildBlocks(
   }
 
   return keys && values ? [keys, values] : undefined;
-}
-
-/**
- * Returns true if the expression is a call with a simple name (i.e. `(hello world)` or
- * `{{hello world}}`) and the name needs to be resolved via the resolver.
- *
- * If this function returns `false`, then it either has a non-simple callee (i.e. `this.hello`,
- * `@hello` or a nested `(hello)`) and we don't need special resolution machinery to invoke it.
- */
-export function invokeType(
-  expr: Expressions.Expression
-): CallLexicalOpcode | CallResolvedOpcode | UnknownInvokeOpcode {
-  if (!Array.isArray(expr))
-    throw Error('Something is suspicious (expected invoke type to be an array) @fixme');
-
-  let type = expr[0];
-
-  switch (type) {
-    case Op.GetLexicalSymbol:
-    case Op.GetLocalSymbol:
-      return Op.CallLexical;
-    case Op.GetFreeAsComponentOrHelperHead:
-      return Op.UnknownInvoke;
-    case Op.GetFreeAsHelperHead:
-    case Op.GetStrictKeyword:
-      return Op.CallResolved;
-    default:
-      throw Error(`Something is suspicious (unexpected ${type} opcode in append) @fixme`);
-  }
 }
 
 export function buildBlockArgs(

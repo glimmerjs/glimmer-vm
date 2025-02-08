@@ -16,7 +16,6 @@ import {
   BUILDER_LITERAL,
   BUILDER_MODIFIER,
   CALL_EXPR,
-  CALL_HEAD,
   COMMENT_HEAD,
   CONCAT_EXPR,
   DYNAMIC_COMPONENT_HEAD,
@@ -96,13 +95,6 @@ export interface NormalizedKeywordStatement {
 }
 
 export type NormalizedStatement =
-  | {
-      kind: CALL_HEAD;
-      head: NormalizedHead;
-      params: Nullable<NormalizedParams>;
-      hash: Nullable<NormalizedHash>;
-      trusted: boolean;
-    }
   | {
       kind: BLOCK_HEAD;
       head: NormalizedHead;
@@ -204,13 +196,7 @@ export function normalizeSugaryArrayStatement(
         }
       }
 
-      return {
-        kind: CALL_HEAD,
-        head: normalizeCallHead(name),
-        params,
-        hash,
-        trusted: false,
-      };
+      throw Error('is this for real?');
     }
 
     case '#': {

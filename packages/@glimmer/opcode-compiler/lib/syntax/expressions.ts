@@ -16,9 +16,8 @@ import {
   VM_PUSH_FRAME_OP,
   VM_SPREAD_BLOCK_OP,
 } from '@glimmer/constants';
-import { localAssert } from '@glimmer/debug-util';
 import { $v0 } from '@glimmer/vm';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { EncodeOp } from '../opcode-builder/encoder';
 
@@ -36,7 +35,7 @@ export const Concat = (encode: EncodeOp, count: number): void => {
   encode.op(VM_CONCAT_OP, count);
 };
 
-EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
+EXPRESSIONS.add(Op.Concat, (op, [, parts]) => {
   for (let part of parts) {
     expr(op, part);
   }
@@ -44,24 +43,17 @@ EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
   Concat(op, parts.length);
 });
 
-// export const CallDynamic = (op: BuildExpression, )
-
-EXPRESSIONS.add(SexpOpcodes.CallResolved, (encode, [, expression, args]) => {
-  localAssert(
-    Array.isArray(expression) && expression[0] === SexpOpcodes.GetFreeAsHelperHead,
-    'Expected a helper head'
-  );
-
-  const handle = encode.resolveHelper(expression[1]);
+EXPRESSIONS.add(Op.CallResolved, (encode, [, callee, args]) => {
+  const handle = encode.resolveHelper(callee);
   Call(encode, handle, args);
 });
 
-EXPRESSIONS.add(SexpOpcodes.CallLexical, (encode, [, expression, args]) => {
+EXPRESSIONS.add(Op.CallDynamicValue, (encode, [, expression, args]) => {
   expr(encode, expression);
   CallDynamicExpr(encode, args);
 });
 
-EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, args]) => {
+EXPRESSIONS.add(Op.Curry, (op, [, expr, type, args]) => {
   Curry(op, type, expr, args);
 });
 
@@ -71,23 +63,23 @@ export const GetLocalSymbol = (encode: EncodeOp, sym: number): void => {
 
 export const GetPath = (encode: EncodeOp, path: string[]): void => withPath(encode, path);
 
-EXPRESSIONS.add(SexpOpcodes.GetLocalSymbol, (encode, [, sym, path]) => {
+EXPRESSIONS.add(Op.GetLocalSymbol, (encode, [, sym, path]) => {
   GetLocalSymbol(encode, sym);
   if (path) GetPath(encode, path);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetLexicalSymbol, (encode, [, sym, path]) => {
+EXPRESSIONS.add(Op.GetLexicalSymbol, (encode, [, sym, path]) => {
   const handle = encode.lexical(sym);
   encode.op(VM_CONSTANT_REFERENCE_OP, handle);
   withPath(encode, path);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetStrictKeyword, (encode, [, symbol]) => {
+EXPRESSIONS.add(Op.GetStrictKeyword, (encode, [, symbol]) => {
   const handle = encode.keywordHelper(symbol);
   Call(encode, handle, undefined);
 });
 
-EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHead, (encode, [, symbol]) => {
+EXPRESSIONS.add(Op.GetFreeAsHelperHead, (encode, [, symbol]) => {
   const handle = encode.resolveHelper(symbol);
   Call(encode, handle, undefined);
 });
@@ -107,8 +99,8 @@ export const Undefined = (encode: EncodeOp): void => PushPrimitiveReference(enco
  */
 export const HasBlock = (encode: EncodeOp): void => encode.op(VM_HAS_BLOCK_OP);
 
-EXPRESSIONS.add(SexpOpcodes.Undefined, (encode) => PushPrimitiveReference(encode, undefined));
-EXPRESSIONS.add(SexpOpcodes.HasBlock, (encode, [, block]) => {
+EXPRESSIONS.add(Op.Undefined, (encode) => PushPrimitiveReference(encode, undefined));
+EXPRESSIONS.add(Op.HasBlock, (encode, [, block]) => {
   expr(encode, block);
   HasBlock(encode);
 });
@@ -122,7 +114,7 @@ export const HasBlockParams = (encode: EncodeOp): void => {
   encode.op(VM_HAS_BLOCK_PARAMS_OP);
 };
 
-EXPRESSIONS.add(SexpOpcodes.HasBlockParams, (encode, [, block]) => {
+EXPRESSIONS.add(Op.HasBlockParams, (encode, [, block]) => {
   expr(encode, block);
   HasBlockParams(encode);
 });
@@ -136,7 +128,7 @@ export const IfInline = (encode: EncodeOp): void => {
   encode.op(VM_IF_INLINE_OP);
 };
 
-EXPRESSIONS.add(SexpOpcodes.IfInline, (encode, [, condition, truthy, falsy]) => {
+EXPRESSIONS.add(Op.IfInline, (encode, [, condition, truthy, falsy]) => {
   // Push in reverse order
   expr(encode, falsy);
   expr(encode, truthy);
@@ -149,14 +141,14 @@ EXPRESSIONS.add(SexpOpcodes.IfInline, (encode, [, condition, truthy, falsy]) => 
  */
 export const Not = (encode: EncodeOp): void => encode.op(VM_NOT_OP);
 
-EXPRESSIONS.add(SexpOpcodes.Not, (encode, [, value]) => {
+EXPRESSIONS.add(Op.Not, (encode, [, value]) => {
   expr(encode, value);
   encode.op(VM_NOT_OP);
 });
 
 export const GetDynamicVar = (encode: EncodeOp): void => encode.op(VM_GET_DYNAMIC_VAR_OP);
 
-EXPRESSIONS.add(SexpOpcodes.GetDynamicVar, (encode, [, expression]) => {
+EXPRESSIONS.add(Op.GetDynamicVar, (encode, [, expression]) => {
   expr(encode, expression);
   encode.op(VM_GET_DYNAMIC_VAR_OP);
 });
@@ -169,6 +161,6 @@ export const Log = (encode: EncodeOp, expr: () => void) => {
   encode.op(VM_FETCH_OP, $v0);
 };
 
-EXPRESSIONS.add(SexpOpcodes.Log, (encode, [, positional]) => {
+EXPRESSIONS.add(Op.Log, (encode, [, positional]) => {
   Log(encode, () => SimpleArgs(encode, positional && { params: positional }, false));
 });

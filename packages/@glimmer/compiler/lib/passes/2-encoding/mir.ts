@@ -160,7 +160,14 @@ export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
  *
  * - `{{<expr>}}` where `expr` is not a resolved or lexical reference.
  */
-export class AppendValue extends node('AppendValue').fields<{ value: ExpressionNode }>() {}
+export class AppendValueCautiously extends node('AppendValueCautiously').fields<{
+  value: ExpressionNode;
+}>() {}
+
+export class AppendHtmlText extends node('AppendHtmlText').fields<{
+  value: string;
+}>() {}
+
 export class AppendHtmlComment extends node('AppendHtmlComment').fields<{ value: SourceSlice }>() {}
 
 export class Yield extends node('Yield').fields<{
@@ -327,8 +334,9 @@ export type Content =
   | InElement
   | Debugger
   | Yield
+  | AppendHtmlText
   | AppendTrustedHTML
-  | AppendValue
+  | AppendValueCautiously
   | AngleBracketComponent
   | SimpleElement
   | InvokeBlockComponent

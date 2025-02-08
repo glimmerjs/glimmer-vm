@@ -39,7 +39,11 @@ export class ResolvedVarReference extends node('Resolved').fields<{
   name: string;
   resolution: FreeVarResolution;
   symbol: number;
-}>() {}
+}>() {
+  get isResolvedAppendable(): boolean {
+    return this.resolution.isResolvedAppendable;
+  }
+}
 
 export type VariableReference =
   | ThisReference

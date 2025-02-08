@@ -21,7 +21,6 @@ import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
 import {
-  buildAppend,
   buildComponentArgs,
   compact,
   headType,
@@ -73,8 +72,9 @@ export function compactSexpr<T extends WireFormat.Content>(content: Buildable<T>
 }
 
 function encodeContent(stmt: mir.Debugger): WireFormat.Content.Debugger;
+function encodeContent(stmt: mir.AppendHtmlComment): WireFormat.Content.AppendHtmlText;
 function encodeContent(stmt: mir.AppendHtmlComment): WireFormat.Content.AppendHtmlComment;
-function encodeContent(stmt: mir.AppendValue): WireFormat.Content.AppendValue;
+function encodeContent(stmt: mir.AppendValueCautiously): WireFormat.Content.AppendValueCautiously;
 function encodeContent(stmt: mir.AppendTrustedHTML): WireFormat.Content.AppendTrustedHtml;
 function encodeContent(stmt: mir.Yield): WireFormat.Content.Yield;
 function encodeContent(stmt: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent;
@@ -99,8 +99,10 @@ function encodeContent(stmt: mir.Content): Buildable<WireFormat.Content> | WireC
       return Debugger(stmt);
     case 'AppendHtmlComment':
       return AppendComment(stmt);
-    case 'AppendValue':
-      return AppendValue(stmt);
+    case 'AppendHtmlText':
+      return AppendText(stmt);
+    case 'AppendValueCautiously':
+      return AppendValueCautiously(stmt);
     case 'AppendTrustedHTML':
       return AppendTrustedHTML(stmt);
     case 'Yield':
@@ -196,14 +198,42 @@ export function AppendTrustedHTML({
   return [Op.AppendTrustedHtml, encodeExpr(html)];
 }
 
-export function AppendValue({ value }: mir.AppendValue): WireFormat.Content.SomeAppend {
-  return buildAppend(false, encodeExpr(value));
+export function AppendValueCautiously({
+  value,
+}: mir.AppendValueCautiously): WireFormat.Content.SomeAppend {
+  switch (value.type) {
+    case 'Resolved': {
+      return [Op.AppendResolvedInvokable, value.symbol];
+    }
+    case 'CallExpression': {
+      const args = encodeArgs(value.args);
+
+      return isResolvedAppendable(value.callee)
+        ? [Op.AppendResolvedInvokable, value.callee.symbol, args]
+        : [Op.AppendDynamicInvokable, encodeExpr(value.callee), args];
+    }
+
+    case 'Literal':
+      return [Op.AppendStatic, encodeExpr(value)];
+  }
+
+  return [Op.AppendValueCautiously, encodeExpr(value)];
+}
+
+function isResolvedAppendable(
+  value: mir.ExpressionNode
+): value is Extract<mir.ExpressionNode, { type: 'Resolved' }> {
+  return value.type === 'Resolved' && value.isResolvedAppendable;
 }
 
 export function AppendComment({
   value,
 }: mir.AppendHtmlComment): WireFormat.Content.AppendHtmlComment {
   return [Op.Comment, value.chars];
+}
+
+export function AppendText({ value }: mir.AppendHtmlText): WireFormat.Content.AppendHtmlText {
+  return [Op.AppendHtmlText, value];
 }
 
 export function SimpleElement({
@@ -368,9 +398,11 @@ export function InvokeComponentKeyword({
   blocks,
 }: mir.InvokeComponentKeyword): WireFormat.Content.InvokeComponentKeyword {
   const expression = encodeExpr(definition);
-  const type = headType(expression, 'component');
 
-  localAssert(type !== 'keyword', `[BUG] {{component <KW>}} is not a valid node`);
+  localAssert(
+    expression[0] !== Op.GetStrictKeyword,
+    `[BUG] {{component <KW>}} is not a valid node`
+  );
 
   return [Op.InvokeComponentKeyword, expression, BlockArgs(args, blocks, { insertAtPrefix: true })];
 }

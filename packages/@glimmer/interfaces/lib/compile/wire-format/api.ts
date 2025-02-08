@@ -5,16 +5,15 @@ import type { PresentArray } from '../../array';
 import type { Nullable, Optional } from '../../core';
 import type { CurriedType } from '../../curry';
 import type {
-  AppendBuiltinHelperOpcode,
-  AppendLexicalOpcode,
-  AppendOpcode,
-  AppendResolvedHelperOpcode,
-  AppendResolvedOpcode,
+  AppendDynamicInvokableOpcode,
+  AppendHtmlTextOpcode,
+  AppendResolvedInvokableOpcode,
   AppendStaticOpcode,
   AppendTrustedHtmlOpcode,
+  AppendValueCautiouslyOpcode,
   AttrOpcode,
   AttrSplatOpcode,
-  CallLexicalOpcode,
+  CallDynamicValueOpcode,
   CallResolvedOpcode,
   CloseElementOpcode,
   CommentOpcode,
@@ -59,8 +58,6 @@ import type {
   TrustingComponentAttrOpcode,
   TrustingDynamicAttrOpcode,
   UndefinedOpcode,
-  UnknownAppendOpcode,
-  UnknownTrustingAppendOpcode,
   WithDynamicVarsOpcode,
   YieldOpcode,
 } from './opcodes.js';
@@ -176,23 +173,29 @@ export namespace Expressions {
     | HasBlock
     | HasBlockParams
     | Curry
-    | ResolvedHelper
-    | ConstantHelper
+    | CallResolvedHelper
+    | CallDynamicValue
     | Undefined
     | IfInline
     | Not
     | Log;
 
+  export type StaticValue = Value | Undefined;
   export type Expression = TupleExpression | Value;
 
   export type Concat = [ConcatOpcode, Core.ConcatParams];
-  export type ResolvedHelper = [CallResolvedOpcode, Expression, args?: Optional<Core.Args>];
-  export type ConstantHelper = [CallLexicalOpcode, Expression, args?: Optional<Core.Args>];
+  export type CallResolvedHelper = [
+    CallResolvedOpcode,
+    /** upvar */
+    callee: number,
+    args?: Optional<Core.Args>,
+  ];
+  export type CallDynamicValue = [CallDynamicValueOpcode, Expression, args?: Optional<Core.Args>];
   export type HasBlock = [HasBlockOpcode, Expression];
   export type HasBlockParams = [HasBlockParamsOpcode, Expression];
   export type Curry = [CurryOpcode, Expression, CurriedType, args?: Optional<Core.Args>];
 
-  export type SomeInvoke = ResolvedHelper | ConstantHelper;
+  export type SomeCallHelper = CallResolvedHelper | CallDynamicValue;
 
   export type IfInline = [
     op: IfInlineOpcode,
@@ -244,16 +247,18 @@ export namespace Content {
   export type Blocks = Core.Blocks;
   export type Path = Core.Path;
 
+  // Corresponds to `{{...}}`
   export type SomeAppend =
-    | AppendValue
+    // `{{value}}` where `value` is in scope
+    | AppendValueCautiously
+    // `{{"static"}}`: a special-case for literal values
     | AppendStatic
-    | AppendResolvedComponent
-    | AppendLexical
-    | AppendResolved
-    | AppendBuiltinHelper
-    | AppendTrustedHtml
-    | UnknownAppend
-    | UnknownTrustingAppend;
+    // `{{<expr> ...args}}` where `expr` only references in-scope variables. Either `args` is
+    // present or `expr` is known to be an invokable.
+    | AppendDynamicInvokable
+    // `{{<resolved var> ...args}}` where `resolved var` is _not_ an in-scope variable.
+    | AppendResolvedInvokable;
+
   export type SomeModifier = LexicalModifier | ResolvedModifier;
   export type SomeInvokeComponent =
     | InvokeComponentKeyword
@@ -266,20 +271,24 @@ export namespace Content {
     | InvokeLexicalAngleComponent
     | InvokeLexicalBlockComponent;
 
-  export type UnknownAppend = [UnknownAppendOpcode, Expressions.GetUnknownAppend];
-  export type UnknownTrustingAppend = [UnknownTrustingAppendOpcode, Expressions.GetUnknownAppend];
-  export type AppendValue = [AppendOpcode, TupleExpression];
-  export type AppendResolvedComponent = [AppendResolvedOpcode, target: Expressions.SomeInvoke];
-  export type AppendLexical = [AppendLexicalOpcode, target: Expressions.SomeInvoke];
-  export type AppendResolved = [AppendResolvedHelperOpcode, target: Expressions.SomeInvoke];
-  export type AppendBuiltinHelper = [AppendBuiltinHelperOpcode, target: Expressions.SomeInvoke];
-  export type AppendStatic = [
-    AppendStaticOpcode,
-    target: string | number | boolean | null | undefined,
+  export type AppendValueCautiously = [AppendValueCautiouslyOpcode, TupleExpression];
+  export type AppendDynamicInvokable = [
+    AppendDynamicInvokableOpcode,
+    callee: Expression,
+    args?: Optional<Core.Args>,
+  ];
+  export type AppendResolvedInvokable = [
+    AppendResolvedInvokableOpcode,
+    upvar: number,
+    args?: Optional<Core.Args>,
   ];
 
+  export type AppendStatic = [AppendStaticOpcode, value: Expressions.StaticValue];
+
+  // Corresponds to `{{{...}}}`
   export type AppendTrustedHtml = [AppendTrustedHtmlOpcode, Expression];
   export type AppendHtmlComment = [CommentOpcode, string];
+  export type AppendHtmlText = [AppendHtmlTextOpcode, string];
   export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.Args>];
   export type ResolvedModifier = [ResolvedModifierOpcode, Expression, args?: Optional<Core.Args>];
   export type ResolvedBlock = [
@@ -398,32 +407,34 @@ export namespace Content {
     args?: Optional<Core.ComponentArgs>,
   ];
 
+  export type ControlFlow = Debugger | InElement | If | Each | Let | WithDynamicVars | Yield;
+
+  export type StaticHtmlContent =
+    | AppendHtmlComment
+    | AppendHtmlText
+    | OpenElement
+    | FlushElement
+    | CloseElement;
+
+  export type DynamicHtmlContent =
+    | OpenElementWithSplat
+    | Attribute
+    | AttrSplat
+    | StaticArg
+    | DynamicArg;
+
   /**
    * A Handlebars statement
    */
   export type Content =
     | SomeAppend
+    | AppendTrustedHtml
+    | StaticHtmlContent
+    | DynamicHtmlContent
     | SomeModifier
     | SomeInvokeComponent
     | SomeBlock
-    | AppendHtmlComment
-    | InvokeResolvedComponent
-    | InvokeDynamicComponent
-    | OpenElement
-    | OpenElementWithSplat
-    | FlushElement
-    | CloseElement
-    | Attribute
-    | AttrSplat
-    | Yield
-    | StaticArg
-    | DynamicArg
-    | Debugger
-    | InElement
-    | If
-    | Each
-    | Let
-    | WithDynamicVars;
+    | ControlFlow;
 
   export type Attribute =
     | StaticAttr

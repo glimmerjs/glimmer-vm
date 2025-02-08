@@ -10,7 +10,7 @@ import type {
   ResolutionTimeConstants,
   SexpOpcode,
 } from '@glimmer/interfaces';
-import { debugToString, expect, localAssert, unwrap } from '@glimmer/debug-util';
+import { expect, localAssert, unwrap } from '@glimmer/debug-util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.TupleExpression {
@@ -190,43 +190,25 @@ export function resolveModifier(
 /**
  * {{component-or-helper arg}}
  */
-export function resolveAppendInvokable(
+export function resolveAppendable(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  expr: Expressions.Expression,
+  upvar: number,
   { ifComponent, ifHelper }: ResolveAppendInvokableOptions
 ): void {
-  localAssert(
-    isGetFreeComponentOrHelper(expr),
-    'Attempted to resolve a component or helper with incorrect opcode'
-  );
+  let {
+    symbols: { upvars },
+    owner,
+  } = assertResolverInvariants(meta);
 
-  let type = expr[0];
+  let name = unwrap(upvars[upvar]);
+  let definition = resolver?.lookupComponent?.(name, owner) ?? null;
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
-    let {
-      scopeValues,
-      owner,
-      symbols: { lexical },
-    } = meta;
-    let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
-      expr[1]
-    ];
-
-    let component = constants.component(
-      definition as object,
-      expect(owner, 'BUG: expected owner when resolving component definition'),
-      true,
-      lexical?.at(expr[1])
-    );
-
-    if (component !== null) {
-      ifComponent(component);
-      return;
-    }
-
-    let helper = constants.helper(definition as object, null, true);
+  if (definition !== null) {
+    ifComponent(constants.resolvedComponent(definition, name));
+  } else {
+    let helper = resolver?.lookupHelper?.(name, owner) ?? null;
 
     if (import.meta.env.DEV && helper === null) {
       localAssert(
@@ -235,52 +217,12 @@ export function resolveAppendInvokable(
       );
 
       throw new Error(
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-        `Attempted to use a value as either a component or helper, but it did not have a component manager or helper manager associated with it. The value was: ${debugToString!(
-          definition
-        )}`
+        `Attempted to resolve \`${name}\`, which was expected to be a component or helper, but nothing was found.`
       );
     }
 
-    ifHelper(expect(helper, 'BUG: helper must exist'));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
-    ifHelper(
-      lookupBuiltInHelper(
-        expr as Expressions.GetStrictKeyword,
-        resolver,
-        meta,
-        constants,
-        'component or helper'
-      )
-    );
-  } else {
-    let {
-      symbols: { upvars },
-      owner,
-    } = assertResolverInvariants(meta);
-
-    let name = unwrap(upvars[expr[1]]);
-    let definition = resolver?.lookupComponent?.(name, owner) ?? null;
-
-    if (definition !== null) {
-      ifComponent(constants.resolvedComponent(definition, name));
-    } else {
-      let helper = resolver?.lookupHelper?.(name, owner) ?? null;
-
-      if (import.meta.env.DEV && helper === null) {
-        localAssert(
-          !meta.isStrictMode,
-          'Strict mode errors should already be handled at compile time'
-        );
-
-        throw new Error(
-          `Attempted to resolve \`${name}\`, which was expected to be a component or helper, but nothing was found.`
-        );
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-      ifHelper(constants.helper(helper!, name));
-    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+    ifHelper(constants.helper(helper!, name));
   }
 }
 

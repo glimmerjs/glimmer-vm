@@ -411,7 +411,7 @@ test('double curlies', `<div>{{title}}</div>`, ['<div>', ['^title']]);
 
 test('triple curlies', `<div>{{{title}}}</div>`, ['<div>', [[BUILDER_APPEND, '^title', true]]]);
 
-test.todo(
+test(
   'triple curly helpers',
   `{{{unescaped "<strong>Yolo</strong>"}}} {{escaped "<strong>Yolo</strong>"}}`,
   [BUILDER_APPEND, ['(^unescaped)', [s`<strong>Yolo</strong>`]], true],

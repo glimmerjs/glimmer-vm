@@ -1,8 +1,4 @@
 import type {
-  AppendLexicalOpcode,
-  AppendResolvedOpcode,
-  CallLexicalOpcode,
-  CallResolvedOpcode,
   Dict,
   Expressions,
   LexicalModifierOpcode,
@@ -154,29 +150,6 @@ export interface BuilderGetFree {
   tail: string[];
 }
 
-export function buildAppend(
-  trusted: boolean,
-  expr: Expressions.Expression
-): WireFormat.Content.SomeAppend {
-  if (Array.isArray(expr)) {
-    if (expr[0] === Op.GetFreeAsComponentOrHelperHead) {
-      return trusted
-        ? [Op.UnknownTrustingAppend, expr as Expressions.GetUnknownAppend]
-        : [Op.UnknownAppend, expr as Expressions.GetUnknownAppend];
-    } else if (isInvokeResolved(expr)) {
-      return [Op.AppendResolved, expr];
-    } else if (isInvokeLexical(expr)) {
-      return [Op.AppendLexical, expr];
-    }
-  }
-
-  if (Array.isArray(expr)) {
-    return [trusted ? Op.AppendTrustedHtml : Op.Append, expr];
-  } else {
-    return [Op.AppendStatic, expr];
-  }
-}
-
 type CallType =
   /**
    * Dynamic means the value is dynamic (i.e. a local variable or expression and has no special
@@ -200,20 +173,6 @@ type CallType =
    * Keyword means that the callee is a keyword (e.g. `{{if ...}}` or `(if ...)`).
    */
   | 'keyword';
-
-export const APPEND_TYPES = {
-  resolver: Op.AppendResolved,
-  keyword: Op.AppendResolved,
-  lexical: Op.AppendLexical,
-  dynamic: Op.AppendLexical,
-} satisfies Record<CallType, AppendResolvedOpcode | AppendLexicalOpcode>;
-
-export const CALL_TYPES = {
-  resolver: Op.CallResolved,
-  keyword: Op.CallResolved,
-  lexical: Op.CallLexical,
-  dynamic: Op.CallLexical,
-} satisfies Record<CallType, CallResolvedOpcode | CallLexicalOpcode>;
 
 export const MODIFIER_TYPES = {
   resolver: Op.ResolvedModifier,
@@ -244,7 +203,7 @@ export function headType(expr: Expressions.Expression, from: string): CallType {
 
   localAssert(type in HEAD_TYPES_MAP, `Unexpected opcode ${type} in ${from}`);
 
-  return HEAD_TYPES_MAP[type as HeadType];
+  return expr.length === 2 ? HEAD_TYPES_MAP[type as HeadType] : 'dynamic';
 }
 
 export function buildComponentArgs(
@@ -334,17 +293,17 @@ export function isGetPath(path: Expressions.Expression): path is WireFormat.Expr
   }
 }
 
-export function isInvokeLexical(
+export function isInvokeDynamicValue(
   expr: Expressions.Expression
-): expr is WireFormat.Expressions.SomeInvoke {
+): expr is WireFormat.Expressions.SomeCallHelper {
   if (!isTupleExpression(expr)) return false;
 
-  return expr[0] === Op.CallLexical;
+  return expr[0] === Op.CallDynamicValue;
 }
 
 export function isInvokeResolved(
   expr: Expressions.Expression
-): expr is WireFormat.Expressions.SomeInvoke {
+): expr is WireFormat.Expressions.CallResolvedHelper {
   if (!isTupleExpression(expr)) return false;
 
   return expr[0] === Op.CallResolved;

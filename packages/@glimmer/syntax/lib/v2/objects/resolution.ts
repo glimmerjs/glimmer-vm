@@ -19,6 +19,7 @@ import { COMPONENT_VAR_NS, HELPER_VAR_NS, MODIFIER_VAR_NS } from './constants';
  * 2. in an local variable invocation with dot paths
  */
 export const STRICT_RESOLUTION = {
+  isResolvedAppendable: false,
   resolution: (): GetResolvedOrKeywordOpcode => Op.GetStrictKeyword,
   serialize: (): SerializedResolution => 'Strict',
   isAngleBracket: false as const,
@@ -96,6 +97,10 @@ export class LooseModeResolution {
     readonly namespaces: Namespaces,
     readonly isAngleBracket = false
   ) {}
+
+  get isResolvedAppendable(): boolean {
+    return this.resolution() === Op.GetFreeAsComponentOrHelperHead;
+  }
 
   resolution(): GetResolvedOrKeywordOpcode {
     if (this.namespaces.length === 1) {

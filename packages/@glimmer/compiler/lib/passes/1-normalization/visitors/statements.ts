@@ -145,18 +145,18 @@ function visitAppendContent(
         html: value,
       });
     } else {
-      return new mir.AppendValue({
+      return new mir.AppendValueCautiously({
         loc: append.loc,
-        value: value,
+        value,
       });
     }
   });
 }
 
 function visitTextNode(text: ASTv2.HtmlText): mir.Content {
-  return new mir.AppendValue({
+  return new mir.AppendHtmlText({
     loc: text.loc,
-    value: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
+    value: text.chars,
   });
 }
 

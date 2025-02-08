@@ -220,7 +220,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let wire = _wire!;
     assert.deepEqual(wire.scope?.(), [target]);
     assert.deepEqual(wire.block[0], [
-      [SexpOpcodes.Append, [SexpOpcodes.GetLexicalSymbol, 0, ['message']]],
+      [SexpOpcodes.AppendValueCautiously, [SexpOpcodes.GetLexicalSymbol, 0, ['message']]],
     ]);
   });
 
@@ -228,7 +228,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let wire = compile(`{{this.message}}`, [], (source) => eval(source));
     assert.strictEqual(wire.scope, undefined);
     assert.deepEqual(wire.block[0], [
-      [SexpOpcodes.Append, [SexpOpcodes.GetLocalSymbol, 0, ['message']]],
+      [SexpOpcodes.AppendValueCautiously, [SexpOpcodes.GetLocalSymbol, 0, ['message']]],
     ]);
   });
 });

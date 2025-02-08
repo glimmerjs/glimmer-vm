@@ -59,7 +59,7 @@ import {
   PushPrimitiveReference,
 } from '../opcode-builder/helpers/vm';
 import { namedBlocks } from '../utils';
-import { CloseElement, Comment, FlushElement, LexicalModifier } from './api';
+import { CloseElement, Comment, FlushElement, HtmlText, LexicalModifier } from './api';
 import { Compilers } from './compilers';
 
 export const STATEMENTS = new Compilers<ContentSexpOpcode>();
@@ -80,6 +80,7 @@ export function inflateAttrName(attrName: string | WellKnownAttrName): string {
 }
 
 STATEMENTS.add(Op.Comment, (op, [, comment]) => Comment(op, comment));
+STATEMENTS.add(Op.AppendHtmlText, (op, [, text]) => HtmlText(op, text));
 STATEMENTS.add(Op.CloseElement, (op) => CloseElement(op));
 STATEMENTS.add(Op.FlushElement, (op) => FlushElement(op));
 
@@ -180,29 +181,14 @@ STATEMENTS.add(Op.Debugger, (encode, [, locals, upvars, lexical]) => {
   encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
 });
 
-STATEMENTS.add(Op.UnknownAppend, (encode, [, value]) => {
-  encode.appendAny(value, {
-    ifComponent(component: CompileTimeComponent) {
-      encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
-      InvokeResolvedComponent(encode, component);
-    },
-
-    ifHelper(handle: number) {
-      encode.op(VM_PUSH_FRAME_OP);
-      Call(encode, handle);
-      encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
-      encode.op(VM_POP_FRAME_OP);
-    },
-  });
-});
-
-// This corresponds to the `{{foo}}` syntax, where `foo` is not an in-scope variable. It is
-// therefore resolved as either a component or a helper, which is determined at opcode compile time
-// by attempting to resolve the name first as a component, and if that fails, as a helper.
-STATEMENTS.add(Op.AppendResolved, (encode, [, value]) => {
-  let [, expression, args] = value;
-
-  encode.appendInvokable(expression, {
+// In classic mode only, this corresponds to `{{name ...args}}` where `name` is not an in-scope
+// variable. In strict mode, this is a syntax error.
+//
+// In classic mode, `name` is resolved first as a component, and then as a helper. If either
+// succeeds, it is compiled into the appropriate invocation. If neither succeeds, it turns into an
+// early error.
+STATEMENTS.add(Op.AppendResolvedInvokable, (encode, [, callee, args]) => {
+  encode.append(callee, {
     ifComponent(component: CompileTimeComponent) {
       encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
       InvokeResolvedComponent(
@@ -221,16 +207,19 @@ STATEMENTS.add(Op.AppendResolved, (encode, [, value]) => {
   });
 });
 
-// This corresponds to the `{{foo}}` syntax, where `foo` is a lexical, in-scope variable. This value
-// could still be a component or a helper, which is (@todo implement this) determined at opcode
-// compile time by evaluating the expression.
-STATEMENTS.add(Op.AppendLexical, (encode, [, value]) => {
-  let [, expression, args] = value;
-
+// This corresponds to `{{<expr> ...args}}` where `<expr>` only references in-scope variables (and
+// no resolved variables).
+//
+// This generates code that allows the expression to change between a component and helper value. If
+// the value changes, the output is cleared the right behavior occurs.
+//
+// @todo Specialize the lexical variable case, since we can determine what kind of callee we're
+// looking at at compile time.
+STATEMENTS.add(Op.AppendDynamicInvokable, (encode, [, callee, args]) => {
   SwitchCases(
     encode,
     () => {
-      expr(encode, expression);
+      expr(encode, callee);
       encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
     },
     (when) => {
@@ -252,32 +241,29 @@ STATEMENTS.add(Op.AppendLexical, (encode, [, value]) => {
   );
 });
 
-STATEMENTS.add(Op.AppendStatic, (encode, [, value]) => {
-  encode.op(
-    VM_TEXT_OP,
-    encode.constant(value === null || value === undefined ? '' : String(value))
-  );
-});
-
-STATEMENTS.add(Op.Append, (encode, [, value]) => {
+// This syntax corresponds to `{{name}}`, where `name` **is** an in-scope variable. Its value is
+// dynamic, and the behavior is determined by the `cautious-append` stdlib function.
+STATEMENTS.add(Op.AppendValueCautiously, (encode, [, value]) => {
   encode.op(VM_PUSH_FRAME_OP);
   expr(encode, value);
   encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-append'));
   encode.op(VM_POP_FRAME_OP);
 });
 
+STATEMENTS.add(Op.AppendStatic, (encode, [, expr]) => {
+  const value = Array.isArray(expr) ? undefined : expr;
+
+  encode.op(
+    VM_TEXT_OP,
+    encode.constant(value === null || value === undefined ? '' : String(value))
+  );
+});
+
 STATEMENTS.add(Op.AppendTrustedHtml, (encode, [, value]) => {
-  if (!Array.isArray(value)) {
-    encode.op(
-      VM_TEXT_OP,
-      encode.constant(value === null || value === undefined ? '' : String(value))
-    );
-  } else {
-    encode.op(VM_PUSH_FRAME_OP);
-    expr(encode, value);
-    encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('trusting-append'));
-    encode.op(VM_POP_FRAME_OP);
-  }
+  encode.op(VM_PUSH_FRAME_OP);
+  expr(encode, value);
+  encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('trusting-append'));
+  encode.op(VM_POP_FRAME_OP);
 });
 
 STATEMENTS.add(Op.InvokeResolvedBlockComponent, (encode, [, expr, args]) => {

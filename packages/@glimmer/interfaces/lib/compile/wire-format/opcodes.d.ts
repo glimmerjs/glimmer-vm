@@ -1,13 +1,10 @@
 // Statements
-export type AppendOpcode = 1;
-export type AppendResolvedOpcode = 100;
+export type AppendValueCautiouslyOpcode = 1;
+export type AppendResolvedInvokableOpcode = 100;
 export type AppendStaticOpcode = 104;
-export type AppendLexicalOpcode = 103;
-export type AppendResolvedHelperOpcode = 101;
-export type AppendBuiltinHelperOpcode = 102;
-export type UnknownAppendOpcode = 2;
-export type UnknownTrustingAppendOpcode = 3;
+export type AppendDynamicInvokableOpcode = 103;
 export type AppendTrustedHtmlOpcode = 4;
+export type AppendHtmlTextOpcode = 106;
 export type CommentOpcode = 5;
 export type LexicalModifierOpcode = 6;
 export type ResolvedModifierOpcode = 56;
@@ -38,7 +35,7 @@ export type DebuggerOpcode = 26;
 // Expressions
 export type UndefinedOpcode = 27;
 export type CallResolvedOpcode = 28;
-export type CallLexicalOpcode = 29;
+export type CallDynamicValueOpcode = 29;
 export type UnknownInvokeOpcode = 30;
 export type ConcatOpcode = 31;
 

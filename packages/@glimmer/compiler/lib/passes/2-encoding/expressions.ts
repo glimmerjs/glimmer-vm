@@ -5,7 +5,7 @@ import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type * as mir from './mir';
 
-import { CALL_TYPES, compact, headType } from '../../builder/builder';
+import { compact } from '../../builder/builder';
 
 export type HashPair = [string, WireFormat.Expression];
 
@@ -15,7 +15,12 @@ export function encodeMaybeExpr(
   return expr.type === 'Missing' ? undefined : encodeExpr(expr);
 }
 
+export function encodeExpr(
+  expr: ASTv2.LiteralExpression
+): string | number | boolean | null | WireFormat.Expressions.Undefined;
 export function encodeExpr(expr: ASTv2.ResolvedVarReference): WireFormat.Expressions.GetResolved;
+export function encodeExpr(expr: mir.CallExpression): WireFormat.Expressions.SomeCallHelper;
+export function encodeExpr(expr: Extract<mir.ExpressionNode, object>): WireFormat.TupleExpression;
 export function encodeExpr(expr: mir.ExpressionNode): WireFormat.Expression;
 export function encodeExpr(
   expr: mir.ExpressionNode | mir.Missing
@@ -173,9 +178,20 @@ function InterpolateExpression({
   return [Op.Concat, parts.map((e) => encodeExpr(e)).toArray()];
 }
 
-function CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.SomeInvoke {
-  const calleeExpr = encodeExpr(callee);
-  return [CALL_TYPES[headType(calleeExpr, 'expr:call')], calleeExpr, encodeArgs(args)];
+function CallExpression({
+  callee,
+  args,
+}: mir.CallExpression): WireFormat.Expressions.SomeCallHelper {
+  if (callee.type === 'Resolved') {
+    localAssert(
+      callee.resolution.resolution() === Op.GetFreeAsHelperHead,
+      'Expected a helper head'
+    );
+
+    return [Op.CallResolved, callee.symbol, encodeArgs(args)];
+  }
+
+  return [Op.CallDynamicValue, encodeExpr(callee), encodeArgs(args)];
 }
 
 function Tail({ members }: mir.Tail): PresentArray<string> {

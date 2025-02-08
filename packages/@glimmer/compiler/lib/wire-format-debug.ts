@@ -34,7 +34,7 @@ export default class WireFormatDebugger {
   formatOpcode(opcode: WireFormat.Syntax): unknown {
     if (Array.isArray(opcode)) {
       switch (opcode[0]) {
-        case Op.Append:
+        case Op.AppendValueCautiously:
           return ['append', this.formatOpcode(opcode[1])];
         case Op.AppendTrustedHtml:
           return ['trusting-append', this.formatOpcode(opcode[1])];
@@ -118,6 +118,9 @@ export default class WireFormatDebugger {
         case Op.Comment:
           return ['comment', opcode[1]];
 
+        case Op.AppendHtmlText:
+          return ['html-text', opcode[1]];
+
         case Op.LexicalModifier:
         case Op.ResolvedModifier:
           return [
@@ -144,12 +147,10 @@ export default class WireFormatDebugger {
           return ['undefined'];
 
         case Op.CallResolved:
-        case Op.CallLexical:
-          return [
-            opcode[0] === Op.CallResolved ? 'call:resolved' : 'call',
-            this.formatOpcode(opcode[1]),
-            this.formatArgs(opcode[2]),
-          ];
+          return ['call:resolved', this.upvars[opcode[1]], this.formatArgs(opcode[2])];
+
+        case Op.CallDynamicValue:
+          return ['call', this.formatOpcode(opcode[1]), this.formatArgs(opcode[2])];
 
         case Op.Concat:
           return ['concat', this.formatParams(opcode[1])];
@@ -250,26 +251,13 @@ export default class WireFormatDebugger {
           ];
         }
 
-        case Op.AppendResolved:
-          return ['append:resolved-component', this.formatOpcode(opcode[1])];
-
-        case Op.AppendResolvedHelper:
-          return ['append:resolved-helper', this.formatOpcode(opcode[1])];
-
-        case Op.AppendBuiltinHelper:
-          return ['append:builtin-helper', this.formatOpcode(opcode[1])];
-
-        case Op.UnknownAppend:
-        case Op.UnknownTrustingAppend:
-          return [
-            opcode[0] === Op.UnknownTrustingAppend ? 'append:trusting' : 'append',
-            this.formatOpcode(opcode[1]),
-          ];
+        case Op.AppendResolvedInvokable:
+          return ['append:resolved-component', this.upvars[opcode[1]]];
 
         case Op.AppendStatic:
           return ['append:static', this.formatOpcode(opcode[1])];
 
-        case Op.AppendLexical:
+        case Op.AppendDynamicInvokable:
           return ['append:lexical', this.formatOpcode(opcode[1])];
 
         default:

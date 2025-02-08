@@ -31,8 +31,7 @@ import type { ResolveAppendInvokableOptions } from './helpers/resolution';
 import { compilableBlock } from '../compilable-template';
 import {
   assertResolverInvariants,
-  resolveAppendAny,
-  resolveAppendInvokable,
+  resolveAppendable,
   resolveComponent,
   resolveModifier,
 } from './helpers/resolution';
@@ -170,7 +169,7 @@ export class EncodeOp {
     if (import.meta.env.DEV && helper === null) {
       localAssert(
         !this.#meta.isStrictMode,
-        'Strict mode errors should already be handled at compile time'
+        '[BUG] Strict mode errors should already be handled at compile time'
       );
 
       throw new Error(
@@ -182,11 +181,8 @@ export class EncodeOp {
     return this.#constants.helper(helper!, name);
   };
 
-  appendAny = (expr: Expressions.GetUnknownAppend, options: ResolveAppendInvokableOptions): void =>
-    resolveAppendAny(this.#context.resolver, this.#constants, this.#meta, expr, options);
-
-  appendInvokable = (expr: Expressions.Expression, then: ResolveAppendInvokableOptions): void =>
-    resolveAppendInvokable(this.#context.resolver, this.#constants, this.#meta, expr, then);
+  append = (upvar: number, then: ResolveAppendInvokableOptions): void =>
+    resolveAppendable(this.#context.resolver, this.#constants, this.#meta, upvar, then);
 
   modifier = (expr: Expressions.Expression, then: (handle: number) => void): void =>
     resolveModifier(this.#context.resolver, this.#constants, this.#meta, expr, then);
