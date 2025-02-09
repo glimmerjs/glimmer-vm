@@ -11,10 +11,10 @@ export class Cell<Value> {
   }
 
   #value: Value;
-  readonly #equals: Equality<Value>;
+  readonly #equals?: Equality<Value> | undefined;
   readonly #tag: UpdatableTag;
 
-  private constructor(value: Value, equals: Equality<Value>) {
+  private constructor(value: Value, equals?: Equality<Value>) {
     this.#value = value;
     this.#equals = equals;
     this.#tag = createUpdatableTag();
@@ -33,7 +33,7 @@ export class Cell<Value> {
   }
 
   set(value: Value): boolean {
-    if (this.#equals(this.#value, value)) {
+    if (this.#equals?.(this.#value, value)) {
       return false;
     }
 
