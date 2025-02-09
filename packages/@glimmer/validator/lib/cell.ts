@@ -6,7 +6,7 @@ import { createUpdatableTag, DIRTY_TAG } from './validators';
 type Equality<T> = (a: T, b: T) => boolean;
 
 export class Cell<Value> {
-  static create<T>(value: T, equals: Equality<T> = Object.is): Cell<T> {
+  static create<T>(value: T, equals?: Equality<T>): Cell<T> {
     return new Cell(value, equals);
   }
 
