@@ -45,7 +45,7 @@ export class Cell<Value> {
   }
 
   update(updater: (value: Value) => Value): void {
-    this.set(updater(this.read()));
+    this.set(updater(this.#value));
   }
 
   freeze(): void {
