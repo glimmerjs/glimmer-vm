@@ -1,11 +1,4 @@
-import type {
-  Dict,
-  Expressions,
-  LexicalModifierOpcode,
-  Optional,
-  ResolvedModifierOpcode,
-  WireFormat,
-} from '@glimmer/interfaces';
+import type { Dict, Expressions, Optional, WireFormat } from '@glimmer/interfaces';
 import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import { localAssert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
@@ -150,62 +143,6 @@ export interface BuilderGetFree {
   tail: string[];
 }
 
-type CallType =
-  /**
-   * Dynamic means the value is dynamic (i.e. a local variable or expression and has no special
-   * opcode compilation behavior).
-   *
-   * Resolved or lexical values have special cases in the opcode compiler since their value is known
-   * at opcode compilation time. As a result, their compiled templates can be specialized based on
-   * their specified capabilities.
-   */
-  | 'dynamic'
-  /**
-   * Resolver means that the value needs to be resolved via the resolver (i.e. it's a "resolved
-   * component" or a "resolved helper").
-   */
-  | 'resolver'
-  /**
-   * Lexical means a reference to the JavaScript environment outside of the template.
-   */
-  | 'lexical'
-  /**
-   * Keyword means that the callee is a keyword (e.g. `{{if ...}}` or `(if ...)`).
-   */
-  | 'keyword';
-
-export const MODIFIER_TYPES = {
-  resolver: Op.ResolvedModifier,
-  keyword: Op.ResolvedModifier,
-  lexical: Op.LexicalModifier,
-  dynamic: Op.LexicalModifier,
-} satisfies Record<CallType, ResolvedModifierOpcode | LexicalModifierOpcode>;
-
-const HEAD_TYPES_MAP = {
-  [Op.GetLexicalSymbol]: 'lexical',
-  [Op.CallResolved]: 'dynamic',
-  [Op.GetLocalSymbol]: 'dynamic',
-  [Op.GetFreeAsComponentOrHelperHead]: 'resolver',
-  [Op.GetFreeAsHelperHead]: 'resolver',
-  [Op.GetFreeAsModifierHead]: 'resolver',
-  [Op.Curry]: 'dynamic',
-  [Op.IfInline]: 'dynamic',
-} as const;
-
-type HeadType = keyof typeof HEAD_TYPES_MAP;
-
-export function headType(expr: Expressions.Expression, from: string): CallType {
-  if (!Array.isArray(expr)) {
-    throw Error('Something is suspicious @fixme');
-  }
-
-  let type = expr[0];
-
-  localAssert(type in HEAD_TYPES_MAP, `Unexpected opcode ${type} in ${from}`);
-
-  return expr.length === 2 ? HEAD_TYPES_MAP[type as HeadType] : 'dynamic';
-}
-
 export function buildComponentArgs(
   splattributes: Optional<WireFormat.Core.Splattributes>,
   hash: Optional<WireFormat.Core.Hash>,
@@ -282,15 +219,9 @@ export function isGetLexical(
 }
 
 export function isGetPath(path: Expressions.Expression): path is WireFormat.Expressions.GetPath {
-  if (!Array.isArray(path) || path.length !== 3) return false;
+  if (!Array.isArray(path)) return false;
 
-  switch (path[0]) {
-    case Op.GetLocalSymbol:
-    case Op.GetLexicalSymbol:
-      return true;
-    default:
-      return isGetContextualFree(path);
-  }
+  return path[0] === Op.GetPath;
 }
 
 export function isInvokeDynamicValue(
@@ -312,7 +243,7 @@ export function isInvokeResolved(
 export function isGetSymbolOrPath(
   path: Expressions.Expression
 ): path is WireFormat.Expressions.GetLocalSymbol | WireFormat.Expressions.GetPathSymbol {
-  return isTupleExpression(path) && path[0] === Op.GetLocalSymbol;
+  return isTupleExpression(path) && (path[0] === Op.GetLocalSymbol || path[0] === Op.GetPath);
 }
 
 export function isGetVar(path: Expressions.Expression): path is WireFormat.Expressions.GetVar[0] {
@@ -338,10 +269,9 @@ export function isGetContextualFree(
   path: Expressions.TupleExpression
 ): path is WireFormat.Expressions.GetResolved {
   switch (path[0]) {
-    case Op.GetFreeAsComponentOrHelperHead:
-    case Op.GetFreeAsHelperHead:
-    case Op.GetFreeAsModifierHead:
-    case Op.GetFreeAsComponentHead:
+    case Op.ResolveAsAppendableCallee:
+    case Op.ResolveAsModifierCallee:
+    case Op.ResolveAsComponentCallee:
       return true;
     default:
       return false;

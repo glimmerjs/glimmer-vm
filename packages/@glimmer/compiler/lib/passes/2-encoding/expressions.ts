@@ -111,7 +111,14 @@ function args(
 function encodeResolved({
   resolution,
   symbol,
-}: ASTv2.ResolvedVarReference): WireFormat.Expressions.GetResolvedOrKeyword {
+}: ASTv2.ResolvedVarReference):
+  | WireFormat.Expressions.GetResolvedOrKeyword
+  | WireFormat.Expressions.CallResolvedHelper {
+  switch (resolution.resolution()) {
+    case Op.ResolveAsHelperCallee:
+      return [Op.CallResolved, symbol];
+  }
+
   return [resolution.resolution(), symbol];
 }
 
@@ -169,7 +176,7 @@ function Keyword({ symbol }: ASTv2.KeywordExpression): WireFormat.Expressions.Ge
 function PathExpression({ head, tail }: mir.PathExpression): WireFormat.Expressions.GetPath {
   let getOp = encodeExpr(head) as WireFormat.Expressions.GetVar;
   localAssert(getOp[0] !== Op.GetStrictKeyword, '[BUG] keyword in a PathExpression');
-  return [...getOp, Tail(tail)];
+  return [Op.GetPath, ...getOp, Tail(tail)];
 }
 
 function InterpolateExpression({
@@ -184,7 +191,7 @@ function CallExpression({
 }: mir.CallExpression): WireFormat.Expressions.SomeCallHelper {
   if (callee.type === 'Resolved') {
     localAssert(
-      callee.resolution.resolution() === Op.GetFreeAsHelperHead,
+      callee.resolution.resolution() === Op.ResolveAsHelperCallee,
       'Expected a helper head'
     );
 

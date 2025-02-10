@@ -2,7 +2,7 @@ import type { WireFormat } from '@glimmer/interfaces';
 import type { TemplateWithIdAndReferrer } from '@glimmer/opcode-compiler';
 import { precompile } from '@glimmer/compiler';
 import { localAssert, unwrapTemplate } from '@glimmer/debug-util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 import { preprocess } from '@glimmer-workspace/integration-tests';
 
 import { module } from '../support';
@@ -61,15 +61,11 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     assert.deepEqual(
       componentNameExpr,
-      [SexpOpcodes.GetLexicalSymbol, 0],
+      [Op.GetLexicalSymbol, 0],
       'The component invocation is for the lexical symbol `hello` (the 0th lexical entry)'
     );
 
-    assert.deepEqual(divExpr, [
-      [SexpOpcodes.OpenElement, 0],
-      [SexpOpcodes.FlushElement],
-      [SexpOpcodes.CloseElement],
-    ]);
+    assert.deepEqual(divExpr, [[Op.OpenElement, 0], [Op.FlushElement], [Op.CloseElement]]);
   });
 
   test('lexicalScope works if the component name is a path', (assert) => {
@@ -87,15 +83,11 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     assert.deepEqual(wire.scope?.(), [f]);
     assert.deepEqual(
       componentNameExpr,
-      [SexpOpcodes.GetLexicalSymbol, 0, ['hello']],
+      [Op.GetPath, Op.GetLexicalSymbol, 0, ['hello']],
       'The component invocation is for the lexical symbol `hello` (the 0th lexical entry)'
     );
 
-    assert.deepEqual(divExpr, [
-      [SexpOpcodes.OpenElement, 0],
-      [SexpOpcodes.FlushElement],
-      [SexpOpcodes.CloseElement],
-    ]);
+    assert.deepEqual(divExpr, [[Op.OpenElement, 0], [Op.FlushElement], [Op.CloseElement]]);
   });
 
   test('customizeComponentName is used if present', (assert) => {
@@ -111,8 +103,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let [[, componentNameExpr]] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      Array.isArray(componentNameExpr) && componentNameExpr[0] === Op.ResolveAsComponentCallee,
       `component name is a free variable lookup`
     );
 
@@ -135,8 +126,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      Array.isArray(componentNameExpr) && componentNameExpr[0] === Op.ResolveAsComponentCallee,
       `component name is a free variable lookup`
     );
 
@@ -158,8 +148,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let [[, componentNameExpr]] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      Array.isArray(componentNameExpr) && componentNameExpr[0] === Op.ResolveAsComponentCallee,
       `component name is a free variable lookup`
     );
 
@@ -181,8 +170,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let [[, componentNameExpr]] = block[0] as [WireFormat.Content.ResolvedBlock];
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      Array.isArray(componentNameExpr) && componentNameExpr[0] === Op.ResolveAsComponentCallee,
       `component name is a free variable lookup`
     );
 
@@ -203,7 +191,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let [openElementExpr] = block[0];
 
     localAssert(
-      Array.isArray(openElementExpr) && openElementExpr[0] === SexpOpcodes.OpenElement,
+      Array.isArray(openElementExpr) && openElementExpr[0] === Op.OpenElement,
       `expr is open element`
     );
 
@@ -220,15 +208,15 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let wire = _wire!;
     assert.deepEqual(wire.scope?.(), [target]);
     assert.deepEqual(wire.block[0], [
-      [SexpOpcodes.AppendValueCautiously, [SexpOpcodes.GetLexicalSymbol, 0, ['message']]],
-    ]);
+      [Op.AppendValueCautiously, [Op.GetPath, Op.GetLexicalSymbol, 0, ['message']]],
+    ] satisfies WireFormat.Content[]);
   });
 
   test('when "this" is not in locals, it compiles to GetSymbolOrPath', (assert) => {
     let wire = compile(`{{this.message}}`, [], (source) => eval(source));
     assert.strictEqual(wire.scope, undefined);
     assert.deepEqual(wire.block[0], [
-      [SexpOpcodes.AppendValueCautiously, [SexpOpcodes.GetLocalSymbol, 0, ['message']]],
-    ]);
+      [Op.AppendValueCautiously, [Op.GetPath, Op.GetLocalSymbol, 0, ['message']]],
+    ] satisfies WireFormat.Content[]);
   });
 });

@@ -23,11 +23,9 @@ import type * as mir from './mir';
 import {
   buildComponentArgs,
   compact,
-  headType,
   isGet,
   isGetSymbolOrPath,
   isTupleExpression,
-  MODIFIER_TYPES,
   needsAtNames,
 } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
@@ -302,7 +300,7 @@ export function AngleBracketComponent({
     ];
   }
 
-  if (wireTag[0] === Op.GetFreeAsComponentHead) {
+  if (wireTag[0] === Op.ResolveAsComponentCallee) {
     localAssert(
       wireTag.length === 2,
       `Unexpected free variable as component head with a path tail ${JSON.stringify(wireTag)}`
@@ -333,12 +331,21 @@ export function ElementParameter(param: mir.ElementParameter): WireFormat.Elemen
     case 'StaticAttr':
       return [staticAttrOp(param.kind), ...staticAttr(param)];
     case 'Modifier': {
-      const expression = encodeExpr(param.callee);
-      return [
-        MODIFIER_TYPES[headType(expression, 'modifier')],
-        encodeExpr(param.callee),
-        encodeArgs(param.args),
-      ];
+      const { type } = param.callee;
+      const callee = encodeExpr(param.callee);
+      const args = encodeArgs(param.args);
+
+      switch (type) {
+        case 'Local':
+          if (param.callee.referenceType === 'lexical') {
+            return [Op.LexicalModifier, callee, args];
+          }
+          break;
+        case 'Resolved':
+          return [Op.ResolvedModifier, callee, args];
+      }
+
+      return [Op.LexicalModifier, callee, args];
     }
   }
 }

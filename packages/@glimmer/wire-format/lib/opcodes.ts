@@ -17,10 +17,12 @@ import type {
   DynamicArgOpcode,
   DynamicAttrOpcode,
   EachOpcode,
+  EmptyArgsOpcode,
   FlushElementOpcode,
   GetDynamicVarOpcode,
   GetLexicalSymbolOpcode,
   GetLocalSymbolOpcode,
+  GetPathOpcode,
   GetStrictKeywordOpcode,
   HasBlockOpcode,
   HasBlockParamsOpcode,
@@ -37,12 +39,18 @@ import type {
   LetOpcode,
   LexicalModifierOpcode,
   LogOpcode,
+  NamedArgsAndBlocksOpcode,
+  NamedArgsOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
-  ResolveAsComponentHeadOpcode,
-  ResolveAsComponentOrHelperHeadOpcode,
-  ResolveAsHelperHeadOpcode,
+  PositionalAndBlocksOpcode,
+  PositionalAndNamedArgsAndBlocksOpcode,
+  PositionalAndNamedArgsOpcode,
+  PositionalArgsOpcode,
+  ResolveAsAppendableCalleeOpcode,
+  ResolveAsComponentCalleeOpcode,
+  ResolveAsHelperCalleeOpcode,
   ResolveAsModifierHeadOpcode,
   ResolvedModifierOpcode,
   StaticArgOpcode,
@@ -57,6 +65,15 @@ import type {
   YieldOpcode,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+
+export const EMPTY_ARGS_OPCODE = 0b000 satisfies EmptyArgsOpcode;
+export const NAMED_ARGS_OPCODE = 0b010 satisfies NamedArgsOpcode;
+export const POSITIONAL_ARGS_OPCODE = 0b100 satisfies PositionalArgsOpcode;
+export const POSITIONAL_AND_NAMED_ARGS_OPCODE = 0b110 satisfies PositionalAndNamedArgsOpcode;
+export const POSITIONAL_AND_BLOCKS_OPCODE = 0b101 satisfies PositionalAndBlocksOpcode;
+export const NAMED_ARGS_AND_BLOCKS_OPCODE = 0b011 satisfies NamedArgsAndBlocksOpcode;
+export const POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE =
+  0b111 satisfies PositionalAndNamedArgsAndBlocksOpcode;
 
 export const opcodes = {
   AppendValueCautiously: 1 satisfies AppendValueCautiouslyOpcode,
@@ -98,13 +115,14 @@ export const opcodes = {
   CallDynamicValue: 29 satisfies CallDynamicValueOpcode,
   UnknownInvoke: 30 satisfies UnknownInvokeOpcode,
   Concat: 31 satisfies ConcatOpcode,
+  GetPath: 107 satisfies GetPathOpcode,
   GetLocalSymbol: 32 satisfies GetLocalSymbolOpcode,
   GetLexicalSymbol: 33 satisfies GetLexicalSymbolOpcode,
   GetStrictKeyword: 34 satisfies GetStrictKeywordOpcode,
-  GetFreeAsComponentOrHelperHead: 35 satisfies ResolveAsComponentOrHelperHeadOpcode,
-  GetFreeAsHelperHead: 37 satisfies ResolveAsHelperHeadOpcode,
-  GetFreeAsModifierHead: 38 satisfies ResolveAsModifierHeadOpcode,
-  GetFreeAsComponentHead: 39 satisfies ResolveAsComponentHeadOpcode,
+  ResolveAsAppendableCallee: 35 satisfies ResolveAsAppendableCalleeOpcode,
+  ResolveAsHelperCallee: 37 satisfies ResolveAsHelperCalleeOpcode,
+  ResolveAsModifierCallee: 38 satisfies ResolveAsModifierHeadOpcode,
+  ResolveAsComponentCallee: 39 satisfies ResolveAsComponentCalleeOpcode,
   InElement: 40 satisfies InElementOpcode,
   If: 41 satisfies IfOpcode,
   Each: 42 satisfies EachOpcode,

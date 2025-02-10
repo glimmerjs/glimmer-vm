@@ -24,10 +24,12 @@ import type {
   DynamicArgOpcode,
   DynamicAttrOpcode,
   EachOpcode,
+  EmptyArgsOpcode,
   FlushElementOpcode,
   GetDynamicVarOpcode,
   GetLexicalSymbolOpcode,
   GetLocalSymbolOpcode,
+  GetPathOpcode,
   GetStrictKeywordOpcode,
   HasBlockOpcode,
   HasBlockParamsOpcode,
@@ -44,12 +46,15 @@ import type {
   LetOpcode,
   LexicalModifierOpcode,
   LogOpcode,
+  NamedArgsOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
-  ResolveAsComponentHeadOpcode,
-  ResolveAsComponentOrHelperHeadOpcode,
-  ResolveAsHelperHeadOpcode,
+  PositionalAndNamedArgsOpcode,
+  PositionalArgsOpcode,
+  ResolveAsAppendableCalleeOpcode,
+  ResolveAsComponentCalleeOpcode,
+  ResolveAsHelperCalleeOpcode,
   ResolveAsModifierHeadOpcode,
   ResolvedModifierOpcode,
   StaticArgOpcode,
@@ -92,11 +97,43 @@ export namespace Core {
   export type ConcatParams = Params;
   export type Hash = [PresentArray<string>, PresentArray<Expression>];
   export type Blocks = [PresentArray<string>, PresentArray<SerializedInlineBlock>];
-  export type Args = RequireAtLeastOne<{ params: Params; hash: Hash }>;
+  export type Args = EmptyArgs | PositionalArgs | NamedArgs | PositionalAndNamedArgs;
   export type CallArgs = Args;
   export type NamedBlock = [string, SerializedInlineBlock];
   export type Splattributes = PresentArray<ElementParameter>;
 
+  export type EmptyArgs = [EmptyArgsOpcode];
+  export type PositionalArgs = [PositionalArgsOpcode, PresentArray<Expression>];
+  export type NamedArgs = [NamedArgsOpcode, Hash];
+  export type PositionalAndNamedArgs = [
+    PositionalAndNamedArgsOpcode,
+    PresentArray<Expression>,
+    Hash,
+  ];
+
+  // export function SimpleArgs(
+  //   encode: EncodeOp,
+  //   args: Optional<WireFormat.Core.Args>,
+  //   atNames: boolean
+  // ): void {
+  //   if (!args) {
+  //     return EmptyArgs(encode);
+  //   }
+
+  //   const count = CompilePositional(encode, args.params);
+
+  //   if (args.hash) {
+  //     const [names, vals] = args.hash;
+
+  //     for (const val of vals) {
+  //       expr(encode, val);
+  //     }
+
+  //     return atNames ? CallArgsWithAtNames(encode, count, names) : CallArgs(encode, count, names);
+  //   } else {
+  //     return CallArgs(encode, count, EMPTY_STRING_ARRAY);
+  //   }
+  // }
   export type Syntax = Path | Params | Hash | Blocks | Args;
 
   export type ComponentArgs = RequireAtLeastOne<{
@@ -121,41 +158,32 @@ export namespace Expressions {
   export type Params = Core.Params;
   export type Hash = Core.Hash;
 
+  // export type GetPath
+
   export type GetLocalSymbol = [GetLocalSymbolOpcode, number];
   export type GetLexicalSymbol = [GetLexicalSymbolOpcode, number];
   export type GetStrictKeyword = [GetStrictKeywordOpcode, number];
-  export type GetFreeAsComponentOrHelperHead = [ResolveAsComponentOrHelperHeadOpcode, number];
-  export type GetFreeAsHelperHead = [ResolveAsHelperHeadOpcode, number];
-  export type GetFreeAsModifierHead = [ResolveAsModifierHeadOpcode, number];
-  export type GetFreeAsComponentHead = [ResolveAsComponentHeadOpcode, number];
+  export type ResolveAsCurlyCallee = [ResolveAsAppendableCalleeOpcode, number];
+  export type ResolveAsModifierCallee = [ResolveAsModifierHeadOpcode, number];
+  export type ResolveAsComponentCallee = [ResolveAsComponentCalleeOpcode, number];
 
-  export type GetUnknownAppend = GetFreeAsComponentOrHelperHead | GetFreeAsHelperHead;
+  export type GetUnknownAppend = ResolveAsCurlyCallee;
 
   export type GetResolved =
-    | GetFreeAsComponentOrHelperHead
-    | GetFreeAsHelperHead
-    | GetFreeAsModifierHead
-    | GetFreeAsComponentHead;
+    | ResolveAsCurlyCallee
+    | ResolveAsModifierCallee
+    | ResolveAsComponentCallee;
   export type GetResolvedOrKeyword = GetStrictKeyword | GetResolved;
   export type GetVar = GetLocalSymbol | GetLexicalSymbol | GetResolvedOrKeyword;
 
-  export type GetPathSymbol = [GetLocalSymbolOpcode, number, Path];
-  export type GetPathLexicalSymbol = [GetLexicalSymbolOpcode, number, Path];
-  export type GetPathFreeAsComponentOrHelperHead = [
-    ResolveAsComponentOrHelperHeadOpcode,
-    number,
-    Path,
-  ];
-  export type GetPathFreeAsHelperHead = [ResolveAsHelperHeadOpcode, number, Path];
-  export type GetPathFreeAsModifierHead = [ResolveAsModifierHeadOpcode, number, Path];
-  export type GetPathFreeAsComponentHead = [ResolveAsComponentHeadOpcode, number, Path];
+  export type GetPathSymbol = [opcode: GetPathOpcode, ...GetLocalSymbol, path: Path];
+  export type GetPathLexicalSymbol = [opcode: GetPathOpcode, ...GetLexicalSymbol, path: Path];
 
-  export type GetPathContextualFree =
-    | GetPathFreeAsComponentOrHelperHead
-    | GetPathFreeAsHelperHead
-    | GetPathFreeAsModifierHead
-    | GetPathFreeAsComponentHead;
-  export type GetPath = GetPathSymbol | GetPathLexicalSymbol | GetPathContextualFree;
+  export type GetPathFreeAsHelperHead = [ResolveAsHelperCalleeOpcode, number, Path];
+  export type GetPathFreeAsModifierHead = [ResolveAsModifierHeadOpcode, number, Path];
+  export type GetPathFreeAsComponentHead = [ResolveAsComponentCalleeOpcode, number, Path];
+
+  export type GetPath = GetPathSymbol | GetPathLexicalSymbol;
 
   export type Get = GetVar | GetPath;
 

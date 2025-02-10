@@ -1,11 +1,9 @@
 import type { VariableKind } from '@glimmer/constants';
 import type {
   AttrNamespace,
+  Buildable,
   Expressions,
   GetResolvedOrKeywordOpcode,
-  InvokeDynamicBlockOpcode,
-  InvokeLexicalAngleComponentOpcode,
-  InvokeResolvedBlockComponentOpcode,
   Nullable,
   Optional,
   PresentArray,
@@ -40,9 +38,9 @@ import {
   SPLAT_HEAD,
   THIS_VAR,
 } from '@glimmer/constants';
-import { exhausted, expect, isPresentArray, localAssert } from '@glimmer/debug-util';
+import { exhausted, expect, isPresentArray, localAssert, unreachable } from '@glimmer/debug-util';
 import { assertNever } from '@glimmer/util';
-import { isGetLexical, SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
+import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
 
 import type { Symbols } from '../builder';
 import type {
@@ -62,35 +60,32 @@ import type {
   Variable,
 } from './builder-interface';
 
-import { compact, isGet, isInvokeResolved, needsAtNames, ProgramSymbols } from '../builder';
+import { compactSexpr } from '../../passes/2-encoding/content';
+import { compact, isGet, isInvokeResolved, needsAtNames } from '../builder';
 import { normalizeStatement } from './builder-interface';
 
 export function buildStatements(
   statements: BuilderStatement[],
   symbols: Symbols
 ): WireFormat.Content[] {
-  let out: WireFormat.Content[] = [];
-
-  statements.forEach((s) => out.push(...buildStatement(normalizeStatement(s), symbols)));
-
-  return out;
+  return statements.flatMap((s) => {
+    return buildStatement(normalizeStatement(s), symbols).map(compactSexpr);
+  });
 }
 
 export function buildNormalizedStatements(
   statements: NormalizedStatement[],
   symbols: Symbols
 ): WireFormat.Content[] {
-  let out: WireFormat.Content[] = [];
-
-  statements.forEach((s) => out.push(...buildStatement(s, symbols)));
-
-  return out;
+  return statements.flatMap((s) => {
+    return buildStatement(s, symbols).map(compactSexpr);
+  });
 }
 
 export function buildStatement(
   normalized: NormalizedStatement,
-  symbols: Symbols = new ProgramSymbols()
-): WireFormat.Content[] {
+  symbols: Symbols
+): Buildable<WireFormat.Content>[] {
   switch (normalized.kind) {
     case APPEND_PATH_HEAD: {
       const path = buildGetPath(normalized.path, symbols);
@@ -98,11 +93,25 @@ export function buildStatement(
     }
 
     case APPEND_EXPR_HEAD: {
+      if (normalized.expr.type === GET_VAR_EXPR && normalized.expr.variable.kind === 'Resolved') {
+        if (normalized.trusted) {
+          return [
+            [
+              Op.AppendTrustedHtml,
+              [Op.CallResolved, symbols.freeVar(normalized.expr.variable.name)],
+            ],
+          ];
+        }
+      }
+
+      debugger;
+
       const expr = buildExpression(
         normalized.expr,
         normalized.trusted ? 'TrustedAppend' : 'Append',
         symbols
       );
+
       return [normalized.trusted ? [Op.AppendTrustedHtml, expr] : buildAppendCautiously(expr)];
     }
 
@@ -115,19 +124,31 @@ export function buildStatement(
     }
 
     case BLOCK_HEAD: {
-      let blocks = buildBlocks(normalized.blocks, normalized.blockParams, symbols);
-      let hash = buildHash(normalized.hash, symbols);
-      let params = buildParams(normalized.params, symbols);
-      let path = buildCallHead(
-        normalized.head,
-        VariableResolutionContext.ResolveAsComponentHead,
-        symbols
+      const { head, blocks, blockParams, hash, params } = normalized;
+
+      // if (head.type === 'GetVar')
+      let path = buildCallHead(head, VariableResolutionContext.ResolveAsComponentHead, symbols);
+
+      const args = buildBlockArgs(
+        buildParams(params, symbols),
+        buildHash(hash, symbols),
+        buildBlocks(blocks, blockParams, symbols),
+        { path }
       );
 
-      const args = buildBlockArgs(params, hash, blocks, { path });
+      if (path.length === 2) {
+        localAssert(
+          path[0] !== Op.GetLexicalSymbol &&
+            path[0] !== Op.ResolveAsHelperCallee &&
+            path[0] !== Op.ResolveAsModifierCallee &&
+            path[0] !== Op.GetLocalSymbol &&
+            path[0] !== Op.GetStrictKeyword,
+          '[BUG] resolved block with non-resolved path'
+        );
+        return [[Op.InvokeResolvedBlockComponent, path, args]];
+      }
 
-      // @ts-expect-error
-      return [[...blockType(path), args]];
+      return [[Op.InvokeDynamicBlock, path, args]];
     }
 
     case KEYWORD_HEAD: {
@@ -148,9 +169,11 @@ export function buildStatement(
   }
 }
 
-export function buildAppendCautiously(expr: Expressions.Expression): WireFormat.Content.SomeAppend {
+export function buildAppendCautiously(
+  expr: Expressions.Expression
+): WireFormat.Content.SomeAppend | WireFormat.Content.AppendHtmlText {
   if (Array.isArray(expr)) {
-    if (expr[0] === Op.GetFreeAsComponentOrHelperHead) {
+    if (expr[0] === Op.ResolveAsAppendableCallee) {
       return [Op.AppendResolvedInvokable, expr[1]];
     } else if (isInvokeResolved(expr)) {
       const [, callee, args] = expr;
@@ -239,7 +262,7 @@ function buildElement(
   out.push([Op.FlushElement]);
 
   if (Array.isArray(block)) {
-    block.forEach((s) => out.push(...buildStatement(s, symbols)));
+    block.forEach((s) => out.push(...buildStatement(s, symbols).map(compactSexpr)));
   } else {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     localAssert(block === null, `The only remaining type of 'block' is 'null'`);
@@ -377,10 +400,17 @@ export function buildExpression(
         symbols
       );
 
+      if (builtExpr[0] === Op.CallResolved) {
+        localAssert(
+          builtExpr.length === 2,
+          `Expected built head in test environment from buildCallHead to not contain arguments`
+        );
+        return [builtExpr[0], builtExpr[1], buildArgs(builtParams, builtHash)];
+      }
+
       if (builtExpr.length === 2) {
         switch (builtExpr[0]) {
-          case Op.GetFreeAsHelperHead:
-          case Op.GetFreeAsComponentOrHelperHead:
+          case Op.ResolveAsAppendableCallee:
             return [Op.CallResolved, builtExpr[1], buildArgs(builtParams, builtHash)];
         }
       }
@@ -427,7 +457,7 @@ export function buildCallHead(
   callHead: NormalizedHead,
   context: VarResolution,
   symbols: Symbols
-): Expressions.GetVar | Expressions.GetPath {
+): Expressions.GetVar | Expressions.GetPath | Expressions.CallResolvedHelper {
   if (callHead.type === GET_VAR_EXPR) {
     return buildVar(callHead.variable, context, symbols);
   } else {
@@ -453,41 +483,46 @@ export function buildVar(
   context: VarResolution,
   symbols: Symbols,
   path: PresentArray<string>
-): Expressions.GetPath;
+): Expressions.GetPath | Expressions.CallResolvedHelper;
 export function buildVar(
   head: Variable,
   context: VarResolution,
   symbols: Symbols
-): Expressions.GetVar;
+): Expressions.GetVar | Expressions.CallResolvedHelper;
 export function buildVar(
   head: Variable,
   context: VarResolution,
   symbols: Symbols,
   path?: PresentArray<string>
-): Expressions.GetPath | Expressions.GetVar {
-  let op: Expressions.GetPath[0] | Expressions.GetVar[0] = Op.GetLocalSymbol;
+): Expressions.GetPath | Expressions.GetVar | Expressions.CallResolvedHelper {
+  let op: Expressions.GetPath[1] | Expressions.GetVar[0] = Op.GetLocalSymbol;
   let sym: number;
   switch (head.kind) {
     case FREE_VAR:
-      if (context === 'Strict') {
-        op = Op.GetStrictKeyword;
-      } else if (context === 'AppendBare') {
-        op = Op.GetFreeAsComponentOrHelperHead;
-      } else if (context === 'AppendInvoke') {
-        op = Op.GetFreeAsComponentOrHelperHead;
-      } else if (context === 'TrustedAppendBare') {
-        op = Op.GetFreeAsHelperHead;
-      } else if (context === 'TrustedAppendInvoke') {
-        op = Op.GetFreeAsHelperHead;
-      } else if (context === 'AttrValueBare') {
-        op = Op.GetFreeAsHelperHead;
-      } else if (context === 'AttrValueInvoke') {
-        op = Op.GetFreeAsHelperHead;
-      } else if (context === 'SubExpression') {
-        op = Op.GetFreeAsHelperHead;
-      } else {
-        op = expressionContextOp(context);
+      switch (context) {
+        case 'Strict':
+          op = Op.GetStrictKeyword;
+          break;
+        case 'AppendBare':
+        case 'AppendInvoke':
+          op = Op.ResolveAsAppendableCallee;
+          break;
+        case 'TrustedAppendBare':
+        case 'TrustedAppendInvoke':
+          return [Op.CallResolved, symbols.freeVar(head.name)];
+        case 'AttrValueBare':
+        case 'AttrValueInvoke':
+          return [Op.CallResolved, symbols.freeVar(head.name)];
+        case 'SubExpression':
+          return [Op.CallResolved, symbols.freeVar(head.name)];
+        default:
+          if (context === VariableResolutionContext.ResolveAsComponentHead) {
+            op = Op.ResolveAsComponentCallee;
+          } else {
+            unreachable(`Unexpected context in test utilities: ${context}`);
+          }
       }
+
       sym = symbols.freeVar(head.name);
       break;
     default:
@@ -499,8 +534,13 @@ export function buildVar(
     return [op, sym];
   } else {
     localAssert(op !== Op.GetStrictKeyword, '[BUG] keyword with a path');
-    return [op, sym, path];
+    localAssert(op === Op.GetLocalSymbol || op === Op.GetLexicalSymbol, `[BUG] ${op} with a path`);
+    return [Op.GetPath, op, sym, path];
   }
+}
+
+function callAttrHelper(symbols: Symbols, head: Variable): Expressions.CallResolvedHelper {
+  return [Op.CallResolved, symbols.freeVar(head.name)];
 }
 
 function getSymbolForVar(kind: Exclude<VariableKind, FREE_VAR>, symbols: Symbols, name: string) {
@@ -525,13 +565,13 @@ export function expressionContextOp(
     case VariableResolutionContext.Strict:
       return Op.GetStrictKeyword;
     case VariableResolutionContext.ResolveAsComponentOrHelperHead:
-      return Op.GetFreeAsComponentOrHelperHead;
+      return Op.ResolveAsAppendableCallee;
     case VariableResolutionContext.ResolveAsHelperHead:
-      return Op.GetFreeAsHelperHead;
+      return Op.ResolveAsHelperCallee;
     case VariableResolutionContext.ResolveAsModifierHead:
-      return Op.GetFreeAsModifierHead;
+      return Op.ResolveAsModifierCallee;
     case VariableResolutionContext.ResolveAsComponentHead:
-      return Op.GetFreeAsComponentHead;
+      return Op.ResolveAsComponentCallee;
     default:
       return exhausted(context);
   }
@@ -678,31 +718,6 @@ export function upsert<T>(array: Optional<PresentArray<T>>, ...values: PresentAr
   }
 
   return array;
-}
-
-export function blockType(
-  path: Expressions.Get
-):
-  | [InvokeLexicalAngleComponentOpcode, WireFormat.Expressions.GetLexicalSymbol]
-  | [InvokeResolvedBlockComponentOpcode, WireFormat.Expressions.GetResolved]
-  | [InvokeDynamicBlockOpcode, WireFormat.Expressions.GetPath] {
-  if (path.length === 2) {
-    if (isGetLexical(path)) {
-      // @fixme is this possible?
-      return [Op.InvokeLexicalAngleComponent, path];
-    } else {
-      localAssert(
-        path[0] !== Op.GetFreeAsHelperHead &&
-          path[0] !== Op.GetFreeAsModifierHead &&
-          path[0] !== Op.GetLocalSymbol &&
-          path[0] !== Op.GetStrictKeyword,
-        '[BUG] resolved block with non-resolved path'
-      );
-      return [Op.InvokeResolvedBlockComponent, path];
-    }
-  }
-
-  return [Op.InvokeDynamicBlock, path];
 }
 
 export const NEWLINE = '\n';

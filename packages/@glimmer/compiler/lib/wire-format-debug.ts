@@ -158,30 +158,31 @@ export default class WireFormatDebugger {
         case Op.GetStrictKeyword:
           return ['get-strict-free', this.upvars[opcode[1]]];
 
-        case Op.GetFreeAsComponentOrHelperHead:
-          return ['GetFreeAsComponentOrHelperHead', this.upvars[opcode[1]], opcode[2]];
+        case Op.GetPath:
+          return ['get-path', this.formatOpcode([opcode[1], opcode[2]]), opcode[3]];
 
-        case Op.GetFreeAsHelperHead:
-          return ['GetFreeAsHelperHead', this.upvars[opcode[1]], opcode[2]];
+        case Op.ResolveAsAppendableCallee:
+          return ['GetFreeAsComponentOrHelperHead', this.upvars[opcode[1]]];
 
-        case Op.GetFreeAsComponentHead:
-          return ['GetFreeAsComponentHead', this.upvars[opcode[1]], opcode[2]];
+        case Op.ResolveAsHelperCallee:
+          return ['GetFreeAsHelperHead', this.upvars[opcode[1]]];
 
-        case Op.GetFreeAsModifierHead:
-          return ['GetFreeAsModifierHead', this.upvars[opcode[1]], opcode[2]];
+        case Op.ResolveAsComponentCallee:
+          return ['GetFreeAsComponentHead', this.upvars[opcode[1]]];
+
+        case Op.ResolveAsModifierCallee:
+          return ['GetFreeAsModifierHead', this.upvars[opcode[1]]];
 
         case Op.GetLocalSymbol: {
           if (opcode[1] === 0) {
-            return ['get-symbol', 'this', opcode[2]];
+            return ['get-symbol', 'this'];
           } else {
-            return ['get-symbol', this.symbols[opcode[1] - 1], opcode[2]];
+            return ['get-symbol', this.symbols[opcode[1] - 1]];
           }
         }
 
         case Op.GetLexicalSymbol: {
-          return opcode.length === 3
-            ? ['get-lexical-symbol', opcode[1], opcode[2]]
-            : ['get-lexical-symbol', opcode[1]];
+          return ['get-lexical-symbol', opcode[1]];
         }
 
         case Op.If:

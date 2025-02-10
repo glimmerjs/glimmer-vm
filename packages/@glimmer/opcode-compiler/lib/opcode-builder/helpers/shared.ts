@@ -48,8 +48,9 @@ export function CompileArgs(
   if (named) {
     names = named[0];
     let val = named[1];
-    for (let i = 0; i < val.length; i++) {
-      expr(encode, val[i]);
+
+    for (const arg of val) {
+      expr(encode, arg);
     }
   }
 
@@ -92,8 +93,8 @@ export function CompilePositional(
 ): number {
   if (!positional) return 0;
 
-  for (let i = 0; i < positional.length; i++) {
-    expr(encode, positional[i]);
+  for (const param of positional) {
+    expr(encode, param);
   }
 
   return positional.length;

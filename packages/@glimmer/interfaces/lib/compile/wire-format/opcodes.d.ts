@@ -47,12 +47,22 @@ export type GetLexicalSymbolOpcode = 33;
 // FIXME: Why does this make it to the wire format in the first place?
 export type GetStrictKeywordOpcode = 34;
 
+export type GetPathOpcode = 107;
+
+export type EmptyArgsOpcode = 0b000;
+export type PositionalArgsOpcode = 0b100;
+export type NamedArgsOpcode = 0b010;
+export type PositionalAndNamedArgsOpcode = 0b110;
+export type PositionalAndBlocksOpcode = 0b101;
+export type NamedArgsAndBlocksOpcode = 0b011;
+export type PositionalAndNamedArgsAndBlocksOpcode = 0b111;
+
 // a component or helper (`{{<expr> x}}` in append position)
-export type ResolveAsComponentOrHelperHeadOpcode = 35;
+export type ResolveAsAppendableCalleeOpcode = 35;
 // a call head `(x)`
-export type ResolveAsHelperHeadOpcode = 37;
+export type ResolveAsHelperCalleeOpcode = 37;
 export type ResolveAsModifierHeadOpcode = 38;
-export type ResolveAsComponentHeadOpcode = 39;
+export type ResolveAsComponentCalleeOpcode = 39;
 
 // Keyword Statements
 export type InElementOpcode = 40;
@@ -75,20 +85,20 @@ export type GetDynamicVarOpcode = 53;
 export type LogOpcode = 54;
 
 export type GetStartOpcode = GetLocalSymbolOpcode;
-export type GetEndOpcode = ResolveAsComponentHeadOpcode;
-export type GetLooseFreeEndOpcode = ResolveAsComponentHeadOpcode;
+export type GetEndOpcode = ResolveAsComponentCalleeOpcode;
+export type GetLooseFreeEndOpcode = ResolveAsComponentCalleeOpcode;
 
 export type GetResolvedOpcode =
-  | ResolveAsComponentOrHelperHeadOpcode
-  | ResolveAsHelperHeadOpcode
+  | ResolveAsAppendableCalleeOpcode
+  | ResolveAsHelperCalleeOpcode
   | ResolveAsModifierHeadOpcode
-  | ResolveAsComponentHeadOpcode;
+  | ResolveAsComponentCalleeOpcode;
 
 export type GetResolvedOrKeywordOpcode =
-  | ResolveAsComponentOrHelperHeadOpcode
-  | ResolveAsHelperHeadOpcode
+  | ResolveAsAppendableCalleeOpcode
+  | ResolveAsHelperCalleeOpcode
   | ResolveAsModifierHeadOpcode
-  | ResolveAsComponentHeadOpcode
+  | ResolveAsComponentCalleeOpcode
   | GetStrictKeywordOpcode;
 
 export type AttrOpcode =

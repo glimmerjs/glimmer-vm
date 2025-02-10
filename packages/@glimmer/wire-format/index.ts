@@ -2,7 +2,13 @@ import type { Content, Expressions } from '@glimmer/interfaces';
 
 import { opcodes as Op } from './lib/opcodes';
 
-export { opcodes as SexpOpcodes } from './lib/opcodes';
+export {
+  EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_OPCODE,
+  POSITIONAL_ARGS_OPCODE,
+  opcodes as SexpOpcodes,
+} from './lib/opcodes';
 export { resolution as VariableResolutionContext } from './lib/resolution';
 export { WellKnownAttrNames, WellKnownTagNames } from './lib/well-known';
 
@@ -64,10 +70,10 @@ export function isGetContextualFree(
 ): expr is Expressions.GetResolved | Expressions.GetPathContextualFree {
   const [opcode] = expr;
   switch (opcode) {
-    case Op.GetFreeAsComponentHead:
-    case Op.GetFreeAsComponentOrHelperHead:
-    case Op.GetFreeAsHelperHead:
-    case Op.GetFreeAsModifierHead:
+    case Op.ResolveAsComponentCallee:
+    case Op.ResolveAsAppendableCallee:
+    case Op.ResolveAsHelperCallee:
+    case Op.ResolveAsModifierCallee:
       return true;
     default:
       return false;

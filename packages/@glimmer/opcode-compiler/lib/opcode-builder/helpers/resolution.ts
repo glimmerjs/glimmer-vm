@@ -33,14 +33,14 @@ function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
   };
 }
 
-export const isGetFreeComponent = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsComponentHead);
+export const isGetFreeComponent = makeResolutionTypeVerifier(SexpOpcodes.ResolveAsComponentCallee);
 
-export const isGetFreeModifier = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsModifierHead);
+export const isGetFreeModifier = makeResolutionTypeVerifier(SexpOpcodes.ResolveAsModifierCallee);
 
-export const isGetFreeHelper = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsHelperHead);
+export const isGetFreeHelper = makeResolutionTypeVerifier(SexpOpcodes.ResolveAsHelperCallee);
 
 export const isGetFreeComponentOrHelper = makeResolutionTypeVerifier(
-  SexpOpcodes.GetFreeAsComponentOrHelperHead
+  SexpOpcodes.ResolveAsAppendableCallee
 );
 
 interface ResolvedBlockMetadata extends BlockMetadata {

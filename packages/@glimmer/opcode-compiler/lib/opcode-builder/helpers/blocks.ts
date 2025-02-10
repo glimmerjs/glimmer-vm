@@ -1,4 +1,4 @@
-import type { Nullable, Optional, WireFormat } from '@glimmer/interfaces';
+import type { Nullable, WireFormat } from '@glimmer/interfaces';
 import {
   VM_CHILD_SCOPE_OP,
   VM_COMPILE_BLOCK_OP,
@@ -19,7 +19,6 @@ import { $fp } from '@glimmer/vm';
 
 import type { EncodeOp } from '../encoder';
 
-import { SimpleArgs } from './shared';
 import { PushPrimitive } from './vm';
 
 /**
@@ -28,12 +27,7 @@ import { PushPrimitive } from './vm';
  * @param to the symbol containing the block to yield to
  * @param params optional block parameters to yield to the block
  */
-export function YieldBlock(
-  encode: EncodeOp,
-  to: number,
-  positional?: Optional<WireFormat.Core.Params>
-): void {
-  SimpleArgs(encode, positional && { params: positional }, true);
+export function YieldBlock(encode: EncodeOp, to: number): void {
   encode.op(VM_GET_BLOCK_OP, to);
   encode.op(VM_SPREAD_BLOCK_OP);
   encode.op(VM_COMPILE_BLOCK_OP);

@@ -99,21 +99,21 @@ export class LooseModeResolution {
   ) {}
 
   get isResolvedAppendable(): boolean {
-    return this.resolution() === Op.GetFreeAsComponentOrHelperHead;
+    return this.resolution() === Op.ResolveAsAppendableCallee;
   }
 
   resolution(): GetResolvedOrKeywordOpcode {
     if (this.namespaces.length === 1) {
       switch (this.namespaces[0]) {
         case HELPER_VAR_NS:
-          return Op.GetFreeAsHelperHead;
+          return Op.ResolveAsHelperCallee;
         case MODIFIER_VAR_NS:
-          return Op.GetFreeAsModifierHead;
+          return Op.ResolveAsModifierCallee;
         case COMPONENT_VAR_NS:
-          return Op.GetFreeAsComponentHead;
+          return Op.ResolveAsComponentCallee;
       }
     } else {
-      return Op.GetFreeAsComponentOrHelperHead;
+      return Op.ResolveAsAppendableCallee;
     }
   }
 

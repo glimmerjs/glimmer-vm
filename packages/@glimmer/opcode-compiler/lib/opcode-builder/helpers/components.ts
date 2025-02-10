@@ -278,7 +278,8 @@ function InvokeStaticComponent(
       for (let i = 0; i < val.length; i++) {
         let symbol = symbols.indexOf(unwrap(names[i]));
 
-        expr(encode, val[i]);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        expr(encode, val[i]!);
         argSymbols.push(symbol);
       }
     }
@@ -303,7 +304,8 @@ function InvokeStaticComponent(
       let symbol = symbols.indexOf(name);
 
       if (symbol !== -1) {
-        expr(encode, val[i]);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        expr(encode, val[i]!);
         argSymbols.push(symbol);
         argNames.push(name);
       }
@@ -428,7 +430,8 @@ export function WrappedComponent(
   encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
   encode.op(VM_OPEN_DYNAMIC_ELEMENT_OP);
   encode.op(VM_DID_CREATE_ELEMENT_OP, $s0);
-  YieldBlock(encode, attrsBlockNumber, undefined);
+  encode.op(VM_PUSH_EMPTY_ARGS_OP);
+  YieldBlock(encode, attrsBlockNumber);
   encode.op(VM_FLUSH_ELEMENT_OP);
   encode.mark('BODY');
   InvokeStaticBlock(encode, [layout.block[0], []]);

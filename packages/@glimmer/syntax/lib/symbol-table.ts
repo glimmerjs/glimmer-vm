@@ -124,7 +124,7 @@ export class ProgramSymbolTable extends SymbolTable {
     // If the name in question is an uppercase (i.e. angle-bracket) component invocation, run
     // the optional `customizeComponentName` function provided to the precompiler.
     if (
-      resolution.resolution() === SexpOpcodes.GetFreeAsComponentHead &&
+      resolution.resolution() === SexpOpcodes.ResolveAsComponentCallee &&
       resolution.isAngleBracket
     ) {
       name = this.options.customizeComponentName(name);

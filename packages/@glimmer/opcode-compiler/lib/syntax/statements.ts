@@ -25,6 +25,7 @@ import {
   VM_POP_REMOTE_ELEMENT_OP,
   VM_PUSH_COMPONENT_DEFINITION_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
+  VM_PUSH_EMPTY_ARGS_OP,
   VM_PUSH_FRAME_OP,
   VM_PUSH_REMOTE_ELEMENT_OP,
   VM_PUT_COMPONENT_OPERATIONS_OP,
@@ -173,9 +174,15 @@ export function isLexicalCall(expr: WireFormat.Expression) {
   return Array.isArray(expr) && expr[0] === Op.GetLexicalSymbol;
 }
 
-STATEMENTS.add(Op.Yield, (encode, [, to, params]) => YieldBlock(encode, to, params));
+STATEMENTS.add(Op.Yield, (encode, [, to, params]) => {
+  SimpleArgs(encode, params && { params }, true);
+  YieldBlock(encode, to);
+});
 
-STATEMENTS.add(Op.AttrSplat, (encode, [, to]) => YieldBlock(encode, to));
+STATEMENTS.add(Op.AttrSplat, (encode, [, to]) => {
+  encode.op(VM_PUSH_EMPTY_ARGS_OP);
+  YieldBlock(encode, to);
+});
 
 STATEMENTS.add(Op.Debugger, (encode, [, locals, upvars, lexical]) => {
   encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
