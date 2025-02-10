@@ -1,5 +1,5 @@
 import type { PresentArray } from '@glimmer/interfaces';
-import { getLast, isPresentArray } from '@glimmer/debug-util';
+import { exhausted, getLast, isPresentArray } from '@glimmer/debug-util';
 import { ASTv2, generateSyntaxError, KEYWORDS_TYPES } from '@glimmer/syntax';
 
 import type { AnyOptionalList, PresentList } from '../../../shared/list';
@@ -9,6 +9,38 @@ import { Err, Ok, Result, ResultArray } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import { CALL_KEYWORDS } from '../keywords';
 
+export function visitExpr(
+  node: ASTv2.CalleeNode,
+  state: NormalizationState
+): Result<mir.CalleeExpression>;
+export function visitExpr(
+  node: ASTv2.LiteralExpression,
+  state: NormalizationState
+): Result<ASTv2.LiteralExpression>;
+export function visitExpr(
+  node: ASTv2.KeywordExpression,
+  state: NormalizationState
+): Result<ASTv2.KeywordExpression>;
+export function visitExpr(
+  node: ASTv2.PathExpression,
+  state: NormalizationState
+): Result<mir.PathExpression>;
+export function visitExpr(
+  node: ASTv2.CallExpression,
+  state: NormalizationState
+): Result<mir.CallExpression>;
+export function visitExpr(
+  node: ASTv2.ExpressionValueNode,
+  state: NormalizationState
+): Result<mir.ExpressionValueNode>;
+export function visitExpr(
+  node: ASTv2.ExpressionNode,
+  state: NormalizationState
+): Result<mir.ExpressionNode>;
+export function visitExpr(
+  node: ASTv2.AppendValueNode,
+  state: NormalizationState
+): Result<ASTv2.LiteralExpression | mir.CalleeExpression>;
 export function visitExpr(
   node: ASTv2.ExpressionNode,
   state: NormalizationState
@@ -31,6 +63,8 @@ export function visitExpr(
 
       return visitCallExpression(node, state);
     }
+    default:
+      exhausted(node);
   }
 }
 
@@ -86,7 +120,7 @@ function visitInterpolate(
 function visitCallExpression(
   expr: ASTv2.CallExpression,
   state: NormalizationState
-): Result<mir.ExpressionNode> {
+): Result<mir.CallExpression> {
   if (expr.callee.type === 'Call') {
     return Err(
       generateSyntaxError(

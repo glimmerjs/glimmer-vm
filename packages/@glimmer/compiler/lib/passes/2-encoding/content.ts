@@ -13,7 +13,7 @@ import type {
 } from '@glimmer/interfaces';
 import type { BlockSymbolTable } from '@glimmer/syntax';
 import { assertPresentArray, exhausted, localAssert } from '@glimmer/debug-util';
-import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { isGetLexical, SexpOpcodes as Op } from '@glimmer/wire-format';
 
@@ -208,22 +208,40 @@ export function AppendValueCautiously({
     case 'CallExpression': {
       const args = encodeArgs(value.args);
 
-      return isResolvedAppendable(value.callee)
-        ? [Op.AppendResolvedInvokable, value.callee.symbol, args]
-        : [Op.AppendDynamicInvokable, encodeExpr(value.callee), args];
+      switch (value.callee.type) {
+        case 'Resolved': {
+          if (LOCAL_DEBUG && !value.callee.isResolvedAppendable) {
+            throw new Error(`BUG: Resolved ${value.callee.name} is not appendable`);
+          }
+
+          return [Op.AppendResolvedInvokable, value.callee.symbol, args];
+        }
+
+        case 'Local': {
+          if (LOCAL_DEBUG && value.callee.referenceType === 'dynamic') {
+            throw new Error(`BUG: Local ${value.callee.name} is not appendable`);
+          }
+
+          return [Op.AppendDynamicInvokable, encodeExpr(value.callee), args];
+        }
+
+        case 'This':
+        case 'Arg':
+        case 'PathExpression':
+        case 'Keyword':
+          return [Op.AppendDynamicInvokable, encodeExpr(value.callee), args];
+
+        default:
+          throw new Error(`BUG: Unhandled callee type ${value.callee.type}`);
+      }
     }
 
-    case 'Literal':
+    case 'Literal': {
       return [Op.AppendStatic, encodeExpr(value)];
+    }
   }
 
   return [Op.AppendValueCautiously, encodeExpr(value)];
-}
-
-function isResolvedAppendable(
-  value: mir.ExpressionNode
-): value is Extract<mir.ExpressionNode, { type: 'Resolved' }> {
-  return value.type === 'Resolved' && value.isResolvedAppendable;
 }
 
 export function AppendComment({

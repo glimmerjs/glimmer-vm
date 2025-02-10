@@ -134,7 +134,7 @@ export class Log extends node('Log').fields<{
  * - `{{#component <expr>}}`
  */
 export class InvokeComponentKeyword extends node('InvokeComponentKeyword').fields<{
-  definition: Exclude<ExpressionNode, ASTv2.LiteralExpression>;
+  definition: CalleeExpression | (ASTv2.LiteralExpression & { value: string });
   args: Args;
   blocks?: Optional<NamedBlocks>;
 }>() {}
@@ -161,7 +161,7 @@ export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
  * - `{{<expr>}}` where `expr` is not a resolved or lexical reference.
  */
 export class AppendValueCautiously extends node('AppendValueCautiously').fields<{
-  value: ExpressionNode;
+  value: ASTv2.LiteralExpression | CalleeExpression;
 }>() {}
 
 export class AppendHtmlText extends node('AppendHtmlText').fields<{
@@ -220,9 +220,19 @@ export class ElementParameters extends node('ElementParameters').fields<{
 }>() {}
 
 export class CallExpression extends node('CallExpression').fields<{
-  callee: ExpressionNode;
+  callee: CalleeExpression;
   args: Args;
 }>() {}
+
+export function isMirCalleeExpression(expr: ExpressionNode): expr is CalleeExpression {
+  switch (expr.type) {
+    case 'InterpolateExpression':
+    case 'Literal':
+      return false;
+    default:
+      return true;
+  }
+}
 
 /**
  * Syntax: `(if ...)`
@@ -251,7 +261,7 @@ export class IfExpression extends node('IfExpression').fields<{
 
 export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
 export class InvokeBlockComponent extends node('InvokeBlockComponent').fields<{
-  head: PathExpression | ASTv2.VariableReference;
+  head: CalleeExpression;
   args: Args;
   blocks: NamedBlocks;
 }>() {}
@@ -303,12 +313,13 @@ export class NamedBlock extends node('NamedBlock').fields<{
 
 export type MaybeMissingExpressionNode = ExpressionNode | Missing;
 
-export type ExpressionNode =
-  | ASTv2.LiteralExpression
+export type CalleeExpression =
+  | PathExpression
   | ASTv2.KeywordExpression
   | ASTv2.VariableReference
-  | PathExpression
-  | InterpolateExpression
+  | SomeCallExpression;
+
+export type SomeCallExpression =
   | CallExpression
   | Not
   | IfExpression
@@ -317,6 +328,9 @@ export type ExpressionNode =
   | Curry
   | GetDynamicVar
   | Log;
+
+export type ExpressionValueNode = ASTv2.LiteralExpression | CalleeExpression;
+export type ExpressionNode = ASTv2.LiteralExpression | InterpolateExpression | CalleeExpression;
 
 export type ElementParameter = StaticAttr | DynamicAttr | Modifier | SplatAttr;
 

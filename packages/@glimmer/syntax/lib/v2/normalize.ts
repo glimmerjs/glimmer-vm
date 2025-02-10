@@ -410,7 +410,7 @@ class StatementNormalizer {
   MustacheStatement(mustache: ASTv1.MustacheStatement): ASTv2.AppendContent {
     let { path, params, hash, trusting } = mustache;
     let loc = this.block.loc(mustache.loc);
-    let value: ASTv2.ExpressionNode;
+    let value: ASTv2.CalleeNode | ASTv2.LiteralExpression;
 
     if (isLiteral(path)) {
       if (params.length === 0 && hash.pairs.length === 0) {

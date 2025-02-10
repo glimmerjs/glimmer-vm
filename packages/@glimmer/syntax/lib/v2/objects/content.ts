@@ -2,7 +2,7 @@ import type { SourceSlice } from '../../source/slice';
 import type { SymbolTable } from '../../symbol-table';
 import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
 import type { CallFields } from './base';
-import type { ExpressionNode } from './expr';
+import type { AppendValueNode, ExpressionNode } from './expr';
 import type { NamedBlock, NamedBlocks } from './internal-node';
 import type { BaseNodeFields } from './node';
 
@@ -30,7 +30,7 @@ export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
 export class HtmlComment extends node('HtmlComment').fields<{ text: SourceSlice }>() {}
 
 export class AppendContent extends node('AppendContent').fields<{
-  value: ExpressionNode;
+  value: AppendValueNode;
   trusting: boolean;
   table: SymbolTable;
 }>() {

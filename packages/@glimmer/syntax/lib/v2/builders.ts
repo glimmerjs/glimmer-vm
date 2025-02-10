@@ -264,7 +264,7 @@ export class Builder {
       table,
       trusting,
       value,
-    }: { table: SymbolTable; trusting: boolean; value: ASTv2.ExpressionNode },
+    }: { table: SymbolTable; trusting: boolean; value: ASTv2.CalleeNode | ASTv2.LiteralExpression },
     loc: SourceSpan
   ): ASTv2.AppendContent {
     return new ASTv2.AppendContent({
@@ -366,7 +366,10 @@ export class BuildElement {
     );
   }
 
-  selfClosingComponent(callee: ASTv2.ExpressionNode, loc: SourceSpan): ASTv2.InvokeAngleBracketComponent {
+  selfClosingComponent(
+    callee: ASTv2.ExpressionNode,
+    loc: SourceSpan
+  ): ASTv2.InvokeAngleBracketComponent {
     return new ASTv2.InvokeAngleBracketComponent(
       assign(
         {

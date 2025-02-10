@@ -1,4 +1,4 @@
-import type { CurriedType } from '@glimmer/interfaces';
+import type { CurriedHelper, CurriedModifier, CurriedType } from '@glimmer/interfaces';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/constants';
 import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
@@ -7,7 +7,7 @@ import type { KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { visitExpr, visitArgs } from '../../visitors/expressions';
+import { visitArgs, visitExpr } from '../../visitors/expressions';
 
 const CurriedTypeToReadableType = {
   [CURRIED_COMPONENT]: 'component',
@@ -15,14 +15,25 @@ const CurriedTypeToReadableType = {
   [CURRIED_MODIFIER]: 'modifier',
 } as const;
 
-export function assertCurryKeyword(curriedType: CurriedType) {
-  return (
-    node: ASTv2.AppendContent | ASTv2.InvokeBlock | ASTv2.CallExpression,
-    state: NormalizationState
-  ): Result<{
-    definition: ASTv2.ExpressionNode;
-    args: ASTv2.Args;
-  }> => {
+export function assertCurryKeyword(
+  curriedType: CurriedHelper | CurriedModifier
+): (
+  node: ASTv2.AppendContent | ASTv2.InvokeBlock | ASTv2.CallExpression,
+  state: NormalizationState
+) => Result<{ definition: ASTv2.CalleeNode; args: ASTv2.Args }>;
+export function assertCurryKeyword(
+  curriedType: CurriedType
+): (
+  node: ASTv2.AppendContent | ASTv2.InvokeBlock | ASTv2.CallExpression,
+  state: NormalizationState
+) => Result<{ definition: ASTv2.ExpressionValueNode; args: ASTv2.Args }>;
+export function assertCurryKeyword(
+  curriedType: CurriedType
+): (
+  node: ASTv2.AppendContent | ASTv2.InvokeBlock | ASTv2.CallExpression,
+  state: NormalizationState
+) => Result<{ definition: ASTv2.ExpressionNode; args: ASTv2.Args }> {
+  return (node, state): Result<{ definition: ASTv2.ExpressionNode; args: ASTv2.Args }> => {
     let readableType = CurriedTypeToReadableType[curriedType];
     let stringsAllowed = curriedType === CURRIED_COMPONENT;
 
@@ -48,6 +59,13 @@ export function assertCurryKeyword(curriedType: CurriedType) {
           )
         );
       } else if (!stringsAllowed) {
+        return Err(
+          generateSyntaxError(
+            `(${readableType}) cannot resolve string values, you must pass a ${readableType} definition directly`,
+            node.loc
+          )
+        );
+      } else if (curriedType === CURRIED_HELPER || curriedType === CURRIED_MODIFIER) {
         return Err(
           generateSyntaxError(
             `(${readableType}) cannot resolve string values, you must pass a ${readableType} definition directly`,

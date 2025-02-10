@@ -1,5 +1,4 @@
 import type {
-  AppendBuiltinHelperOpcode,
   AppendDynamicInvokableOpcode,
   AppendHtmlTextOpcode,
   AppendResolvedInvokableOpcode,
@@ -64,7 +63,6 @@ export const opcodes = {
   AppendStatic: 104 satisfies AppendStaticOpcode,
   AppendResolvedInvokable: 100 satisfies AppendResolvedInvokableOpcode,
   AppendDynamicInvokable: 103 satisfies AppendDynamicInvokableOpcode,
-  AppendBuiltinHelper: 102 satisfies AppendBuiltinHelperOpcode,
 
   InvokeDynamicComponent: 58 satisfies InvokeDynamicComponentOpcode,
   InvokeComponentKeyword: 46 satisfies InvokeComponentKeywordOpcode,

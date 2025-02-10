@@ -1,5 +1,6 @@
 import type { PresentArray } from '@glimmer/interfaces';
 
+import type * as ASTv2 from '../api';
 import type { CallFields } from './base';
 import type { VariableReference } from './refs';
 
@@ -105,9 +106,11 @@ export class InterpolateExpression extends node('Interpolate').fields<{
   parts: PresentArray<ExpressionNode>;
 }>() {}
 
-export type ExpressionNode =
+export type ExpressionNode = ExpressionValueNode | InterpolateExpression;
+
+export type ExpressionValueNode =
   | LiteralExpression
   | PathExpression
   | KeywordExpression
-  | CallExpression
-  | InterpolateExpression;
+  | CallExpression;
+export type AppendValueNode = ASTv2.CalleeNode | ASTv2.LiteralExpression;

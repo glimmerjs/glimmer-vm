@@ -106,7 +106,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
-      { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
+      { definition, args }: { definition: ASTv2.ExpressionValueNode; args: ASTv2.Args }
     ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
       let definitionResult = visitExpr(definition, state);
       let argsResult = visitArgs(args, state);
@@ -146,7 +146,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
-      { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
+      { definition, args }: { definition: ASTv2.CalleeNode; args: ASTv2.Args }
     ): Result<mir.AppendValueCautiously> {
       let definitionResult = visitExpr(definition, state);
       let argsResult = visitArgs(args, state);

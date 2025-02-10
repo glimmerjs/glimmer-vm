@@ -371,7 +371,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
+      { definition, args }: { definition: ASTv2.ExpressionValueNode; args: ASTv2.Args }
     ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
       let definitionResult = visitExpr(definition, state);
       let argsResult = visitArgs(args, state);
