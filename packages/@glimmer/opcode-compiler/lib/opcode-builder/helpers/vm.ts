@@ -67,7 +67,7 @@ export function PushPrimitive(encode: EncodeOp, primitive: Primitive): void {
 export function Call(
   encode: EncodeOp,
   handle: number,
-  args?: Optional<WireFormat.Core.Args>
+  args?: Optional<WireFormat.Core.CallArgs>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
   SimpleArgs(encode, args, false);
@@ -83,7 +83,7 @@ export function Call(
  * @param positional An optional list of expressions to compile
  * @param named An optional list of named arguments (name + expression) to compile
  */
-export function CallDynamicExpr(encode: EncodeOp, args?: Optional<WireFormat.Core.Args>): void {
+export function CallDynamicExpr(encode: EncodeOp, args?: Optional<WireFormat.Core.CallArgs>): void {
   encode.op(VM_PUSH_FRAME_OP);
   SimpleArgs(encode, args, false);
   encode.op(VM_DUP_OP, $fp, 1);
@@ -96,7 +96,7 @@ export function CallDynamicExpr(encode: EncodeOp, args?: Optional<WireFormat.Cor
 export function CallDynamicBlock(
   encode: EncodeOp,
   handle: number,
-  args?: Optional<WireFormat.Core.Args>
+  args?: Optional<WireFormat.Core.CallArgs>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
   SimpleArgs(encode, args, false);
@@ -129,7 +129,7 @@ export function Curry(
   encode: EncodeOp,
   type: CurriedType,
   definition: WireFormat.Expression,
-  args: Optional<WireFormat.Core.Args>
+  args: Optional<WireFormat.Core.CallArgs>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
   SimpleArgs(encode, args, false);

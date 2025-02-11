@@ -289,7 +289,7 @@ export default class WireFormatDebugger {
     return opcodes.map((o) => this.formatOpcode(o));
   }
 
-  private formatArgs(args: Optional<WireFormat.Core.Args>) {
+  private formatArgs(args: Optional<WireFormat.Core.CallArgs>) {
     if (!args) return;
 
     const params = this.formatParams(args.params);

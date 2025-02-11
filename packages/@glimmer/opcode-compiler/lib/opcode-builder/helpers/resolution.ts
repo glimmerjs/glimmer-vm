@@ -33,11 +33,7 @@ function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
   };
 }
 
-export const isGetFreeComponent = makeResolutionTypeVerifier(SexpOpcodes.ResolveAsComponentCallee);
-
 export const isGetFreeModifier = makeResolutionTypeVerifier(SexpOpcodes.ResolveAsModifierCallee);
-
-export const isGetFreeHelper = makeResolutionTypeVerifier(SexpOpcodes.ResolveAsHelperCallee);
 
 export const isGetFreeComponentOrHelper = makeResolutionTypeVerifier(
   SexpOpcodes.ResolveAsAppendableCallee

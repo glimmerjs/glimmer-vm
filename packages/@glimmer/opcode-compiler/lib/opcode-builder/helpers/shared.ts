@@ -59,7 +59,7 @@ export function CompileArgs(
 
 export function SimpleArgs(
   encode: EncodeOp,
-  args: Optional<WireFormat.Core.Args>,
+  args: Optional<WireFormat.Core.CallArgs>,
   atNames: boolean
 ): void {
   if (!args) {

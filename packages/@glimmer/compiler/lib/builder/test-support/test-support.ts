@@ -40,7 +40,14 @@ import {
 } from '@glimmer/constants';
 import { exhausted, expect, isPresentArray, localAssert, unreachable } from '@glimmer/debug-util';
 import { assertNever } from '@glimmer/util';
-import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
+import {
+  EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_OPCODE,
+  POSITIONAL_ARGS_OPCODE,
+  SexpOpcodes as Op,
+  VariableResolutionContext,
+} from '@glimmer/wire-format';
 
 import type { Symbols } from '../builder';
 import type {
@@ -61,6 +68,7 @@ import type {
 } from './builder-interface';
 
 import { compactSexpr } from '../../passes/2-encoding/content';
+import { callArgs } from '../../passes/2-encoding/expressions';
 import { compact, isGet, isInvokeResolved, needsAtNames } from '../builder';
 import { normalizeStatement } from './builder-interface';
 
@@ -98,13 +106,15 @@ export function buildStatement(
           return [
             [
               Op.AppendTrustedHtml,
-              [Op.CallResolved, symbols.freeVar(normalized.expr.variable.name)],
+              [
+                Op.CallResolved,
+                symbols.freeVar(normalized.expr.variable.name),
+                [EMPTY_ARGS_OPCODE],
+              ],
             ],
           ];
         }
       }
-
-      debugger;
 
       const expr = buildExpression(
         normalized.expr,
@@ -139,7 +149,6 @@ export function buildStatement(
       if (path.length === 2) {
         localAssert(
           path[0] !== Op.GetLexicalSymbol &&
-            path[0] !== Op.ResolveAsHelperCallee &&
             path[0] !== Op.ResolveAsModifierCallee &&
             path[0] !== Op.GetLocalSymbol &&
             path[0] !== Op.GetStrictKeyword,
@@ -401,10 +410,6 @@ export function buildExpression(
       );
 
       if (builtExpr[0] === Op.CallResolved) {
-        localAssert(
-          builtExpr.length === 2,
-          `Expected built head in test environment from buildCallHead to not contain arguments`
-        );
         return [builtExpr[0], builtExpr[1], buildArgs(builtParams, builtHash)];
       }
 
@@ -509,12 +514,12 @@ export function buildVar(
           break;
         case 'TrustedAppendBare':
         case 'TrustedAppendInvoke':
-          return [Op.CallResolved, symbols.freeVar(head.name)];
+          return [Op.CallResolved, symbols.freeVar(head.name), [EMPTY_ARGS_OPCODE]];
         case 'AttrValueBare':
         case 'AttrValueInvoke':
-          return [Op.CallResolved, symbols.freeVar(head.name)];
+          return [Op.CallResolved, symbols.freeVar(head.name), [EMPTY_ARGS_OPCODE]];
         case 'SubExpression':
-          return [Op.CallResolved, symbols.freeVar(head.name)];
+          return [Op.CallResolved, symbols.freeVar(head.name), [EMPTY_ARGS_OPCODE]];
         default:
           if (context === VariableResolutionContext.ResolveAsComponentHead) {
             op = Op.ResolveAsComponentCallee;
@@ -537,10 +542,6 @@ export function buildVar(
     localAssert(op === Op.GetLocalSymbol || op === Op.GetLexicalSymbol, `[BUG] ${op} with a path`);
     return [Op.GetPath, op, sym, path];
   }
-}
-
-function callAttrHelper(symbols: Symbols, head: Variable): Expressions.CallResolvedHelper {
-  return [Op.CallResolved, symbols.freeVar(head.name)];
 }
 
 function getSymbolForVar(kind: Exclude<VariableKind, FREE_VAR>, symbols: Symbols, name: string) {
@@ -687,15 +688,16 @@ function addAtNames(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.C
 function buildArgs(
   params: Optional<WireFormat.Core.Params>,
   hash: Optional<WireFormat.Core.Hash>
-): Optional<WireFormat.Core.Args> {
-  if (!params && !hash) return undefined;
-
-  const args: Partial<WireFormat.Core.Args> = {};
-
-  if (params) args.params = params;
-  if (hash) args.hash = hash;
-
-  return args as WireFormat.Core.Args;
+): WireFormat.Core.CallArgs {
+  if (params && hash) {
+    return [POSITIONAL_AND_NAMED_ARGS_OPCODE, params, hash];
+  } else if (params) {
+    return [POSITIONAL_ARGS_OPCODE, params];
+  } else if (hash) {
+    return [NAMED_ARGS_OPCODE, hash];
+  } else {
+    return [EMPTY_ARGS_OPCODE];
+  }
 }
 
 export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {

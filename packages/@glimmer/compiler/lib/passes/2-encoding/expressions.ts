@@ -1,7 +1,13 @@
 import type { Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
 import { assertPresentArray, localAssert, mapPresentArray } from '@glimmer/debug-util';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
+import {
+  EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_OPCODE,
+  POSITIONAL_ARGS_OPCODE,
+  SexpOpcodes as Op,
+} from '@glimmer/wire-format';
 
 import type * as mir from './mir';
 
@@ -90,10 +96,28 @@ export function encodeNamedArguments(
   }
 }
 
+export function callArgs(
+  positionalArgs: mir.Args['positional'],
+  namedArgs: mir.Args['named']
+): WireFormat.Core.CallArgs {
+  const positional = encodePositional(positionalArgs);
+  const named = encodeNamedArguments(namedArgs, false);
+
+  if (positional && named) {
+    return [POSITIONAL_AND_NAMED_ARGS_OPCODE, positional, named];
+  } else if (positional) {
+    return [POSITIONAL_ARGS_OPCODE, positional];
+  } else if (named) {
+    return [NAMED_ARGS_OPCODE, named];
+  } else {
+    return [EMPTY_ARGS_OPCODE];
+  }
+}
+
 export function encodeArgs(
   node: Pick<mir.Args, 'positional' | 'named'>,
   insertAtPrefix: boolean = false
-): Optional<WireFormat.Core.Args> {
+): Optional<WireFormat.Core.CallArgs> {
   return args(node.positional, node.named, insertAtPrefix);
 }
 
@@ -101,7 +125,7 @@ function args(
   positionalNode: mir.Positional,
   namedNode: mir.NamedArguments,
   insertAtPrefix: boolean
-): Optional<WireFormat.Core.Args> {
+): Optional<WireFormat.Core.CallArgs> {
   const positional = encodePositional(positionalNode);
   const named = encodeNamedArguments(namedNode, insertAtPrefix);
 
@@ -116,7 +140,7 @@ function encodeResolved({
   | WireFormat.Expressions.CallResolvedHelper {
   switch (resolution.resolution()) {
     case Op.ResolveAsHelperCallee:
-      return [Op.CallResolved, symbol];
+      return [Op.CallResolved, symbol, [EMPTY_ARGS_OPCODE]];
   }
 
   return [resolution.resolution(), symbol];
@@ -195,10 +219,10 @@ function CallExpression({
       'Expected a helper head'
     );
 
-    return [Op.CallResolved, callee.symbol, encodeArgs(args)];
+    return [Op.CallResolved, callee.symbol, callArgs(args.positional, args.named)];
   }
 
-  return [Op.CallDynamicValue, encodeExpr(callee), encodeArgs(args)];
+  return [Op.CallDynamicValue, encodeExpr(callee), callArgs(args.positional, args.named)];
 }
 
 function Tail({ members }: mir.Tail): PresentArray<string> {

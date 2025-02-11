@@ -97,8 +97,12 @@ export namespace Core {
   export type ConcatParams = Params;
   export type Hash = [PresentArray<string>, PresentArray<Expression>];
   export type Blocks = [PresentArray<string>, PresentArray<SerializedInlineBlock>];
-  export type Args = EmptyArgs | PositionalArgs | NamedArgs | PositionalAndNamedArgs;
-  export type CallArgs = Args;
+  export type CallArgs = EmptyArgs | PositionalArgs | NamedArgs | PositionalAndNamedArgs;
+  export type BlockArgs =
+    | CallArgs
+    | PositionalAndBlocksArgs
+    | NamedArgsAndBlocksArgs
+    | PositionalAndNamedArgsAndBlocksArgs;
   export type NamedBlock = [string, SerializedInlineBlock];
   export type Splattributes = PresentArray<ElementParameter>;
 
@@ -109,6 +113,19 @@ export namespace Core {
     PositionalAndNamedArgsOpcode,
     PresentArray<Expression>,
     Hash,
+  ];
+
+  export type PositionalAndBlocksArgs = [
+    PositionalAndBlocksArgs,
+    positional: PresentArray<Expression>,
+    blocks: Blocks,
+  ];
+  export type NamedArgsAndBlocksArgs = [NamedArgsAndBlocksArgs, named: Hash, blocks: Blocks];
+  export type PositionalAndNamedArgsAndBlocksArgs = [
+    PositionalAndNamedArgsAndBlocksArgs,
+    positional: PresentArray<Expression>,
+    named: Hash,
+    blocks: Blocks,
   ];
 
   // export function SimpleArgs(
@@ -134,15 +151,13 @@ export namespace Core {
   //     return CallArgs(encode, count, EMPTY_STRING_ARRAY);
   //   }
   // }
-  export type Syntax = Path | Params | Hash | Blocks | Args;
+  export type Syntax = Path | Params | Hash | Blocks | CallArgs;
 
   export type ComponentArgs = RequireAtLeastOne<{
     splattributes?: Splattributes;
     hash?: Hash;
     blocks?: Blocks;
   }>;
-
-  export type BlockArgs = RequireAtLeastOne<{ params: Params; hash: Hash; blocks: Blocks }>;
 
   export type SomeArgs = Partial<{
     splattributes?: Splattributes;
@@ -216,12 +231,12 @@ export namespace Expressions {
     CallResolvedOpcode,
     /** upvar */
     callee: number,
-    args?: Optional<Core.Args>,
+    args: Core.CallArgs,
   ];
-  export type CallDynamicValue = [CallDynamicValueOpcode, Expression, args?: Optional<Core.Args>];
+  export type CallDynamicValue = [CallDynamicValueOpcode, Expression, args: Core.CallArgs];
   export type HasBlock = [HasBlockOpcode, Expression];
   export type HasBlockParams = [HasBlockParamsOpcode, Expression];
-  export type Curry = [CurryOpcode, Expression, CurriedType, args?: Optional<Core.Args>];
+  export type Curry = [CurryOpcode, Expression, CurriedType, args?: Optional<Core.CallArgs>];
 
   export type SomeCallHelper = CallResolvedHelper | CallDynamicValue;
 
@@ -303,12 +318,12 @@ export namespace Content {
   export type AppendDynamicInvokable = [
     AppendDynamicInvokableOpcode,
     callee: Expression,
-    args?: Optional<Core.Args>,
+    args?: Optional<Core.CallArgs>,
   ];
   export type AppendResolvedInvokable = [
     AppendResolvedInvokableOpcode,
     upvar: number,
-    args?: Optional<Core.Args>,
+    args?: Optional<Core.CallArgs>,
   ];
 
   export type AppendStatic = [AppendStaticOpcode, value: Expressions.StaticValue];
@@ -317,8 +332,12 @@ export namespace Content {
   export type AppendTrustedHtml = [AppendTrustedHtmlOpcode, Expression];
   export type AppendHtmlComment = [CommentOpcode, string];
   export type AppendHtmlText = [AppendHtmlTextOpcode, string];
-  export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.Args>];
-  export type ResolvedModifier = [ResolvedModifierOpcode, Expression, args?: Optional<Core.Args>];
+  export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.CallArgs>];
+  export type ResolvedModifier = [
+    ResolvedModifierOpcode,
+    Expression,
+    args?: Optional<Core.CallArgs>,
+  ];
   export type ResolvedBlock = [
     InvokeResolvedBlockComponentOpcode,
     path: Expressions.GetVar,
