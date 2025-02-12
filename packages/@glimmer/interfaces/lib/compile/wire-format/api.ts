@@ -40,10 +40,8 @@ import type {
   InvokeComponentKeywordOpcode,
   InvokeDynamicBlockOpcode,
   InvokeDynamicComponentOpcode,
-  InvokeLexicalAngleComponentOpcode,
-  InvokeLexicalBlockComponentOpcode,
-  InvokeResolvedAngleComponentOpcode,
-  InvokeResolvedBlockComponentOpcode,
+  InvokeLexicalComponentOpcode,
+  InvokeResolvedComponentOpcode,
   LetOpcode,
   LexicalModifierOpcode,
   LogOpcode,
@@ -315,14 +313,10 @@ export namespace Content {
   export type SomeModifier = LexicalModifier | ResolvedModifier;
   export type SomeInvokeComponent =
     | InvokeComponentKeyword
-    | InvokeLexicalAngleComponent
+    | InvokeLexicalComponent
     | InvokeDynamicComponent
     | InvokeResolvedComponent;
-  export type SomeBlock =
-    | InvokeResolvedBlockComponent
-    | InvokeDynamicBlock
-    | InvokeLexicalAngleComponent
-    | InvokeLexicalBlockComponent;
+  export type SomeBlock = InvokeResolvedComponent | InvokeDynamicBlock | InvokeLexicalComponent;
 
   export type AppendValueCautiously = [AppendValueCautiouslyOpcode, TupleExpression];
   export type AppendDynamicInvokable = [
@@ -347,11 +341,6 @@ export namespace Content {
     ResolvedModifierOpcode,
     Expression,
     args?: Optional<Core.CallArgs>,
-  ];
-  export type InvokeResolvedBlockComponent = [
-    InvokeResolvedBlockComponentOpcode,
-    path: Expressions.GetVar,
-    args: Core.BlockArgs,
   ];
 
   export type InvokeDynamicBlock = [
@@ -440,20 +429,14 @@ export namespace Content {
     args: Core.BlockArgs,
   ];
 
-  export type InvokeLexicalAngleComponent = [
-    op: InvokeLexicalAngleComponentOpcode,
-    definition: Expression,
-    args: Core.BlockArgs,
-  ];
-
-  export type InvokeLexicalBlockComponent = [
-    op: InvokeLexicalBlockComponentOpcode,
+  export type InvokeLexicalComponent = [
+    op: InvokeLexicalComponentOpcode,
     definition: Expression,
     args: Core.BlockArgs,
   ];
 
   export type InvokeResolvedComponent = [
-    op: InvokeResolvedAngleComponentOpcode,
+    op: InvokeResolvedComponentOpcode,
     // A resolved component is, by definition, not a dot-separated path
     tag: Expressions.GetVar,
     args: Core.BlockArgs,

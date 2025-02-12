@@ -74,7 +74,7 @@ export type CompilerBuffer = Array<Operand>;
 export interface ResolvedLayout {
   handle: number;
   capabilities: InternalComponentCapabilities;
-  compilable: Nullable<CompilableProgram>;
+  layout: Nullable<CompilableProgram>;
 }
 
 export type OkHandle = number;

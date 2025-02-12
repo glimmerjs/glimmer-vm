@@ -167,7 +167,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Content.InvokeResolvedBlockComponent];
+    let [[, componentNameExpr]] = block[0] as [WireFormat.Content.InvokeResolvedComponent];
 
     localAssert(
       Array.isArray(componentNameExpr) && componentNameExpr[0] === Op.ResolveAsComponentCallee,

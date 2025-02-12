@@ -9,9 +9,10 @@ import {
   VM_CONTENT_TYPE_OP,
   VM_MAIN_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
-  VM_RESOLVE_CURRIED_COMPONENT_OP,
+  VM_RESOLVE_DYNAMIC_COMPONENT_OP,
 } from '@glimmer/constants';
 import { $s0, ContentType } from '@glimmer/vm';
+import { EMPTY_ARGS_OPCODE } from '@glimmer/wire-format';
 
 import { EncodeOp, EncoderImpl } from '../encoder';
 import { StdLib } from '../stdlib';
@@ -52,13 +53,13 @@ export function StdAppend(
 
       if (typeof nonDynamicAppend === 'number') {
         when(ContentType.Component, () => {
-          encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+          encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.constant(false));
           encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
           InvokeBareComponent(encode);
         });
 
         when(ContentType.Helper, () => {
-          CallDynamicBlock(encode, nonDynamicAppend);
+          CallDynamicBlock(encode, nonDynamicAppend, [EMPTY_ARGS_OPCODE]);
         });
       } else {
         // when non-dynamic, we can no longer call the value (potentially because we've already called it)

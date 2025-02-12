@@ -157,7 +157,7 @@ export function buildStatement(
             path[0] !== Op.GetStrictKeyword,
           '[BUG] resolved block with non-resolved path'
         );
-        return [[Op.InvokeResolvedBlockComponent, path, args]];
+        return [[Op.InvokeResolvedComponent, path, args]];
       }
 
       return [[Op.InvokeDynamicBlock, path, args]];

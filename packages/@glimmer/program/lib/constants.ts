@@ -195,7 +195,7 @@ export class ConstantsImpl implements ProgramConstants {
 
       let templateFactory = getComponentTemplate(definitionState);
 
-      let compilable = null;
+      let layout = null;
       let template;
 
       if (
@@ -209,11 +209,7 @@ export class ConstantsImpl implements ProgramConstants {
       if (template !== undefined) {
         template = unwrapTemplate(template);
 
-        compilable = managerHasCapability(
-          manager,
-          capabilities,
-          InternalComponentCapabilities.wrapped
-        )
+        layout = managerHasCapability(manager, capabilities, InternalComponentCapabilities.wrapped)
           ? template.asWrappedLayout()
           : template.asLayout();
       }
@@ -224,7 +220,7 @@ export class ConstantsImpl implements ProgramConstants {
         manager,
         capabilities,
         state: definitionState,
-        compilable,
+        layout,
       };
 
       definition.handle = this.value(definition);
@@ -250,7 +246,7 @@ export class ConstantsImpl implements ProgramConstants {
       let { manager, state, template } = resolvedDefinition;
       let capabilities = capabilityFlagsFrom(manager.getCapabilities(resolvedDefinition));
 
-      let compilable = null;
+      let layout = null;
 
       if (
         !managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicLayout)
@@ -261,11 +257,7 @@ export class ConstantsImpl implements ProgramConstants {
       if (template !== null) {
         template = unwrapTemplate(template);
 
-        compilable = managerHasCapability(
-          manager,
-          capabilities,
-          InternalComponentCapabilities.wrapped
-        )
+        layout = managerHasCapability(manager, capabilities, InternalComponentCapabilities.wrapped)
           ? template.asWrappedLayout()
           : template.asLayout();
       }
@@ -276,7 +268,7 @@ export class ConstantsImpl implements ProgramConstants {
         manager,
         capabilities,
         state,
-        compilable,
+        layout,
       };
 
       definition.handle = this.value(definition);

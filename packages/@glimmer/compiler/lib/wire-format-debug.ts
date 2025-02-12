@@ -39,9 +39,6 @@ export default class WireFormatDebugger {
         case Op.AppendTrustedHtml:
           return ['trusting-append', this.formatOpcode(opcode[1])];
 
-        case Op.InvokeResolvedBlockComponent:
-          return ['block', this.formatOpcode(opcode[1]), this.formatBlockArgs(opcode[2])];
-
         case Op.InElement:
           return [
             'in-element',
@@ -220,15 +217,8 @@ export default class WireFormatDebugger {
         case Op.GetDynamicVar:
           return ['-get-dynamic-vars', this.formatOpcode(opcode[1])];
 
-        case Op.InvokeLexicalAngleComponent:
-          return [
-            '<AngleBracket>',
-            this.formatOpcode(opcode[1]),
-            this.formatComponentArgs(opcode[2]),
-          ];
-
-        case Op.InvokeLexicalBlockComponent:
-          return ['{{#curly}}>', this.formatOpcode(opcode[1]), this.formatBlockArgs(opcode[2])];
+        case Op.InvokeLexicalComponent:
+          return ['component', this.formatOpcode(opcode[1]), this.formatComponentArgs(opcode[2])];
 
         case Op.InvokeComponentKeyword:
           return [
@@ -243,10 +233,10 @@ export default class WireFormatDebugger {
         }
 
         case Op.InvokeDynamicComponent:
-        case Op.InvokeResolvedAngleComponent: {
+        case Op.InvokeResolvedComponent: {
           const [op, path, args] = opcode;
           return [
-            op === Op.InvokeResolvedAngleComponent ? 'component:resolved' : 'component',
+            op === Op.InvokeResolvedComponent ? 'component:resolved' : 'component',
             this.formatOpcode(path),
             this.formatComponentArgs(args),
           ];

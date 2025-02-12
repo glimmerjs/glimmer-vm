@@ -24,7 +24,7 @@ import {
 
 import type { EncodeOp } from '../encoder';
 
-import { EMPTY_BLOCKS, namedBlocks } from '../../utils';
+import { EMPTY_BLOCKS, getNamedBlocks } from '../../utils';
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
 
@@ -36,18 +36,15 @@ import { expr } from './expr';
  * @param args.blocks
  * @param args.atNames
  */
-export function CompileArgs(
-  encode: EncodeOp,
-  positional: Optional<WireFormat.Core.Params>,
-  named: Optional<WireFormat.Core.Hash>,
-  blocks: NamedBlocks
-): void {
+export function CompileArgs(encode: EncodeOp, args: WireFormat.Core.SomeArgs): void {
+  const blocks = hasBlocks(args) ? getNamedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
+
   let blockNames: string[] = blocks.names;
   for (const name of blockNames) {
     PushYieldableBlock(encode, blocks.get(name));
   }
 
-  let count = CompilePositional(encode, positional);
+  let count = hasPositional(args) ? CompilePositional(encode, getPositional(args)) : 0;
 
   let flags = count << 4;
 
@@ -59,7 +56,8 @@ export function CompileArgs(
 
   let names = EMPTY_ARRAY as readonly string[];
 
-  if (named) {
+  if (hasNamed(args)) {
+    const named = getNamed(args);
     names = named[0];
     let val = named[1];
 
@@ -114,11 +112,7 @@ export const getBlocks = (args: WireFormat.Core.HasBlocks): WireFormat.Core.Bloc
   }
 };
 
-export function SimpleArgs(
-  encode: EncodeOp,
-  args: WireFormat.Core.CallArgs,
-  { prefixAtNames }: { prefixAtNames: boolean }
-): void {
+export function SimpleArgs(encode: EncodeOp, args: WireFormat.Core.CallArgs): void {
   if (args[0] === EMPTY_ARGS_OPCODE) {
     encode.op(VM_PUSH_EMPTY_ARGS_OP);
   }
@@ -126,13 +120,11 @@ export function SimpleArgs(
   const positionalCount = hasPositional(args) ? CompilePositional(encode, getPositional(args)) : 0;
   const names = hasNamed(args) ? CompileNamed(encode, getNamed(args)) : EMPTY_STRING_ARRAY;
 
-  const atFlags = prefixAtNames ? 0b1000 : 0b0000;
-
   encode.op(
     VM_PUSH_ARGS_OP,
     encode.array(names),
     encode.array(EMPTY_STRING_ARRAY),
-    (positionalCount << 4) | atFlags
+    positionalCount << 4
   );
 }
 
@@ -143,7 +135,7 @@ export function blockArgs(encode: EncodeOp, args: WireFormat.Core.BlockArgs): vo
 
   const positionalCount = hasPositional(args) ? CompilePositional(encode, getPositional(args)) : 0;
   const names = hasNamed(args) ? CompileNamed(encode, getNamed(args)) : EMPTY_STRING_ARRAY;
-  const blocks = hasBlocks(args) ? namedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
+  const blocks = hasBlocks(args) ? getNamedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
 
   const [blockFlags, ...blockNames] = CompileBlocks(encode, blocks);
 

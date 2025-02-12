@@ -60,13 +60,13 @@ import type { CompilableProgram, Template } from './template.js';
 export interface LateBoundCompileTimeComponent {
   handle: number;
   capabilities: CapabilityMask;
-  compilable: null;
+  layout: null;
 }
 
 export interface EarlyBoundCompileTimeComponent {
   handle: number;
   capabilities: CapabilityMask;
-  compilable: CompilableProgram;
+  layout: CompilableProgram;
 }
 
 export type CompileTimeComponent = EarlyBoundCompileTimeComponent | LateBoundCompileTimeComponent;

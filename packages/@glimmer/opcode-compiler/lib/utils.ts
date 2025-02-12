@@ -77,9 +77,9 @@ export class NamedBlocksImpl implements AbstractNamedBlocks {
 
 export const EMPTY_BLOCKS = NamedBlocksImpl.empty();
 
-export function namedBlocks(blocks: WireFormat.Core.Blocks): PresentNamedBlocks;
-export function namedBlocks(blocks: Optional<WireFormat.Core.Blocks>): NamedBlocks;
-export function namedBlocks(blocks: Optional<WireFormat.Core.Blocks>): NamedBlocks {
+export function getNamedBlocks(blocks: WireFormat.Core.Blocks): PresentNamedBlocks;
+export function getNamedBlocks(blocks: Optional<WireFormat.Core.Blocks>): NamedBlocks;
+export function getNamedBlocks(blocks: Optional<WireFormat.Core.Blocks>): NamedBlocks {
   if (!blocks) {
     return EMPTY_BLOCKS;
   }

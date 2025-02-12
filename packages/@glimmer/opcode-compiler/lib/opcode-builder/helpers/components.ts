@@ -45,7 +45,6 @@ import {
   VM_PUSH_SYMBOL_TABLE_OP,
   VM_PUT_COMPONENT_OPERATIONS_OP,
   VM_REGISTER_COMPONENT_DESTRUCTOR_OP,
-  VM_RESOLVE_CURRIED_COMPONENT_OP,
   VM_RESOLVE_DYNAMIC_COMPONENT_OP,
   VM_ROOT_SCOPE_OP,
   VM_SET_BLOCK_OP,
@@ -54,14 +53,14 @@ import {
   VM_SET_VARIABLE_OP,
   VM_VIRTUAL_ROOT_SCOPE_OP,
 } from '@glimmer/constants';
-import { localAssert, unwrap } from '@glimmer/debug-util';
+import { unwrap } from '@glimmer/debug-util';
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse } from '@glimmer/util';
 import { $s0, $s1, $sp, InternalComponentCapabilities } from '@glimmer/vm';
 
 import type { EncodeOp } from '../encoder';
 
-import { EMPTY_BLOCKS, namedBlocks } from '../../utils';
+import { EMPTY_BLOCKS, getNamedBlocks } from '../../utils';
 import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
@@ -79,7 +78,6 @@ import {
 export const ATTRS_BLOCK = '&attrs';
 
 interface AnyComponent {
-  splattributes?: Optional<WireFormat.SerializedInlineBlock>;
   positional?: Optional<WireFormat.Core.Params>;
   named?: Optional<WireFormat.Core.Hash>;
   blocks: NamedBlocks;
@@ -93,42 +91,22 @@ export interface DynamicComponent extends AnyComponent {
 }
 
 // <Component>
-export interface StaticComponent extends AnyComponent {
+export interface StaticComponent {
+  args: WireFormat.Core.BlockArgs;
   capabilities: CapabilityMask;
   layout: CompilableProgram;
 }
 
 // chokepoint
-export interface Component extends AnyComponent {
+export interface Component {
+  args: WireFormat.Core.BlockArgs;
+
   // either we know the capabilities statically or we need to be conservative and assume
   // that the component requires all capabilities
   capabilities: CapabilityMask | true;
 
   // do we have the layout statically or will we need to look it up at runtime?
   layout?: CompilableProgram;
-}
-
-export function InvokeEarlyBoundComponent(
-  encode: EncodeOp,
-  component: EarlyBoundCompileTimeComponent,
-  args: WireFormat.Core.SomeArgs
-): void {
-  const { compilable, capabilities, handle } = component;
-
-  localAssert(compilable, `BUG: Lexical component ${handle} does not have a template`);
-
-  const [splattributes, blocks] = hasBlocks(args)
-    ? namedBlocks(getBlocks(args)).remove('attrs')
-    : EMPTY_BLOCKS.remove('attrs');
-
-  InvokeStaticComponent(encode, {
-    capabilities,
-    layout: compilable,
-    positional: hasPositional(args) ? getPositional(args) : undefined,
-    named: hasNamed(args) ? getNamed(args) : undefined,
-    splattributes,
-    blocks,
-  });
 }
 
 /**
@@ -140,38 +118,13 @@ export function InvokeEarlyBoundComponent(
 export function InvokeResolvedComponent(
   encode: EncodeOp,
   component: CompileTimeComponent,
-  args?: Optional<WireFormat.Core.BlockArgs>
+  args: WireFormat.Core.BlockArgs
 ): void {
-  const [splattributes, blocks] =
-    args && hasBlocks(args)
-      ? namedBlocks(getBlocks(args)).remove('attrs')
-      : EMPTY_BLOCKS.remove('attrs');
-
-  const positional = args && hasPositional(args) ? getPositional(args) : undefined;
-  const named = args && hasNamed(args) ? getNamed(args) : undefined;
-
-  if (component.compilable) {
-    const { compilable, capabilities } = component;
-
-    return InvokeStaticComponent(encode, {
-      capabilities,
-      layout: compilable,
-      splattributes,
-      positional,
-      named,
-      blocks,
-    });
+  if (component.layout) {
+    return InvokeStaticComponent(encode, args, component);
   }
 
-  const { capabilities } = component;
-
-  InvokeDynamicComponent(encode, {
-    capabilities,
-    splattributes,
-    positional,
-    named,
-    blocks,
-  });
+  InvokeDynamicComponent(encode, args, component);
 }
 
 export function InvokeReplayableComponentExpression(
@@ -180,8 +133,6 @@ export function InvokeReplayableComponentExpression(
   args: WireFormat.Core.BlockArgs,
   options?: { curried?: boolean }
 ): void {
-  const blocks = hasBlocks(args) ? namedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
-
   Replayable(
     encode,
 
@@ -195,22 +146,14 @@ export function InvokeReplayableComponentExpression(
       encode.op(VM_JUMP_UNLESS_OP, encode.to('ELSE'));
 
       if (options?.curried) {
-        encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.constant(false));
       } else {
-        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.isStrictMode());
+        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.isDynamicStringAllowed());
       }
 
       encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
 
-      const [splattributes, remainingBlocks] = blocks.remove('attrs');
-
-      InvokeDynamicComponent(encode, {
-        capabilities: true,
-        splattributes: splattributes ?? undefined,
-        positional: hasPositional(args) ? getPositional(args) : undefined,
-        named: hasNamed(args) ? getNamed(args) : undefined,
-        blocks: remainingBlocks,
-      });
+      InvokeDynamicComponent(encode, args);
       encode.mark('ELSE');
     }
   );
@@ -218,22 +161,14 @@ export function InvokeReplayableComponentExpression(
 
 export function InvokeStaticComponent(
   encode: EncodeOp,
-  { capabilities, layout, splattributes, positional, named, blocks }: StaticComponent
+  args: WireFormat.Core.BlockArgs,
+  component: EarlyBoundCompileTimeComponent
 ): void {
+  const { capabilities, layout } = component;
   let { symbolTable } = layout;
 
-  let bailOut = hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
-
-  if (bailOut) {
-    InvokeDynamicComponent(encode, {
-      capabilities,
-      splattributes,
-      positional,
-      named,
-      blocks,
-      layout,
-    });
-
+  if (hasCapability(capabilities, InternalComponentCapabilities.prepareArgs)) {
+    InvokeDynamicComponent(encode, args, component);
     return;
   }
 
@@ -251,8 +186,11 @@ export function InvokeStaticComponent(
   let argSymbols: number[] = [];
   let argNames: string[] = [];
 
+  const allBlocks = hasBlocks(args) ? getNamedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
+  const [splattributes, namedBlocks] = allBlocks.remove('attrs');
+
   // First we push the blocks onto the stack
-  let blockNames = blocks.names;
+  let blockNames = namedBlocks.names;
 
   // Starting with the attrs block, if it exists and is referenced in the component
   if (splattributes) {
@@ -270,10 +208,13 @@ export function InvokeStaticComponent(
     let symbol = symbols.indexOf(`&${name}`);
 
     if (symbol !== -1) {
-      PushYieldableBlock(encode, blocks.get(name));
+      PushYieldableBlock(encode, namedBlocks.get(name));
       blockSymbols.push(symbol);
     }
   }
+
+  const named = hasNamed(args) ? getNamed(args) : undefined;
+  const positional = hasPositional(args) ? getPositional(args) : undefined;
 
   // Next up we have arguments. If the component has the `createArgs` capability,
   // then it wants access to the arguments in JavaScript. We can't know whether
@@ -300,8 +241,7 @@ export function InvokeStaticComponent(
       for (let i = 0; i < val.length; i++) {
         let symbol = symbols.indexOf(unwrap(names[i]));
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        expr(encode, val[i]!);
+        expr(encode, val[i]);
         argSymbols.push(symbol);
       }
     }
@@ -326,8 +266,7 @@ export function InvokeStaticComponent(
       let symbol = symbols.indexOf(name);
 
       if (symbol !== -1) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        expr(encode, val[i]!);
+        expr(encode, val[i]);
         argSymbols.push(symbol);
         argNames.push(name);
       }
@@ -342,7 +281,7 @@ export function InvokeStaticComponent(
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createInstance)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    encode.op(VM_CREATE_COMPONENT_OP, (blocks.has('default') as any) | 0);
+    encode.op(VM_CREATE_COMPONENT_OP, (namedBlocks.has('default') as any) | 0);
   }
 
   encode.op(VM_REGISTER_COMPONENT_DESTRUCTOR_OP, $s0);
@@ -354,7 +293,7 @@ export function InvokeStaticComponent(
   }
 
   // Setup the new root scope for the component
-  encode.op(VM_ROOT_SCOPE_OP, symbols.length + 1, Object.keys(blocks).length > 0 ? 1 : 0);
+  encode.op(VM_ROOT_SCOPE_OP, symbols.length + 1, Object.keys(namedBlocks).length > 0 ? 1 : 0);
 
   // Pop the self reference off the stack and set it to the symbol for `this`
   // in the new scope. This is why all subsequent symbols are increased by one.
@@ -403,35 +342,42 @@ export function InvokeStaticComponent(
 
 export function InvokeDynamicComponent(
   encode: EncodeOp,
-  { capabilities, splattributes, positional, named, blocks: namedBlocks, layout }: Component
+  args: WireFormat.Core.BlockArgs,
+  component?: CompileTimeComponent
 ): void {
-  let bindableBlocks = !!namedBlocks;
   let bindableAtNames =
-    capabilities === true ||
-    hasCapability(capabilities, InternalComponentCapabilities.prepareArgs) ||
-    !!(named && named[0].length !== 0);
-
-  let blocks = namedBlocks.with('attrs', splattributes);
+    !component ||
+    hasCapability(component.capabilities, InternalComponentCapabilities.prepareArgs) ||
+    hasNamed(args);
 
   encode.op(VM_FETCH_OP, $s0);
   encode.op(VM_DUP_OP, $sp, 1);
   encode.op(VM_LOAD_OP, $s0);
 
   encode.op(VM_PUSH_FRAME_OP);
-  CompileArgs(encode, positional, named, blocks);
+
+  CompileArgs(encode, args);
   encode.op(VM_PREPARE_ARGS_OP, $s0);
 
-  invokePreparedComponent(encode, blocks.has('default'), bindableBlocks, bindableAtNames, () => {
-    if (layout) {
-      encode.op(VM_PUSH_SYMBOL_TABLE_OP, encode.constant(layout.symbolTable));
-      encode.op(VM_CONSTANT_OP, encode.constant(layout));
-      encode.op(VM_COMPILE_BLOCK_OP);
-    } else {
-      encode.op(VM_GET_COMPONENT_LAYOUT_OP, $s0);
-    }
+  const layout = component?.layout;
 
-    encode.op(VM_POPULATE_LAYOUT_OP, $s0);
-  });
+  invokePreparedComponent(
+    encode,
+    hasBlocks(args) && getBlocks(args)[0].includes('default'),
+    hasBlocks(args),
+    bindableAtNames,
+    () => {
+      if (layout) {
+        encode.op(VM_PUSH_SYMBOL_TABLE_OP, encode.constant(layout.symbolTable));
+        encode.op(VM_CONSTANT_OP, encode.constant(layout));
+        encode.op(VM_COMPILE_BLOCK_OP);
+      } else {
+        encode.op(VM_GET_COMPONENT_LAYOUT_OP, $s0);
+      }
+
+      encode.op(VM_POPULATE_LAYOUT_OP, $s0);
+    }
+  );
 
   encode.op(VM_LOAD_OP, $s0);
 }

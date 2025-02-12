@@ -76,8 +76,16 @@ export class EncodeOp {
     this.#meta = meta;
   }
 
-  isStrictMode(): Operand {
-    return encodeHandle(this.#constants.value(this.#meta.isStrictMode));
+  /**
+   * In classic mode, it is legal to write `(component dynamicValue)` where `dynamicValue` is a
+   * string, but only for components. It is always disallowed in strict mode.
+   *
+   * Because `dynamicValue` is reactive, and not known until execution time, we need to pass this
+   * information to the opcodes that attempt resolve dynamic values into components, and where a
+   * dynamic string would be valid in classic mode.
+   */
+  isDynamicStringAllowed(): Operand {
+    return encodeHandle(this.#constants.value(!this.#meta.isStrictMode));
   }
 
   debugSymbols(symbols: EncodeDebugSymbols): Operand {
@@ -148,7 +156,7 @@ export class EncodeOp {
       lexical?.at(expr[1])
     );
 
-    localAssert(component.compilable, `BUG: lexical components may not be late bound`);
+    localAssert(component.layout, `BUG: lexical components may not be late bound`);
 
     return component as EarlyBoundCompileTimeComponent;
   };

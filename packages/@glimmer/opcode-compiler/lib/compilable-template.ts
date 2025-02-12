@@ -4,6 +4,7 @@ import type {
   CompilableBlock,
   CompilableProgram,
   CompilableTemplate,
+  CompileTimeComponent,
   Content,
   EvaluationContext,
   HandleResult,
@@ -30,11 +31,12 @@ import {
   VM_OPEN_ELEMENT_OP,
   VM_POP_FRAME_OP,
   VM_POP_SCOPE_OP,
+  VM_PUSH_COMPONENT_DEFINITION_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   VM_PUSH_EMPTY_ARGS_OP,
   VM_PUSH_FRAME_OP,
   VM_PUT_COMPONENT_OPERATIONS_OP,
-  VM_RESOLVE_CURRIED_COMPONENT_OP,
+  VM_RESOLVE_DYNAMIC_COMPONENT_OP,
   VM_SPREAD_BLOCK_OP,
   VM_STATIC_ATTR_OP,
   VM_STATIC_COMPONENT_ATTR_OP,
@@ -48,19 +50,17 @@ import { SexpOpcodes as Op } from '@glimmer/wire-format';
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { EncodeOp } from './opcode-builder/encoder';
-import { InvokeDynamicComponent } from './opcode-builder/helpers/components';
+import {
+  InvokeDynamicComponent,
+  InvokeReplayableComponentExpression,
+  InvokeResolvedComponent,
+  InvokeStaticComponent,
+} from './opcode-builder/helpers/components';
 import { SwitchCases } from './opcode-builder/helpers/conditional';
 import { compilePositional, expr } from './opcode-builder/helpers/expr';
-import {
-  getNamed,
-  getPositional,
-  hasNamed,
-  hasPositional,
-  meta,
-} from './opcode-builder/helpers/shared';
-import { CallDynamicBlock } from './opcode-builder/helpers/vm';
-import { hashToArgs, inflateAttrName, inflateTagName, STATEMENTS } from './syntax/statements';
-import { EMPTY_BLOCKS } from './utils';
+import { meta } from './opcode-builder/helpers/shared';
+import { Call, CallDynamicBlock } from './opcode-builder/helpers/vm';
+import { inflateAttrName, inflateTagName, prefixAtNames, STATEMENTS } from './syntax/statements';
 
 export const PLACEHOLDER_HANDLE = -1;
 
@@ -152,6 +152,57 @@ export function compileContent(encode: EncodeOp, content: Content): void {
       return;
     }
 
+    case Op.InvokeLexicalComponent: {
+      const [, expr, args] = content;
+
+      const component = encode.getLexicalComponent(expr);
+      encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+
+      InvokeStaticComponent(encode, args, component);
+      return;
+    }
+
+    case Op.InvokeResolvedComponent: {
+      const [, expr, args] = content;
+
+      const component = encode.resolveComponent(expr);
+      encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+
+      InvokeResolvedComponent(encode, component, args);
+      return;
+    }
+
+    case Op.InvokeDynamicBlock: {
+      const [, expr, args] = content;
+
+      InvokeReplayableComponentExpression(encode, expr, args);
+      return;
+    }
+
+    // In classic mode only, this corresponds to `{{name ...args}}` where `name` is not an in-scope
+    // variable. In strict mode, this is a syntax error.
+    //
+    // In classic mode, `name` is resolved first as a component, and then as a helper. If either
+    // succeeds, it is compiled into the appropriate invocation. If neither succeeds, it turns into an
+    // early error.
+    case Op.AppendResolvedInvokable: {
+      const [, callee, args] = content;
+
+      encode.append(callee, {
+        ifComponent(component: CompileTimeComponent) {
+          encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+          InvokeResolvedComponent(encode, component, prefixAtNames(args));
+        },
+        ifHelper(handle: number) {
+          encode.op(VM_PUSH_FRAME_OP);
+          Call(encode, handle, args);
+          encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
+          encode.op(VM_POP_FRAME_OP);
+        },
+      });
+      return;
+    }
+
     case Op.AppendDynamicInvokable: {
       const [, callee, args] = content;
       // This corresponds to `{{<expr> ...args}}` where `<expr>` only references in-scope variables (and
@@ -170,14 +221,9 @@ export function compileContent(encode: EncodeOp, content: Content): void {
         },
         (when) => {
           when(ContentType.Component, () => {
-            encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+            encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.constant(false));
             encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-            InvokeDynamicComponent(encode, {
-              capabilities: true,
-              positional: hasPositional(args) ? getPositional(args) : undefined,
-              named: hasNamed(args) ? hashToArgs(getNamed(args)) : undefined,
-              blocks: EMPTY_BLOCKS,
-            });
+            InvokeDynamicComponent(encode, prefixAtNames(args));
           });
 
           when(ContentType.Helper, () => {

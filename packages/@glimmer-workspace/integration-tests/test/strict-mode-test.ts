@@ -133,7 +133,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Foo);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -161,7 +161,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -181,7 +181,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Foo);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -200,7 +200,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -220,7 +220,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -239,7 +239,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `"bar"` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test

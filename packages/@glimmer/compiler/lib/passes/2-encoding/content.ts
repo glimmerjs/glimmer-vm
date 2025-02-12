@@ -164,16 +164,14 @@ export function InvokeBlockComponent({
 
   if (head.type === 'Local' && head.referenceType === 'lexical') {
     return [
-      Op.InvokeLexicalBlockComponent,
+      Op.InvokeLexicalComponent,
       encodeExpr(head),
-      // @todo verify whether insertAtPrefix is variable here
       encodeComponentBlockArgs(args.positional, args.named, blocks),
     ];
   } else if (head.type === 'Resolved') {
     return [
-      Op.InvokeResolvedBlockComponent,
+      Op.InvokeResolvedComponent,
       encodeExpr(head),
-      // @todo verify whether insertAtPrefix is variable here
       encodeComponentBlockArgs(args.positional, args.named, blocks),
     ];
   }
@@ -293,15 +291,14 @@ export function AngleBracketComponent({
     // if the expression is something like `x.Foo`, then the component is dynamic, not
     // a lexical variable.
     return [
-      wireTag.length === 2 ? Op.InvokeLexicalAngleComponent : Op.InvokeDynamicComponent,
+      wireTag.length === 2 ? Op.InvokeLexicalComponent : Op.InvokeDynamicComponent,
       wireTag,
       args,
     ];
   }
 
   if (wireTag[0] === Op.ResolveAsComponentCallee) {
-    debugger;
-    return [Op.InvokeResolvedAngleComponent, wireTag, args];
+    return [Op.InvokeResolvedComponent, wireTag, args];
   }
 
   // The only remaining case here should be a reference to a local Handlebars variable (possibly a

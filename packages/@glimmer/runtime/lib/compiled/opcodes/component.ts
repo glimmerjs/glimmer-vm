@@ -151,34 +151,60 @@ APPEND_OPCODES.add(VM_PUSH_COMPONENT_DEFINITION_OP, (vm, { op1: handle }) => {
   vm.stack.push(instance);
 });
 
-APPEND_OPCODES.add(VM_RESOLVE_DYNAMIC_COMPONENT_OP, (vm, { op1: _isStrict }) => {
+APPEND_OPCODES.add(VM_RESOLVE_DYNAMIC_COMPONENT_OP, (vm, { op1: _allowString }) => {
   let stack = vm.stack;
-  let component = check(
-    valueForRef(check(stack.pop(), CheckReference)),
-    CheckOr(CheckString, CheckCurriedComponentDefinition)
-  );
+  let ref = check(stack.pop(), CheckReference);
+  let component = check(valueForRef(ref), CheckOr(CheckString, CheckCurriedComponentDefinition));
   let constants = vm.constants;
   let owner = vm.getOwner();
-  let isStrict = constants.getValue<boolean>(_isStrict);
+  let allowString = constants.getValue<boolean>(_allowString);
 
   vm.loadValue($t1, null); // Clear the temp register
 
   let definition: ComponentDefinition | CurriedValue;
 
   if (typeof component === 'string') {
-    if (import.meta.env.DEV && isStrict) {
+    if (import.meta.env.DEV && !allowString) {
       throw new Error(
-        `Attempted to resolve a dynamic component with a string definition, \`${component}\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
+        `Attempted to resolve a dynamic component with a string definition, \`"${component}"\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
       );
     }
 
     let resolvedDefinition = resolveComponent(vm.context.resolver, constants, component, owner);
 
     definition = expect(resolvedDefinition, `Could not find a component named "${component}"`);
-  } else if (isCurriedValue(component)) {
+    stack.push(definition);
+    return;
+  }
+
+  if (
+    import.meta.env.DEV &&
+    !(typeof component === 'function' || (typeof component === 'object' && component !== null))
+  ) {
+    throw new Error(
+      `Expected a component definition, but received ${component}. You may have accidentally done <${ref.debugLabel}>, where "${ref.debugLabel}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
+    );
+  }
+
+  if (isCurriedValue(component)) {
     definition = component;
   } else {
-    definition = constants.component(component, owner);
+    const def = constants.component(component, owner, true);
+
+    if (import.meta.env.DEV && def === null) {
+      throw new Error(
+        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${
+          ref.debugLabel
+        }>\` or \`{{${
+          ref.debugLabel
+        }}}\`, and the incorrect definition is the value at the path \`${
+          ref.debugLabel
+        }\`, which was: ${debugToString?.(component) ?? component}`
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    definition = def!;
   }
 
   stack.push(definition);
@@ -650,7 +676,7 @@ APPEND_OPCODES.add(VM_GET_COMPONENT_SELF_OP, (vm, { op1: register, op2: _names }
     }
 
     let moduleName: string;
-    let compilable: CompilableProgram | null = definition.compilable;
+    let compilable: CompilableProgram | null = definition.layout;
 
     if (compilable === null) {
       localAssert(
@@ -740,9 +766,9 @@ APPEND_OPCODES.add(VM_GET_COMPONENT_LAYOUT_OP, (vm, { op1: register }) => {
   let { manager, definition } = instance;
   let { stack } = vm;
 
-  let { compilable } = definition;
+  let { layout } = definition;
 
-  if (compilable === null) {
+  if (layout === null) {
     let { capabilities } = instance;
 
     localAssert(
@@ -751,20 +777,20 @@ APPEND_OPCODES.add(VM_GET_COMPONENT_LAYOUT_OP, (vm, { op1: register }) => {
     );
 
     let resolver = vm.context.resolver;
-    compilable = resolver === null ? null : manager.getDynamicLayout(instance.state, resolver);
+    layout = resolver === null ? null : manager.getDynamicLayout(instance.state, resolver);
 
-    if (compilable === null) {
+    if (layout === null) {
       if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.wrapped)) {
-        compilable = unwrapTemplate(vm.constants.defaultTemplate).asWrappedLayout();
+        layout = unwrapTemplate(vm.constants.defaultTemplate).asWrappedLayout();
       } else {
-        compilable = unwrapTemplate(vm.constants.defaultTemplate).asLayout();
+        layout = unwrapTemplate(vm.constants.defaultTemplate).asLayout();
       }
     }
   }
 
-  let handle = compilable.compile(vm.context);
+  let handle = layout.compile(vm.context);
 
-  stack.push(compilable.symbolTable);
+  stack.push(layout.symbolTable);
   stack.push(handle);
 });
 

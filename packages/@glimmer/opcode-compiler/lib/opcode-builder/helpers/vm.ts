@@ -66,20 +66,18 @@ export function PushPrimitive(encode: EncodeOp, primitive: Primitive): void {
  * @param named An optional list of named arguments (name + expression) to compile
  */
 export function Call(encode: EncodeOp, handle: number, args?: WireFormat.Core.CallArgs): void {
-  encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], { prefixAtNames: false });
+  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE]);
   encode.op(VM_HELPER_OP, handle);
-  encode.op(VM_POP_FRAME_OP);
   encode.op(VM_FETCH_OP, $v0);
 }
 
 export function CallDynamicBlock(
   encode: EncodeOp,
   handle: number,
-  args?: Optional<WireFormat.Core.BlockArgs>
+  args: WireFormat.Core.CallArgs
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], false);
+  SimpleArgs(encode, args);
   encode.op(VM_DUP_OP, $fp, 1);
   encode.op(VM_DYNAMIC_HELPER_OP);
 
@@ -112,10 +110,10 @@ export function Curry(
   args: Optional<WireFormat.Core.CallArgs>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], { prefixAtNames: false });
+  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE]);
   encode.op(VM_CAPTURE_ARGS_OP);
   expr(encode, definition);
-  encode.op(VM_CURRY_OP, type, encode.isStrictMode());
+  encode.op(VM_CURRY_OP, type, encode.isDynamicStringAllowed());
   encode.op(VM_POP_FRAME_OP);
   encode.op(VM_FETCH_OP, $v0);
 }

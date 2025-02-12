@@ -23,7 +23,7 @@ export interface ComponentDefinition<
   state: D;
   manager: M;
   capabilities: CapabilityMask;
-  compilable: CompilableProgram | null;
+  layout: CompilableProgram | null;
   debugName?: string | undefined;
 }
 
