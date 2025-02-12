@@ -1,6 +1,5 @@
 import {
   VM_CLOSE_ELEMENT_OP,
-  VM_COMMENT_OP,
   VM_DUP_OP,
   VM_DYNAMIC_MODIFIER_OP,
   VM_FLUSH_ELEMENT_OP,
@@ -8,17 +7,12 @@ import {
   VM_PUSH_ARGS_OP,
   VM_PUSH_EMPTY_ARGS_OP,
   VM_PUSH_FRAME_OP,
-  VM_TEXT_OP,
 } from '@glimmer/constants';
 import { EMPTY_STRING_ARRAY } from '@glimmer/util';
 import { $fp } from '@glimmer/vm';
 
 import type { EncodeOp } from '../opcode-builder/encoder';
 
-export const Comment = (encode: EncodeOp, comment: string): void =>
-  encode.op(VM_COMMENT_OP, encode.constant(comment));
-export const HtmlText = (encode: EncodeOp, text: string): void =>
-  encode.op(VM_TEXT_OP, encode.constant(text));
 export const CloseElement = (encode: EncodeOp): void => encode.op(VM_CLOSE_ELEMENT_OP);
 export const FlushElement = (encode: EncodeOp): void => encode.op(VM_FLUSH_ELEMENT_OP);
 

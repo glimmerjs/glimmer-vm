@@ -3,8 +3,12 @@ import type { Content, Expressions } from '@glimmer/interfaces';
 import { opcodes as Op } from './lib/opcodes';
 
 export {
+  BLOCKS_OPCODE,
   EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
   NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
   POSITIONAL_AND_NAMED_ARGS_OPCODE,
   POSITIONAL_ARGS_OPCODE,
   opcodes as SexpOpcodes,
@@ -43,13 +47,18 @@ export function isGetVar(expr: Expressions.TupleExpression): expr is Expressions
 }
 
 export function isGetPath(expr: Expressions.TupleExpression): expr is Expressions.GetPath {
-  return isGet(expr) && expr.length === 3;
+  return expr[0] === Op.GetPath;
 }
 
 export function isGet(expr: Expressions.TupleExpression): expr is Expressions.Get {
   const [opcode] = expr;
 
-  return opcode === Op.GetLocalSymbol || opcode === Op.GetLexicalSymbol || isGetFree(expr);
+  return (
+    opcode === Op.GetLocalSymbol ||
+    opcode === Op.GetLexicalSymbol ||
+    isGetFree(expr) ||
+    isGetPath(expr)
+  );
 }
 
 export function isGetFree(

@@ -85,13 +85,30 @@ export interface ErrHandle {
 
 export type HandleResult = OkHandle | ErrHandle;
 
-export interface NamedBlocks {
+export interface AbstractNamedBlocks {
+  readonly hasAny: boolean;
+  readonly names: string[];
   get(name: string): Nullable<SerializedInlineBlock>;
   has(name: string): boolean;
   with(name: string, block: Optional<SerializedInlineBlock>): NamedBlocks;
-  hasAny: boolean;
-  names: string[];
+  remove(name: string): [Optional<SerializedInlineBlock>, NamedBlocks];
 }
+
+export interface EmptyNamedBlocks extends AbstractNamedBlocks {
+  readonly hasAny: false;
+  readonly names: [];
+  with(name: string, block: Optional<SerializedInlineBlock>): PresentNamedBlocks;
+  remove(name: string): [undefined, EmptyNamedBlocks];
+}
+
+export interface PresentNamedBlocks extends AbstractNamedBlocks {
+  readonly hasAny: true;
+  readonly names: PresentArray<string>;
+  with(name: string, block: Optional<SerializedInlineBlock>): PresentNamedBlocks;
+  remove(name: string): [Optional<SerializedInlineBlock>, NamedBlocks];
+}
+
+export type NamedBlocks = EmptyNamedBlocks | PresentNamedBlocks;
 
 export interface CompilerArtifacts {
   heap: SerializedHeap;

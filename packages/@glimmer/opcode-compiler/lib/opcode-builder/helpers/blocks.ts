@@ -58,7 +58,7 @@ export function PushYieldableBlock(
  */
 export function InvokeStaticBlock(encode: EncodeOp, block: WireFormat.SerializedInlineBlock): void {
   encode.op(VM_PUSH_FRAME_OP);
-  PushCompilable(encode, block);
+  encode.op(VM_CONSTANT_OP, encode.block(block));
   encode.op(VM_COMPILE_BLOCK_OP);
   encode.op(VM_INVOKE_VIRTUAL_OP);
   encode.op(VM_POP_FRAME_OP);

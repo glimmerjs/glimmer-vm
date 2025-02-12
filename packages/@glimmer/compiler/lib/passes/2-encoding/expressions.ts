@@ -2,8 +2,12 @@ import type { Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
 import { assertPresentArray, localAssert, mapPresentArray } from '@glimmer/debug-util';
 import {
+  BLOCKS_OPCODE,
   EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
   NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
   POSITIONAL_AND_NAMED_ARGS_OPCODE,
   POSITIONAL_ARGS_OPCODE,
   SexpOpcodes as Op,
@@ -11,7 +15,7 @@ import {
 
 import type * as mir from './mir';
 
-import { compact } from '../../builder/builder';
+import { NamedBlocks } from './content';
 
 export type HashPair = [string, WireFormat.Expression];
 
@@ -73,9 +77,16 @@ export function encodePositional({ list }: mir.Positional): Optional<WireFormat.
   return list.map((l) => encodeExpr(l)).toPresentArray();
 }
 
+/**
+ * `insertAtPrefix` controls whether the `@` prefix is inserted for named arguments.
+ *
+ * - `<AngleBrackets>`: no. They already have `@`-prefixes in their syntax.
+ * - `{{#some-component}}`: yes. Their arguments are equivalent to `@`-prefixed named arguments.
+ * - `{{component ...}}`: yes. Their arguments are equivalent to `@`-prefixed named arguments.
+ */
 export function encodeNamedArguments(
   { entries: pairs }: mir.NamedArguments,
-  insertAtPrefix: boolean
+  { insertAtPrefix }: { insertAtPrefix: boolean }
 ): Optional<WireFormat.Core.Hash> {
   let list = pairs.toPresentArray();
 
@@ -96,12 +107,21 @@ export function encodeNamedArguments(
   }
 }
 
-export function callArgs(
+/**
+ * Encodes call-like arguments (positional and named arguments) into a `CallArgs` opcode with
+ * appropriate tagging.
+ *
+ * This is used internally by other arg-encoding functions.
+ *
+ * See {@linkcode encodeNamedArguments} for information about `insertAtPrefix`.
+ */
+function encodeCallArgs(
   positionalArgs: mir.Args['positional'],
-  namedArgs: mir.Args['named']
+  namedArgs: mir.Args['named'],
+  { insertAtPrefix }: { insertAtPrefix: boolean }
 ): WireFormat.Core.CallArgs {
   const positional = encodePositional(positionalArgs);
-  const named = encodeNamedArguments(namedArgs, false);
+  const named = encodeNamedArguments(namedArgs, { insertAtPrefix });
 
   if (positional && named) {
     return [POSITIONAL_AND_NAMED_ARGS_OPCODE, positional, named];
@@ -114,22 +134,57 @@ export function callArgs(
   }
 }
 
+export function callArgs(
+  positionalArgs: mir.Args['positional'],
+  namedArgs: mir.Args['named']
+): WireFormat.Core.CallArgs {
+  return encodeCallArgs(positionalArgs, namedArgs, { insertAtPrefix: false });
+}
+
+export function encodeComponentBlockArgs(
+  positionalArgs: mir.Positional,
+  namedArgs: mir.NamedArguments,
+  blocksArgs: Optional<mir.NamedBlocks>
+): WireFormat.Core.BlockArgs {
+  const blocks = blocksArgs && NamedBlocks(blocksArgs);
+
+  if (blocks) {
+    const positional = encodePositional(positionalArgs);
+    const named = encodeNamedArguments(namedArgs, { insertAtPrefix: true });
+
+    if (positional && named) {
+      return [POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE, positional, named, blocks];
+    } else if (positional) {
+      return [POSITIONAL_AND_BLOCKS_OPCODE, positional, blocks];
+    } else if (named) {
+      return [NAMED_ARGS_AND_BLOCKS_OPCODE, named, blocks];
+    } else {
+      return [BLOCKS_OPCODE, blocks];
+    }
+  } else {
+    return encodeCallArgs(positionalArgs, namedArgs, { insertAtPrefix: true });
+  }
+}
+
+/**
+ * @deprecated
+ */
 export function encodeArgs(
   node: Pick<mir.Args, 'positional' | 'named'>,
   insertAtPrefix: boolean = false
-): Optional<WireFormat.Core.CallArgs> {
+): WireFormat.Core.CallArgs {
   return args(node.positional, node.named, insertAtPrefix);
 }
 
+/**
+ * @deprecated
+ */
 function args(
   positionalNode: mir.Positional,
   namedNode: mir.NamedArguments,
   insertAtPrefix: boolean
-): Optional<WireFormat.Core.CallArgs> {
-  const positional = encodePositional(positionalNode);
-  const named = encodeNamedArguments(namedNode, insertAtPrefix);
-
-  return compact({ params: positional, hash: named });
+): WireFormat.Core.CallArgs {
+  return encodeCallArgs(positionalNode, namedNode, { insertAtPrefix });
 }
 
 function encodeResolved({

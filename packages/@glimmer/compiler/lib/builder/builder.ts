@@ -3,7 +3,13 @@ import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import { localAssert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { dict, values } from '@glimmer/util';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
+import {
+  BLOCKS_OPCODE,
+  EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  SexpOpcodes as Op,
+} from '@glimmer/wire-format';
 
 export interface Symbols {
   top: ProgramSymbols;
@@ -146,13 +152,35 @@ export interface BuilderGetFree {
 export function buildComponentArgs(
   splattributes: Optional<WireFormat.Core.Splattributes>,
   hash: Optional<WireFormat.Core.Hash>,
-  blocks: Optional<WireFormat.Core.Blocks>
-): Optional<WireFormat.Core.ComponentArgs> {
-  return compact({
-    splattributes,
-    hash,
-    blocks,
-  });
+  componentBlocks: Optional<WireFormat.Core.Blocks>
+): WireFormat.Core.BlockArgs {
+  const blocks = combineSplattributes(componentBlocks, splattributes);
+
+  if (hash && blocks) {
+    return [NAMED_ARGS_AND_BLOCKS_OPCODE, hash, blocks];
+  } else if (hash) {
+    return [NAMED_ARGS_OPCODE, hash];
+  } else if (blocks) {
+    return [BLOCKS_OPCODE, blocks];
+  } else {
+    return [EMPTY_ARGS_OPCODE];
+  }
+}
+
+function combineSplattributes(
+  blocks: Optional<WireFormat.Core.Blocks>,
+  splattributes: Optional<WireFormat.Core.Splattributes>
+): Optional<WireFormat.Core.Blocks> {
+  if (blocks && splattributes) {
+    return [
+      [...blocks[0], 'attrs'],
+      [...blocks[1], [splattributes, []] satisfies WireFormat.SerializedInlineBlock],
+    ];
+  } else if (splattributes) {
+    return [['attrs'], [[splattributes, []] satisfies WireFormat.SerializedInlineBlock]];
+  } else {
+    return blocks;
+  }
 }
 
 type CompactObject<T> = Simplify<

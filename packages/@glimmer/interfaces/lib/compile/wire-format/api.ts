@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import type { RequireAtLeastOne, Simplify } from 'type-fest';
+import type { Simplify } from 'type-fest';
 
 import type { PresentArray } from '../../array';
 import type { Nullable, Optional } from '../../core';
@@ -13,6 +13,7 @@ import type {
   AppendValueCautiouslyOpcode,
   AttrOpcode,
   AttrSplatOpcode,
+  BlocksOpcode,
   CallDynamicValueOpcode,
   CallResolvedOpcode,
   CloseElementOpcode,
@@ -46,10 +47,13 @@ import type {
   LetOpcode,
   LexicalModifierOpcode,
   LogOpcode,
+  NamedArgsAndBlocksOpcode,
   NamedArgsOpcode,
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
+  PositionalAndBlocksOpcode,
+  PositionalAndNamedArgsAndBlocksOpcode,
   PositionalAndNamedArgsOpcode,
   PositionalArgsOpcode,
   ResolveAsAppendableCalleeOpcode,
@@ -97,12 +101,29 @@ export namespace Core {
   export type ConcatParams = Params;
   export type Hash = [PresentArray<string>, PresentArray<Expression>];
   export type Blocks = [PresentArray<string>, PresentArray<SerializedInlineBlock>];
+
   export type CallArgs = EmptyArgs | PositionalArgs | NamedArgs | PositionalAndNamedArgs;
   export type BlockArgs =
     | CallArgs
     | PositionalAndBlocksArgs
     | NamedArgsAndBlocksArgs
-    | PositionalAndNamedArgsAndBlocksArgs;
+    | PositionalAndNamedArgsAndBlocksArgs
+    | BlocksOnlyArgs;
+
+  export type SomeArgs = Core.CallArgs | Core.BlockArgs;
+
+  export type HasPositionalArgs = PositionalArgs | PositionalAndNamedArgs | PositionalAndBlocksArgs;
+  export type HasNamedArgs =
+    | PositionalAndNamedArgs
+    | PositionalAndNamedArgsAndBlocksArgs
+    | NamedArgs
+    | NamedArgsAndBlocksArgs;
+  export type HasBlocks =
+    | PositionalAndBlocksArgs
+    | NamedArgsAndBlocksArgs
+    | PositionalAndNamedArgsAndBlocksArgs
+    | BlocksOnlyArgs;
+
   export type NamedBlock = [string, SerializedInlineBlock];
   export type Splattributes = PresentArray<ElementParameter>;
 
@@ -116,17 +137,18 @@ export namespace Core {
   ];
 
   export type PositionalAndBlocksArgs = [
-    PositionalAndBlocksArgs,
+    PositionalAndBlocksOpcode,
     positional: PresentArray<Expression>,
     blocks: Blocks,
   ];
-  export type NamedArgsAndBlocksArgs = [NamedArgsAndBlocksArgs, named: Hash, blocks: Blocks];
+  export type NamedArgsAndBlocksArgs = [NamedArgsAndBlocksOpcode, named: Hash, blocks: Blocks];
   export type PositionalAndNamedArgsAndBlocksArgs = [
-    PositionalAndNamedArgsAndBlocksArgs,
+    PositionalAndNamedArgsAndBlocksOpcode,
     positional: PresentArray<Expression>,
     named: Hash,
     blocks: Blocks,
   ];
+  export type BlocksOnlyArgs = [BlocksOpcode, blocks: Blocks];
 
   // export function SimpleArgs(
   //   encode: EncodeOp,
@@ -152,18 +174,6 @@ export namespace Core {
   //   }
   // }
   export type Syntax = Path | Params | Hash | Blocks | CallArgs;
-
-  export type ComponentArgs = RequireAtLeastOne<{
-    splattributes?: Splattributes;
-    hash?: Hash;
-    blocks?: Blocks;
-  }>;
-
-  export type SomeArgs = Partial<{
-    splattributes?: Splattributes;
-    hash?: Hash;
-    blocks?: Blocks;
-  }>;
 }
 
 export type CoreSyntax = Core.Syntax;
@@ -309,8 +319,8 @@ export namespace Content {
     | InvokeDynamicComponent
     | InvokeResolvedComponent;
   export type SomeBlock =
-    | ResolvedBlock
-    | DynamicBlock
+    | InvokeResolvedBlockComponent
+    | InvokeDynamicBlock
     | InvokeLexicalAngleComponent
     | InvokeLexicalBlockComponent;
 
@@ -318,12 +328,12 @@ export namespace Content {
   export type AppendDynamicInvokable = [
     AppendDynamicInvokableOpcode,
     callee: Expression,
-    args?: Optional<Core.CallArgs>,
+    args: Core.CallArgs,
   ];
   export type AppendResolvedInvokable = [
     AppendResolvedInvokableOpcode,
     upvar: number,
-    args?: Optional<Core.CallArgs>,
+    args: Core.CallArgs,
   ];
 
   export type AppendStatic = [AppendStaticOpcode, value: Expressions.StaticValue];
@@ -338,15 +348,16 @@ export namespace Content {
     Expression,
     args?: Optional<Core.CallArgs>,
   ];
-  export type ResolvedBlock = [
+  export type InvokeResolvedBlockComponent = [
     InvokeResolvedBlockComponentOpcode,
     path: Expressions.GetVar,
-    args?: Optional<Core.BlockArgs>,
+    args: Core.BlockArgs,
   ];
-  export type DynamicBlock = [
+
+  export type InvokeDynamicBlock = [
     InvokeDynamicBlockOpcode,
     path: Expressions.Get,
-    args?: Optional<Core.BlockArgs>,
+    args: Core.BlockArgs,
   ];
 
   export type OpenElement = [OpenElementOpcode, string | WellKnownTagName];
@@ -426,32 +437,32 @@ export namespace Content {
   export type InvokeComponentKeyword = [
     op: InvokeComponentKeywordOpcode,
     definition: Expression,
-    args?: Optional<Core.BlockArgs>,
+    args: Core.BlockArgs,
   ];
 
   export type InvokeLexicalAngleComponent = [
     op: InvokeLexicalAngleComponentOpcode,
     definition: Expression,
-    args?: Optional<Core.ComponentArgs>,
+    args: Core.BlockArgs,
   ];
 
   export type InvokeLexicalBlockComponent = [
     op: InvokeLexicalBlockComponentOpcode,
     definition: Expression,
-    args?: Optional<Core.BlockArgs>,
+    args: Core.BlockArgs,
   ];
 
   export type InvokeResolvedComponent = [
     op: InvokeResolvedAngleComponentOpcode,
     // A resolved component is, by definition, not a dot-separated path
     tag: Expressions.GetVar,
-    args?: Optional<Core.ComponentArgs>,
+    args: Core.BlockArgs,
   ];
 
   export type InvokeDynamicComponent = [
     op: InvokeDynamicComponentOpcode,
     tag: Expression,
-    args?: Optional<Core.ComponentArgs>,
+    args: Core.BlockArgs,
   ];
 
   export type ControlFlow = Debugger | InElement | If | Each | Let | WithDynamicVars | Yield;

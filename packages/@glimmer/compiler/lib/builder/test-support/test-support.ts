@@ -41,8 +41,12 @@ import {
 import { exhausted, expect, isPresentArray, localAssert, unreachable } from '@glimmer/debug-util';
 import { assertNever } from '@glimmer/util';
 import {
+  BLOCKS_OPCODE,
   EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
   NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
   POSITIONAL_AND_NAMED_ARGS_OPCODE,
   POSITIONAL_ARGS_OPCODE,
   SexpOpcodes as Op,
@@ -68,8 +72,7 @@ import type {
 } from './builder-interface';
 
 import { compactSexpr } from '../../passes/2-encoding/content';
-import { callArgs } from '../../passes/2-encoding/expressions';
-import { compact, isGet, isInvokeResolved, needsAtNames } from '../builder';
+import { isGet, isInvokeResolved, needsAtNames } from '../builder';
 import { normalizeStatement } from './builder-interface';
 
 export function buildStatements(
@@ -158,6 +161,7 @@ export function buildStatement(
       }
 
       return [[Op.InvokeDynamicBlock, path, args]];
+      //                              ^?
     }
 
     case KEYWORD_HEAD: {
@@ -183,7 +187,7 @@ export function buildAppendCautiously(
 ): WireFormat.Content.SomeAppend | WireFormat.Content.AppendHtmlText {
   if (Array.isArray(expr)) {
     if (expr[0] === Op.ResolveAsAppendableCallee) {
-      return [Op.AppendResolvedInvokable, expr[1]];
+      return [Op.AppendResolvedInvokable, expr[1], [EMPTY_ARGS_OPCODE]];
     } else if (isInvokeResolved(expr)) {
       const [, callee, args] = expr;
 
@@ -410,17 +414,17 @@ export function buildExpression(
       );
 
       if (builtExpr[0] === Op.CallResolved) {
-        return [builtExpr[0], builtExpr[1], buildArgs(builtParams, builtHash)];
+        return [builtExpr[0], builtExpr[1], buildCallArgs(builtParams, builtHash)];
       }
 
       if (builtExpr.length === 2) {
         switch (builtExpr[0]) {
           case Op.ResolveAsAppendableCallee:
-            return [Op.CallResolved, builtExpr[1], buildArgs(builtParams, builtHash)];
+            return [Op.CallResolved, builtExpr[1], buildCallArgs(builtParams, builtHash)];
         }
       }
 
-      return [Op.CallDynamicValue, builtExpr, buildArgs(builtParams, builtHash)];
+      return [Op.CallDynamicValue, builtExpr, buildCallArgs(builtParams, builtHash)];
     }
 
     case HAS_BLOCK_EXPR: {
@@ -666,15 +670,27 @@ export function buildBlockArgs(
   rawHash: Optional<WireFormat.Core.Hash>,
   blocks: Optional<WireFormat.Core.Blocks>,
   { path }: { path: WireFormat.Core.Expression }
-): Optional<WireFormat.Core.BlockArgs> {
+): WireFormat.Core.BlockArgs {
+  if (!params && !rawHash && !blocks) {
+    return [EMPTY_ARGS_OPCODE];
+  }
+
   const hash: Optional<WireFormat.Core.Hash> =
     isGet(path) && needsAtNames(path) ? addAtNames(rawHash) : rawHash;
 
-  return compact({
-    params,
-    hash,
-    blocks,
-  });
+  if (!blocks) {
+    return buildCallArgs(params, hash);
+  }
+
+  if (params && hash) {
+    return [POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE, params, hash, blocks];
+  } else if (params) {
+    return [POSITIONAL_AND_BLOCKS_OPCODE, params, blocks];
+  } else if (hash) {
+    return [NAMED_ARGS_AND_BLOCKS_OPCODE, hash, blocks];
+  } else {
+    return [BLOCKS_OPCODE, blocks];
+  }
 }
 
 function addAtNames(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
@@ -685,7 +701,7 @@ function addAtNames(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.C
   return [keys.map((key) => `@${key}`) as PresentArray<string>, values];
 }
 
-function buildArgs(
+function buildCallArgs(
   params: Optional<WireFormat.Core.Params>,
   hash: Optional<WireFormat.Core.Hash>
 ): WireFormat.Core.CallArgs {

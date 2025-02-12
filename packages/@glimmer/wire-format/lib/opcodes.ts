@@ -6,6 +6,7 @@ import type {
   AppendTrustedHtmlOpcode,
   AppendValueCautiouslyOpcode,
   AttrSplatOpcode,
+  BlocksOpcode,
   CallDynamicValueOpcode,
   CallResolvedOpcode,
   CloseElementOpcode,
@@ -72,6 +73,7 @@ export const POSITIONAL_ARGS_OPCODE = 0b100 satisfies PositionalArgsOpcode;
 export const POSITIONAL_AND_NAMED_ARGS_OPCODE = 0b110 satisfies PositionalAndNamedArgsOpcode;
 export const POSITIONAL_AND_BLOCKS_OPCODE = 0b101 satisfies PositionalAndBlocksOpcode;
 export const NAMED_ARGS_AND_BLOCKS_OPCODE = 0b011 satisfies NamedArgsAndBlocksOpcode;
+export const BLOCKS_OPCODE = 0b001 satisfies BlocksOpcode;
 export const POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE =
   0b111 satisfies PositionalAndNamedArgsAndBlocksOpcode;
 

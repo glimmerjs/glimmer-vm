@@ -4,25 +4,63 @@ import type {
   CompilableBlock,
   CompilableProgram,
   CompilableTemplate,
+  Content,
   EvaluationContext,
   HandleResult,
   LayoutWithContext,
   Nullable,
   SerializedBlock,
   SerializedInlineBlock,
-  Content,
   SymbolTable,
   WireFormat,
 } from '@glimmer/interfaces';
-import { IS_COMPILABLE_TEMPLATE } from '@glimmer/constants';
+import {
+  IS_COMPILABLE_TEMPLATE,
+  VM_CLOSE_ELEMENT_OP,
+  VM_COMMENT_OP,
+  VM_COMPILE_BLOCK_OP,
+  VM_COMPONENT_ATTR_OP,
+  VM_DEBUGGER_OP,
+  VM_DYNAMIC_ATTR_OP,
+  VM_DYNAMIC_CONTENT_TYPE_OP,
+  VM_FLUSH_ELEMENT_OP,
+  VM_GET_BLOCK_OP,
+  VM_INVOKE_STATIC_OP,
+  VM_INVOKE_YIELD_OP,
+  VM_OPEN_ELEMENT_OP,
+  VM_POP_FRAME_OP,
+  VM_POP_SCOPE_OP,
+  VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
+  VM_PUSH_EMPTY_ARGS_OP,
+  VM_PUSH_FRAME_OP,
+  VM_PUT_COMPONENT_OPERATIONS_OP,
+  VM_RESOLVE_CURRIED_COMPONENT_OP,
+  VM_SPREAD_BLOCK_OP,
+  VM_STATIC_ATTR_OP,
+  VM_STATIC_COMPONENT_ATTR_OP,
+  VM_TEXT_OP,
+} from '@glimmer/constants';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
+import { ContentType } from '@glimmer/vm';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { EncodeOp } from './opcode-builder/encoder';
-import { meta } from './opcode-builder/helpers/shared';
-import { STATEMENTS } from './syntax/statements';
+import { InvokeDynamicComponent } from './opcode-builder/helpers/components';
+import { SwitchCases } from './opcode-builder/helpers/conditional';
+import { compilePositional, expr } from './opcode-builder/helpers/expr';
+import {
+  getNamed,
+  getPositional,
+  hasNamed,
+  hasPositional,
+  meta,
+} from './opcode-builder/helpers/shared';
+import { CallDynamicBlock } from './opcode-builder/helpers/vm';
+import { hashToArgs, inflateAttrName, inflateTagName, STATEMENTS } from './syntax/statements';
+import { EMPTY_BLOCKS } from './utils';
 
 export const PLACEHOLDER_HANDLE = -1;
 
@@ -83,7 +121,6 @@ export function compileStatements(
   meta: BlockMetadata,
   syntaxContext: EvaluationContext
 ): HandleResult {
-  let sCompiler = STATEMENTS;
   let context = templateCompilationContext(syntaxContext, meta);
 
   let { encoder, evaluation } = context;
@@ -91,7 +128,7 @@ export function compileStatements(
   const encode = new EncodeOp(encoder, evaluation, meta);
 
   for (const statement of statements) {
-    sCompiler.compile(encode, statement);
+    compileContent(encode, statement);
   }
 
   let handle = context.encoder.commit(meta.size);
@@ -101,6 +138,212 @@ export function compileStatements(
   }
 
   return handle;
+}
+
+export function compileContent(encode: EncodeOp, content: Content): void {
+  switch (content[0]) {
+    case Op.Comment: {
+      encode.op(VM_COMMENT_OP, encode.constant(content[1]));
+      return;
+    }
+
+    case Op.AppendHtmlText: {
+      encode.op(VM_TEXT_OP, encode.constant(content[1]));
+      return;
+    }
+
+    case Op.AppendDynamicInvokable: {
+      const [, callee, args] = content;
+      // This corresponds to `{{<expr> ...args}}` where `<expr>` only references in-scope variables (and
+      // no resolved variables).
+      //
+      // This generates code that allows the expression to change between a component and helper value. If
+      // the value changes, the output is cleared the right behavior occurs.
+      //
+      // @todo Specialize the lexical variable case, since we can determine what kind of callee we're
+      // looking at at compile time.
+      SwitchCases(
+        encode,
+        () => {
+          expr(encode, callee);
+          encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
+        },
+        (when) => {
+          when(ContentType.Component, () => {
+            encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
+            encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+            InvokeDynamicComponent(encode, {
+              capabilities: true,
+              positional: hasPositional(args) ? getPositional(args) : undefined,
+              named: hasNamed(args) ? hashToArgs(getNamed(args)) : undefined,
+              blocks: EMPTY_BLOCKS,
+            });
+          });
+
+          when(ContentType.Helper, () => {
+            CallDynamicBlock(encode, encode.stdlibFn('cautious-non-dynamic-append'), args);
+          });
+        }
+      );
+
+      return;
+    }
+
+    case Op.AppendTrustedHtml: {
+      const [, value] = content;
+      encode.op(VM_PUSH_FRAME_OP);
+      expr(encode, value);
+      encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('trusting-append'));
+      encode.op(VM_POP_FRAME_OP);
+      return;
+    }
+
+    case Op.AppendValueCautiously: {
+      const [, value] = content;
+      encode.op(VM_PUSH_FRAME_OP);
+      expr(encode, value);
+      encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-append'));
+      encode.op(VM_POP_FRAME_OP);
+      return;
+    }
+
+    case Op.AppendStatic: {
+      const [, expr] = content;
+
+      // The only static value that is an array is [Undefined].
+      const value = Array.isArray(expr) || expr === null ? '' : String(expr);
+      encode.op(VM_TEXT_OP, encode.constant(value));
+      return;
+    }
+
+    case Op.OpenElementWithSplat:
+      encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
+    // intentional fallthrough
+
+    case Op.OpenElement: {
+      const [, tag] = content;
+      encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
+      return;
+    }
+
+    case Op.CloseElement: {
+      encode.op(VM_CLOSE_ELEMENT_OP);
+      return;
+    }
+
+    case Op.FlushElement: {
+      encode.op(VM_FLUSH_ELEMENT_OP);
+      return;
+    }
+
+    case Op.AttrSplat: {
+      const [, to] = content;
+      encode.op(VM_PUSH_EMPTY_ARGS_OP);
+      compileYield(encode, to);
+      return;
+    }
+
+    case Op.Yield: {
+      const [, to, params] = content;
+      compilePositional(encode, params);
+      compileYield(encode, to);
+      return;
+    }
+
+    case Op.StaticAttr: {
+      const [, name, value, namespace] = content;
+
+      encode.op(
+        VM_STATIC_ATTR_OP,
+        encode.constant(inflateAttrName(name)),
+        encode.constant(value as string),
+        encode.constant(namespace ?? null)
+      );
+
+      return;
+    }
+
+    case Op.StaticComponentAttr: {
+      const [, name, value, namespace] = content;
+
+      encode.op(
+        VM_STATIC_COMPONENT_ATTR_OP,
+        encode.constant(inflateAttrName(name)),
+        encode.constant(value as string),
+        encode.constant(namespace ?? null)
+      );
+
+      return;
+    }
+
+    case Op.ComponentAttr: {
+      const [, name, value, namespace] = content;
+      expr(encode, value);
+
+      encode.op(
+        VM_COMPONENT_ATTR_OP,
+        encode.constant(inflateAttrName(name)),
+        encode.constant(false),
+        encode.constant(namespace ?? null)
+      );
+
+      return;
+    }
+
+    case Op.TrustingComponentAttr: {
+      const [, name, value, namespace] = content;
+      expr(encode, value);
+      encode.op(
+        VM_COMPONENT_ATTR_OP,
+        encode.constant(inflateAttrName(name)),
+        encode.constant(true),
+        encode.constant(namespace ?? null)
+      );
+      return;
+    }
+
+    case Op.DynamicAttr: {
+      const [, name, value, namespace] = content;
+      expr(encode, value);
+      encode.op(
+        VM_DYNAMIC_ATTR_OP,
+        encode.constant(inflateAttrName(name)),
+        encode.constant(false),
+        encode.constant(namespace ?? null)
+      );
+      return;
+    }
+
+    case Op.TrustingDynamicAttr: {
+      const [, name, value, namespace] = content;
+      expr(encode, value);
+
+      encode.op(
+        VM_DYNAMIC_ATTR_OP,
+        encode.constant(inflateAttrName(name)),
+        encode.constant(true),
+        encode.constant(namespace ?? null)
+      );
+      return;
+    }
+
+    case Op.Debugger: {
+      const [, locals, upvars, lexical] = content;
+      encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
+      return;
+    }
+  }
+
+  STATEMENTS.compile(encode, content);
+}
+
+function compileYield(encode: EncodeOp, to: number) {
+  encode.op(VM_GET_BLOCK_OP, to);
+  encode.op(VM_SPREAD_BLOCK_OP);
+  encode.op(VM_COMPILE_BLOCK_OP);
+  encode.op(VM_INVOKE_YIELD_OP);
+  encode.op(VM_POP_SCOPE_OP);
+  encode.op(VM_POP_FRAME_OP);
 }
 
 export function compilableBlock(

@@ -8,59 +8,56 @@ import type {
 } from '@glimmer/interfaces';
 import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import {
-  VM_COMPONENT_ATTR_OP,
-  VM_DEBUGGER_OP,
   VM_DUP_OP,
-  VM_DYNAMIC_ATTR_OP,
-  VM_DYNAMIC_CONTENT_TYPE_OP,
   VM_ENTER_LIST_OP,
   VM_EXIT_LIST_OP,
   VM_INVOKE_STATIC_OP,
   VM_ITERATE_OP,
   VM_JUMP_OP,
   VM_MODIFIER_OP,
-  VM_OPEN_ELEMENT_OP,
   VM_POP_FRAME_OP,
   VM_POP_OP,
   VM_POP_REMOTE_ELEMENT_OP,
   VM_PUSH_COMPONENT_DEFINITION_OP,
-  VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
-  VM_PUSH_EMPTY_ARGS_OP,
   VM_PUSH_FRAME_OP,
   VM_PUSH_REMOTE_ELEMENT_OP,
-  VM_PUT_COMPONENT_OPERATIONS_OP,
-  VM_RESOLVE_CURRIED_COMPONENT_OP,
   VM_RETURN_TO_OP,
-  VM_STATIC_ATTR_OP,
-  VM_STATIC_COMPONENT_ATTR_OP,
-  VM_TEXT_OP,
   VM_TO_BOOLEAN_OP,
 } from '@glimmer/constants';
-import { $fp, $sp, ContentType } from '@glimmer/vm';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
-
+import { exhausted, localAssert } from '@glimmer/debug-util';
+import { $fp, $sp } from '@glimmer/vm';
 import {
-  InvokeStaticBlock,
-  InvokeStaticBlockWithStack,
-  YieldBlock,
-} from '../opcode-builder/helpers/blocks';
+  EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_OPCODE,
+  SexpOpcodes as Op,
+} from '@glimmer/wire-format';
+
+import { InvokeStaticBlock, InvokeStaticBlockWithStack } from '../opcode-builder/helpers/blocks';
 import {
   InvokeDynamicComponent,
   InvokeEarlyBoundComponent,
   InvokeReplayableComponentExpression,
   InvokeResolvedComponent,
+  InvokeStaticComponent,
 } from '../opcode-builder/helpers/components';
-import { Replayable, ReplayableIf, SwitchCases } from '../opcode-builder/helpers/conditional';
+import { Replayable, ReplayableIf } from '../opcode-builder/helpers/conditional';
 import { expr } from '../opcode-builder/helpers/expr';
-import { CompilePositional, SimpleArgs } from '../opcode-builder/helpers/shared';
 import {
-  Call,
-  CallDynamicBlock,
-  DynamicScope,
-  PushPrimitiveReference,
-} from '../opcode-builder/helpers/vm';
-import { namedBlocks } from '../utils';
-import { CloseElement, Comment, FlushElement, HtmlText, LexicalModifier } from './api';
+  CompilePositional,
+  getBlocks,
+  getNamed,
+  getPositional,
+  hasBlocks,
+  hasNamed,
+  hasPositional,
+  SimpleArgs,
+} from '../opcode-builder/helpers/shared';
+import { Call, DynamicScope, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
+import { EMPTY_BLOCKS, namedBlocks } from '../utils';
+import { LexicalModifier } from './api';
 import { Compilers } from './compilers';
 
 export const STATEMENTS = new Compilers<ContentSexpOpcode>();
@@ -80,15 +77,10 @@ export function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
 
-STATEMENTS.add(Op.Comment, (op, [, comment]) => Comment(op, comment));
-STATEMENTS.add(Op.AppendHtmlText, (op, [, text]) => HtmlText(op, text));
-STATEMENTS.add(Op.CloseElement, (op) => CloseElement(op));
-STATEMENTS.add(Op.FlushElement, (op) => FlushElement(op));
-
 STATEMENTS.add(Op.ResolvedModifier, (encode, [, expression, args]) => {
   encode.modifier(expression, (handle: number) => {
     encode.op(VM_PUSH_FRAME_OP);
-    SimpleArgs(encode, args, false);
+    SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], { prefixAtNames: false });
     encode.op(VM_MODIFIER_OP, handle);
     encode.op(VM_POP_FRAME_OP);
   });
@@ -99,94 +91,13 @@ STATEMENTS.add(Op.LexicalModifier, (encode, [, expression, args]) => {
   LexicalModifier(
     encode,
     () => expr(encode, expression),
-    () => SimpleArgs(encode, args, false)
+    () => SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], { prefixAtNames: false })
   );
-});
-
-STATEMENTS.add(Op.StaticAttr, (encode, [, name, value, namespace]) => {
-  encode.op(
-    VM_STATIC_ATTR_OP,
-    encode.constant(inflateAttrName(name)),
-    encode.constant(value as string),
-    encode.constant(namespace ?? null)
-  );
-});
-
-STATEMENTS.add(Op.StaticComponentAttr, (encode, [, name, value, namespace]) => {
-  encode.op(
-    VM_STATIC_COMPONENT_ATTR_OP,
-    encode.constant(inflateAttrName(name)),
-    encode.constant(value as string),
-    encode.constant(namespace ?? null)
-  );
-});
-
-STATEMENTS.add(Op.DynamicAttr, (encode, [, name, value, namespace]) => {
-  expr(encode, value);
-  encode.op(
-    VM_DYNAMIC_ATTR_OP,
-    encode.constant(inflateAttrName(name)),
-    encode.constant(false),
-    encode.constant(namespace ?? null)
-  );
-});
-
-STATEMENTS.add(Op.TrustingDynamicAttr, (encode, [, name, value, namespace]) => {
-  expr(encode, value);
-  encode.op(
-    VM_DYNAMIC_ATTR_OP,
-    encode.constant(inflateAttrName(name)),
-    encode.constant(true),
-    encode.constant(namespace ?? null)
-  );
-});
-
-STATEMENTS.add(Op.ComponentAttr, (encode, [, name, value, namespace]) => {
-  expr(encode, value);
-  encode.op(
-    VM_COMPONENT_ATTR_OP,
-    encode.constant(inflateAttrName(name)),
-    encode.constant(false),
-    encode.constant(namespace ?? null)
-  );
-});
-
-STATEMENTS.add(Op.TrustingComponentAttr, (encode, [, name, value, namespace]) => {
-  expr(encode, value);
-  encode.op(
-    VM_COMPONENT_ATTR_OP,
-    encode.constant(inflateAttrName(name)),
-    encode.constant(true),
-    encode.constant(namespace ?? null)
-  );
-});
-
-STATEMENTS.add(Op.OpenElement, (encode, [, tag]) => {
-  encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
-});
-
-STATEMENTS.add(Op.OpenElementWithSplat, (encode, [, tag]) => {
-  encode.op(VM_PUT_COMPONENT_OPERATIONS_OP);
-  encode.op(VM_OPEN_ELEMENT_OP, encode.constant(inflateTagName(tag)));
 });
 
 export function isLexicalCall(expr: WireFormat.Expression) {
   return Array.isArray(expr) && expr[0] === Op.GetLexicalSymbol;
 }
-
-STATEMENTS.add(Op.Yield, (encode, [, to, params]) => {
-  SimpleArgs(encode, params && { params }, true);
-  YieldBlock(encode, to);
-});
-
-STATEMENTS.add(Op.AttrSplat, (encode, [, to]) => {
-  encode.op(VM_PUSH_EMPTY_ARGS_OP);
-  YieldBlock(encode, to);
-});
-
-STATEMENTS.add(Op.Debugger, (encode, [, locals, upvars, lexical]) => {
-  encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
-});
 
 // In classic mode only, this corresponds to `{{name ...args}}` where `name` is not an in-scope
 // variable. In strict mode, this is a syntax error.
@@ -198,12 +109,8 @@ STATEMENTS.add(Op.AppendResolvedInvokable, (encode, [, callee, args]) => {
   encode.append(callee, {
     ifComponent(component: CompileTimeComponent) {
       encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
-      InvokeResolvedComponent(
-        encode,
-        component,
-        compact({ hash: hashToArgs(args?.hash) }),
-        args?.params
-      );
+      const atArgs = hasNamed(args) ? prefixAtNames(args) : args;
+      InvokeResolvedComponent(encode, component, atArgs);
     },
     ifHelper(handle: number) {
       encode.op(VM_PUSH_FRAME_OP);
@@ -214,89 +121,49 @@ STATEMENTS.add(Op.AppendResolvedInvokable, (encode, [, callee, args]) => {
   });
 });
 
-// This corresponds to `{{<expr> ...args}}` where `<expr>` only references in-scope variables (and
-// no resolved variables).
-//
-// This generates code that allows the expression to change between a component and helper value. If
-// the value changes, the output is cleared the right behavior occurs.
-//
-// @todo Specialize the lexical variable case, since we can determine what kind of callee we're
-// looking at at compile time.
-STATEMENTS.add(Op.AppendDynamicInvokable, (encode, [, callee, args]) => {
-  SwitchCases(
-    encode,
-    () => {
-      expr(encode, callee);
-      encode.op(VM_DYNAMIC_CONTENT_TYPE_OP);
-    },
-    (when) => {
-      when(ContentType.Component, () => {
-        encode.op(VM_RESOLVE_CURRIED_COMPONENT_OP);
-        encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
-        InvokeDynamicComponent(encode, {
-          capabilities: true,
-          positional: args?.params,
-          named: hashToArgs(args?.hash),
-          blocks: namedBlocks(undefined),
-        });
-      });
-
-      when(ContentType.Helper, () => {
-        CallDynamicBlock(encode, encode.stdlibFn('cautious-non-dynamic-append'), args);
-      });
-    }
-  );
-});
-
-// This syntax corresponds to `{{name}}`, where `name` **is** an in-scope variable. Its value is
-// dynamic, and the behavior is determined by the `cautious-append` stdlib function.
-STATEMENTS.add(Op.AppendValueCautiously, (encode, [, value]) => {
-  encode.op(VM_PUSH_FRAME_OP);
-  expr(encode, value);
-  encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-append'));
-  encode.op(VM_POP_FRAME_OP);
-});
-
-STATEMENTS.add(Op.AppendStatic, (encode, [, expr]) => {
-  const value = Array.isArray(expr) ? undefined : expr;
-
-  encode.op(
-    VM_TEXT_OP,
-    encode.constant(value === null || value === undefined ? '' : String(value))
-  );
-});
-
-STATEMENTS.add(Op.AppendTrustedHtml, (encode, [, value]) => {
-  encode.op(VM_PUSH_FRAME_OP);
-  expr(encode, value);
-  encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('trusting-append'));
-  encode.op(VM_POP_FRAME_OP);
-});
+function prefixAtNames(args: WireFormat.Core.HasNamedArgs): WireFormat.Core.HasNamedArgs {
+  switch (args[0]) {
+    case NAMED_ARGS_OPCODE:
+      return [NAMED_ARGS_OPCODE, hashToArgs(args[1])];
+    case NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return [NAMED_ARGS_AND_BLOCKS_OPCODE, hashToArgs(args[1]), args[2]];
+    case POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return [POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE, args[1], hashToArgs(args[2]), args[3]];
+    case POSITIONAL_AND_NAMED_ARGS_OPCODE:
+      return [POSITIONAL_AND_NAMED_ARGS_OPCODE, args[1], hashToArgs(args[2])];
+    default:
+      exhausted(args);
+  }
+}
 
 STATEMENTS.add(Op.InvokeResolvedBlockComponent, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
   encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
 
-  InvokeResolvedComponent(
-    encode,
-    component,
-    compact({
-      hash: args?.hash,
-      blocks: args?.blocks,
-    }),
-    args?.params
-  );
+  const { compilable, capabilities, handle } = component;
+
+  if (compilable) {
+    localAssert(compilable, `BUG: Lexical component ${handle} does not have a template`);
+
+    return InvokeStaticComponent(encode, {
+      capabilities,
+      layout: compilable,
+      positional: hasPositional(args) ? getPositional(args) : undefined,
+      named: hasNamed(args) ? getNamed(args) : undefined,
+      blocks: hasBlocks(args) ? namedBlocks(getBlocks(args)) : EMPTY_BLOCKS,
+    });
+  } else {
+    return InvokeDynamicComponent(encode, {
+      capabilities,
+      positional: hasPositional(args) ? getPositional(args) : undefined,
+      named: hasNamed(args) ? getNamed(args) : undefined,
+      blocks: hasBlocks(args) ? namedBlocks(getBlocks(args)) : EMPTY_BLOCKS,
+    });
+  }
 });
 
 STATEMENTS.add(Op.InvokeDynamicBlock, (encode, [, expr, args]) => {
-  InvokeReplayableComponentExpression(
-    encode,
-    expr,
-    compact({ hash: args?.hash, blocks: args?.blocks }),
-    {
-      positional: args?.params,
-    }
-  );
+  InvokeReplayableComponentExpression(encode, expr, args);
 });
 
 STATEMENTS.add(Op.InElement, (encode, [, block, guid, destination, insertBefore]) => {
@@ -409,24 +276,19 @@ STATEMENTS.add(Op.WithDynamicVars, (encode, [, named, block]) => {
 STATEMENTS.add(Op.InvokeResolvedAngleComponent, (encode, [, expr, args]) => {
   const component = encode.resolveComponent(expr);
   encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+  debugger;
   InvokeResolvedComponent(encode, component, args);
 });
 
 STATEMENTS.add(Op.InvokeDynamicComponent, (encode, [, expr, args]) => {
   // otherwise, the component name was an expression, so resolve the expression
   // and invoke it as a dynamic component
+
   InvokeReplayableComponentExpression(encode, expr, args, { curried: true });
 });
 
 STATEMENTS.add(Op.InvokeComponentKeyword, (encode, [, expr, args]) => {
-  InvokeReplayableComponentExpression(
-    encode,
-    expr,
-    compact({ hash: args?.hash, blocks: args?.blocks }),
-    {
-      positional: args?.params,
-    }
-  );
+  InvokeReplayableComponentExpression(encode, expr, args);
 });
 
 STATEMENTS.add(Op.InvokeLexicalAngleComponent, (encode, [, expr, args]) => {
@@ -447,6 +309,8 @@ STATEMENTS.add(Op.InvokeLexicalBlockComponent, (encode, [, expr, args]) => {
  * discover which once we resolve the value. If the value is a helper, we want to pass the named
  * arguments as-is, and if it's a component, we want to pass them with the `@` prefix.
  */
+export function hashToArgs(hash: WireFormat.Core.Hash): WireFormat.Core.Hash;
+export function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash>;
 export function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
   if (!hash) return;
   let names = hash[0].map((key) => `@${key}`);

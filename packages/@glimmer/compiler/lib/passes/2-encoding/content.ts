@@ -15,22 +15,22 @@ import type { BlockSymbolTable } from '@glimmer/syntax';
 import { assertPresentArray, exhausted, localAssert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { isGetLexical, SexpOpcodes as Op } from '@glimmer/wire-format';
+import { EMPTY_ARGS_OPCODE, isGetLexical, SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
 import {
   buildComponentArgs,
-  compact,
   isGet,
   isGetSymbolOrPath,
   isTupleExpression,
-  needsAtNames,
 } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import {
+  callArgs,
   encodeArgs,
+  encodeComponentBlockArgs,
   encodeExpr,
   encodeMaybeExpr,
   encodeNamedArguments,
@@ -166,28 +166,23 @@ export function InvokeBlockComponent({
     return [
       Op.InvokeLexicalBlockComponent,
       encodeExpr(head),
-      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+      // @todo verify whether insertAtPrefix is variable here
+      encodeComponentBlockArgs(args.positional, args.named, blocks),
     ];
   } else if (head.type === 'Resolved') {
     return [
       Op.InvokeResolvedBlockComponent,
       encodeExpr(head),
-      BlockArgs(args, blocks, { insertAtPrefix: needsAtNames(path) }),
+      // @todo verify whether insertAtPrefix is variable here
+      encodeComponentBlockArgs(args.positional, args.named, blocks),
     ];
   }
 
-  return [Op.InvokeDynamicBlock, path, BlockArgs(args, blocks, { insertAtPrefix: true })];
-}
-
-export function BlockArgs(
-  argsNode: Pick<mir.Args, 'positional' | 'named'>,
-  blocksNode: Optional<mir.NamedBlocks>,
-  { insertAtPrefix }: { insertAtPrefix: boolean }
-): Optional<WireFormat.Core.BlockArgs> {
-  return compact({
-    ...encodeArgs(argsNode, insertAtPrefix),
-    blocks: blocksNode ? NamedBlocks(blocksNode) : undefined,
-  });
+  return [
+    Op.InvokeDynamicBlock,
+    path,
+    encodeComponentBlockArgs(args.positional, args.named, blocks),
+  ];
 }
 
 export function AppendTrustedHTML({
@@ -201,7 +196,7 @@ export function AppendValueCautiously({
 }: mir.AppendValueCautiously): WireFormat.Content.SomeAppend {
   switch (value.type) {
     case 'Resolved': {
-      return [Op.AppendResolvedInvokable, value.symbol];
+      return [Op.AppendResolvedInvokable, value.symbol, [EMPTY_ARGS_OPCODE]];
     }
     case 'CallExpression': {
       const args = encodeArgs(value.args);
@@ -212,7 +207,11 @@ export function AppendValueCautiously({
             throw new Error(`BUG: Resolved ${value.callee.name} is not appendable`);
           }
 
-          return [Op.AppendResolvedInvokable, value.callee.symbol, args];
+          return [
+            Op.AppendResolvedInvokable,
+            value.callee.symbol,
+            callArgs(value.args.positional, value.args.named),
+          ];
         }
 
         case 'Local': {
@@ -275,12 +274,12 @@ export function AngleBracketComponent({
   blocks,
 }: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent {
   let wireTag = encodeExpr(tag);
-  let wirePositional = ElementParameters(params);
-  let wireNamed = encodeNamedArguments(named, false);
+  let wireSplattributes = ElementParameters(params);
+  let wireNamed = encodeNamedArguments(named, { insertAtPrefix: false });
 
   let wireNamedBlocks = NamedBlocks(blocks);
 
-  const args = buildComponentArgs(wirePositional.toPresentArray(), wireNamed, wireNamedBlocks);
+  const args = buildComponentArgs(wireSplattributes.toPresentArray(), wireNamed, wireNamedBlocks);
 
   localAssert(
     isTupleExpression(wireTag),
@@ -301,11 +300,7 @@ export function AngleBracketComponent({
   }
 
   if (wireTag[0] === Op.ResolveAsComponentCallee) {
-    localAssert(
-      wireTag.length === 2,
-      `Unexpected free variable as component head with a path tail ${JSON.stringify(wireTag)}`
-    );
-
+    debugger;
     return [Op.InvokeResolvedAngleComponent, wireTag, args];
   }
 
@@ -412,7 +407,7 @@ export function WithDynamicVars({
 }: mir.WithDynamicVars): WireFormat.Content.WithDynamicVars {
   return [
     Op.WithDynamicVars,
-    encodeNamedArguments(named, false),
+    encodeNamedArguments(named, { insertAtPrefix: false }),
     namedBlock(block.body, block.scope),
   ];
 }
@@ -429,7 +424,11 @@ export function InvokeComponentKeyword({
     `[BUG] {{component <KW>}} is not a valid node`
   );
 
-  return [Op.InvokeComponentKeyword, expression, BlockArgs(args, blocks, { insertAtPrefix: true })];
+  return [
+    Op.InvokeComponentKeyword,
+    expression,
+    encodeComponentBlockArgs(args.positional, args.named, blocks),
+  ];
 }
 
 export function InvokeResolvedComponentKeyword({
@@ -437,7 +436,11 @@ export function InvokeResolvedComponentKeyword({
   args,
   blocks,
 }: mir.InvokeResolvedComponentKeyword): WireFormat.Content.InvokeComponentKeyword {
-  return [Op.InvokeComponentKeyword, definition, BlockArgs(args, blocks, { insertAtPrefix: true })];
+  return [
+    Op.InvokeComponentKeyword,
+    definition,
+    encodeComponentBlockArgs(args.positional, args.named, blocks),
+  ];
 }
 
 export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];

@@ -181,7 +181,12 @@ export function expr(encode: EncodeOp, expression: WireFormat.Expression): void 
   }
 }
 
-const compilePositional = (encode: EncodeOp, args: Optional<WireFormat.Core.Params>) => {
+export const compilePositional = (encode: EncodeOp, args: Optional<WireFormat.Core.Params>) => {
+  if (!args) {
+    encode.op(VM_PUSH_EMPTY_ARGS_OP);
+    return;
+  }
+
   const count = CompilePositional(encode, args);
   encode.op(
     VM_PUSH_ARGS_OP,
@@ -191,7 +196,11 @@ const compilePositional = (encode: EncodeOp, args: Optional<WireFormat.Core.Para
   );
 };
 
-export function callArgs(encode: EncodeOp, args: WireFormat.Core.CallArgs) {
+export function callArgs(
+  encode: EncodeOp,
+  args: WireFormat.Core.CallArgs,
+  namedFlags: 0b0000 | 0b1000 = 0b0000
+) {
   switch (args[0]) {
     case EMPTY_ARGS_OPCODE:
       encode.op(VM_PUSH_EMPTY_ARGS_OP);
@@ -207,7 +216,12 @@ export function callArgs(encode: EncodeOp, args: WireFormat.Core.CallArgs) {
         expr(encode, val);
       }
 
-      encode.op(VM_PUSH_ARGS_OP, encode.array(names), encode.array(EMPTY_STRING_ARRAY), 0 << 4);
+      encode.op(
+        VM_PUSH_ARGS_OP,
+        encode.array(names),
+        encode.array(EMPTY_STRING_ARRAY),
+        (0 << 4) | namedFlags
+      );
       break;
     }
     case POSITIONAL_AND_NAMED_ARGS_OPCODE: {
@@ -218,7 +232,12 @@ export function callArgs(encode: EncodeOp, args: WireFormat.Core.CallArgs) {
         expr(encode, val);
       }
 
-      encode.op(VM_PUSH_ARGS_OP, encode.array(names), encode.array(EMPTY_STRING_ARRAY), count << 4);
+      encode.op(
+        VM_PUSH_ARGS_OP,
+        encode.array(names),
+        encode.array(EMPTY_STRING_ARRAY),
+        (count << 4) | namedFlags
+      );
       break;
     }
 

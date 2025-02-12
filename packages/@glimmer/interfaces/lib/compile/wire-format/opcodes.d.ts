@@ -56,6 +56,11 @@ export type PositionalAndNamedArgsOpcode = 0b110;
 export type PositionalAndBlocksOpcode = 0b101;
 export type NamedArgsAndBlocksOpcode = 0b011;
 export type PositionalAndNamedArgsAndBlocksOpcode = 0b111;
+export type BlocksOpcode = 0b001;
+
+export type HasPositionalArgsFlag = 0b100;
+export type HasNamedArgsFlag = 0b010;
+export type HasBlocksFlag = 0b001;
 
 // a component or helper (`{{<expr> x}}` in append position)
 export type ResolveAsAppendableCalleeOpcode = 35;

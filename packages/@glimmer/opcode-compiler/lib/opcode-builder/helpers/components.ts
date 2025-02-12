@@ -61,11 +61,20 @@ import { $s0, $s1, $sp, InternalComponentCapabilities } from '@glimmer/vm';
 
 import type { EncodeOp } from '../encoder';
 
-import { namedBlocks } from '../../utils';
+import { EMPTY_BLOCKS, namedBlocks } from '../../utils';
 import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
-import { CompileArgs, CompilePositional } from './shared';
+import {
+  CompileArgs,
+  CompilePositional,
+  getBlocks,
+  getNamed,
+  getPositional,
+  hasBlocks,
+  hasNamed,
+  hasPositional,
+} from './shared';
 
 export const ATTRS_BLOCK = '&attrs';
 
@@ -102,27 +111,24 @@ export interface Component extends AnyComponent {
 export function InvokeEarlyBoundComponent(
   encode: EncodeOp,
   component: EarlyBoundCompileTimeComponent,
-  args?: Optional<WireFormat.Core.SomeArgs>,
-  positional?: Optional<WireFormat.Core.Params>
+  args: WireFormat.Core.SomeArgs
 ): void {
   const { compilable, capabilities, handle } = component;
 
   localAssert(compilable, `BUG: Lexical component ${handle} does not have a template`);
 
+  const [splattributes, blocks] = hasBlocks(args)
+    ? namedBlocks(getBlocks(args)).remove('attrs')
+    : EMPTY_BLOCKS.remove('attrs');
+
   InvokeStaticComponent(encode, {
     capabilities,
     layout: compilable,
-    splattributes: splattributesBlock(args?.splattributes),
-    positional,
-    named: args?.hash,
-    blocks: namedBlocks(args?.blocks),
+    positional: hasPositional(args) ? getPositional(args) : undefined,
+    named: hasNamed(args) ? getNamed(args) : undefined,
+    splattributes,
+    blocks,
   });
-}
-
-function splattributesBlock(
-  splattributes: Optional<WireFormat.Core.Splattributes>
-): Optional<WireFormat.SerializedInlineBlock> {
-  return splattributes && ([splattributes, []] as WireFormat.SerializedInlineBlock);
 }
 
 /**
@@ -134,24 +140,36 @@ function splattributesBlock(
 export function InvokeResolvedComponent(
   encode: EncodeOp,
   component: CompileTimeComponent,
-  args?: Optional<WireFormat.Core.SomeArgs>,
-  positional?: Optional<WireFormat.Core.Params>
+  args?: Optional<WireFormat.Core.BlockArgs>
 ): void {
+  const [splattributes, blocks] =
+    args && hasBlocks(args)
+      ? namedBlocks(getBlocks(args)).remove('attrs')
+      : EMPTY_BLOCKS.remove('attrs');
+
+  const positional = args && hasPositional(args) ? getPositional(args) : undefined;
+  const named = args && hasNamed(args) ? getNamed(args) : undefined;
+
   if (component.compilable) {
-    return InvokeEarlyBoundComponent(encode, component, args, positional);
+    const { compilable, capabilities } = component;
+
+    return InvokeStaticComponent(encode, {
+      capabilities,
+      layout: compilable,
+      splattributes,
+      positional,
+      named,
+      blocks,
+    });
   }
 
   const { capabilities } = component;
-
-  let splattributes =
-    args?.splattributes && ([args.splattributes, []] as WireFormat.SerializedInlineBlock);
-  let blocks = namedBlocks(args?.blocks);
 
   InvokeDynamicComponent(encode, {
     capabilities,
     splattributes,
     positional,
-    named: args?.hash,
+    named,
     blocks,
   });
 }
@@ -159,9 +177,11 @@ export function InvokeResolvedComponent(
 export function InvokeReplayableComponentExpression(
   encode: EncodeOp,
   definition: WireFormat.Core.Expression,
-  args: Optional<WireFormat.Core.ComponentArgs>,
-  options?: { positional?: Optional<WireFormat.Core.Params>; curried?: boolean }
+  args: WireFormat.Core.BlockArgs,
+  options?: { curried?: boolean }
 ): void {
+  const blocks = hasBlocks(args) ? namedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
+
   Replayable(
     encode,
 
@@ -182,19 +202,21 @@ export function InvokeReplayableComponentExpression(
 
       encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
 
+      const [splattributes, remainingBlocks] = blocks.remove('attrs');
+
       InvokeDynamicComponent(encode, {
         capabilities: true,
-        splattributes: splattributesBlock(args?.splattributes),
-        positional: options?.positional,
-        named: args?.hash,
-        blocks: namedBlocks(args?.blocks),
+        splattributes: splattributes ?? undefined,
+        positional: hasPositional(args) ? getPositional(args) : undefined,
+        named: hasNamed(args) ? getNamed(args) : undefined,
+        blocks: remainingBlocks,
       });
       encode.mark('ELSE');
     }
   );
 }
 
-function InvokeStaticComponent(
+export function InvokeStaticComponent(
   encode: EncodeOp,
   { capabilities, layout, splattributes, positional, named, blocks }: StaticComponent
 ): void {

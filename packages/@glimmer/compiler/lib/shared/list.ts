@@ -2,6 +2,7 @@ import type { Optional, PresentArray } from '@glimmer/interfaces';
 import { isPresentArray, mapPresentArray } from '@glimmer/debug-util';
 
 export interface OptionalList<T> {
+  readonly isPresent: boolean;
   map<U>(callback: (input: T) => U): MapList<T, U, AnyOptionalList<T>>;
   filter<S extends T>(
     predicate: (value: T, index: number, array: T[]) => value is S
@@ -12,6 +13,7 @@ export interface OptionalList<T> {
 }
 
 export class PresentList<T> implements OptionalList<T> {
+  readonly isPresent = true;
   constructor(readonly list: PresentArray<T>) {}
 
   toArray(): PresentArray<T> {
@@ -46,6 +48,7 @@ export class PresentList<T> implements OptionalList<T> {
 
 export class EmptyList<T> implements OptionalList<T> {
   readonly list: T[] = [];
+  readonly isPresent = false;
 
   map<U>(_callback: (input: T) => U): MapList<T, U, EmptyList<T>> {
     return new EmptyList() as MapList<T, U, this>;

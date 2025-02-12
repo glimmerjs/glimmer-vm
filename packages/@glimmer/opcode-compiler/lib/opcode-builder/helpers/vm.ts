@@ -19,6 +19,7 @@ import {
   VM_PUSH_FRAME_OP,
 } from '@glimmer/constants';
 import { $fp, $v0 } from '@glimmer/vm';
+import { EMPTY_ARGS_OPCODE } from '@glimmer/wire-format';
 
 import type { EncodeOp } from '../encoder';
 
@@ -64,42 +65,21 @@ export function PushPrimitive(encode: EncodeOp, primitive: Primitive): void {
  * @param positional An optional list of expressions to compile
  * @param named An optional list of named arguments (name + expression) to compile
  */
-export function Call(
-  encode: EncodeOp,
-  handle: number,
-  args?: Optional<WireFormat.Core.CallArgs>
-): void {
+export function Call(encode: EncodeOp, handle: number, args?: WireFormat.Core.CallArgs): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args, false);
+  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], { prefixAtNames: false });
   encode.op(VM_HELPER_OP, handle);
   encode.op(VM_POP_FRAME_OP);
-  encode.op(VM_FETCH_OP, $v0);
-}
-
-/**
- * Invoke a foreign function (a "helper") based on a dynamically loaded definition
- *
- * @param op The op creation function
- * @param positional An optional list of expressions to compile
- * @param named An optional list of named arguments (name + expression) to compile
- */
-export function CallDynamicExpr(encode: EncodeOp, args?: Optional<WireFormat.Core.CallArgs>): void {
-  encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args, false);
-  encode.op(VM_DUP_OP, $fp, 1);
-  encode.op(VM_DYNAMIC_HELPER_OP);
-  encode.op(VM_POP_FRAME_OP);
-  encode.op(VM_POP_OP, 1);
   encode.op(VM_FETCH_OP, $v0);
 }
 
 export function CallDynamicBlock(
   encode: EncodeOp,
   handle: number,
-  args?: Optional<WireFormat.Core.CallArgs>
+  args?: Optional<WireFormat.Core.BlockArgs>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args, false);
+  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], false);
   encode.op(VM_DUP_OP, $fp, 1);
   encode.op(VM_DYNAMIC_HELPER_OP);
 
@@ -132,7 +112,7 @@ export function Curry(
   args: Optional<WireFormat.Core.CallArgs>
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args, false);
+  SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE], { prefixAtNames: false });
   encode.op(VM_CAPTURE_ARGS_OP);
   expr(encode, definition);
   encode.op(VM_CURRY_OP, type, encode.isStrictMode());
