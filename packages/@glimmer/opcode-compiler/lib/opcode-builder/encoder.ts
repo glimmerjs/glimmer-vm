@@ -22,6 +22,7 @@ import type {
 import { encodeHandle, isMachineOp, VM_PRIMITIVE_OP, VM_RETURN_OP } from '@glimmer/constants';
 import { debugToString, expect, isPresentArray, localAssert, unwrap } from '@glimmer/debug-util';
 import { InstructionEncoderImpl } from '@glimmer/encoder';
+import { getInternalModifierManager } from '@glimmer/manager';
 import { dict, Stack } from '@glimmer/util';
 import { ARG_SHIFT, MACHINE_MASK, TYPE_SIZE } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
@@ -192,8 +193,8 @@ export class EncodeOp {
   append = (upvar: number, then: ResolveAppendInvokableOptions): void =>
     resolveAppendable(this.#context.resolver, this.#constants, this.#meta, upvar, then);
 
-  modifier = (expr: Expressions.Expression, then: (handle: number) => void): void =>
-    resolveModifier(this.#context.resolver, this.#constants, this.#meta, expr, then);
+  modifier = (upvar: number): number =>
+    resolveModifier(this.#context.resolver, this.#constants, this.#meta, upvar);
 
   /** This could be converted to taking the constant itself. */
   lexicalComponent = (symbol: number, then: (component: ComponentDefinition) => void) => {
@@ -240,7 +241,7 @@ export class EncodeOp {
     then(this.#constants.resolvedComponent(definition!, name));
   };
 
-  lexicalModifier = (symbol: number, then: (handle: number) => void) => {
+  lexicalModifier = (symbol: number): number => {
     const {
       scopeValues,
       symbols: { lexical },
@@ -251,7 +252,18 @@ export class EncodeOp {
       'BUG: scopeValues must exist if template symbol is used'
     )[symbol];
 
-    then(this.#constants.modifier(definition as object, lexical?.at(symbol)));
+    if (import.meta.env.DEV) {
+      const manager = getInternalModifierManager(definition as object, true);
+
+      if (!manager) {
+        // @todo debug-mode location propagation?
+        throw new Error(
+          `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it.`
+        );
+      }
+    }
+
+    return this.#constants.modifier(definition as object, lexical?.at(symbol));
   };
 
   resolvedModifier = (upvar: number, then: (handle: number) => void) => {
@@ -267,7 +279,6 @@ export class EncodeOp {
         !this.#meta.isStrictMode,
         'Strict mode errors should already be handled at compile time'
       );
-
       throw new Error(
         `Attempted to resolve a modifier in a strict mode template, but it was not in scope: ${name}`
       );

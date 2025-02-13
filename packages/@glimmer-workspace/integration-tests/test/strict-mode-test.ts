@@ -560,6 +560,60 @@ class StaticStrictModeTest extends RenderTest {
   }
 
   @test
+  'Throws an error if a helper is used as a positional argument in a modifier and is not in scope'() {
+    const foo = defineSimpleModifier((_element: Element) => {});
+
+    this.assert.throws(
+      () => {
+        defineComponent({ foo }, '<div {{foo (bar)}}></div>');
+      },
+      syntaxErrorFor(
+        'Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar',
+        '(bar)',
+        'an unknown module',
+        1,
+        11
+      )
+    );
+  }
+
+  @test
+  'Throws an error if a helper is used as a named argument in a modifier and is not in scope'() {
+    const foo = defineSimpleModifier((_element: Element) => {});
+
+    this.assert.throws(
+      () => {
+        defineComponent({ foo }, '<div {{foo bar=(bar)}}></div>');
+      },
+      syntaxErrorFor(
+        'Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar',
+        'bar=(bar)',
+        'an unknown module',
+        1,
+        11
+      )
+    );
+  }
+
+  @test
+  'Throws an error if unresolvable value is used in a modifier and is not in scope'() {
+    const foo = defineSimpleModifier((_element: Element) => {});
+
+    this.assert.throws(
+      () => {
+        defineComponent({ foo }, '<div {{foo bar}}></div>');
+      },
+      syntaxErrorFor(
+        'Attempted to resolve a value in a strict mode template, but that value was not in scope: bar',
+        'bar',
+        'an unknown module',
+        1,
+        11
+      )
+    );
+  }
+
+  @test
   'Throws an error if a non-component is used as a component'() {
     const Foo = defineSimpleHelper(() => 'Hello, world!');
     const Bar = defineComponent({ Foo }, '<Foo/>');
@@ -586,7 +640,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was `\{\{false\}\}`/u);
+    }, /Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it./u);
   }
 }
 

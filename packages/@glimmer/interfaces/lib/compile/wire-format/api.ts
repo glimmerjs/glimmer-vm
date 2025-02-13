@@ -24,6 +24,7 @@ import type {
   DebuggerOpcode,
   DynamicArgOpcode,
   DynamicAttrOpcode,
+  DynamicModifierOpcode,
   EachOpcode,
   EmptyArgsOpcode,
   FlushElementOpcode,
@@ -310,7 +311,7 @@ export namespace Content {
     // `{{<resolved var> ...args}}` where `resolved var` is _not_ an in-scope variable.
     | AppendResolvedInvokable;
 
-  export type SomeModifier = LexicalModifier | ResolvedModifier;
+  export type SomeModifier = DynamicModifier | ResolvedModifier | LexicalModifier;
   export type SomeInvokeComponent =
     | InvokeComponentKeyword
     | InvokeLexicalComponent
@@ -336,12 +337,9 @@ export namespace Content {
   export type AppendTrustedHtml = [AppendTrustedHtmlOpcode, Expression];
   export type AppendHtmlComment = [CommentOpcode, string];
   export type AppendHtmlText = [AppendHtmlTextOpcode, string];
-  export type LexicalModifier = [LexicalModifierOpcode, Expression, args?: Optional<Core.CallArgs>];
-  export type ResolvedModifier = [
-    ResolvedModifierOpcode,
-    Expression,
-    args?: Optional<Core.CallArgs>,
-  ];
+  export type DynamicModifier = [DynamicModifierOpcode, Expression, args: Core.CallArgs];
+  export type LexicalModifier = [LexicalModifierOpcode, callee: number, args: Core.CallArgs];
+  export type ResolvedModifier = [ResolvedModifierOpcode, callee: number, args: Core.CallArgs];
 
   export type InvokeDynamicBlock = [
     InvokeDynamicBlockOpcode,

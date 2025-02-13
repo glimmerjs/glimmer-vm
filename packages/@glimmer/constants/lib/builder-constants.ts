@@ -47,8 +47,8 @@ export const APPEND_EXPR_HEAD: APPEND_EXPR_HEAD = 'AppendExpr';
 export type LITERAL_HEAD = 'Literal';
 export const LITERAL_HEAD: LITERAL_HEAD = 'Literal';
 
-export type MODIFIER_HEAD = 'Modifier';
-export const MODIFIER_HEAD: MODIFIER_HEAD = 'Modifier';
+export type MODIFIER_HEAD = 'DynamicModifier';
+export const MODIFIER_HEAD: MODIFIER_HEAD = 'DynamicModifier';
 
 export type DYNAMIC_COMPONENT_HEAD = 'DynamicComponent';
 export const DYNAMIC_COMPONENT_HEAD: DYNAMIC_COMPONENT_HEAD = 'DynamicComponent';

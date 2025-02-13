@@ -15,10 +15,12 @@ import { inflateAttrName, inflateTagName } from './utils';
 export default class WireFormatDebugger {
   private upvars: string[];
   private symbols: string[];
+  private lexicalSymbols: string[];
 
-  constructor([_statements, symbols, upvars]: SerializedTemplateBlock) {
+  constructor([_statements, symbols, upvars, lexical = []]: SerializedTemplateBlock) {
     this.upvars = upvars;
     this.symbols = symbols;
+    this.lexicalSymbols = lexical;
   }
 
   format(program: SerializedTemplateBlock): unknown {
@@ -119,12 +121,17 @@ export default class WireFormatDebugger {
           return ['html-text', opcode[1]];
 
         case Op.LexicalModifier:
+          return ['modifier', this.formatLexical(opcode[1]), this.formatArgs(opcode[2])];
+
         case Op.ResolvedModifier:
           return [
-            opcode[0] === Op.ResolvedModifier ? 'modifier:resolved' : 'modifier',
-            this.formatOpcode(opcode[1]),
+            'modifier',
+            this.formatResolved(opcode[1], 'modifier'),
             this.formatArgs(opcode[2]),
           ];
+
+        case Op.DynamicModifier:
+          return ['modifier', this.formatOpcode(opcode[1]), this.formatArgs(opcode[2])];
 
         case Op.HasBlock:
           return ['has-block', this.formatOpcode(opcode[1])];
@@ -160,9 +167,6 @@ export default class WireFormatDebugger {
 
         case Op.ResolveAsAppendableCallee:
           return ['GetFreeAsComponentOrHelperHead', this.upvars[opcode[1]]];
-
-        case Op.ResolveAsHelperCallee:
-          return ['GetFreeAsHelperHead', this.upvars[opcode[1]]];
 
         case Op.ResolveAsComponentCallee:
           return ['GetFreeAsComponentHead', this.upvars[opcode[1]]];
@@ -270,6 +274,14 @@ export default class WireFormatDebugger {
       default:
         exhausted(value);
     }
+  }
+
+  private formatLexical(symbol: number) {
+    return `^${this.lexicalSymbols[symbol]}`;
+  }
+
+  private formatResolved(symbol: number, kind: string) {
+    return `${kind}:${this.upvars[symbol]}`;
   }
 
   private formatElementParams(

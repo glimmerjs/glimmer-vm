@@ -28,6 +28,7 @@ import {
   VM_GET_BLOCK_OP,
   VM_INVOKE_STATIC_OP,
   VM_INVOKE_YIELD_OP,
+  VM_MODIFIER_OP,
   VM_OPEN_ELEMENT_OP,
   VM_POP_FRAME_OP,
   VM_POP_SCOPE_OP,
@@ -58,7 +59,7 @@ import {
 } from './opcode-builder/helpers/components';
 import { SwitchCases } from './opcode-builder/helpers/conditional';
 import { compilePositional, expr } from './opcode-builder/helpers/expr';
-import { meta } from './opcode-builder/helpers/shared';
+import { meta, SimpleArgs } from './opcode-builder/helpers/shared';
 import { Call, CallDynamicBlock } from './opcode-builder/helpers/vm';
 import { inflateAttrName, inflateTagName, prefixAtNames, STATEMENTS } from './syntax/statements';
 
@@ -376,6 +377,22 @@ export function compileContent(encode: EncodeOp, content: Content): void {
     case Op.Debugger: {
       const [, locals, upvars, lexical] = content;
       encode.op(VM_DEBUGGER_OP, encode.constant({ locals, upvars, lexical }));
+      return;
+    }
+
+    case Op.ResolvedModifier: {
+      const [, callee, args] = content;
+      const handle = encode.modifier(callee);
+      SimpleArgs(encode, args);
+      encode.op(VM_MODIFIER_OP, handle);
+      return;
+    }
+
+    case Op.LexicalModifier: {
+      const [, callee, args] = content;
+      const handle = encode.lexicalModifier(callee);
+      SimpleArgs(encode, args);
+      encode.op(VM_MODIFIER_OP, handle);
       return;
     }
   }

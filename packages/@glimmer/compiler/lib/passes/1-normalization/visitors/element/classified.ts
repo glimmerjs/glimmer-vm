@@ -7,7 +7,7 @@ import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
 import { MODIFIER_KEYWORDS } from '../../keywords';
-import { convertPathToCallIfKeyword, visitExpr, visitArgs } from '../expressions';
+import { convertPathToCallIfKeyword, visitArgs, visitExpr } from '../expressions';
 
 export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 
@@ -73,7 +73,9 @@ export class ClassifiedElement {
     });
   }
 
-  private modifier(modifier: ASTv2.ElementModifier): Result<mir.Modifier> {
+  private modifier(
+    modifier: ASTv2.ElementModifier
+  ): Result<mir.DynamicModifier | mir.ResolvedModifier | mir.LexicalModifier> {
     let translated = MODIFIER_KEYWORDS.translate(modifier, this.state);
 
     if (translated !== null) {
@@ -83,14 +85,27 @@ export class ClassifiedElement {
     let head = visitExpr(modifier.callee, this.state);
     let args = visitArgs(modifier.args, this.state);
 
-    return Result.all(head, args).mapOk(
-      ([head, args]) =>
-        new mir.Modifier({
+    return Result.all(head, args).mapOk(([head, args]) => {
+      if (head.type === 'Resolved') {
+        return new mir.ResolvedModifier({
           loc: modifier.loc,
           callee: head,
           args,
-        })
-    );
+        });
+      } else if (head.type === 'Local' && head.referenceType === 'lexical') {
+        return new mir.LexicalModifier({
+          loc: modifier.loc,
+          callee: head as mir.LexicalModifier['callee'],
+          args,
+        });
+      } else {
+        return new mir.DynamicModifier({
+          loc: modifier.loc,
+          callee: head,
+          args,
+        });
+      }
+    });
   }
 
   private attrs(): Result<ProcessedAttributes> {

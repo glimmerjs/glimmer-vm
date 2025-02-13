@@ -211,12 +211,18 @@ export default class StrictModeValidationPass {
 
   ElementParameter(param: mir.ElementParameter): Result<null> {
     switch (param.type) {
-      case 'StaticAttr':
-        return Ok(null);
       case 'DynamicAttr':
         return this.DynamicAttr(param);
-      case 'Modifier':
-        return this.Modifier(param);
+      case 'ResolvedModifier':
+        return this.ResolvedModifier(param);
+      // The callee in lexical and dynamic modifiers is known to not be a potentially resolvable
+      // expression, so we can don't need to checking it.
+      case 'LexicalModifier':
+      case 'DynamicModifier':
+        return this.Args(param.args);
+      // there is no way for any of these constructs to fail, since they contain no expressions
+      // that could possibly be resolvable.
+      case 'StaticAttr':
       case 'SplatAttr':
         return Ok(null);
     }
@@ -230,7 +236,7 @@ export default class StrictModeValidationPass {
     }
   }
 
-  Modifier(modifier: mir.Modifier): Result<null> {
+  ResolvedModifier(modifier: mir.ResolvedModifier): Result<null> {
     return this.Expression(modifier.callee, modifier, MODIFIER_RESOLUTION).andThen(() =>
       this.Args(modifier.args)
     );

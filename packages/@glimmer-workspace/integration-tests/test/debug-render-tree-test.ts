@@ -145,7 +145,7 @@ class DebugRenderTreeTest extends RenderTest {
             children: [
               {
                 type: 'modifier',
-                name: 'noopFn',
+                name: 'noop',
                 args: { positional: [], named: {} },
                 instance: (modifier: unknown) => modifier && Reflect.get(modifier, 'fn') === noopFn,
                 template: null,

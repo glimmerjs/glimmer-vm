@@ -259,7 +259,18 @@ export class IfExpression extends node('IfExpression').fields<{
   falsy: ExpressionNode | null;
 }>() {}
 
-export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
+export class ResolvedModifier extends node('ResolvedModifier').fields<{
+  callee: ASTv2.ResolvedVarReference;
+  args: Args;
+}>() {}
+export class DynamicModifier extends node('DynamicModifier').fields<{
+  callee: ExpressionNode;
+  args: Args;
+}>() {}
+export class LexicalModifier extends node('LexicalModifier').fields<{
+  callee: ASTv2.LocalVarReference & { referenceType: 'lexical' };
+  args: Args;
+}>() {}
 export class InvokeBlockComponent extends node('InvokeBlockComponent').fields<{
   head: CalleeExpression;
   args: Args;
@@ -332,7 +343,13 @@ export type SomeCallExpression =
 export type ExpressionValueNode = ASTv2.LiteralExpression | CalleeExpression;
 export type ExpressionNode = ASTv2.LiteralExpression | InterpolateExpression | CalleeExpression;
 
-export type ElementParameter = StaticAttr | DynamicAttr | Modifier | SplatAttr;
+export type ElementParameter =
+  | StaticAttr
+  | DynamicAttr
+  | DynamicModifier
+  | ResolvedModifier
+  | LexicalModifier
+  | SplatAttr;
 
 export type Internal =
   | Args

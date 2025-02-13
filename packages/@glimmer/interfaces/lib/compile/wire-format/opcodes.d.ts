@@ -6,9 +6,9 @@ export type AppendDynamicInvokableOpcode = 103;
 export type AppendTrustedHtmlOpcode = 4;
 export type AppendHtmlTextOpcode = 106;
 export type CommentOpcode = 5;
-export type LexicalModifierOpcode = 6;
+export type DynamicModifierOpcode = 6;
+export type LexicalModifierOpcode = 7;
 export type ResolvedModifierOpcode = 56;
-export type StrictModifierOpcode = 7;
 export type InvokeDynamicBlockOpcode = 57;
 export type InvokeDynamicComponentOpcode = 58;
 

@@ -10,7 +10,7 @@ import type {
   ResolutionTimeConstants,
   SexpOpcode,
 } from '@glimmer/interfaces';
-import { expect, localAssert, unwrap } from '@glimmer/debug-util';
+import { localAssert, unwrap } from '@glimmer/debug-util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.TupleExpression {
@@ -122,65 +122,25 @@ export function resolveModifier(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  expr: Expressions.Expression,
-  then: (handle: number) => void
-): void {
-  localAssert(isGetFreeModifier(expr), 'Attempted to resolve a modifier with incorrect opcode');
+  upvar: number
+): number {
+  let {
+    symbols: { upvars },
+    owner,
+  } = assertResolverInvariants(meta);
+  let name = unwrap(upvars[upvar]);
+  let modifier = resolver?.lookupModifier?.(name, owner) ?? null;
 
-  let type = expr[0];
+  if (import.meta.env.DEV && modifier === null) {
+    localAssert(!meta.isStrictMode, 'Strict mode errors should already be handled at compile time');
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
-    let {
-      scopeValues,
-      symbols: { lexical },
-    } = meta;
-    let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
-      expr[1]
-    ];
-
-    then(constants.modifier(definition as object, lexical?.at(expr[1]) ?? undefined));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
-    let {
-      symbols: { upvars },
-    } = assertResolverInvariants(meta);
-    let name = unwrap(upvars[expr[1]]);
-    let modifier = resolver?.lookupBuiltInModifier?.(name) ?? null;
-
-    if (import.meta.env.DEV && modifier === null) {
-      localAssert(
-        !meta.isStrictMode,
-        'Strict mode errors should already be handled at compile time'
-      );
-
-      throw new Error(
-        `Attempted to resolve a modifier in a strict mode template, but it was not in scope: ${name}`
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-    then(constants.modifier(modifier!, name));
-  } else {
-    let {
-      symbols: { upvars },
-      owner,
-    } = assertResolverInvariants(meta);
-    let name = unwrap(upvars[expr[1]]);
-    let modifier = resolver?.lookupModifier?.(name, owner) ?? null;
-
-    if (import.meta.env.DEV && modifier === null) {
-      localAssert(
-        !meta.isStrictMode,
-        'Strict mode errors should already be handled at compile time'
-      );
-
-      throw new Error(
-        `Attempted to resolve \`${name}\`, which was expected to be a modifier, but nothing was found.`
-      );
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-    then(constants.modifier(modifier!));
+    throw new Error(
+      `Attempted to resolve \`${name}\`, which was expected to be a modifier, but nothing was found.`
+    );
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+  return constants.modifier(modifier!);
 }
 
 /**

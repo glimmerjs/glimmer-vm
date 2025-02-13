@@ -322,22 +322,23 @@ export function ElementParameter(param: mir.ElementParameter): WireFormat.Elemen
       return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
     case 'StaticAttr':
       return [staticAttrOp(param.kind), ...staticAttr(param)];
-    case 'Modifier': {
-      const { type } = param.callee;
-      const callee = encodeExpr(param.callee);
-      const args = encodeArgs(param.args);
 
-      switch (type) {
-        case 'Local':
-          if (param.callee.referenceType === 'lexical') {
-            return [Op.LexicalModifier, callee, args];
-          }
-          break;
-        case 'Resolved':
-          return [Op.ResolvedModifier, callee, args];
-      }
+    case 'ResolvedModifier': {
+      const { callee, args } = param;
+      return [Op.ResolvedModifier, callee.symbol, callArgs(args.positional, args.named)];
+    }
 
-      return [Op.LexicalModifier, callee, args];
+    case 'LexicalModifier': {
+      const { callee, args } = param;
+      return [Op.LexicalModifier, callee.symbol, callArgs(args.positional, args.named)];
+    }
+
+    case 'DynamicModifier': {
+      return [
+        Op.DynamicModifier,
+        encodeExpr(param.callee),
+        callArgs(param.args.positional, param.args.named),
+      ];
     }
   }
 }

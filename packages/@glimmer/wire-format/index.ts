@@ -35,7 +35,7 @@ export function isAttribute(val: Content): val is Content.Attribute {
     val[0] === Op.StaticComponentAttr ||
     val[0] === Op.TrustingComponentAttr ||
     val[0] === Op.AttrSplat ||
-    val[0] === Op.LexicalModifier ||
+    val[0] === Op.DynamicModifier ||
     val[0] === Op.ResolvedModifier
   );
 }

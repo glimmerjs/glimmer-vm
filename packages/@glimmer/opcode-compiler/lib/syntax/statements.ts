@@ -8,11 +8,11 @@ import type {
 import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import {
   VM_DUP_OP,
+  VM_DYNAMIC_MODIFIER_OP,
   VM_ENTER_LIST_OP,
   VM_EXIT_LIST_OP,
   VM_ITERATE_OP,
   VM_JUMP_OP,
-  VM_MODIFIER_OP,
   VM_POP_FRAME_OP,
   VM_POP_OP,
   VM_POP_REMOTE_ELEMENT_OP,
@@ -24,7 +24,6 @@ import {
 import { exhausted } from '@glimmer/debug-util';
 import { $fp, $sp } from '@glimmer/vm';
 import {
-  EMPTY_ARGS_OPCODE,
   NAMED_ARGS_AND_BLOCKS_OPCODE,
   NAMED_ARGS_OPCODE,
   POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
@@ -38,7 +37,6 @@ import { Replayable, ReplayableIf } from '../opcode-builder/helpers/conditional'
 import { expr } from '../opcode-builder/helpers/expr';
 import { CompilePositional, hasNamed, SimpleArgs } from '../opcode-builder/helpers/shared';
 import { DynamicScope, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
-import { LexicalModifier } from './api';
 import { Compilers } from './compilers';
 
 export const STATEMENTS = new Compilers<ContentSexpOpcode>();
@@ -58,22 +56,13 @@ export function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
 
-STATEMENTS.add(Op.ResolvedModifier, (encode, [, expression, args]) => {
-  encode.modifier(expression, (handle: number) => {
-    encode.op(VM_PUSH_FRAME_OP);
-    SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE]);
-    encode.op(VM_MODIFIER_OP, handle);
-    encode.op(VM_POP_FRAME_OP);
-  });
-});
-
-STATEMENTS.add(Op.LexicalModifier, (encode, [, expression, args]) => {
+STATEMENTS.add(Op.DynamicModifier, (encode, [, expression, args]) => {
   expr(encode, expression);
-  LexicalModifier(
-    encode,
-    () => expr(encode, expression),
-    () => SimpleArgs(encode, args ?? [EMPTY_ARGS_OPCODE])
-  );
+  encode.op(VM_PUSH_FRAME_OP);
+  SimpleArgs(encode, args);
+  encode.op(VM_DUP_OP, $fp, 1);
+  encode.op(VM_DYNAMIC_MODIFIER_OP);
+  encode.op(VM_POP_FRAME_OP);
 });
 
 export function isLexicalCall(expr: WireFormat.Expression) {
