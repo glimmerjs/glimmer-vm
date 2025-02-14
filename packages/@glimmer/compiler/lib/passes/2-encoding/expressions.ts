@@ -73,6 +73,8 @@ export function encodeExpr(
   }
 }
 
+export function encodePositional(positional: mir.PresentPositional): WireFormat.Core.Params;
+export function encodePositional(positional: mir.Positional): Optional<WireFormat.Core.Params>;
 export function encodePositional({ list }: mir.Positional): Optional<WireFormat.Core.Params> {
   return list.map((l) => encodeExpr(l)).toPresentArray();
 }
@@ -84,6 +86,14 @@ export function encodePositional({ list }: mir.Positional): Optional<WireFormat.
  * - `{{#some-component}}`: yes. Their arguments are equivalent to `@`-prefixed named arguments.
  * - `{{component ...}}`: yes. Their arguments are equivalent to `@`-prefixed named arguments.
  */
+export function encodeNamedArguments(
+  named: mir.PresentNamedArguments,
+  { insertAtPrefix }: { insertAtPrefix: boolean }
+): WireFormat.Core.Hash;
+export function encodeNamedArguments(
+  named: mir.NamedArguments,
+  { insertAtPrefix }: { insertAtPrefix: boolean }
+): Optional<WireFormat.Core.Hash>;
 export function encodeNamedArguments(
   { entries: pairs }: mir.NamedArguments,
   { insertAtPrefix }: { insertAtPrefix: boolean }

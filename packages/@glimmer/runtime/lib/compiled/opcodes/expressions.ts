@@ -51,7 +51,7 @@ import {
 import { assign, isIndexable } from '@glimmer/util';
 import { $v0 } from '@glimmer/vm';
 
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { isCurriedType, resolveCurriedValue } from '../../../../program/lib/util/curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
 import { reifyPositional } from '../../vm/arguments';

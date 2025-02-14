@@ -89,7 +89,7 @@ export class Each extends node('Each').fields<{
  * ```
  */
 export class Let extends node('Let').fields<{
-  positional: Positional;
+  positional: PresentPositional;
   block: NamedBlock;
 }>() {}
 
@@ -103,7 +103,7 @@ export class Let extends node('Let').fields<{
  * ```
  */
 export class WithDynamicVars extends node('WithDynamicVars').fields<{
-  named: NamedArguments;
+  named: PresentNamedArguments;
   block: NamedBlock;
 }>() {}
 
@@ -299,9 +299,11 @@ export class Curry extends node('Curry').fields<{
 export class Positional extends node('Positional').fields<{
   list: OptionalList<ExpressionNode>;
 }>() {}
+export type PresentPositional = Positional & { list: PresentList<ExpressionNode> };
 export class NamedArguments extends node('NamedArguments').fields<{
   entries: OptionalList<NamedArgument>;
 }>() {}
+export type PresentNamedArguments = NamedArguments & { entries: PresentList<NamedArgument> };
 export class NamedArgument extends node('NamedArgument').fields<{
   key: SourceSlice;
   value: ExpressionNode;

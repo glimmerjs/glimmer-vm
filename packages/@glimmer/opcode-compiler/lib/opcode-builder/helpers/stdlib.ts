@@ -8,8 +8,7 @@ import {
   VM_ASSERT_SAME_OP,
   VM_CONTENT_TYPE_OP,
   VM_MAIN_OP,
-  VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
-  VM_RESOLVE_DYNAMIC_COMPONENT_OP,
+  VM_RESOLVE_COMPONENT_DEFINITION,
 } from '@glimmer/constants';
 import { $s0, ContentType } from '@glimmer/vm';
 import { EMPTY_ARGS_OPCODE } from '@glimmer/wire-format';
@@ -53,8 +52,7 @@ export function StdAppend(
 
       if (typeof nonDynamicAppend === 'number') {
         when(ContentType.Component, () => {
-          encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.constant(false));
-          encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+          encode.op(VM_RESOLVE_COMPONENT_DEFINITION);
           InvokeBareComponent(encode);
         });
 

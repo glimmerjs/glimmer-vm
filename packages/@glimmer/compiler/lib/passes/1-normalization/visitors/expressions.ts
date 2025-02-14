@@ -153,7 +153,14 @@ export function visitArgs(
       })
   );
 }
-
+export function visitPositional(
+  positional: ASTv2.PresentPositional,
+  state: NormalizationState
+): Result<mir.PresentPositional>;
+export function visitPositional(
+  positional: ASTv2.PositionalArguments,
+  state: NormalizationState
+): Result<mir.Positional>;
 export function visitPositional(
   positional: ASTv2.PositionalArguments,
   state: NormalizationState
@@ -167,6 +174,14 @@ export function visitPositional(
   );
 }
 
+export function visitNamedArguments(
+  named: ASTv2.PresentNamedArguments,
+  state: NormalizationState
+): Result<mir.PresentNamedArguments>;
+export function visitNamedArguments(
+  named: ASTv2.NamedArguments,
+  state: NormalizationState
+): Result<mir.NamedArguments>;
 export function visitNamedArguments(
   named: ASTv2.NamedArguments,
   state: NormalizationState

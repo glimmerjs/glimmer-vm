@@ -377,22 +377,22 @@ export function namedBlock(
 }
 
 export function IfContent({ condition, block, inverse }: mir.IfContent): WireFormat.Content.If {
-  return [
+  return compactSexpr([
     Op.If,
     encodeExpr(condition),
     NamedBlock(block)[1],
-    inverse ? NamedBlock(inverse)[1] : null,
-  ];
+    inverse ? NamedBlock(inverse)[1] : undefined,
+  ]);
 }
 
 export function Each({ value, key, block, inverse }: mir.Each): WireFormat.Content.Each {
-  return [
+  return compactSexpr([
     Op.Each,
     encodeExpr(value),
     key ? encodeExpr(key) : null,
-    NamedBlock(block)[1],
-    inverse ? NamedBlock(inverse)[1] : null,
-  ];
+    namedBlock(block.body, block.scope),
+    inverse ? namedBlock(inverse.body, inverse.scope) : undefined,
+  ]);
 }
 
 export function Let({ positional, block }: mir.Let): WireFormat.Content.Let {

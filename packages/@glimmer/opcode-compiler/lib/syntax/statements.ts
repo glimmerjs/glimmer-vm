@@ -7,8 +7,8 @@ import type {
 } from '@glimmer/interfaces';
 import type { RequireAtLeastOne, Simplify } from 'type-fest';
 import {
-  VM_DUP_OP,
-  VM_DYNAMIC_MODIFIER_OP,
+  VM_DUP_FP_OP,
+  VM_DUP_SP_OP,
   VM_ENTER_LIST_OP,
   VM_EXIT_LIST_OP,
   VM_ITERATE_OP,
@@ -22,7 +22,6 @@ import {
   VM_TO_BOOLEAN_OP,
 } from '@glimmer/constants';
 import { exhausted } from '@glimmer/debug-util';
-import { $fp, $sp } from '@glimmer/vm';
 import {
   NAMED_ARGS_AND_BLOCKS_OPCODE,
   NAMED_ARGS_OPCODE,
@@ -35,8 +34,8 @@ import { InvokeStaticBlock, InvokeStaticBlockWithStack } from '../opcode-builder
 import { InvokeReplayableComponentExpression } from '../opcode-builder/helpers/components';
 import { Replayable, ReplayableIf } from '../opcode-builder/helpers/conditional';
 import { expr } from '../opcode-builder/helpers/expr';
-import { CompilePositional, hasNamed, SimpleArgs } from '../opcode-builder/helpers/shared';
-import { DynamicScope, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
+import { hasNamed } from '../opcode-builder/helpers/shared';
+import { PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { Compilers } from './compilers';
 
 export const STATEMENTS = new Compilers<ContentSexpOpcode>();
@@ -55,15 +54,6 @@ export function inflateTagName(tagName: string | WellKnownTagName): string {
 export function inflateAttrName(attrName: string | WellKnownAttrName): string {
   return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
 }
-
-STATEMENTS.add(Op.DynamicModifier, (encode, [, expression, args]) => {
-  expr(encode, expression);
-  encode.op(VM_PUSH_FRAME_OP);
-  SimpleArgs(encode, args);
-  encode.op(VM_DUP_OP, $fp, 1);
-  encode.op(VM_DYNAMIC_MODIFIER_OP);
-  encode.op(VM_POP_FRAME_OP);
-});
 
 export function isLexicalCall(expr: WireFormat.Expression) {
   return Array.isArray(expr) && expr[0] === Op.GetLexicalSymbol;
@@ -103,7 +93,7 @@ STATEMENTS.add(Op.InElement, (encode, [, block, guid, destination, insertBefore]
       }
 
       expr(encode, destination);
-      encode.op(VM_DUP_OP, $sp, 0);
+      encode.op(VM_DUP_SP_OP, 0);
 
       return 4;
     },
@@ -126,29 +116,21 @@ STATEMENTS.add(Op.If, (encode, [, condition, block, inverse]) =>
       return 1;
     },
 
-    () => {
-      InvokeStaticBlock(encode, block);
-    },
-
-    inverse
-      ? () => {
-          InvokeStaticBlock(encode, inverse);
-        }
-      : undefined
+    () => InvokeStaticBlock(encode, block),
+    inverse && (() => InvokeStaticBlock(encode, inverse))
   )
 );
 
-STATEMENTS.add(Op.Each, (encode, [, value, key, block, inverse]) =>
-  Replayable(
+STATEMENTS.add(Op.Each, (encode, [, value, key, block, inverse]) => {
+  const keyFn = key
+    ? () => void expr(encode, key)
+    : () => void PushPrimitiveReference(encode, null);
+
+  return Replayable(
     encode,
 
     () => {
-      if (key) {
-        expr(encode, key);
-      } else {
-        PushPrimitiveReference(encode, null);
-      }
-
+      keyFn();
       expr(encode, value);
 
       return 2;
@@ -157,7 +139,7 @@ STATEMENTS.add(Op.Each, (encode, [, value, key, block, inverse]) =>
     () => {
       encode.op(VM_ENTER_LIST_OP, encode.to('BODY'), encode.to('ELSE'));
       encode.op(VM_PUSH_FRAME_OP);
-      encode.op(VM_DUP_OP, $fp, 1);
+      encode.op(VM_DUP_FP_OP, 1);
       encode.op(VM_RETURN_TO_OP, encode.to('ITER'));
       encode.mark('ITER');
       encode.op(VM_ITERATE_OP, encode.to('BREAK'));
@@ -175,25 +157,7 @@ STATEMENTS.add(Op.Each, (encode, [, value, key, block, inverse]) =>
         InvokeStaticBlock(encode, inverse);
       }
     }
-  )
-);
-
-STATEMENTS.add(Op.Let, (encode, [, positional, block]) => {
-  let count = CompilePositional(encode, positional);
-  InvokeStaticBlockWithStack(encode, block, count);
-});
-
-STATEMENTS.add(Op.WithDynamicVars, (encode, [, named, block]) => {
-  if (named) {
-    let [names, expressions] = named;
-
-    CompilePositional(encode, expressions);
-    DynamicScope(encode, names, () => {
-      InvokeStaticBlockWithStack(encode, block, expressions.length);
-    });
-  } else {
-    InvokeStaticBlockWithStack(encode, block, 0);
-  }
+  );
 });
 
 STATEMENTS.add(Op.InvokeDynamicComponent, (encode, [, expr, args]) => {

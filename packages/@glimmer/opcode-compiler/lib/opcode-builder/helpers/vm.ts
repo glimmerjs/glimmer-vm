@@ -2,23 +2,20 @@ import type { CurriedType, Nullable, Optional, WireFormat } from '@glimmer/inter
 import {
   encodeImmediate,
   isSmallInt,
-  VM_BIND_DYNAMIC_SCOPE_OP,
   VM_CAPTURE_ARGS_OP,
   VM_CURRY_OP,
-  VM_DUP_OP,
+  VM_DUP_FP_OP,
   VM_DYNAMIC_HELPER_OP,
   VM_FETCH_OP,
   VM_HELPER_OP,
   VM_INVOKE_STATIC_OP,
-  VM_POP_DYNAMIC_SCOPE_OP,
   VM_POP_FRAME_OP,
   VM_POP_OP,
   VM_PRIMITIVE_OP,
   VM_PRIMITIVE_REFERENCE_OP,
-  VM_PUSH_DYNAMIC_SCOPE_OP,
   VM_PUSH_FRAME_OP,
 } from '@glimmer/constants';
-import { $fp, $v0 } from '@glimmer/vm';
+import { $v0 } from '@glimmer/vm';
 import { EMPTY_ARGS_OPCODE } from '@glimmer/wire-format';
 
 import type { EncodeOp } from '../encoder';
@@ -78,7 +75,7 @@ export function CallDynamicBlock(
 ): void {
   encode.op(VM_PUSH_FRAME_OP);
   SimpleArgs(encode, args);
-  encode.op(VM_DUP_OP, $fp, 1);
+  encode.op(VM_DUP_FP_OP, 1);
   encode.op(VM_DYNAMIC_HELPER_OP);
 
   encode.op(VM_FETCH_OP, $v0);
@@ -86,21 +83,6 @@ export function CallDynamicBlock(
 
   encode.op(VM_POP_FRAME_OP);
   encode.op(VM_POP_OP, 1);
-}
-
-/**
- * Evaluate statements in the context of new dynamic scope entries. Move entries from the
- * stack into named entries in the dynamic scope, then evaluate the statements, then pop
- * the dynamic scope
- *
- * @param names a list of dynamic scope names
- * @param block a function that returns a list of statements to evaluate
- */
-export function DynamicScope(encode: EncodeOp, names: string[], block: () => void): void {
-  encode.op(VM_PUSH_DYNAMIC_SCOPE_OP);
-  encode.op(VM_BIND_DYNAMIC_SCOPE_OP, encode.array(names));
-  block();
-  encode.op(VM_POP_DYNAMIC_SCOPE_OP);
 }
 
 export function Curry(

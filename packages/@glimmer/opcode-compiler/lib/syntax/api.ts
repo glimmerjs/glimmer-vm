@@ -1,6 +1,6 @@
 import {
   VM_CLOSE_ELEMENT_OP,
-  VM_DUP_OP,
+  VM_DUP_FP_OP,
   VM_DYNAMIC_MODIFIER_OP,
   VM_FLUSH_ELEMENT_OP,
   VM_POP_FRAME_OP,
@@ -9,7 +9,6 @@ import {
   VM_PUSH_FRAME_OP,
 } from '@glimmer/constants';
 import { EMPTY_STRING_ARRAY } from '@glimmer/util';
-import { $fp } from '@glimmer/vm';
 
 import type { EncodeOp } from '../opcode-builder/encoder';
 
@@ -20,7 +19,7 @@ export const LexicalModifier = (encode: EncodeOp, expr: () => void, args: () => 
   expr();
   encode.op(VM_PUSH_FRAME_OP);
   args();
-  encode.op(VM_DUP_OP, $fp, 1);
+  encode.op(VM_DUP_FP_OP, 1);
   encode.op(VM_DYNAMIC_MODIFIER_OP);
   encode.op(VM_POP_FRAME_OP);
 };

@@ -86,7 +86,7 @@ export class EncodeOp {
    * dynamic string would be valid in classic mode.
    */
   isDynamicStringAllowed(): Operand {
-    return encodeHandle(this.#constants.value(!this.#meta.isStrictMode));
+    return this.#meta.isStrictMode ? 0 : 1;
   }
 
   debugSymbols(symbols: EncodeDebugSymbols): Operand {

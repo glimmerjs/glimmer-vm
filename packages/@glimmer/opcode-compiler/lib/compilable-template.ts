@@ -17,27 +17,33 @@ import type {
 } from '@glimmer/interfaces';
 import {
   IS_COMPILABLE_TEMPLATE,
+  VM_BIND_DYNAMIC_SCOPE_OP,
+  VM_CHILD_SCOPE_OP,
   VM_CLOSE_ELEMENT_OP,
   VM_COMMENT_OP,
   VM_COMPILE_BLOCK_OP,
   VM_COMPONENT_ATTR_OP,
   VM_DEBUGGER_OP,
+  VM_DUP_FP_OP,
   VM_DYNAMIC_ATTR_OP,
   VM_DYNAMIC_CONTENT_TYPE_OP,
+  VM_DYNAMIC_MODIFIER_OP,
   VM_FLUSH_ELEMENT_OP,
   VM_GET_BLOCK_OP,
   VM_INVOKE_STATIC_OP,
   VM_INVOKE_YIELD_OP,
+  VM_JIT_INVOKE_VIRTUAL_OP,
   VM_MODIFIER_OP,
   VM_OPEN_ELEMENT_OP,
+  VM_POP_DYNAMIC_SCOPE_OP,
   VM_POP_FRAME_OP,
   VM_POP_SCOPE_OP,
   VM_PUSH_COMPONENT_DEFINITION_OP,
-  VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   VM_PUSH_EMPTY_ARGS_OP,
   VM_PUSH_FRAME_OP,
   VM_PUT_COMPONENT_OPERATIONS_OP,
-  VM_RESOLVE_DYNAMIC_COMPONENT_OP,
+  VM_RESOLVE_COMPONENT_DEFINITION,
+  VM_SET_VARIABLE_OP,
   VM_SPREAD_BLOCK_OP,
   VM_STATIC_ATTR_OP,
   VM_STATIC_COMPONENT_ATTR_OP,
@@ -51,6 +57,7 @@ import { SexpOpcodes as Op } from '@glimmer/wire-format';
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { EncodeOp } from './opcode-builder/encoder';
+import { InvokeStaticBlockWithPresentStack } from './opcode-builder/helpers/blocks';
 import {
   InvokeDynamicComponent,
   InvokeReplayableComponentExpression,
@@ -59,7 +66,7 @@ import {
 } from './opcode-builder/helpers/components';
 import { SwitchCases } from './opcode-builder/helpers/conditional';
 import { compilePositional, expr } from './opcode-builder/helpers/expr';
-import { meta, SimpleArgs } from './opcode-builder/helpers/shared';
+import { CompilePresentPositional, meta, SimpleArgs } from './opcode-builder/helpers/shared';
 import { Call, CallDynamicBlock } from './opcode-builder/helpers/vm';
 import { inflateAttrName, inflateTagName, prefixAtNames, STATEMENTS } from './syntax/statements';
 
@@ -222,8 +229,7 @@ export function compileContent(encode: EncodeOp, content: Content): void {
         },
         (when) => {
           when(ContentType.Component, () => {
-            encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.constant(false));
-            encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
+            encode.op(VM_RESOLVE_COMPONENT_DEFINITION);
             InvokeDynamicComponent(encode, prefixAtNames(args));
           });
 
@@ -393,6 +399,50 @@ export function compileContent(encode: EncodeOp, content: Content): void {
       const handle = encode.lexicalModifier(callee);
       SimpleArgs(encode, args);
       encode.op(VM_MODIFIER_OP, handle);
+      return;
+    }
+
+    case Op.DynamicModifier: {
+      const [, expression, args] = content;
+
+      expr(encode, expression);
+      encode.op(VM_PUSH_FRAME_OP);
+      SimpleArgs(encode, args);
+      encode.op(VM_DUP_FP_OP, 1);
+      encode.op(VM_DYNAMIC_MODIFIER_OP);
+      encode.op(VM_POP_FRAME_OP);
+      return;
+    }
+
+    case Op.Let: {
+      const [, positional, block] = content;
+      CompilePresentPositional(encode, positional);
+      const parameters = block[1];
+
+      encode.op(VM_PUSH_FRAME_OP);
+      encode.op(VM_CHILD_SCOPE_OP);
+
+      for (let i = 0; i < positional.length; i++) {
+        encode.op(VM_DUP_FP_OP, positional.length - i);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+        encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
+      }
+
+      encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));
+
+      encode.op(VM_POP_SCOPE_OP);
+      encode.op(VM_POP_FRAME_OP);
+      return;
+    }
+
+    case Op.WithDynamicVars: {
+      const [, named, block] = content;
+      let [names, expressions] = named;
+
+      CompilePresentPositional(encode, expressions);
+      encode.op(VM_BIND_DYNAMIC_SCOPE_OP, encode.array(names));
+      InvokeStaticBlockWithPresentStack(encode, block, expressions.length);
+      encode.op(VM_POP_DYNAMIC_SCOPE_OP);
       return;
     }
   }

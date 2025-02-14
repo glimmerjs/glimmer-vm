@@ -180,6 +180,13 @@ export function CompilePositional(
   return positional.length;
 }
 
+export function CompilePresentPositional(
+  encode: EncodeOp,
+  positional: WireFormat.Core.Params
+): void {
+  for (const param of positional) expr(encode, param);
+}
+
 export function CompileNamed(encode: EncodeOp, named: WireFormat.Core.Hash): PresentArray<string> {
   const [names, vals] = named;
 

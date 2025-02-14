@@ -116,8 +116,9 @@ export interface CompilerArtifacts {
 }
 
 export interface CompilableTemplate<S extends SymbolTable = SymbolTable> {
-  symbolTable: S;
-  meta: BlockMetadata;
+  readonly symbolTable: S;
+  readonly meta: BlockMetadata;
+  readonly compiled: Nullable<HandleResult>;
   compile(context: EvaluationContext): HandleResult;
 }
 

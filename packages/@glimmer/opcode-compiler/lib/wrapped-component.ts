@@ -17,7 +17,7 @@ import { meta } from './opcode-builder/helpers/shared';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
-  private compiled: Nullable<number> = null;
+  public compiled: Nullable<HandleResult> = null;
   private attrsBlockNumber: number;
   readonly meta: BlockMetadata;
 

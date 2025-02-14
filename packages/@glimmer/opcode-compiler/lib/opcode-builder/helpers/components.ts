@@ -19,14 +19,14 @@ import {
   VM_CREATE_COMPONENT_OP,
   VM_DID_CREATE_ELEMENT_OP,
   VM_DID_RENDER_LAYOUT_OP,
-  VM_DUP_OP,
+  VM_DUP_SP_OP,
   VM_FETCH_OP,
   VM_FLUSH_ELEMENT_OP,
   VM_GET_COMPONENT_LAYOUT_OP,
   VM_GET_COMPONENT_SELF_OP,
   VM_GET_COMPONENT_TAG_NAME_OP,
   VM_INVOKE_COMPONENT_LAYOUT_OP,
-  VM_INVOKE_VIRTUAL_OP,
+  VM_JIT_INVOKE_VIRTUAL_OP,
   VM_JUMP_UNLESS_OP,
   VM_LOAD_OP,
   VM_OPEN_DYNAMIC_ELEMENT_OP,
@@ -37,15 +37,15 @@ import {
   VM_POPULATE_LAYOUT_OP,
   VM_PREPARE_ARGS_OP,
   VM_PRIMITIVE_REFERENCE_OP,
+  VM_PUSH_AND_BIND_DYNAMIC_SCOPE_OP,
   VM_PUSH_ARGS_OP,
-  VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
-  VM_PUSH_DYNAMIC_SCOPE_OP,
   VM_PUSH_EMPTY_ARGS_OP,
   VM_PUSH_FRAME_OP,
   VM_PUSH_SYMBOL_TABLE_OP,
   VM_PUT_COMPONENT_OPERATIONS_OP,
   VM_REGISTER_COMPONENT_DESTRUCTOR_OP,
-  VM_RESOLVE_DYNAMIC_COMPONENT_OP,
+  VM_RESOLVE_COMPONENT_DEFINITION,
+  VM_RESOLVE_COMPONENT_DEFINITION_OR_STRING,
   VM_ROOT_SCOPE_OP,
   VM_SET_BLOCK_OP,
   VM_SET_BLOCKS_OP,
@@ -56,7 +56,7 @@ import {
 import { unwrap } from '@glimmer/debug-util';
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse } from '@glimmer/util';
-import { $s0, $s1, $sp, InternalComponentCapabilities } from '@glimmer/vm';
+import { $s0, $s1, InternalComponentCapabilities } from '@glimmer/vm';
 
 import type { EncodeOp } from '../encoder';
 
@@ -111,7 +111,7 @@ export interface Component {
 
 /**
  * A resolved component may be late-bound (which means that its component is not present at the time
- * that the component is compiled). If `component.compilable` is `null`, then we use a special
+ * that the component is compiled). If `component.layout` is `null`, then we use a special
  * compilation that doesn't attempt to use capabilities to specialize the opcodes, which  means that
  * late-bound components are always assumed to have all capabilities.
  */
@@ -138,20 +138,18 @@ export function InvokeReplayableComponentExpression(
 
     () => {
       expr(encode, definition);
-      encode.op(VM_DUP_OP, $sp, 0);
+      encode.op(VM_DUP_SP_OP, 0);
       return 2;
     },
 
     () => {
       encode.op(VM_JUMP_UNLESS_OP, encode.to('ELSE'));
 
-      if (options?.curried) {
-        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.constant(false));
+      if (options?.curried || !encode.isDynamicStringAllowed()) {
+        encode.op(VM_RESOLVE_COMPONENT_DEFINITION);
       } else {
-        encode.op(VM_RESOLVE_DYNAMIC_COMPONENT_OP, encode.isDynamicStringAllowed());
+        encode.op(VM_RESOLVE_COMPONENT_DEFINITION_OR_STRING, 1);
       }
-
-      encode.op(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
 
       InvokeDynamicComponent(encode, args);
       encode.mark('ELSE');
@@ -173,7 +171,7 @@ export function InvokeStaticComponent(
   }
 
   encode.op(VM_FETCH_OP, $s0);
-  encode.op(VM_DUP_OP, $sp, 1);
+  encode.op(VM_DUP_SP_OP, 1);
   encode.op(VM_LOAD_OP, $s0);
   encode.op(VM_PUSH_FRAME_OP);
 
@@ -276,7 +274,7 @@ export function InvokeStaticComponent(
   encode.op(VM_BEGIN_COMPONENT_TRANSACTION_OP, $s0);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
-    encode.op(VM_PUSH_DYNAMIC_SCOPE_OP);
+    encode.op(VM_PUSH_AND_BIND_DYNAMIC_SCOPE_OP);
   }
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createInstance)) {
@@ -302,9 +300,6 @@ export function InvokeStaticComponent(
   // Going in reverse, now we pop the args/blocks off the stack, starting with
   // arguments, and assign them to their symbols in the new scope.
   for (const symbol of reverse(argSymbols)) {
-    // for (let i = argSymbols.length - 1; i >= 0; i--) {
-    //   let symbol = argSymbols[i];
-
     if (symbol === -1) {
       // The expression was not bound to a local symbol, it was only pushed to be
       // used with VM args in the javascript side
@@ -324,9 +319,8 @@ export function InvokeStaticComponent(
     encode.op(VM_SET_BLOCK_OP, symbol + 1);
   }
 
-  encode.op(VM_CONSTANT_OP, encode.constant(layout));
-  encode.op(VM_COMPILE_BLOCK_OP);
-  encode.op(VM_INVOKE_VIRTUAL_OP);
+  encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.constant(layout));
+
   encode.op(VM_DID_RENDER_LAYOUT_OP, $s0);
 
   encode.op(VM_POP_FRAME_OP);
@@ -351,7 +345,7 @@ export function InvokeDynamicComponent(
     hasNamed(args);
 
   encode.op(VM_FETCH_OP, $s0);
-  encode.op(VM_DUP_OP, $sp, 1);
+  encode.op(VM_DUP_SP_OP, 1);
   encode.op(VM_LOAD_OP, $s0);
 
   encode.op(VM_PUSH_FRAME_OP);
@@ -391,7 +385,7 @@ export function WrappedComponent(
   WithSavedRegister(encode, $s1, () => {
     encode.op(VM_GET_COMPONENT_TAG_NAME_OP, $s0);
     encode.op(VM_PRIMITIVE_REFERENCE_OP);
-    encode.op(VM_DUP_OP, $sp, 0);
+    encode.op(VM_DUP_SP_OP, 0);
   });
   encode.op(VM_JUMP_UNLESS_OP, encode.to('BODY'));
   encode.op(VM_FETCH_OP, $s1);
@@ -419,7 +413,7 @@ export function invokePreparedComponent(
   populateLayout: Nullable<() => void> = null
 ): void {
   encode.op(VM_BEGIN_COMPONENT_TRANSACTION_OP, $s0);
-  encode.op(VM_PUSH_DYNAMIC_SCOPE_OP);
+  encode.op(VM_PUSH_AND_BIND_DYNAMIC_SCOPE_OP);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   encode.op(VM_CREATE_COMPONENT_OP, (hasBlock as any) | 0);
@@ -453,7 +447,7 @@ export function invokePreparedComponent(
 
 export function InvokeBareComponent(encode: EncodeOp): void {
   encode.op(VM_FETCH_OP, $s0);
-  encode.op(VM_DUP_OP, $sp, 1);
+  encode.op(VM_DUP_SP_OP, 1);
   encode.op(VM_LOAD_OP, $s0);
 
   encode.op(VM_PUSH_FRAME_OP);

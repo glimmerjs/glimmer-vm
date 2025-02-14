@@ -8,6 +8,7 @@ import type {
   ComponentInstance,
   ComponentInstanceState,
   ComponentInstanceWithCreate,
+  CurriedComponent,
   Dict,
   DynamicScope,
   ElementOperations,
@@ -15,6 +16,7 @@ import type {
   ModifierInstance,
   Nullable,
   Owner,
+  ProgramConstants,
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
@@ -24,6 +26,7 @@ import type {
   WithElementHook,
   WithUpdateHook,
 } from '@glimmer/interfaces';
+import type { CurriedValue } from '@glimmer/program';
 import type { Reference } from '@glimmer/reference';
 import {
   CURRIED_COMPONENT,
@@ -43,12 +46,11 @@ import {
   VM_PREPARE_ARGS_OP,
   VM_PUSH_ARGS_OP,
   VM_PUSH_COMPONENT_DEFINITION_OP,
-  VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   VM_PUSH_EMPTY_ARGS_OP,
   VM_PUT_COMPONENT_OPERATIONS_OP,
   VM_REGISTER_COMPONENT_DESTRUCTOR_OP,
-  VM_RESOLVE_CURRIED_COMPONENT_OP,
-  VM_RESOLVE_DYNAMIC_COMPONENT_OP,
+  VM_RESOLVE_COMPONENT_DEFINITION,
+  VM_RESOLVE_COMPONENT_DEFINITION_OR_STRING,
   VM_SET_BLOCKS_OP,
   VM_SET_NAMED_VARIABLES_OP,
   VM_STATIC_COMPONENT_ATTR_OP,
@@ -60,20 +62,24 @@ import {
   CheckHandle,
   CheckInstanceof,
   CheckInterface,
-  CheckOr,
   CheckProgramSymbolTable,
   CheckRegister,
-  CheckString,
   CheckSyscallRegister,
 } from '@glimmer/debug';
 import { debugToString, expect, localAssert, unwrap, unwrapTemplate } from '@glimmer/debug-util';
 import { registerDestructor } from '@glimmer/destroyable';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { managerHasCapability } from '@glimmer/manager';
+import {
+  isCurriedComponent,
+  isCurriedType,
+  isCurriedValue,
+  resolveCurriedValue,
+} from '@glimmer/program';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import { assign, dict, EMPTY_STRING_ARRAY, enumerate } from '@glimmer/util';
 import { $s0, $t0, $t1, InternalComponentCapabilities } from '@glimmer/vm';
 
-import type { CurriedValue } from '../../curried-value';
 import type { UpdatingVM } from '../../vm';
 import type { VM } from '../../vm/append';
 import type { BlockArgumentsImpl } from '../../vm/arguments';
@@ -81,7 +87,6 @@ import type { BlockArgumentsImpl } from '../../vm/arguments';
 import { ConcreteBounds } from '../../bounds';
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { resolveComponent } from '../../component/resolve';
-import { isCurriedType, isCurriedValue, resolveCurriedValue } from '../../curried-value';
 import { getDebugName } from '../../debug-render-tree';
 import { APPEND_OPCODES } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
@@ -90,7 +95,6 @@ import {
   CheckArguments,
   CheckComponentDefinition,
   CheckComponentInstance,
-  CheckCurriedComponentDefinition,
   CheckFinishedComponentInstance,
   CheckInvocation,
   CheckReference,
@@ -151,118 +155,100 @@ APPEND_OPCODES.add(VM_PUSH_COMPONENT_DEFINITION_OP, (vm, { op1: handle }) => {
   vm.stack.push(instance);
 });
 
-APPEND_OPCODES.add(VM_RESOLVE_DYNAMIC_COMPONENT_OP, (vm, { op1: _allowString }) => {
+APPEND_OPCODES.add(VM_RESOLVE_COMPONENT_DEFINITION, (vm) => {
+  let ref = check(vm.stack.pop(), CheckReference);
+  let component = valueForRef(ref);
+
+  let owner = vm.getOwner();
+  vm.loadValue($t1, null); // Clear the temp register
+
+  vm.stack.push(resolveComponentDefinition(ref, component, owner, vm.constants));
+});
+
+APPEND_OPCODES.add(VM_RESOLVE_COMPONENT_DEFINITION_OR_STRING, (vm) => {
   let stack = vm.stack;
   let ref = check(stack.pop(), CheckReference);
-  let component = check(valueForRef(ref), CheckOr(CheckString, CheckCurriedComponentDefinition));
+  let component = valueForRef(ref);
   let constants = vm.constants;
   let owner = vm.getOwner();
-  let allowString = constants.getValue<boolean>(_allowString);
 
   vm.loadValue($t1, null); // Clear the temp register
 
   let definition: ComponentDefinition | CurriedValue;
 
   if (typeof component === 'string') {
-    if (import.meta.env.DEV && !allowString) {
-      throw new Error(
-        `Attempted to resolve a dynamic component with a string definition, \`"${component}"\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
-      );
-    }
-
     let resolvedDefinition = resolveComponent(vm.context.resolver, constants, component, owner);
 
     definition = expect(resolvedDefinition, `Could not find a component named "${component}"`);
-    stack.push(definition);
+
+    stack.push({
+      definition: definition,
+      manager: definition.manager,
+      capabilities: definition.capabilities,
+      state: null,
+      handle: null,
+      table: null,
+      lookup: null,
+    });
     return;
   }
 
-  if (
-    import.meta.env.DEV &&
-    !(typeof component === 'function' || (typeof component === 'object' && component !== null))
-  ) {
+  stack.push(resolveComponentDefinition(ref, component, owner, constants));
+});
+
+function resolveComponentDefinition(
+  ref: Reference,
+  component: unknown,
+  owner: object,
+  constants: ProgramConstants
+) {
+  // let component = check(valueForRef(ref), CheckOr(CheckCurriedComponentDefinition, CheckString));
+
+  if (import.meta.env.DEV && typeof component === 'string') {
     throw new Error(
-      `Expected a component definition, but received ${component}. You may have accidentally done <${ref.debugLabel}>, where "${ref.debugLabel}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
+      `Attempted to resolve a dynamic component with a string definition, \`"${component}"\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
     );
   }
 
-  if (isCurriedValue(component)) {
-    definition = component;
-  } else {
-    const def = constants.component(component, owner, true);
+  localAssert(typeof component !== 'string', 'BUG: unexpected string');
 
-    if (import.meta.env.DEV && def === null) {
-      throw new Error(
-        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${
-          ref.debugLabel
-        }>\` or \`{{${
-          ref.debugLabel
-        }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
-        }\`, which was: ${debugToString?.(component) ?? component}`
-      );
-    }
+  const defn = constants.component(component, owner, true);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    definition = def!;
-  }
-
-  stack.push(definition);
-});
-
-APPEND_OPCODES.add(VM_RESOLVE_CURRIED_COMPONENT_OP, (vm) => {
-  let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
-  let value = valueForRef(ref);
-  let constants = vm.constants;
-
-  let definition: CurriedValue | ComponentDefinition | null;
-
-  if (
-    import.meta.env.DEV &&
-    !(typeof value === 'function' || (typeof value === 'object' && value !== null))
-  ) {
+  if (import.meta.env.DEV && defn === null) {
     throw new Error(
-      `Expected a component definition, but received ${value}. You may have accidentally done <${ref.debugLabel}>, where "${ref.debugLabel}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
+      `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${
+        ref.debugLabel
+      }>\` or \`{{${ref.debugLabel}}}\`, and the incorrect definition is the value at the path \`${
+        ref.debugLabel
+      }\`, which was: ${debugToString?.(component)}`
     );
   }
 
-  if (isCurriedValue(value)) {
-    definition = value;
+  localAssert(defn !== null, 'BUG: unexpected null');
+
+  if (isCurriedComponent(defn)) {
+    return {
+      definition: defn,
+      manager: null,
+      capabilities: null,
+      state: null,
+      handle: null,
+      table: null,
+      lookup: null,
+    };
   } else {
-    definition = constants.component(value as object, vm.getOwner(), true);
-
-    if (import.meta.env.DEV && definition === null) {
-      throw new Error(
-        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${
-          ref.debugLabel
-        }>\` or \`{{${
-          ref.debugLabel
-        }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
-        }\`, which was: ${debugToString?.(value) ?? value}`
-      );
-    }
+    // @todo deal with
+    return {
+      definition: defn,
+      manager: defn.manager,
+      capabilities: defn.capabilities,
+      state: null,
+      handle: null,
+      table: null,
+      lookup: null,
+    };
   }
-
-  stack.push(definition);
-});
-
-APPEND_OPCODES.add(VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP, (vm) => {
-  let { stack } = vm;
-  let definition = stack.pop<ComponentDefinition>();
-
-  let capabilities, manager;
-
-  if (isCurriedValue(definition)) {
-    manager = capabilities = null;
-  } else {
-    manager = definition.manager;
-    capabilities = definition.capabilities;
-  }
-
-  stack.push({ definition, capabilities, manager, state: null, handle: null, table: null });
-});
+}
 
 APPEND_OPCODES.add(VM_PUSH_ARGS_OP, (vm, { op1: _names, op2: _blockNames, op3: flags }) => {
   let stack = vm.stack;
@@ -298,12 +284,16 @@ APPEND_OPCODES.add(VM_PREPARE_ARGS_OP, (vm, { op1: register }) => {
   let { definition } = instance;
 
   if (isCurriedType(definition, CURRIED_COMPONENT)) {
-    localAssert(
-      !definition.manager,
-      "If the component definition was curried, we don't yet have a manager"
-    );
+    if (LOCAL_DEBUG) {
+      localAssert(
+        !Reflect.has(definition, 'manager'),
+        "If the component definition was curried, we don't yet have a manager"
+      );
+    }
 
     let constants = vm.constants;
+
+    definition satisfies CurriedValue<CurriedComponent>;
 
     let {
       definition: resolvedDefinition,
@@ -324,6 +314,10 @@ APPEND_OPCODES.add(VM_PREPARE_ARGS_OP, (vm, { op1: register }) => {
       );
     } else {
       definition = constants.component(resolvedDefinition, owner);
+    }
+
+    if (isCurriedValue(definition)) {
+      throw new Error('BUG: Curried components should not be able to retrieve their own self');
     }
 
     if (named !== undefined) {
@@ -658,6 +652,7 @@ APPEND_OPCODES.add(VM_DID_CREATE_ELEMENT_OP, (vm, { op1: register }) => {
 APPEND_OPCODES.add(VM_GET_COMPONENT_SELF_OP, (vm, { op1: register, op2: _names }) => {
   let instance = check(vm.fetchValue(check(register, CheckRegister)), CheckComponentInstance);
   let { definition, state } = instance;
+
   let { manager } = definition;
   let selfRef = manager.getSelf(state);
 

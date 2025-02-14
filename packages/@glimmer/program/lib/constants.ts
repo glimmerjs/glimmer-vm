@@ -9,7 +9,7 @@ import type {
   ResolvedComponentDefinition,
   Template,
 } from '@glimmer/interfaces';
-import { constants } from '@glimmer/constants';
+import { constants, CURRIED_COMPONENT } from '@glimmer/constants';
 import { expect, localAssert, unwrapTemplate } from '@glimmer/debug-util';
 import {
   capabilityFlagsFrom,
@@ -23,6 +23,7 @@ import { templateFactory } from '@glimmer/opcode-compiler';
 import { enumerate } from '@glimmer/util';
 import { InternalComponentCapabilities } from '@glimmer/vm';
 
+import { isCurriedValue } from './util/curried-value';
 import { DEFAULT_TEMPLATE } from './util/default-template';
 
 const WELL_KNOWN_EMPTY_ARRAY: unknown = Object.freeze([]);
@@ -179,6 +180,11 @@ export class ConstantsImpl implements ProgramConstants {
     isOptional?: true,
     debugName?: string
   ): ComponentDefinition | null {
+    if (isCurriedValue(definitionState, CURRIED_COMPONENT)) {
+      debugger;
+      return definitionState;
+    }
+
     let definition = this.componentDefinitionCache.get(definitionState);
 
     if (definition === undefined) {

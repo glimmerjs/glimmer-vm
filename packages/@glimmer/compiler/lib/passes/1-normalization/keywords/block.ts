@@ -288,7 +288,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
   })
   .kw('let', {
     assert(node: ASTv2.InvokeBlock): Result<{
-      positional: ASTv2.PositionalArguments;
+      positional: ASTv2.PresentPositional;
     }> {
       let { args } = node;
 
@@ -303,7 +303,9 @@ export const BLOCK_KEYWORDS = keywords('Block')
         );
       }
 
-      if (args.positional.size === 0) {
+      const positional = args.positional.asPresent();
+
+      if (!positional) {
         return Err(
           generateSyntaxError(
             `{{#let}} requires at least one value as its first positional parameter, did not receive any parameters`,
@@ -318,12 +320,12 @@ export const BLOCK_KEYWORDS = keywords('Block')
         );
       }
 
-      return Ok({ positional: args.positional });
+      return Ok({ positional });
     },
 
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { positional }: { positional: ASTv2.PositionalArguments }
+      { positional }: { positional: ASTv2.PresentPositional }
     ): Result<mir.Let> {
       let block = node.blocks.get('default');
 
@@ -342,14 +344,20 @@ export const BLOCK_KEYWORDS = keywords('Block')
   })
   .kw('-with-dynamic-vars', {
     assert(node: ASTv2.InvokeBlock): Result<{
-      named: ASTv2.NamedArguments;
+      named: ASTv2.PresentNamedArguments;
     }> {
-      return Ok({ named: node.args.named });
+      const named = node.args.named.asPresent();
+
+      if (named) {
+        return Ok({ named });
+      } else {
+        return Err(generateSyntaxError(`(-with-dynamic-vars) requires named arguments`, node.loc));
+      }
     },
 
     translate(
       { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { named }: { named: ASTv2.NamedArguments }
+      { named }: { named: ASTv2.PresentNamedArguments }
     ): Result<mir.WithDynamicVars> {
       let block = node.blocks.get('default');
 

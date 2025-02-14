@@ -1,3 +1,5 @@
+import type { Optional, PresentArray } from '@glimmer/interfaces';
+
 import type { SourceSlice } from '../../source/slice';
 import type { SourceSpan } from '../../source/span';
 import type { ExpressionNode } from './expr';
@@ -68,6 +70,12 @@ export class PositionalArguments extends node().fields<{
     return this.exprs.length;
   }
 
+  asPresent(): Optional<PresentPositional> {
+    if (this.exprs.length !== 0) {
+      return this as unknown as PresentPositional;
+    }
+  }
+
   nth(offset: number): ExpressionNode | null {
     return this.exprs[offset] || null;
   }
@@ -76,6 +84,8 @@ export class PositionalArguments extends node().fields<{
     return this.exprs.length === 0;
   }
 }
+
+export type PresentPositional = PositionalArguments & { exprs: PresentArray<ExpressionNode> };
 
 /**
  * Corresponds to named arguments.
@@ -100,6 +110,12 @@ export class NamedArguments extends node().fields<{
     return this.entries.length;
   }
 
+  asPresent(): Optional<PresentNamedArguments> {
+    if (this.entries.length !== 0) {
+      return this as unknown as PresentNamedArguments;
+    }
+  }
+
   get(name: string): ExpressionNode | null {
     let entry = this.entries.filter((e) => e.name.chars === name)[0];
 
@@ -110,6 +126,8 @@ export class NamedArguments extends node().fields<{
     return this.entries.length === 0;
   }
 }
+
+export type PresentNamedArguments = NamedArguments & { entries: PresentArray<NamedArgument> };
 
 /**
  * Corresponds to a single named argument.

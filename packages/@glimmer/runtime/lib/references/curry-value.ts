@@ -13,7 +13,7 @@ import { expect } from '@glimmer/debug-util';
 import { createComputeRef, valueForRef } from '@glimmer/reference';
 import { isIndexable } from '@glimmer/util';
 
-import { curry, isCurriedType } from '../curried-value';
+import { curry, isCurriedType } from '../../../program/lib/util/curried-value';
 
 export default function createCurryRef(
   type: CurriedType,

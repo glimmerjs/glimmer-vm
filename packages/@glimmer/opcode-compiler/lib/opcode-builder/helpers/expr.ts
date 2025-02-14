@@ -3,7 +3,7 @@ import {
   VM_COMPILE_BLOCK_OP,
   VM_CONCAT_OP,
   VM_CONSTANT_REFERENCE_OP,
-  VM_DUP_OP,
+  VM_DUP_FP_OP,
   VM_DYNAMIC_HELPER_OP,
   VM_FETCH_OP,
   VM_GET_DYNAMIC_VAR_OP,
@@ -26,7 +26,7 @@ import {
 } from '@glimmer/constants';
 import { exhausted } from '@glimmer/debug-util';
 import { EMPTY_STRING_ARRAY } from '@glimmer/util';
-import { $fp, $v0 } from '@glimmer/vm';
+import { $v0 } from '@glimmer/vm';
 import {
   EMPTY_ARGS_OPCODE,
   NAMED_ARGS_OPCODE,
@@ -74,7 +74,7 @@ export function expr(encode: EncodeOp, expression: WireFormat.Expression): void 
         expr(encode, callee);
         encode.op(VM_PUSH_FRAME_OP);
         callArgs(encode, args);
-        encode.op(VM_DUP_OP, $fp, 1);
+        encode.op(VM_DUP_FP_OP, 1);
         encode.op(VM_DYNAMIC_HELPER_OP);
         encode.op(VM_POP_FRAME_OP);
         encode.op(VM_POP_OP, 1);

@@ -33,6 +33,7 @@
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/manager": "workspace:*",
     "@glimmer/opcode-compiler": "workspace:*",
+    "@glimmer/reference": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/vm": "workspace:*",
     "@glimmer/wire-format": "workspace:*"
@@ -46,6 +47,7 @@
     "eslint": "^9.18.0",
     "publint": "^0.3.2",
     "rollup": "^4.34.4",
+    "type-fest": "^4.34.1",
     "typescript": "*"
   }
 }

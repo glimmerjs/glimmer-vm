@@ -398,7 +398,7 @@ export namespace Content {
     op: IfOpcode,
     condition: Expression,
     block: SerializedInlineBlock,
-    inverse: Nullable<SerializedInlineBlock>,
+    inverse?: SerializedInlineBlock,
   ];
 
   export type Each = [
@@ -406,18 +406,14 @@ export namespace Content {
     condition: Expression,
     key: Nullable<Expression>,
     block: SerializedInlineBlock,
-    inverse: Nullable<SerializedInlineBlock>,
+    inverse?: SerializedInlineBlock,
   ];
 
-  export type Let = [
-    op: LetOpcode,
-    positional: Optional<Core.Params>,
-    block: SerializedInlineBlock,
-  ];
+  export type Let = [op: LetOpcode, positional: Core.Params, block: SerializedInlineBlock];
 
   export type WithDynamicVars = [
     op: WithDynamicVarsOpcode,
-    args: Optional<Core.Hash>,
+    args: Core.Hash,
     block: SerializedInlineBlock,
   ];
 

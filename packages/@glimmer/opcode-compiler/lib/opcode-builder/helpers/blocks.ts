@@ -3,10 +3,10 @@ import {
   VM_CHILD_SCOPE_OP,
   VM_COMPILE_BLOCK_OP,
   VM_CONSTANT_OP,
-  VM_DUP_OP,
+  VM_DUP_FP_OP,
   VM_GET_BLOCK_OP,
-  VM_INVOKE_VIRTUAL_OP,
   VM_INVOKE_YIELD_OP,
+  VM_JIT_INVOKE_VIRTUAL_OP,
   VM_POP_FRAME_OP,
   VM_POP_SCOPE_OP,
   VM_PUSH_BLOCK_SCOPE_OP,
@@ -15,7 +15,6 @@ import {
   VM_SET_VARIABLE_OP,
   VM_SPREAD_BLOCK_OP,
 } from '@glimmer/constants';
-import { $fp } from '@glimmer/vm';
 
 import type { EncodeOp } from '../encoder';
 
@@ -58,9 +57,7 @@ export function PushYieldableBlock(
  */
 export function InvokeStaticBlock(encode: EncodeOp, block: WireFormat.SerializedInlineBlock): void {
   encode.op(VM_PUSH_FRAME_OP);
-  encode.op(VM_CONSTANT_OP, encode.block(block));
-  encode.op(VM_COMPILE_BLOCK_OP);
-  encode.op(VM_INVOKE_VIRTUAL_OP);
+  encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));
   encode.op(VM_POP_FRAME_OP);
 }
 
@@ -91,20 +88,41 @@ export function InvokeStaticBlockWithStack(
     encode.op(VM_CHILD_SCOPE_OP);
 
     for (let i = 0; i < count; i++) {
-      encode.op(VM_DUP_OP, $fp, callerCount - i);
+      encode.op(VM_DUP_FP_OP, callerCount - i);
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
       encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
     }
   }
 
-  PushCompilable(encode, block);
-  encode.op(VM_COMPILE_BLOCK_OP);
-  encode.op(VM_INVOKE_VIRTUAL_OP);
+  encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));
 
   if (count) {
     encode.op(VM_POP_SCOPE_OP);
   }
 
+  encode.op(VM_POP_FRAME_OP);
+}
+
+export function InvokeStaticBlockWithPresentStack(
+  encode: EncodeOp,
+  block: WireFormat.SerializedInlineBlock,
+  callerCount: number
+): void {
+  let parameters = block[1];
+  let count = Math.min(callerCount, parameters.length);
+
+  encode.op(VM_PUSH_FRAME_OP);
+  encode.op(VM_CHILD_SCOPE_OP);
+
+  for (let i = 0; i < count; i++) {
+    encode.op(VM_DUP_FP_OP, callerCount - i);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+    encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
+  }
+
+  encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));
+
+  encode.op(VM_POP_SCOPE_OP);
   encode.op(VM_POP_FRAME_OP);
 }
 
