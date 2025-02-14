@@ -29,8 +29,8 @@ import {
 import { deflateAttrName, deflateTagName } from '../../utils';
 import {
   callArgs,
-  encodeArgs,
   encodeComponentBlockArgs,
+  encodeComponentCallee,
   encodeExpr,
   encodeMaybeExpr,
   encodeNamedArguments,
@@ -158,10 +158,6 @@ export function InvokeBlockComponent({
   args,
   blocks,
 }: mir.InvokeBlockComponent): Buildable<WireFormat.Content.SomeBlock> {
-  const path = encodeExpr(head);
-
-  localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
-
   if (head.type === 'Local' && head.referenceType === 'lexical') {
     return [
       Op.InvokeLexicalComponent,
@@ -171,10 +167,14 @@ export function InvokeBlockComponent({
   } else if (head.type === 'Resolved') {
     return [
       Op.InvokeResolvedComponent,
-      encodeExpr(head),
+      encodeComponentCallee(head),
       encodeComponentBlockArgs(args.positional, args.named, blocks),
     ];
   }
+
+  const path = encodeComponentCallee(head);
+
+  localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
 
   return [
     Op.InvokeDynamicBlock,
@@ -197,7 +197,7 @@ export function AppendValueCautiously({
       return [Op.AppendResolvedInvokable, value.symbol, [EMPTY_ARGS_OPCODE]];
     }
     case 'CallExpression': {
-      const args = encodeArgs(value.args);
+      const args = callArgs(value.args.positional, value.args.named);
 
       switch (value.callee.type) {
         case 'Resolved': {
@@ -271,7 +271,9 @@ export function AngleBracketComponent({
   args: named,
   blocks,
 }: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent {
-  let wireTag = encodeExpr(tag);
+  let wireTag = encodeComponentCallee(tag);
+
+  // let wireTag = encodeExpr(tag);
   let wireSplattributes = ElementParameters(params);
   let wireNamed = encodeNamedArguments(named, { insertAtPrefix: false });
 

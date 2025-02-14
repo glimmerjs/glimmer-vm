@@ -25,10 +25,17 @@ export function encodeMaybeExpr(
   return expr.type === 'Missing' ? undefined : encodeExpr(expr);
 }
 
+export function encodeComponentCallee(expr: mir.CalleeExpression | ASTv2.ResolvedComponentCallee) {
+  if (expr.type === 'ResolvedComponentCallee') {
+    return [Op.ResolveAsComponentCallee, expr.symbol];
+  } else {
+    return encodeExpr(expr);
+  }
+}
+
 export function encodeExpr(
   expr: ASTv2.LiteralExpression
 ): string | number | boolean | null | WireFormat.Expressions.Undefined;
-export function encodeExpr(expr: ASTv2.ResolvedVarReference): WireFormat.Expressions.GetResolved;
 export function encodeExpr(expr: mir.CallExpression): WireFormat.Expressions.SomeCallHelper;
 export function encodeExpr(expr: Extract<mir.ExpressionNode, object>): WireFormat.TupleExpression;
 export function encodeExpr(expr: mir.ExpressionNode): WireFormat.Expression;
@@ -166,39 +173,25 @@ export function encodeComponentBlockArgs(
   }
 }
 
-/**
- * @deprecated
- */
-export function encodeArgs(
-  node: Pick<mir.Args, 'positional' | 'named'>,
-  insertAtPrefix: boolean = false
-): WireFormat.Core.CallArgs {
-  return args(node.positional, node.named, insertAtPrefix);
-}
-
-/**
- * @deprecated
- */
-function args(
-  positionalNode: mir.Positional,
-  namedNode: mir.NamedArguments,
-  insertAtPrefix: boolean
-): WireFormat.Core.CallArgs {
-  return encodeCallArgs(positionalNode, namedNode, { insertAtPrefix });
-}
-
 function encodeResolved({
   resolution,
   symbol,
 }: ASTv2.ResolvedVarReference):
   | WireFormat.Expressions.GetResolvedOrKeyword
   | WireFormat.Expressions.CallResolvedHelper {
-  switch (resolution.resolution()) {
-    case Op.ResolveAsHelperCallee:
-      return [Op.CallResolved, symbol, [EMPTY_ARGS_OPCODE]];
-  }
+  const resolutionOpcode = resolution.namespace;
 
-  return [resolution.resolution(), symbol];
+  if (resolutionOpcode) {
+    switch (resolutionOpcode) {
+      case Op.ResolveAsHelperCallee:
+        return [Op.CallResolved, symbol, [EMPTY_ARGS_OPCODE]];
+      case Op.GetStrictKeyword:
+        return [Op.GetStrictKeyword, symbol];
+      default:
+        throw new Error(`BUG: Unhandled resolution opcode ${resolutionOpcode}`);
+        return [resolutionOpcode, symbol];
+    }
+  }
 }
 
 function encodeNamedArgument({ key, value }: mir.NamedArgument): HashPair {
@@ -236,7 +229,7 @@ function HasBlockParams({ symbol }: mir.HasBlockParams): WireFormat.Expressions.
 }
 
 function Curry({ definition, curriedType, args }: mir.Curry): WireFormat.Expressions.Curry {
-  return [Op.Curry, encodeExpr(definition), curriedType, encodeArgs(args)];
+  return [Op.Curry, encodeExpr(definition), curriedType, callArgs(args.positional, args.named)];
 }
 
 function Local({
@@ -254,7 +247,6 @@ function Keyword({ symbol }: ASTv2.KeywordExpression): WireFormat.Expressions.Ge
 
 function PathExpression({ head, tail }: mir.PathExpression): WireFormat.Expressions.GetPath {
   let getOp = encodeExpr(head) as WireFormat.Expressions.GetVar;
-  localAssert(getOp[0] !== Op.GetStrictKeyword, '[BUG] keyword in a PathExpression');
   return [Op.GetPath, ...getOp, Tail(tail)];
 }
 
@@ -269,10 +261,7 @@ function CallExpression({
   args,
 }: mir.CallExpression): WireFormat.Expressions.SomeCallHelper {
   if (callee.type === 'Resolved') {
-    localAssert(
-      callee.resolution.resolution() === Op.ResolveAsHelperCallee,
-      'Expected a helper head'
-    );
+    localAssert(callee.resolution.namespace === Op.ResolveAsHelperCallee, 'Expected a helper head');
 
     return [Op.CallResolved, callee.symbol, callArgs(args.positional, args.named)];
   }

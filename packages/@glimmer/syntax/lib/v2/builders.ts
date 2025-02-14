@@ -299,7 +299,9 @@ export class Builder {
       symbols: SymbolTable;
       program: ASTv2.Block;
       inverse?: ASTv2.Block | null;
-    } & CallParts,
+      callee: ASTv2.CalleeNode | ASTv2.ResolvedComponentCallee;
+      args: ASTv2.Args;
+    },
     loc: SourceSpan
   ): ASTv2.InvokeBlock {
     let blocksLoc = program.loc;

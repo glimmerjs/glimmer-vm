@@ -45,11 +45,27 @@ export class ResolvedVarReference extends node('Resolved').fields<{
   }
 }
 
-export type VariableReference =
-  | ThisReference
-  | ArgReference
-  | LocalVarReference
-  | ResolvedVarReference;
+export class ResolvedHelperCallee extends node('ResolvedHelperCallee').fields<{
+  name: string;
+  symbol: number;
+}>() {}
+
+export class ResolvedModifierCallee extends node('ResolvedModifierCallee').fields<{
+  name: string;
+  symbol: number;
+}>() {}
+
+export class ResolvedComponentCallee extends node('ResolvedComponentCallee').fields<{
+  name: string;
+  symbol: number;
+}>() {}
+
+export class ResolvedAppendable extends node('ResolvedAppendable').fields<{
+  name: string;
+  symbol: number;
+}>() {}
+
+export type VariableReference = ThisReference | ArgReference | LocalVarReference;
 
 export function isVariableReference(node: AbstractNode): node is VariableReference {
   return (

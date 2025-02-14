@@ -28,7 +28,6 @@ import {
   AppendSyntaxContext,
   AttrValueSyntaxContext,
   BlockSyntaxContext,
-  ComponentSyntaxContext,
   ModifierSyntaxContext,
   SexpSyntaxContext,
 } from './loose-resolution';
@@ -165,6 +164,49 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
  */
 class ExpressionNormalizer {
   constructor(private block: BlockContext) {}
+
+  /**
+   * The `normalize` method takes an arbitrary expression and its original syntax context and
+   * normalizes it to an ASTv2 expression.
+   *
+   * @see {SyntaxContext}
+   */
+  normalizeSimple(expr: ASTv1.Literal): ASTv2.LiteralExpression;
+  normalizeSimple(expr: ASTv1.SubExpression): ASTv2.CallExpression;
+  normalizeSimple(expr: ASTv1.MinimalPathExpression): ASTv2.PathExpression;
+  normalizeSimple(expr: ASTv1.Expression): ASTv2.ExpressionNode;
+  normalizeSimple(expr: ASTv1.Expression | ASTv1.MinimalPathExpression): ASTv2.ExpressionNode {
+    switch (expr.type) {
+      case 'NullLiteral':
+      case 'BooleanLiteral':
+      case 'NumberLiteral':
+      case 'StringLiteral':
+      case 'UndefinedLiteral':
+        return this.block.builder.literal(expr.value, this.block.loc(expr.loc));
+      case 'PathExpression':
+        throw new Error('bug in normalizeSimple');
+      case 'SubExpression': {
+        // expr.path used to incorrectly have the type ASTv1.Expression
+        if (isLiteral(expr.path)) {
+          assertIllegalLiteral(expr.path, expr.loc);
+        }
+
+        let resolution = this.block.resolutionFor(expr, SexpSyntaxContext);
+
+        if (resolution.result === 'error') {
+          throw generateSyntaxError(
+            `You attempted to invoke a path (\`${resolution.path}\`) but ${resolution.head} was not in scope`,
+            expr.loc
+          );
+        }
+
+        return this.block.builder.sexp(
+          this.callParts(expr, resolution.result),
+          this.block.loc(expr.loc)
+        );
+      }
+    }
+  }
 
   /**
    * The `normalize` method takes an arbitrary expression and its original syntax context and
@@ -339,7 +381,7 @@ class ExpressionNormalizer {
           return block.builder.localVar(head.name, symbol, isRoot, offsets);
         } else {
           let context = block.strict ? ASTv2.STRICT_RESOLUTION : resolution;
-          let symbol = block.table.allocateFree(head.name, context);
+          let symbol = block.table.allocateFree(head.name, resolution.isResolvedAngleBracket);
 
           return block.builder.freeVar({
             name: head.name,
@@ -414,7 +456,7 @@ class StatementNormalizer {
 
     if (isLiteral(path)) {
       if (params.length === 0 && hash.pairs.length === 0) {
-        value = this.expr.normalize(path);
+        value = this.expr.normalizeSimple(path);
       } else {
         assertIllegalLiteral(path, loc);
       }
@@ -605,7 +647,7 @@ class ElementNormalizer {
 
     if (isLiteral(path)) {
       if (params.length === 0 && hash.pairs.length === 0) {
-        return this.expr.normalize(path);
+        return this.expr.normalizeSimple(path);
       } else {
         assertIllegalLiteral(path, loc);
       }
@@ -761,7 +803,7 @@ class ElementNormalizer {
     variable: string,
     tail: string[],
     loc: SourceSpan
-  ): ASTv2.ExpressionNode | 'ElementHead' {
+  ): ASTv2.ExpressionNode | ASTv2.ResolvedComponentCallee | 'ElementHead' {
     let uppercase = isUpperCase(variable);
     let inScope = variable[0] === '@' || variable === 'this' || this.ctx.hasBinding(variable);
 
@@ -789,26 +831,25 @@ class ElementNormalizer {
     let pathLoc = variableLoc.withEnd(pathEnd);
 
     if (isComponent) {
+      const head = b.head({ original: variable, loc: variableLoc });
+
       let path = b.path({
-        head: b.head({ original: variable, loc: variableLoc }),
+        head,
         tail,
         loc: pathLoc,
       });
 
-      let resolution = this.ctx.isLexicalVar(variable)
-        ? { result: ASTv2.STRICT_RESOLUTION }
-        : this.ctx.resolutionFor(path, ComponentSyntaxContext);
-
-      if (resolution.result === 'error') {
-        throw generateSyntaxError(
-          `You attempted to invoke a path (\`<${resolution.path}>\`) but ${resolution.head} was not in scope`,
-          loc
-        );
+      if (tail.length !== 0 || this.ctx.strict || this.ctx.hasBinding(variable)) {
+        return new ExpressionNormalizer(this.ctx).normalize(path, ASTv2.STRICT_RESOLUTION);
       }
 
-      return new ExpressionNormalizer(this.ctx).normalize(path, resolution.result);
+      return new ASTv2.ResolvedComponentCallee({
+        name: variable,
+        symbol: this.ctx.table.allocateFree(variable, true),
+        loc: variableLoc,
+      });
     } else {
-      this.ctx.table.allocateFree(variable, ASTv2.STRICT_RESOLUTION);
+      this.ctx.table.allocateFree(variable, false);
     }
 
     // If the tag name wasn't a valid component but contained a `.`, it's

@@ -117,7 +117,17 @@ function visitInvokeAngleBracketComponent(
   component: ASTv2.InvokeAngleBracketComponent,
   state: NormalizationState
 ): Result<mir.Content> {
-  return visitExpr(component.callee, state).andThen((callee) =>
+  const { callee } = component;
+
+  if (callee.type === 'ResolvedComponentCallee') {
+    return new ClassifiedElement(
+      component,
+      new ClassifiedComponent(callee, component),
+      state
+    ).toStatement();
+  }
+
+  return visitExpr(callee, state).andThen((callee) =>
     new ClassifiedElement(
       component,
       new ClassifiedComponent(callee, component),

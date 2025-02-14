@@ -191,14 +191,14 @@ export namespace Expressions {
   export type ResolveAsModifierCallee = [ResolveAsModifierHeadOpcode, number];
   export type ResolveAsComponentCallee = [ResolveAsComponentCalleeOpcode, number];
 
-  export type GetUnknownAppend = ResolveAsCurlyCallee;
+  export type GetUnknownAppend = [ResolveAsAppendableCalleeOpcode, number];
 
   export type GetResolved =
     | ResolveAsCurlyCallee
     | ResolveAsModifierCallee
     | ResolveAsComponentCallee;
   export type GetResolvedOrKeyword = GetStrictKeyword | GetResolved;
-  export type GetVar = GetLocalSymbol | GetLexicalSymbol | GetResolvedOrKeyword;
+  export type GetVar = GetLocalSymbol | GetLexicalSymbol;
 
   export type GetPathSymbol = [opcode: GetPathOpcode, ...GetLocalSymbol, path: Path];
   export type GetPathLexicalSymbol = [opcode: GetPathOpcode, ...GetLexicalSymbol, path: Path];
@@ -221,6 +221,7 @@ export namespace Expressions {
   export type TupleExpression =
     | Get
     | GetDynamicVar
+    | GetStrictKeyword
     | Concat
     | HasBlock
     | HasBlockParams
@@ -436,7 +437,7 @@ export namespace Content {
   export type InvokeResolvedComponent = [
     op: InvokeResolvedComponentOpcode,
     // A resolved component is, by definition, not a dot-separated path
-    tag: Expressions.GetVar,
+    symbol: number,
     args: Core.BlockArgs,
   ];
 
