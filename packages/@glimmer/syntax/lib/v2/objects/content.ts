@@ -1,10 +1,11 @@
 import type { SourceSlice } from '../../source/slice';
 import type { SymbolTable } from '../../symbol-table';
 import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
-import type { CallFields } from './base';
+import type { CalleeNode } from './base';
 import type { AppendValueNode, ExpressionNode } from './expr';
 import type { NamedBlock, NamedBlocks } from './internal-node';
 import type { BaseNodeFields } from './node';
+import type { ResolvedComponentCallee } from './refs';
 
 import { SpanList } from '../../source/span-list';
 import { Args, NamedArguments } from './args';
@@ -51,12 +52,14 @@ export class AppendContent extends node('AppendContent').fields<{
   }
 }
 
-export class InvokeBlock extends node('InvokeBlock').fields<
-  CallFields & { blocks: NamedBlocks }
->() {}
+export class InvokeBlock extends node('InvokeBlock').fields<{
+  callee: CalleeNode | ResolvedComponentCallee;
+  args: Args;
+  blocks: NamedBlocks;
+}>() {}
 
 interface InvokeComponentFields {
-  callee: ExpressionNode;
+  callee: ExpressionNode | ResolvedComponentCallee;
   blocks: NamedBlocks;
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];

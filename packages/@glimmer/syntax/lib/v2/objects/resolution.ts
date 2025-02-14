@@ -5,7 +5,13 @@
  * 2. Namespaced resolution
  */
 
-import type { GetResolvedOrKeywordOpcode } from '@glimmer/interfaces';
+import type {
+  GetStrictKeywordOpcode,
+  Optional,
+  ResolveAsComponentCalleeOpcode,
+  ResolveAsHelperCalleeOpcode,
+  ResolveAsModifierHeadOpcode,
+} from '@glimmer/interfaces';
 import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { FreeVarNamespace } from './constants';
@@ -20,17 +26,19 @@ import { COMPONENT_VAR_NS, HELPER_VAR_NS, MODIFIER_VAR_NS } from './constants';
  */
 export const STRICT_RESOLUTION = {
   isResolvedAppendable: false,
-  resolution: (): GetResolvedOrKeywordOpcode => Op.GetStrictKeyword,
+  resolution: (): GetStrictKeywordOpcode => Op.GetStrictKeyword,
   serialize: (): SerializedResolution => 'Strict',
-  isAngleBracket: false as const,
-};
+  namespace: Op.GetStrictKeyword,
+  isAngleBracket: false,
+  isResolvedAngleBracket: false,
+} as const;
 
 export type StrictResolution = typeof STRICT_RESOLUTION;
 
 export const HTML_RESOLUTION = {
   ...STRICT_RESOLUTION,
   isAngleBracket: true as const,
-};
+} as const;
 
 export type HtmlResolution = typeof HTML_RESOLUTION;
 
@@ -99,21 +107,27 @@ export class LooseModeResolution {
   ) {}
 
   get isResolvedAppendable(): boolean {
-    return this.resolution() === Op.ResolveAsAppendableCallee;
+    return this.namespaces.length > 1;
   }
 
-  resolution(): GetResolvedOrKeywordOpcode {
+  get isResolvedAngleBracket(): boolean {
+    return (
+      this.namespaces.length === 1 && this.namespaces[0] === COMPONENT_VAR_NS && this.isAngleBracket
+    );
+  }
+
+  get namespace(): Optional<
+    ResolveAsModifierHeadOpcode | ResolveAsComponentCalleeOpcode | ResolveAsHelperCalleeOpcode
+  > {
     if (this.namespaces.length === 1) {
       switch (this.namespaces[0]) {
-        case HELPER_VAR_NS:
-          return Op.ResolveAsHelperCallee;
         case MODIFIER_VAR_NS:
           return Op.ResolveAsModifierCallee;
         case COMPONENT_VAR_NS:
           return Op.ResolveAsComponentCallee;
+        case HELPER_VAR_NS:
+          return Op.ResolveAsHelperCallee;
       }
-    } else {
-      return Op.ResolveAsAppendableCallee;
     }
   }
 

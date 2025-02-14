@@ -178,7 +178,7 @@ export class Yield extends node('Yield').fields<{
 export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
 
 export class AngleBracketComponent extends node('AngleBracketComponent').fields<{
-  tag: ExpressionNode;
+  tag: ExpressionNode | ASTv2.ResolvedComponentCallee;
   params: ElementParameters;
   args: NamedArguments;
   blocks: NamedBlocks;
@@ -260,7 +260,7 @@ export class IfExpression extends node('IfExpression').fields<{
 }>() {}
 
 export class ResolvedModifier extends node('ResolvedModifier').fields<{
-  callee: ASTv2.ResolvedVarReference;
+  callee: ASTv2.ResolvedModifierCallee;
   args: Args;
 }>() {}
 export class DynamicModifier extends node('DynamicModifier').fields<{
@@ -272,7 +272,7 @@ export class LexicalModifier extends node('LexicalModifier').fields<{
   args: Args;
 }>() {}
 export class InvokeBlockComponent extends node('InvokeBlockComponent').fields<{
-  head: CalleeExpression;
+  head: CalleeExpression | ASTv2.ResolvedComponentCallee;
   args: Args;
   blocks: NamedBlocks;
 }>() {}
@@ -329,7 +329,9 @@ export type MaybeMissingExpressionNode = ExpressionNode | Missing;
 export type CalleeExpression =
   | PathExpression
   | ASTv2.KeywordExpression
-  | ASTv2.VariableReference
+  | ASTv2.ThisReference
+  | ASTv2.ArgReference
+  | ASTv2.LocalVarReference
   | SomeCallExpression;
 
 export type SomeCallExpression =

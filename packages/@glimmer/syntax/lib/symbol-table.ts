@@ -1,9 +1,8 @@
 import type { Core, Dict } from '@glimmer/interfaces';
 import { setLocalDebugType, unwrap } from '@glimmer/debug-util';
 import { dict } from '@glimmer/util';
-import { SexpOpcodes } from '@glimmer/wire-format';
 
-import * as ASTv2 from './v2/api';
+import type * as ASTv2 from './v2/api';
 
 export interface Upvar {
   readonly name: string;
@@ -37,7 +36,7 @@ export abstract class SymbolTable {
   abstract getLocalsMap(): Dict<number>;
   abstract getDebugInfo(): Core.DebugSymbols;
 
-  abstract allocateFree(name: string, resolution: ASTv2.FreeVarResolution): number;
+  abstract allocateFree(name: string, isResolvedAngleBracket: boolean): number;
   abstract allocateNamed(name: string): number;
   abstract allocateBlock(name: string): number;
   abstract allocate(identifier: string): number;
@@ -89,7 +88,7 @@ export class ProgramSymbolTable extends SymbolTable {
   }
 
   getKeyword(name: string): number {
-    return this.allocateFree(name, ASTv2.STRICT_RESOLUTION);
+    return this.allocateFree(name, false);
   }
 
   getUsedTemplateLocals(): string[] {
@@ -120,13 +119,10 @@ export class ProgramSymbolTable extends SymbolTable {
     return [this.getLocalsMap(), this.named];
   }
 
-  allocateFree(name: string, resolution: ASTv2.FreeVarResolution): number {
+  allocateFree(name: string, isResolvedAngleBracket: boolean): number {
     // If the name in question is an uppercase (i.e. angle-bracket) component invocation, run
     // the optional `customizeComponentName` function provided to the precompiler.
-    if (
-      resolution.resolution() === SexpOpcodes.ResolveAsComponentCallee &&
-      resolution.isAngleBracket
-    ) {
+    if (isResolvedAngleBracket) {
       name = this.options.customizeComponentName(name);
     }
 
@@ -228,8 +224,8 @@ export class BlockSymbolTable extends SymbolTable {
     return [{ ...locals, ...named }, Object.fromEntries(root.upvars.map((s, i) => [s, i]))];
   }
 
-  allocateFree(name: string, resolution: ASTv2.FreeVarResolution): number {
-    return this.parent.allocateFree(name, resolution);
+  allocateFree(name: string, isResolvedAngleBracket: boolean): number {
+    return this.parent.allocateFree(name, isResolvedAngleBracket);
   }
 
   allocateNamed(name: string): number {
