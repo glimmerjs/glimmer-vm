@@ -1,6 +1,5 @@
 import type { SourceSlice } from '../../source/slice';
 import type { AbstractNode } from './node';
-import type { FreeVarResolution } from './resolution';
 
 import { node } from './node';
 
@@ -25,25 +24,6 @@ export class LocalVarReference extends node('Local').fields<{
   referenceType: 'dynamic' | 'lexical';
   symbol: number;
 }>() {}
-
-/**
- * Corresponds to `<ident>` at the beginning of an expression, when `<ident>` is *not* in the
- * current block's scope.
- *
- * The `resolution: FreeVarResolution` field describes how to resolve the free variable.
- *
- * Note: In strict mode, it must always be a variable that is in a concrete JavaScript scope that
- * the template will be installed into.
- */
-export class ResolvedVarReference extends node('Resolved').fields<{
-  name: string;
-  resolution: FreeVarResolution;
-  symbol: number;
-}>() {
-  get isResolvedAppendable(): boolean {
-    return this.resolution.isResolvedAppendable;
-  }
-}
 
 export class ResolvedHelperCallee extends node('ResolvedHelperCallee').fields<{
   name: string;

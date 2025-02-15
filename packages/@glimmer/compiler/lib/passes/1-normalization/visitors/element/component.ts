@@ -12,7 +12,7 @@ export class ClassifiedComponent implements Classified {
   readonly dynamicFeatures = true;
 
   constructor(
-    private tag: mir.ExpressionNode,
+    private tag: mir.CalleeExpression | ASTv2.ResolvedComponentCallee,
     private element: ASTv2.InvokeAngleBracketComponent
   ) {}
 

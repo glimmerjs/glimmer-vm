@@ -1,6 +1,6 @@
-import type { PresentArray } from '@glimmer/interfaces';
-import { asPresentArray, isPresentArray, localAssert } from '@glimmer/debug-util';
-import { assign } from '@glimmer/util';
+import type { Optional, PresentArray } from '@glimmer/interfaces';
+import { asPresentArray, isPresentArray, localAssert, unreachable } from '@glimmer/debug-util';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 import type {
   PrecompileOptions,
@@ -8,7 +8,7 @@ import type {
 } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation } from '../source/location';
 import type { Source } from '../source/source';
-import type { SourceSpan } from '../source/span';
+import type { SourceOffset, SourceSpan } from '../source/span';
 import type { BlockSymbolTable, ProgramSymbolTable } from '../symbol-table';
 import type * as ASTv1 from '../v1/api';
 import type { BuildElement, CallParts } from './builders';
@@ -24,13 +24,7 @@ import { isLowerCase, isUpperCase } from '../utils';
 import b from '../v1/parser-builders';
 import * as ASTv2 from './api';
 import { Builder } from './builders';
-import {
-  AppendSyntaxContext,
-  AttrValueSyntaxContext,
-  BlockSyntaxContext,
-  ModifierSyntaxContext,
-  SexpSyntaxContext,
-} from './loose-resolution';
+import { ModifierSyntaxContext, SexpSyntaxContext } from './loose-resolution';
 
 export function normalize(
   source: Source,
@@ -91,6 +85,43 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
 
   loc(loc: SourceLocation): SourceSpan {
     return this.source.spanFor(loc);
+  }
+
+  /**
+   * Returns true if the head of the specified path expression is a variable reference,
+   * and that variable is not in scope.
+   */
+  hasInvalidVarReference(
+    node: ASTv1.PathExpression
+  ): node is ASTv1.PathExpression & { head: ASTv1.VarHead } {
+    return node.head.type === 'VarHead' && !this.hasBinding(node.head.name);
+  }
+
+  /**
+   * Returns true if:
+   *
+   * 1. the head of the specified path expression is an invalid variable reference
+   * 2. the template is not in strict mode
+   * 3. the path expression has no tail
+   */
+  invalidPathIsResolveCandidate(node: ASTv1.PathExpression & { head: ASTv1.VarHead }): boolean {
+    if (LOCAL_DEBUG && this.hasBinding(node.head.name)) {
+      throw new Error(
+        `[BUG] Don't call isResolveCandidate unless you checked hasInvalidVarReference first and it returned false`
+      );
+    }
+
+    return !this.strict && node.tail.length === 0 && this.hasInvalidVarReference(node);
+  }
+
+  exprIsResolveCandidate(
+    node: ASTv1.Expression
+  ): node is ASTv1.PathExpression & { head: ASTv1.VarHead } {
+    return (
+      node.type === 'PathExpression' &&
+      this.hasInvalidVarReference(node) &&
+      this.invalidPathIsResolveCandidate(node)
+    );
   }
 
   resolutionFor<N extends ASTv1.CallNode | ASTv1.PathExpression>(
@@ -166,16 +197,14 @@ class ExpressionNormalizer {
   constructor(private block: BlockContext) {}
 
   /**
-   * The `normalize` method takes an arbitrary expression and its original syntax context and
-   * normalizes it to an ASTv2 expression.
-   *
-   * @see {SyntaxContext}
+   * The `normalizeDynamic` normalizes an expression that is not a candidate for namespaced
+   * resolution into an ASTv2.ExpressionNode.
    */
-  normalizeSimple(expr: ASTv1.Literal): ASTv2.LiteralExpression;
-  normalizeSimple(expr: ASTv1.SubExpression): ASTv2.CallExpression;
-  normalizeSimple(expr: ASTv1.MinimalPathExpression): ASTv2.PathExpression;
-  normalizeSimple(expr: ASTv1.Expression): ASTv2.ExpressionNode;
-  normalizeSimple(expr: ASTv1.Expression | ASTv1.MinimalPathExpression): ASTv2.ExpressionNode {
+  normalizeExpr(expr: ASTv1.Literal): ASTv2.LiteralExpression;
+  normalizeExpr(expr: ASTv1.SubExpression): ASTv2.CallExpression;
+  normalizeExpr(expr: ASTv1.MinimalPathExpression): ASTv2.PathExpression;
+  normalizeExpr(expr: ASTv1.Expression): ASTv2.ExpressionNode;
+  normalizeExpr(expr: ASTv1.Expression | ASTv1.MinimalPathExpression): ASTv2.ExpressionNode {
     switch (expr.type) {
       case 'NullLiteral':
       case 'BooleanLiteral':
@@ -184,7 +213,7 @@ class ExpressionNormalizer {
       case 'UndefinedLiteral':
         return this.block.builder.literal(expr.value, this.block.loc(expr.loc));
       case 'PathExpression':
-        throw new Error('bug in normalizeSimple');
+        return this.strictPath(expr);
       case 'SubExpression': {
         // expr.path used to incorrectly have the type ASTv1.Expression
         if (isLiteral(expr.path)) {
@@ -201,7 +230,7 @@ class ExpressionNormalizer {
         }
 
         return this.block.builder.sexp(
-          this.callParts(expr, resolution.result),
+          this.callPartsWithResolution(expr, resolution.result),
           this.block.loc(expr.loc)
         );
       }
@@ -251,11 +280,48 @@ class ExpressionNormalizer {
         }
 
         return this.block.builder.sexp(
-          this.callParts(expr, resolution.result),
+          this.callPartsWithResolution(expr, resolution.result),
           this.block.loc(expr.loc)
         );
       }
     }
+  }
+
+  private strictPath(
+    expr: ASTv1.MinimalPathExpression
+  ): ASTv2.KeywordExpression | ASTv2.PathExpression {
+    let loc = this.block.loc(expr.loc);
+
+    if (
+      expr.head.type === 'VarHead' &&
+      expr.tail.length === 0 &&
+      this.block.isKeyword(expr.head.name)
+    ) {
+      return this.block.builder.keyword(
+        expr.head.name,
+        this.block.table.getKeyword(expr.head.name),
+        loc
+      );
+    }
+
+    let headOffsets = this.block.loc(expr.head.loc);
+
+    let tail = [];
+
+    // start with the head
+    let offset = headOffsets;
+
+    for (let part of expr.tail) {
+      offset = offset.sliceStartChars({ chars: part.length, skipStart: 1 });
+      tail.push(
+        new SourceSlice({
+          loc: offset,
+          chars: part,
+        })
+      );
+    }
+
+    return this.block.builder.path(this.strictRef(expr.head), tail, loc);
   }
 
   private path(
@@ -297,10 +363,80 @@ class ExpressionNormalizer {
   }
 
   /**
+   * Normalizes ASTv1 params and hash into an ASTv2 Args. The `start` parameter is the location of
+   * the end of the callee, and is used as the default location for arguments if no locations are
+   * provided.
+   */
+  callArgs(params: ASTv1.Expression[], hash: ASTv1.Hash): Optional<ASTv2.Args> {
+    if (params.length === 0 && hash.pairs.length === 0) {
+      return undefined;
+    }
+
+    const start = getStart(params[0], hash.pairs[0]);
+    let paramList = params.map((p) => this.normalizeExpr(p));
+    let paramLoc = SpanList.range(paramList, start.collapsed());
+    let namedLoc = this.block.loc(hash.loc);
+    let argsLoc = SpanList.range([paramLoc, namedLoc]);
+
+    let positional = this.block.builder.positional(
+      params.map((p) => this.normalize(p, ASTv2.STRICT_RESOLUTION)),
+      paramLoc
+    );
+
+    let named = this.block.builder.named(
+      hash.pairs.map((p) => this.namedArgument(p)),
+      this.block.loc(hash.loc)
+    );
+
+    return this.block.builder.args(positional, named, argsLoc);
+  }
+
+  callParts(parts: ASTv1.CallParts): ASTv2.DynamicCallee {
+    let { path, params, hash, loc } = parts;
+
+    let callee = this.normalizeExpr(path);
+    let paramList = params.map((p) => this.normalize(p, ASTv2.STRICT_RESOLUTION));
+    let paramLoc = SpanList.range(paramList, callee.loc.collapse('end'));
+    let namedLoc = this.block.loc(hash.loc);
+    let argsLoc = SpanList.range([paramLoc, namedLoc]);
+
+    let positional = this.block.builder.positional(
+      params.map((p) => this.normalize(p, ASTv2.STRICT_RESOLUTION)),
+      paramLoc
+    );
+
+    let named = this.block.builder.named(
+      hash.pairs.map((p) => this.namedArgument(p)),
+      this.block.loc(hash.loc)
+    );
+
+    switch (callee.type) {
+      case 'Literal':
+        throw generateSyntaxError(
+          `Invalid invocation of a literal value (\`${callee.value}\`)`,
+          loc
+        );
+
+      // This really shouldn't be possible, something has gone pretty wrong
+      case 'Interpolate':
+        throw generateSyntaxError(`Invalid invocation of a interpolated string`, loc);
+    }
+
+    if (positional.isEmpty() && named.isEmpty()) {
+      return callee;
+    } else {
+      return this.block.builder.sexp(
+        { callee, args: this.block.builder.args(positional, named, argsLoc) },
+        loc
+      );
+    }
+  }
+
+  /**
    * The `callParts` method takes ASTv1.CallParts as well as a syntax context and normalizes
    * it to an ASTv2 CallParts.
    */
-  callParts(parts: ASTv1.CallParts, context: ASTv2.FreeVarResolution): CallParts {
+  callPartsWithResolution(parts: ASTv1.CallParts, context: ASTv2.FreeVarResolution): CallParts {
     let { path, params, hash, loc } = parts;
 
     let callee = this.normalize(path, context);
@@ -348,6 +484,37 @@ class ExpressionNormalizer {
     );
   }
 
+  private strictRef(head: ASTv1.PathHead) {
+    let { block } = this;
+    let { builder, table } = block;
+    let offsets = block.loc(head.loc);
+
+    switch (head.type) {
+      case 'ThisHead':
+        if (block.hasBinding('this')) {
+          let [symbol, isRoot] = table.get('this');
+          return block.builder.localVar('this', symbol, isRoot, offsets);
+        }
+        return builder.self(offsets);
+      case 'AtHead': {
+        let symbol = table.allocateNamed(head.name);
+        return builder.at(head.name, symbol, offsets);
+      }
+      case 'VarHead': {
+        if (block.hasBinding(head.name)) {
+          let [symbol, isRoot] = table.get(head.name);
+
+          return block.builder.localVar(head.name, symbol, isRoot, offsets);
+        } else {
+          throw generateSyntaxError(
+            `You attempted to access a variable that was not in scope (\`${head.name}\`)`,
+            head.loc
+          );
+        }
+      }
+    }
+  }
+
   /**
    * The `ref` method normalizes an `ASTv1.PathHead` into an `ASTv2.VariableReference`.
    * This method is extremely important, because it is responsible for normalizing free
@@ -380,15 +547,7 @@ class ExpressionNormalizer {
 
           return block.builder.localVar(head.name, symbol, isRoot, offsets);
         } else {
-          let context = block.strict ? ASTv2.STRICT_RESOLUTION : resolution;
-          let symbol = block.table.allocateFree(head.name, resolution.isResolvedAngleBracket);
-
-          return block.builder.freeVar({
-            name: head.name,
-            context,
-            symbol,
-            loc: offsets,
-          });
+          throw new Error('this should be handled upstream');
         }
       }
     }
@@ -449,56 +608,72 @@ class StatementNormalizer {
   /**
    * Normalizes an ASTv1.MustacheStatement to an ASTv2.AppendStatement
    */
-  MustacheStatement(mustache: ASTv1.MustacheStatement): ASTv2.AppendContent {
-    let { path, params, hash, trusting } = mustache;
-    let loc = this.block.loc(mustache.loc);
-    let value: ASTv2.CalleeNode | ASTv2.LiteralExpression;
+  MustacheStatement(
+    mustache: ASTv1.MustacheStatement
+  ): ASTv2.AppendContent | ASTv2.AppendStaticContent | ASTv2.AppendResolvedInvokable {
+    const { path, params, hash, trusting } = mustache;
+    const loc = this.block.loc(mustache.loc);
 
     if (isLiteral(path)) {
       if (params.length === 0 && hash.pairs.length === 0) {
-        value = this.expr.normalizeSimple(path);
+        return new ASTv2.AppendStaticContent({
+          value: this.block.builder.literal(path.value, this.block.loc(path.loc)),
+          loc,
+        });
       } else {
         assertIllegalLiteral(path, loc);
       }
+    } else if (path.type === 'SubExpression') {
+      const callee = this.expr.normalizeExpr(path);
+      return this.block.builder.append(
+        {
+          table: this.block.table,
+          trusting,
+          value: new ASTv2.CallExpression({
+            loc: this.block.loc(path.loc),
+            callee,
+            args: this.expr.callArgs(params, hash) ?? ASTv2.Args.empty(callee.loc.collapse('end')),
+          }),
+        },
+        loc
+      );
     } else {
-      let resolution = this.block.resolutionFor(mustache, AppendSyntaxContext);
+      if (this.block.hasInvalidVarReference(path)) {
+        if (this.block.invalidPathIsResolveCandidate(path)) {
+          const callee = new ASTv2.ResolvedAppendable({
+            name: path.head.name,
+            symbol: this.block.table.allocateFree(path.head.name, false),
+            loc: this.block.loc(path.loc),
+          });
 
-      if (resolution.result === 'error') {
+          const args =
+            this.expr.callArgs(params, hash) ?? ASTv2.Args.empty(callee.loc.collapse('end'));
+
+          return new ASTv2.AppendResolvedInvokable({ loc, callee, args, trusting });
+        }
+
         throw generateSyntaxError(
-          `You attempted to render a path (\`{{${resolution.path}}}\`), but ${resolution.head} was not in scope`,
+          `You attempted to render a path (\`{{${printPath(path)}}}\`), but ${printHead(path)} was not in scope`,
           loc
         );
       }
 
-      // Normalize the call parts in AppendSyntaxContext
-      let callParts = this.expr.callParts(
+      return this.block.builder.append(
         {
-          path,
-          params,
-          hash,
-          loc,
+          table: this.block.table,
+          trusting,
+          value: this.expr.callParts({ path, params, hash, loc }),
         },
-        resolution.result
+        loc
       );
-
-      value = callParts.args.isEmpty() ? callParts.callee : this.block.builder.sexp(callParts, loc);
     }
-
-    return this.block.builder.append(
-      {
-        table: this.block.table,
-        trusting,
-        value,
-      },
-      loc
-    );
   }
 
   /**
    * Normalizes a ASTv1.BlockStatement to an ASTv2.BlockStatement
    */
   BlockStatement(block: ASTv1.BlockStatement): ASTv2.InvokeBlock {
-    let { program, inverse } = block;
+    let { program, inverse, path } = block;
     let loc = this.block.loc(block.loc);
 
     // block.path used to incorrectly have the type ASTv1.Expression
@@ -506,26 +681,28 @@ class StatementNormalizer {
       assertIllegalLiteral(block.path, loc);
     }
 
-    let resolution = this.block.resolutionFor(block, BlockSyntaxContext);
+    const callee = this.componentCallee(block.path);
 
-    if (resolution.result === 'error') {
-      throw generateSyntaxError(
-        `You attempted to invoke a path (\`{{#${resolution.path}}}\`) but ${resolution.head} was not in scope`,
-        loc
-      );
-    }
+    let args =
+      this.expr.callArgs(block.params, block.hash) ?? ASTv2.Args.empty(callee.loc.collapse('end'));
 
-    let callParts = this.expr.callParts(block, resolution.result);
+    // let resolution = this.block.resolutionFor(block, BlockSyntaxContext);
+
+    // if (resolution.result === 'error') {
+    //   throw generateSyntaxError(
+    //     `You attempted to invoke a path (\`{{#${resolution.path}}}\`) but ${resolution.head} was not in scope`,
+    //     loc
+    //   );
+    // }
 
     return this.block.builder.blockStatement(
-      assign(
-        {
-          symbols: this.block.table,
-          program: this.Block(program),
-          inverse: inverse ? this.Block(inverse) : null,
-        },
-        callParts
-      ),
+      {
+        callee,
+        symbols: this.block.table,
+        program: this.Block(program),
+        inverse: inverse ? this.Block(inverse) : null,
+        args,
+      },
       loc
     );
   }
@@ -542,6 +719,29 @@ class StatementNormalizer {
 
   private get expr(): ExpressionNormalizer {
     return new ExpressionNormalizer(this.block);
+  }
+
+  private componentCallee(
+    path: ASTv1.Expression
+  ): ASTv2.DynamicCallee | ASTv2.ResolvedComponentCallee {
+    if (this.block.exprIsResolveCandidate(path)) {
+      const { head } = path;
+      if (this.block.isKeyword(head.name)) {
+        return this.block.builder.keyword(
+          head.name,
+          this.block.table.getKeyword(head.name),
+          this.block.loc(head.loc)
+        );
+      } else {
+        return new ASTv2.ResolvedComponentCallee({
+          name: head.name,
+          symbol: this.block.table.allocateFree(head.name, false),
+          loc: this.block.loc(head.loc),
+        });
+      }
+    } else {
+      return this.expr.normalizeExpr(path) as ASTv2.DynamicCallee;
+    }
   }
 }
 
@@ -629,7 +829,7 @@ class ElementNormalizer {
       );
     }
 
-    let callParts = this.expr.callParts(m, resolution.result);
+    let callParts = this.expr.callPartsWithResolution(m, resolution.result);
     return this.ctx.builder.modifier(callParts, this.ctx.loc(m.loc));
   }
 
@@ -647,32 +847,54 @@ class ElementNormalizer {
 
     if (isLiteral(path)) {
       if (params.length === 0 && hash.pairs.length === 0) {
-        return this.expr.normalizeSimple(path);
+        return this.expr.normalizeExpr(path);
       } else {
         assertIllegalLiteral(path, loc);
       }
     }
 
-    // Normalize the call parts in AttrValueSyntaxContext
-    let resolution = this.ctx.resolutionFor(mustache, AttrValueSyntaxContext);
-
-    if (resolution.result === 'error') {
-      throw generateSyntaxError(
-        `You attempted to render a path (\`{{${resolution.path}}}\`), but ${resolution.head} was not in scope`,
-        mustache.loc
-      );
+    if (params.length === 0 && hash.pairs.length === 0 && !this.ctx.exprIsResolveCandidate(path)) {
+      return this.expr.normalizeExpr(path);
     }
 
-    let sexp = this.ctx.builder.sexp(
-      this.expr.callParts(mustache as ASTv1.CallParts, resolution.result),
-      this.ctx.loc(mustache.loc)
-    );
+    const callee = this.attrCallee(path);
 
-    // If there are no params or hash, just return the function part as its own expression
-    if (sexp.args.isEmpty()) {
-      return sexp.callee;
+    // // Normalize the call parts in AttrValueSyntaxContext
+    // let resolution = this.ctx.resolutionFor(mustache, AttrValueSyntaxContext);
+
+    // if (resolution.result === 'error') {
+    //   throw generateSyntaxError(
+    //     `You attempted to render a path (\`{{${resolution.path}}}\`), but ${resolution.head} was not in scope`,
+    //     mustache.loc
+    //   );
+    // }
+
+    const args = this.expr.callArgs(params, hash) ?? ASTv2.Args.empty(callee.loc.collapse('end'));
+
+    return new ASTv2.CallExpression({
+      callee,
+      args,
+      loc: this.ctx.loc(mustache.loc),
+    });
+  }
+
+  private attrCallee(callee: ASTv1.Expression) {
+    if (this.ctx.exprIsResolveCandidate(callee)) {
+      if (this.ctx.isKeyword(callee.head.name)) {
+        return this.ctx.builder.keyword(
+          callee.head.name,
+          this.ctx.table.getKeyword(callee.head.name),
+          this.ctx.loc(callee.head.loc)
+        );
+      } else {
+        return new ASTv2.ResolvedHelperCallee({
+          name: callee.head.name,
+          symbol: this.ctx.table.allocateFree(callee.head.name, false),
+          loc: this.ctx.loc(callee.head.loc),
+        });
+      }
     } else {
-      return sexp;
+      return this.expr.normalizeExpr(callee) as ASTv2.DynamicCallee;
     }
   }
 
@@ -1094,4 +1316,16 @@ function printHead(node: ASTv1.PathExpression | ASTv1.CallNode): string {
   } else {
     return new Printer({ entityEncoding: 'raw' }).print(node);
   }
+}
+
+function getStart(...choices: (ASTv1.BaseNode | undefined)[]): SourceOffset {
+  for (const choice of choices) {
+    if (choice !== undefined) {
+      return choice.loc.getStart();
+    }
+  }
+
+  unreachable(
+    '[BUG] you should only call getStart if you know for sure that at least one of the parameters is not undefined'
+  );
 }

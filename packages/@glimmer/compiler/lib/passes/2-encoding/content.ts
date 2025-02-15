@@ -15,22 +15,16 @@ import type { BlockSymbolTable } from '@glimmer/syntax';
 import { assertPresentArray, exhausted, localAssert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { EMPTY_ARGS_OPCODE, isGetLexical, SexpOpcodes as Op } from '@glimmer/wire-format';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';
 import type * as mir from './mir';
 
-import {
-  buildComponentArgs,
-  isGet,
-  isGetSymbolOrPath,
-  isTupleExpression,
-} from '../../builder/builder';
+import { buildComponentArgs } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import {
   callArgs,
   encodeComponentBlockArgs,
-  encodeComponentCallee,
   encodeExpr,
   encodeMaybeExpr,
   encodeNamedArguments,
@@ -95,6 +89,12 @@ function encodeContent(stmt: mir.Content): Buildable<WireFormat.Content> | WireC
   switch (stmt.type) {
     case 'Debugger':
       return Debugger(stmt);
+    case 'AppendStaticContent':
+      return AppendStaticContent(stmt);
+    case 'AppendResolvedInvokableCautiously':
+      return AppendResolvedInvokableCautiously(stmt);
+    case 'AppendTrustingResolvedInvokable':
+      return AppendTrustedResolvedInvokable(stmt);
     case 'AppendHtmlComment':
       return AppendComment(stmt);
     case 'AppendHtmlText':
@@ -164,23 +164,19 @@ export function InvokeBlockComponent({
       encodeExpr(head),
       encodeComponentBlockArgs(args.positional, args.named, blocks),
     ];
-  } else if (head.type === 'Resolved') {
+  } else if (head.type === 'ResolvedComponentCallee') {
     return [
       Op.InvokeResolvedComponent,
-      encodeComponentCallee(head),
+      head.symbol,
+      encodeComponentBlockArgs(args.positional, args.named, blocks),
+    ];
+  } else {
+    return [
+      Op.InvokeDynamicBlock,
+      encodeExpr(head),
       encodeComponentBlockArgs(args.positional, args.named, blocks),
     ];
   }
-
-  const path = encodeComponentCallee(head);
-
-  localAssert(isGet(path), `Expected ${JSON.stringify(path)} to be a Get`);
-
-  return [
-    Op.InvokeDynamicBlock,
-    path,
-    encodeComponentBlockArgs(args.positional, args.named, blocks),
-  ];
 }
 
 export function AppendTrustedHTML({
@@ -193,20 +189,13 @@ export function AppendValueCautiously({
   value,
 }: mir.AppendValueCautiously): WireFormat.Content.SomeAppend {
   switch (value.type) {
-    case 'Resolved': {
-      return [Op.AppendResolvedInvokable, value.symbol, [EMPTY_ARGS_OPCODE]];
-    }
     case 'CallExpression': {
       const args = callArgs(value.args.positional, value.args.named);
 
       switch (value.callee.type) {
-        case 'Resolved': {
-          if (LOCAL_DEBUG && !value.callee.isResolvedAppendable) {
-            throw new Error(`BUG: Resolved ${value.callee.name} is not appendable`);
-          }
-
+        case 'ResolvedHelperCallee': {
           return [
-            Op.AppendResolvedInvokable,
+            Op.AppendResolvedInvokableCautiously,
             value.callee.symbol,
             callArgs(value.args.positional, value.args.named),
           ];
@@ -224,25 +213,59 @@ export function AppendValueCautiously({
         case 'Arg':
         case 'PathExpression':
         case 'Keyword':
+        case 'Not':
+        case 'IfExpression':
+        case 'HasBlock':
+        case 'HasBlockParams':
+        case 'Curry':
+        case 'GetDynamicVar':
+        case 'Log':
           return [Op.AppendDynamicInvokable, encodeExpr(value.callee), args];
 
+        case 'CallExpression': {
+          throw new Error('Unimplemented: CallExpression in AppendValueCautiously');
+        }
+
         default:
-          throw new Error(`BUG: Unhandled callee type ${value.callee.type}`);
+          exhausted(value.callee);
       }
     }
 
-    case 'Literal': {
-      return [Op.AppendStatic, encodeExpr(value)];
-    }
+    default:
+      return [Op.AppendValueCautiously, encodeExpr(value)];
   }
-
-  return [Op.AppendValueCautiously, encodeExpr(value)];
 }
 
 export function AppendComment({
   value,
 }: mir.AppendHtmlComment): WireFormat.Content.AppendHtmlComment {
   return [Op.Comment, value.chars];
+}
+
+export function AppendStaticContent({
+  value,
+}: mir.AppendStaticContent): WireFormat.Content.AppendStatic {
+  return [Op.AppendStatic, value.value ?? [Op.Undefined]];
+}
+
+export function AppendResolvedInvokableCautiously({
+  callee,
+  args,
+}: mir.AppendResolvedInvokableCautiously): WireFormat.Content.AppendResolvedInvokableCautiously {
+  return [
+    Op.AppendResolvedInvokableCautiously,
+    callee.symbol,
+    callArgs(args.positional, args.named),
+  ];
+}
+
+export function AppendTrustedResolvedInvokable({
+  callee,
+  args,
+}: mir.AppendTrustingResolvedInvokable):
+  | WireFormat.Content.AppendTrustedResolvedInvokable
+  | WireFormat.Content.AppendResolvedInvokableCautiously {
+  return [Op.AppendTrustedResolvedInvokable, callee.symbol, callArgs(args.positional, args.named)];
 }
 
 export function AppendText({ value }: mir.AppendHtmlText): WireFormat.Content.AppendHtmlText {
@@ -271,9 +294,6 @@ export function AngleBracketComponent({
   args: named,
   blocks,
 }: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent {
-  let wireTag = encodeComponentCallee(tag);
-
-  // let wireTag = encodeExpr(tag);
   let wireSplattributes = ElementParameters(params);
   let wireNamed = encodeNamedArguments(named, { insertAtPrefix: false });
 
@@ -281,33 +301,15 @@ export function AngleBracketComponent({
 
   const args = buildComponentArgs(wireSplattributes.toPresentArray(), wireNamed, wireNamedBlocks);
 
-  localAssert(
-    isTupleExpression(wireTag),
-    `Expected ${JSON.stringify(wireTag)} to be a tuple expression`
-  );
-
-  // There are special cases for non-path expressions that refer to out-of-template variables:
-  // lexical variables and resolved variables.
-
-  if (isGetLexical(wireTag)) {
-    // if the expression is something like `x.Foo`, then the component is dynamic, not
-    // a lexical variable.
-    return [
-      wireTag.length === 2 ? Op.InvokeLexicalComponent : Op.InvokeDynamicComponent,
-      wireTag,
-      args,
-    ];
+  if (tag.type === 'ResolvedComponentCallee') {
+    return [Op.InvokeResolvedComponent, tag.symbol, args];
   }
 
-  if (wireTag[0] === Op.ResolveAsComponentCallee) {
-    return [Op.InvokeResolvedComponent, wireTag, args];
+  if (tag.type === 'Local' && tag.referenceType === 'lexical') {
+    return [Op.InvokeLexicalComponent, tag.symbol, args];
   }
 
-  // The only remaining case here should be a reference to a local Handlebars variable (possibly a
-  // path).
-  localAssert(isGetSymbolOrPath(wireTag), `Expected ${JSON.stringify(wireTag)} to be a symbol`);
-
-  return [Op.InvokeDynamicComponent, wireTag, args];
+  return [Op.InvokeDynamicComponent, encodeExpr(tag), args];
 }
 
 export function ElementParameters({

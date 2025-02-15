@@ -10,7 +10,7 @@ import { SpanList } from '../source/span-list';
 import * as ASTv2 from './api';
 
 export interface CallParts {
-  callee: ASTv2.CalleeNode;
+  callee: ASTv2.DynamicCallee;
   args: ASTv2.Args;
 }
 
@@ -264,9 +264,13 @@ export class Builder {
       table,
       trusting,
       value,
-    }: { table: SymbolTable; trusting: boolean; value: ASTv2.CalleeNode | ASTv2.LiteralExpression },
+    }: {
+      table: SymbolTable;
+      trusting: boolean;
+      value: ASTv2.DynamicCallee;
+    },
     loc: SourceSpan
-  ): ASTv2.AppendContent {
+  ): ASTv2.AppendContent | ASTv2.AppendStaticContent {
     return new ASTv2.AppendContent({
       table,
       trusting,
@@ -299,7 +303,7 @@ export class Builder {
       symbols: SymbolTable;
       program: ASTv2.Block;
       inverse?: ASTv2.Block | null;
-      callee: ASTv2.CalleeNode | ASTv2.ResolvedComponentCallee;
+      callee: ASTv2.DynamicCallee | ASTv2.ResolvedComponentCallee;
       args: ASTv2.Args;
     },
     loc: SourceSpan
@@ -369,7 +373,7 @@ export class BuildElement {
   }
 
   selfClosingComponent(
-    callee: ASTv2.ExpressionNode,
+    callee: ASTv2.ExpressionNode | ASTv2.ResolvedComponentCallee,
     loc: SourceSpan
   ): ASTv2.InvokeAngleBracketComponent {
     return new ASTv2.InvokeAngleBracketComponent(
@@ -410,7 +414,7 @@ export class BuildElement {
   }
 
   componentWithNamedBlocks(
-    callee: ASTv2.ExpressionNode,
+    callee: ASTv2.ExpressionNode | ASTv2.ResolvedComponentCallee,
     blocks: PresentArray<ASTv2.NamedBlock>,
     loc: SourceSpan
   ): ASTv2.InvokeAngleBracketComponent {

@@ -1,9 +1,10 @@
 import type {
   AppendDynamicInvokableOpcode,
   AppendHtmlTextOpcode,
-  AppendResolvedInvokableOpcode,
+  AppendResolvedInvokableCautiouslyOpcode,
   AppendStaticOpcode,
   AppendTrustedHtmlOpcode,
+  AppendTrustedResolvedInvokableOpcode,
   AppendValueCautiouslyOpcode,
   AttrSplatOpcode,
   BlocksOpcode,
@@ -78,7 +79,8 @@ export const POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE =
 export const opcodes = {
   AppendValueCautiously: 1 satisfies AppendValueCautiouslyOpcode,
   AppendStatic: 104 satisfies AppendStaticOpcode,
-  AppendResolvedInvokable: 100 satisfies AppendResolvedInvokableOpcode,
+  AppendResolvedInvokableCautiously: 100 satisfies AppendResolvedInvokableCautiouslyOpcode,
+  AppendTrustedResolvedInvokable: 200 satisfies AppendTrustedResolvedInvokableOpcode,
   AppendDynamicInvokable: 103 satisfies AppendDynamicInvokableOpcode,
 
   InvokeDynamicComponent: 58 satisfies InvokeDynamicComponentOpcode,

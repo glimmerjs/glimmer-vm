@@ -66,6 +66,59 @@ export function isLiteral<K extends keyof LiteralTypes = keyof LiteralTypes>(
  * x
  * x.y
  * ```
+ *
+ * ## Note
+ *
+ * An expression is **not** an `ASTv2.PathExpression` if it is a bare identifier and that identifier
+ * is not in scope or a known keyword.
+ *
+ * In strict mode, all identifiers resolve to {@linkcode PathExpressions} or syntax errors if they
+ * refer to variables that are not in scope.
+ *
+ * In classic mode, they
+ * may also resolve to {@linkcode ResolvedAppendable}s, {@linkcode ResolvedHelperCallee},
+ * {@linkcode ResolvedModifierCallee} or {@linkcode ResolvedComponentCallee}s.
+ *
+ * ### `ResolvedAppendable`
+ *
+ * ```hbs
+ * {{hello @world}}
+ * ```
+ *
+ * In this example, `hello` is not an `ASTv2.PathExpression`, since it is not in scope. Instead, it
+ * is represented as a {@linkcode ResolvedAppendable}, since it may either be a component or helper,
+ * depending on the value of `hello` resolved at runtime.
+ *
+ * ### `ResolvedHelperCallee`
+ *
+ * In this example:
+ *
+ * ```hbs
+ * {{#let (helper 'hello') as |hello|}}
+ *   {{hello (world)}}
+ * {{/let}}
+ * ```
+ *
+ * - `hello` is a `PathExpression`, since it is an in-scope variable.
+ * - `world` is a `ResolvedHelperCallee`, since the `()` syntax only allows free references to
+ *   resolve to a helper.
+ *
+ * ### `PathExpression`
+ *
+ * Finally, in this example:
+ *
+ * ```hbs
+ * {{#let @hello as |hello|}}
+ *   {{hello @world}}
+ *
+ *   {{#let hello as |h|}}
+ *      {{h @world}}
+ *   {{/let}}
+ * {{/let}}
+ * </template>
+ * ```
+ *
+ * Both `hello` and `h` are represented as `PathExpression`s, since they are in-scope variables.
  */
 export class PathExpression extends node('Path').fields<{
   ref: VariableReference;
@@ -113,4 +166,4 @@ export type ExpressionValueNode =
   | PathExpression
   | KeywordExpression
   | CallExpression;
-export type AppendValueNode = ASTv2.CalleeNode | ASTv2.LiteralExpression;
+export type AppendValueNode = ASTv2.DynamicCallee | KeywordExpression | ASTv2.LiteralExpression;

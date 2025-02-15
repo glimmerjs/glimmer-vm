@@ -82,11 +82,14 @@ export class ClassifiedElement {
       return translated;
     }
 
-    let head = visitExpr(modifier.callee, this.state);
+    let head =
+      modifier.callee.type === 'ResolvedModifierCallee'
+        ? Ok(modifier.callee)
+        : visitExpr(modifier.callee, this.state);
     let args = visitArgs(modifier.args, this.state);
 
     return Result.all(head, args).mapOk(([head, args]) => {
-      if (head.type === 'Resolved') {
+      if (head.type === 'ResolvedModifierCallee') {
         return new mir.ResolvedModifier({
           loc: modifier.loc,
           callee: head,

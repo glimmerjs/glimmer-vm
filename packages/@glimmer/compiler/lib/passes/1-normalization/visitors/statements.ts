@@ -1,4 +1,5 @@
-import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
+import type { ASTv2 } from '@glimmer/syntax';
+import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../context';
 
@@ -41,6 +42,10 @@ function visitContent(
       return Ok(null);
     case 'AppendContent':
       return visitAppendContent(node, state);
+    case 'AppendStaticContent':
+      return Ok(visitStaticAppend(node));
+    case 'AppendResolvedInvokable':
+      return visitAppendResolvedInvokable(node, state);
     case 'HtmlText':
       return Ok(visitTextNode(node));
     case 'HtmlComment':
@@ -77,11 +82,14 @@ function visitInvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): R
     return translated;
   }
 
-  let head = visitExpr(node.callee, state);
+  let head =
+    node.callee.type === 'ResolvedComponentCallee'
+      ? Ok(node.callee)
+      : visitExpr(node.callee, state);
   let args = visitArgs(node.args, state);
 
   return Result.all(head, args).andThen(([head, args]) => {
-    if (head.type !== 'PathExpression' && !ASTv2.isVariableReference(head)) {
+    if (head.type !== 'PathExpression' && head.type !== 'ResolvedComponentCallee') {
       return Err(
         generateSyntaxError(
           `expected a path expression or variable reference, got ${head.type}`,
@@ -134,6 +142,34 @@ function visitInvokeAngleBracketComponent(
       state
     ).toStatement()
   );
+}
+
+function visitStaticAppend(append: ASTv2.AppendStaticContent): mir.AppendStaticContent {
+  return new mir.AppendStaticContent({
+    loc: append.loc,
+    value: append.value,
+  });
+}
+
+function visitAppendResolvedInvokable(
+  append: ASTv2.AppendResolvedInvokable,
+  state: NormalizationState
+): Result<mir.AppendResolvedInvokableCautiously | mir.AppendTrustingResolvedInvokable> {
+  return visitArgs(append.args, state).mapOk((args) => {
+    if (append.trusting) {
+      return new mir.AppendTrustingResolvedInvokable({
+        loc: append.loc,
+        callee: append.callee,
+        args,
+      });
+    } else {
+      return new mir.AppendResolvedInvokableCautiously({
+        loc: append.loc,
+        callee: append.callee,
+        args,
+      });
+    }
+  });
 }
 
 function visitAppendContent(

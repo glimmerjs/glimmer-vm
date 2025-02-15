@@ -175,15 +175,17 @@ export class ConstantsImpl implements ProgramConstants {
 
   component(definitionState: ComponentDefinitionState, owner: object): ComponentDefinition;
   component(
-    definitionState: ComponentDefinitionState,
+    definitionState: unknown,
+    owner: object,
+    isOptional?: true,
+    debugName?: string
+  ): ComponentDefinition | null;
+  component(
+    definitionState: unknown,
     owner: object,
     isOptional?: true,
     debugName?: string
   ): ComponentDefinition | null {
-    if (isCurriedValue(definitionState, CURRIED_COMPONENT)) {
-      debugger;
-      return definitionState;
-    }
 
     let definition = this.componentDefinitionCache.get(definitionState);
 

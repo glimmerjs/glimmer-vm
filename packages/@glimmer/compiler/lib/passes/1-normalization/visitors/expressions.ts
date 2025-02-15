@@ -10,7 +10,7 @@ import * as mir from '../../2-encoding/mir';
 import { CALL_KEYWORDS } from '../keywords';
 
 export function visitExpr(
-  node: ASTv2.CalleeNode,
+  node: ASTv2.DynamicCallee,
   state: NormalizationState
 ): Result<mir.CalleeExpression>;
 export function visitExpr(
@@ -129,7 +129,18 @@ function visitCallExpression(
       )
     );
   } else {
-    return Result.all(visitExpr(expr.callee, state), visitArgs(expr.args, state)).mapOk(
+    const { callee } = expr;
+    if (callee.type === 'ResolvedHelperCallee') {
+      return visitArgs(expr.args, state).mapOk((args) => {
+        return new mir.CallExpression({
+          loc: expr.loc,
+          callee,
+          args,
+        });
+      });
+    }
+
+    return Result.all(visitExpr(callee, state), visitArgs(expr.args, state)).mapOk(
       ([callee, args]) =>
         new mir.CallExpression({
           loc: expr.loc,

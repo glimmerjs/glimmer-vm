@@ -161,7 +161,25 @@ export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
  * - `{{<expr>}}` where `expr` is not a resolved or lexical reference.
  */
 export class AppendValueCautiously extends node('AppendValueCautiously').fields<{
-  value: ASTv2.LiteralExpression | CalleeExpression;
+  value: CalleeExpression;
+}>() {}
+
+export class AppendStaticContent extends node('AppendStaticContent').fields<{
+  value: ASTv2.LiteralExpression;
+}>() {}
+
+export class AppendResolvedInvokableCautiously extends node(
+  'AppendResolvedInvokableCautiously'
+).fields<{
+  callee: ASTv2.ResolvedAppendable;
+  args: Args;
+}>() {}
+
+export class AppendTrustingResolvedInvokable extends node(
+  'AppendTrustingResolvedInvokable'
+).fields<{
+  callee: ASTv2.ResolvedAppendable;
+  args: Args;
 }>() {}
 
 export class AppendHtmlText extends node('AppendHtmlText').fields<{
@@ -178,7 +196,7 @@ export class Yield extends node('Yield').fields<{
 export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
 
 export class AngleBracketComponent extends node('AngleBracketComponent').fields<{
-  tag: ExpressionNode | ASTv2.ResolvedComponentCallee;
+  tag: CalleeExpression | ASTv2.ResolvedComponentCallee;
   params: ElementParameters;
   args: NamedArguments;
   blocks: NamedBlocks;
@@ -220,7 +238,7 @@ export class ElementParameters extends node('ElementParameters').fields<{
 }>() {}
 
 export class CallExpression extends node('CallExpression').fields<{
-  callee: CalleeExpression;
+  callee: CalleeExpression | ASTv2.ResolvedHelperCallee;
   args: Args;
 }>() {}
 
@@ -371,7 +389,10 @@ export type Content =
   | Yield
   | AppendHtmlText
   | AppendTrustedHTML
+  | AppendStaticContent
   | AppendValueCautiously
+  | AppendTrustingResolvedInvokable
+  | AppendResolvedInvokableCautiously
   | AngleBracketComponent
   | SimpleElement
   | InvokeBlockComponent

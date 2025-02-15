@@ -72,7 +72,7 @@ import type {
 } from './builder-interface';
 
 import { compactSexpr } from '../../passes/2-encoding/content';
-import { isGet, isInvokeResolved, needsAtNames } from '../builder';
+import { isGet, needsAtNames } from '../builder';
 import { normalizeStatement } from './builder-interface';
 
 export function buildStatements(
@@ -186,14 +186,6 @@ export function buildAppendCautiously(
   expr: Expressions.Expression
 ): WireFormat.Content.SomeAppend | WireFormat.Content.AppendHtmlText {
   if (Array.isArray(expr)) {
-    if (expr[0] === Op.ResolveAsAppendableCallee) {
-      return [Op.AppendResolvedInvokable, expr[1], [EMPTY_ARGS_OPCODE]];
-    } else if (isInvokeResolved(expr)) {
-      const [, callee, args] = expr;
-
-      return [Op.AppendResolvedInvokable, callee, args];
-    }
-
     return [Op.AppendValueCautiously, expr];
   }
 
@@ -504,7 +496,7 @@ export function buildVar(
   symbols: Symbols,
   path?: PresentArray<string>
 ): Expressions.GetPath | Expressions.GetVar | Expressions.CallResolvedHelper {
-  let op: Expressions.GetPath[1] | Expressions.GetVar[0] = Op.GetLocalSymbol;
+  let op: Expressions.GetPath[1] = Op.GetLocalSymbol;
   let sym: number;
   switch (head.kind) {
     case FREE_VAR:

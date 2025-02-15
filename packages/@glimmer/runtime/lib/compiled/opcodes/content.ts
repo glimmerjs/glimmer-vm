@@ -17,11 +17,11 @@ import {
   CheckString,
 } from '@glimmer/debug';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
+import { isCurriedType } from '@glimmer/program';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import { isIndexable } from '@glimmer/util';
 import { ContentType } from '@glimmer/vm';
 
-import { isCurriedType } from '../../../../program/lib/util/curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
 import { APPEND_OPCODES } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';

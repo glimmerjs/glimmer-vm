@@ -173,6 +173,8 @@ export function compileContent(encode: EncodeOp, content: Content): void {
     case Op.InvokeResolvedComponent: {
       const [, expr, args] = content;
 
+      debugger;
+
       const component = encode.resolveComponent(expr);
       encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
 
@@ -193,7 +195,8 @@ export function compileContent(encode: EncodeOp, content: Content): void {
     // In classic mode, `name` is resolved first as a component, and then as a helper. If either
     // succeeds, it is compiled into the appropriate invocation. If neither succeeds, it turns into an
     // early error.
-    case Op.AppendResolvedInvokable: {
+    case Op.AppendResolvedInvokableCautiously:
+    case Op.AppendTrustedResolvedInvokable: {
       const [, callee, args] = content;
 
       encode.append(callee, {
@@ -204,7 +207,12 @@ export function compileContent(encode: EncodeOp, content: Content): void {
         ifHelper(handle: number) {
           encode.op(VM_PUSH_FRAME_OP);
           Call(encode, handle, args);
-          encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
+          encode.op(
+            VM_INVOKE_STATIC_OP,
+            content[0] === Op.AppendTrustedResolvedInvokable
+              ? encode.stdlibFn('trusting-non-dynamic-append')
+              : encode.stdlibFn('cautious-non-dynamic-append')
+          );
           encode.op(VM_POP_FRAME_OP);
         },
       });

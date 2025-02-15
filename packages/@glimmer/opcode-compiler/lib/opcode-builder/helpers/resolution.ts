@@ -8,36 +8,9 @@ import type {
   Owner,
   ProgramConstants,
   ResolutionTimeConstants,
-  SexpOpcode,
 } from '@glimmer/interfaces';
 import { localAssert, unwrap } from '@glimmer/debug-util';
 import { SexpOpcodes } from '@glimmer/wire-format';
-
-function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.TupleExpression {
-  return Array.isArray(opcode) && opcode.length === 2;
-}
-
-function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
-  return (
-    opcode: Expressions.Expression
-  ): opcode is Expressions.GetResolvedOrKeyword | Expressions.GetLexicalSymbol => {
-    if (!isGetLikeTuple(opcode)) return false;
-
-    let type = opcode[0];
-
-    return (
-      type === SexpOpcodes.GetStrictKeyword ||
-      type === SexpOpcodes.GetLexicalSymbol ||
-      type === typeToVerify
-    );
-  };
-}
-
-export const isGetFreeModifier = makeResolutionTypeVerifier(SexpOpcodes.ResolveAsModifierCallee);
-
-export const isGetFreeComponentOrHelper = makeResolutionTypeVerifier(
-  SexpOpcodes.ResolveAsAppendableCallee
-);
 
 interface ResolvedBlockMetadata extends BlockMetadata {
   owner: Owner;
@@ -91,14 +64,14 @@ export function resolveComponent(
   resolver: Nullable<ClassicResolver>,
   constants: ProgramConstants,
   meta: BlockMetadata,
-  expr: Expressions.GetVar
+  upvar: number
 ): CompileTimeComponent {
   let {
     symbols: { upvars },
     owner,
   } = assertResolverInvariants(meta);
 
-  let name = unwrap(upvars[expr[1]]);
+  let name = unwrap(upvars[upvar]);
   let definition = resolver?.lookupComponent?.(name, owner) ?? null;
 
   if (import.meta.env.DEV && (typeof definition !== 'object' || definition === null)) {

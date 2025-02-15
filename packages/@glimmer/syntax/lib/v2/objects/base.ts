@@ -9,6 +9,7 @@ import type {
 } from './content';
 import type { CallExpression, ExpressionNode, KeywordExpression, PathExpression } from './expr';
 import type { BaseNodeFields } from './node';
+import type { ResolvedHelperCallee } from './refs';
 
 export interface SerializedBaseNode {
   loc: SerializedSourceSpan;
@@ -19,13 +20,13 @@ export interface GlimmerParentNodeOptions extends BaseNodeFields {
 }
 
 export interface CallFields extends BaseNodeFields {
-  callee: CalleeNode;
+  callee: DynamicCallee | ResolvedHelperCallee | KeywordExpression;
   args: Args;
 }
 
-export type CalleeNode = KeywordExpression | PathExpression | CallExpression;
+export type DynamicCallee = KeywordExpression | PathExpression | CallExpression;
 
-export function isCalleeNode(node: ExpressionNode): node is CalleeNode {
+export function isDynamicCallee(node: ExpressionNode): node is DynamicCallee {
   switch (node.type) {
     case 'Interpolate':
     case 'Literal':

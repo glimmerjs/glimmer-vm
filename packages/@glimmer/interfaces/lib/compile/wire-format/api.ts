@@ -7,9 +7,10 @@ import type { CurriedType } from '../../curry';
 import type {
   AppendDynamicInvokableOpcode,
   AppendHtmlTextOpcode,
-  AppendResolvedInvokableOpcode,
+  AppendResolvedInvokableCautiouslyOpcode,
   AppendStaticOpcode,
   AppendTrustedHtmlOpcode,
+  AppendTrustedResolvedInvokableOpcode,
   AppendValueCautiouslyOpcode,
   AttrOpcode,
   AttrSplatOpcode,
@@ -307,10 +308,11 @@ export namespace Content {
     // `{{"static"}}`: a special-case for literal values
     | AppendStatic
     // `{{<expr> ...args}}` where `expr` only references in-scope variables. Either `args` is
+
     // present or `expr` is known to be an invokable.
     | AppendDynamicInvokable
     // `{{<resolved var> ...args}}` where `resolved var` is _not_ an in-scope variable.
-    | AppendResolvedInvokable;
+    | AppendResolvedInvokableCautiously;
 
   export type SomeModifier = DynamicModifier | ResolvedModifier | LexicalModifier;
   export type SomeInvokeComponent =
@@ -326,8 +328,13 @@ export namespace Content {
     callee: Expression,
     args: Core.CallArgs,
   ];
-  export type AppendResolvedInvokable = [
-    AppendResolvedInvokableOpcode,
+  export type AppendResolvedInvokableCautiously = [
+    AppendResolvedInvokableCautiouslyOpcode,
+    upvar: number,
+    args: Core.CallArgs,
+  ];
+  export type AppendTrustedResolvedInvokable = [
+    AppendTrustedResolvedInvokableOpcode,
     upvar: number,
     args: Core.CallArgs,
   ];
@@ -344,7 +351,7 @@ export namespace Content {
 
   export type InvokeDynamicBlock = [
     InvokeDynamicBlockOpcode,
-    path: Expressions.Get,
+    path: Expressions.Ex,
     args: Core.BlockArgs,
   ];
 
@@ -465,6 +472,8 @@ export namespace Content {
   export type Content =
     | SomeAppend
     | AppendTrustedHtml
+    | AppendResolvedInvokableCautiously
+    | AppendTrustedResolvedInvokable
     | StaticHtmlContent
     | DynamicHtmlContent
     | SomeModifier

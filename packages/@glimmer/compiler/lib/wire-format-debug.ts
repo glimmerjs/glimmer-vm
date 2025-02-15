@@ -246,8 +246,11 @@ export default class WireFormatDebugger {
           ];
         }
 
-        case Op.AppendResolvedInvokable:
-          return ['append:resolved-component', this.upvars[opcode[1]]];
+        case Op.AppendResolvedInvokableCautiously:
+          return ['{{ <invokable> }}', this.upvars[opcode[1]]];
+
+        case Op.AppendTrustedResolvedInvokable:
+          return ['{{{ <invokable> }}}', this.upvars[opcode[1]]];
 
         case Op.AppendStatic:
           return ['append:static', this.formatOpcode(opcode[1])];

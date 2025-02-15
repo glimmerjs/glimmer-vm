@@ -1,11 +1,11 @@
 import type { SourceSlice } from '../../source/slice';
 import type { SymbolTable } from '../../symbol-table';
 import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
-import type { CalleeNode } from './base';
-import type { AppendValueNode, ExpressionNode } from './expr';
+import type { DynamicCallee } from './base';
+import type { ExpressionNode, KeywordExpression, LiteralExpression, PathExpression } from './expr';
 import type { NamedBlock, NamedBlocks } from './internal-node';
 import type { BaseNodeFields } from './node';
-import type { ResolvedComponentCallee } from './refs';
+import type { ResolvedAppendable, ResolvedComponentCallee } from './refs';
 
 import { SpanList } from '../../source/span-list';
 import { Args, NamedArguments } from './args';
@@ -21,6 +21,8 @@ export type ContentNode =
   | HtmlText
   | HtmlComment
   | AppendContent
+  | AppendStaticContent
+  | AppendResolvedInvokable
   | InvokeBlock
   | InvokeAngleBracketComponent
   | SimpleElement
@@ -30,8 +32,18 @@ export class GlimmerComment extends node('GlimmerComment').fields<{ text: Source
 export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
 export class HtmlComment extends node('HtmlComment').fields<{ text: SourceSlice }>() {}
 
+export class AppendStaticContent extends node('AppendStaticContent').fields<{
+  value: LiteralExpression;
+}>() {}
+
+export class AppendResolvedInvokable extends node('AppendResolvedInvokable').fields<{
+  callee: ResolvedAppendable;
+  trusting: boolean;
+  args: Args;
+}>() {}
+
 export class AppendContent extends node('AppendContent').fields<{
-  value: AppendValueNode;
+  value: DynamicCallee;
   trusting: boolean;
   table: SymbolTable;
 }>() {
@@ -53,7 +65,7 @@ export class AppendContent extends node('AppendContent').fields<{
 }
 
 export class InvokeBlock extends node('InvokeBlock').fields<{
-  callee: CalleeNode | ResolvedComponentCallee;
+  callee: KeywordExpression | PathExpression | ResolvedComponentCallee;
   args: Args;
   blocks: NamedBlocks;
 }>() {}

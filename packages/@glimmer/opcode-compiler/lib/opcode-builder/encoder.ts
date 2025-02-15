@@ -127,8 +127,8 @@ export class EncodeOp {
    * evolve to calls into the correct kind of component, based on the known resolution when the
    * wire format is compiled.
    */
-  resolveComponent = (expr: Expressions.GetVar): CompileTimeComponent =>
-    resolveComponent(this.#context.resolver, this.#constants, this.#meta, expr);
+  resolveComponent = (upvar: number): CompileTimeComponent =>
+    resolveComponent(this.#context.resolver, this.#constants, this.#meta, upvar);
 
   getLexicalComponent = (expr: Expressions.Expression): EarlyBoundCompileTimeComponent => {
     localAssert(

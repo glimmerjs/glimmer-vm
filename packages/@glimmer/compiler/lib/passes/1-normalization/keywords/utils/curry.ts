@@ -20,7 +20,7 @@ export function assertCurryKeyword(
 ): (
   node: ASTv2.AppendContent | ASTv2.InvokeBlock | ASTv2.CallExpression,
   state: NormalizationState
-) => Result<{ definition: ASTv2.CalleeNode; args: ASTv2.Args }>;
+) => Result<{ definition: ASTv2.DynamicCallee; args: ASTv2.Args }>;
 export function assertCurryKeyword(
   curriedType: CurriedType
 ): (

@@ -1,8 +1,10 @@
+import type { ResolvedModifier } from '../../../../compiler/lib/passes/2-encoding/mir';
 import type { SourceSlice } from '../../source/slice';
-import type { CallFields } from './base';
-import type { ExpressionNode } from './expr';
+import type { CallFields, DynamicCallee } from './base';
+import type { ExpressionNode, KeywordExpression } from './expr';
+import type { ResolvedModifierCallee } from './refs';
 
-import { NamedArgument } from './args';
+import { type Args, NamedArgument } from './args';
 import { node } from './node';
 
 /**
@@ -57,7 +59,10 @@ export class ComponentArg extends node().fields<AttrNodeOptions>() {
 /**
  * An `ElementModifier` is just a normal call node in modifier position.
  */
-export class ElementModifier extends node('ElementModifier').fields<CallFields>() {}
+export class ElementModifier extends node('ElementModifier').fields<{
+  callee: DynamicCallee | ResolvedModifierCallee | KeywordExpression;
+  args: Args;
+}>() {}
 
 export interface AttrNodeOptions {
   name: SourceSlice;

@@ -1,6 +1,7 @@
 // Statements
 export type AppendValueCautiouslyOpcode = 1;
-export type AppendResolvedInvokableOpcode = 100;
+export type AppendResolvedInvokableCautiouslyOpcode = 100;
+export type AppendTrustedResolvedInvokableOpcode = 200;
 export type AppendStaticOpcode = 104;
 export type AppendDynamicInvokableOpcode = 103;
 export type AppendTrustedHtmlOpcode = 4;

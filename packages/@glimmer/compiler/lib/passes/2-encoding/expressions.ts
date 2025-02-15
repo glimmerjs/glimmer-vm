@@ -1,6 +1,6 @@
 import type { Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
-import { assertPresentArray, localAssert, mapPresentArray } from '@glimmer/debug-util';
+import { assertPresentArray, exhausted, mapPresentArray } from '@glimmer/debug-util';
 import {
   BLOCKS_OPCODE,
   EMPTY_ARGS_OPCODE,
@@ -59,8 +59,6 @@ export function encodeExpr(
       return Local(expr);
     case 'This':
       return This();
-    case 'Resolved':
-      return encodeResolved(expr);
     case 'HasBlock':
       return HasBlock(expr);
     case 'HasBlockParams':
@@ -77,6 +75,8 @@ export function encodeExpr(
       return GetDynamicVar(expr);
     case 'Log':
       return Log(expr);
+    default:
+      exhausted(expr);
   }
 }
 
@@ -183,27 +183,6 @@ export function encodeComponentBlockArgs(
   }
 }
 
-function encodeResolved({
-  resolution,
-  symbol,
-}: ASTv2.ResolvedVarReference):
-  | WireFormat.Expressions.GetResolvedOrKeyword
-  | WireFormat.Expressions.CallResolvedHelper {
-  const resolutionOpcode = resolution.namespace;
-
-  if (resolutionOpcode) {
-    switch (resolutionOpcode) {
-      case Op.ResolveAsHelperCallee:
-        return [Op.CallResolved, symbol, [EMPTY_ARGS_OPCODE]];
-      case Op.GetStrictKeyword:
-        return [Op.GetStrictKeyword, symbol];
-      default:
-        throw new Error(`BUG: Unhandled resolution opcode ${resolutionOpcode}`);
-        return [resolutionOpcode, symbol];
-    }
-  }
-}
-
 function encodeNamedArgument({ key, value }: mir.NamedArgument): HashPair {
   return [key.chars, encodeExpr(value)];
 }
@@ -270,9 +249,7 @@ function CallExpression({
   callee,
   args,
 }: mir.CallExpression): WireFormat.Expressions.SomeCallHelper {
-  if (callee.type === 'Resolved') {
-    localAssert(callee.resolution.namespace === Op.ResolveAsHelperCallee, 'Expected a helper head');
-
+  if (callee.type === 'ResolvedHelperCallee') {
     return [Op.CallResolved, callee.symbol, callArgs(args.positional, args.named)];
   }
 
