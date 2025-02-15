@@ -45,10 +45,29 @@ export class ResolvedAppendable extends node('ResolvedAppendable').fields<{
   symbol: number;
 }>() {}
 
+export type ResolvedReference =
+  | ResolvedHelperCallee
+  | ResolvedModifierCallee
+  | ResolvedComponentCallee
+  | ResolvedAppendable;
 export type VariableReference = ThisReference | ArgReference | LocalVarReference;
 
 export function isVariableReference(node: AbstractNode): node is VariableReference {
   return (
     node.type === 'This' || node.type === 'Arg' || node.type === 'Local' || node.type === 'Resolved'
   );
+}
+
+export function isResolvedReference(
+  node: AbstractNode | ResolvedReference
+): node is ResolvedReference {
+  switch (node.type) {
+    case 'ResolvedHelperCallee':
+    case 'ResolvedModifierCallee':
+    case 'ResolvedComponentCallee':
+    case 'ResolvedAppendable':
+      return true;
+    default:
+      return false;
+  }
 }

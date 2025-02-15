@@ -123,14 +123,14 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
     let [[, , letBlock]] = block[0] as [WireFormat.Content.Let];
-    let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Content.SomeInvokeComponent];
+
+    let [invoke] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
-      Array.isArray(componentNameExpr) && componentNameExpr[0] === Op.ResolveAsComponentCallee,
+      invoke[0] === Op.InvokeResolvedComponent,
       `component name is a free variable lookup`
     );
-
-    let componentName = block[2][componentNameExpr[1]];
+    let componentName = block[2][invoke[1]];
     assert.strictEqual(componentName, 'rental', 'customized component name was used');
   });
 

@@ -140,6 +140,7 @@ export function buildStatement(
       const { head, blocks, blockParams, hash, params } = normalized;
 
       // if (head.type === 'GetVar')
+
       let path = buildCallHead(head, VariableResolutionContext.ResolveAsComponentHead, symbols);
 
       const args = buildBlockArgs(
@@ -161,7 +162,6 @@ export function buildStatement(
       }
 
       return [[Op.InvokeDynamicBlock, path, args]];
-      //                              ^?
     }
 
     case KEYWORD_HEAD: {

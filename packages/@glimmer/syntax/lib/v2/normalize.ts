@@ -220,20 +220,36 @@ class ExpressionNormalizer {
           assertIllegalLiteral(expr.path, expr.loc);
         }
 
-        let resolution = this.block.resolutionFor(expr, SexpSyntaxContext);
+        const callee = this.sexprCallee(expr.path);
+        const args =
+          this.callArgs(expr.params, expr.hash) ?? ASTv2.Args.empty(callee.loc.collapse('end'));
 
-        if (resolution.result === 'error') {
-          throw generateSyntaxError(
-            `You attempted to invoke a path (\`${resolution.path}\`) but ${resolution.head} was not in scope`,
-            expr.loc
-          );
-        }
-
-        return this.block.builder.sexp(
-          this.callPartsWithResolution(expr, resolution.result),
-          this.block.loc(expr.loc)
-        );
+        return new ASTv2.CallExpression({
+          callee,
+          args,
+          loc: this.block.loc(expr.loc),
+        });
       }
+    }
+  }
+
+  private sexprCallee(callee: ASTv1.Expression) {
+    if (this.block.exprIsResolveCandidate(callee)) {
+      if (this.block.isKeyword(callee.head.name)) {
+        return this.block.builder.keyword(
+          callee.head.name,
+          this.block.table.getKeyword(callee.head.name),
+          this.block.loc(callee.head.loc)
+        );
+      } else {
+        return new ASTv2.ResolvedHelperCallee({
+          name: callee.head.name,
+          symbol: this.block.table.allocateFree(callee.head.name, false),
+          loc: this.block.loc(callee.head.loc),
+        });
+      }
+    } else {
+      return this.normalizeExpr(callee) as ASTv2.DynamicCallee;
     }
   }
 
@@ -379,7 +395,7 @@ class ExpressionNormalizer {
     let argsLoc = SpanList.range([paramLoc, namedLoc]);
 
     let positional = this.block.builder.positional(
-      params.map((p) => this.normalize(p, ASTv2.STRICT_RESOLUTION)),
+      params.map((p) => this.normalizeExpr(p)),
       paramLoc
     );
 
@@ -658,14 +674,19 @@ class StatementNormalizer {
         );
       }
 
-      return this.block.builder.append(
-        {
-          table: this.block.table,
-          trusting,
-          value: this.expr.callParts({ path, params, hash, loc }),
-        },
-        loc
-      );
+      const callee = this.expr.normalizeExpr(path);
+      const args = this.expr.callArgs(params, hash) ?? ASTv2.Args.empty(callee.loc.collapse('end'));
+
+      return new ASTv2.AppendContent({
+        table: this.block.table,
+        trusting,
+        value: new ASTv2.CallExpression({
+          callee,
+          args,
+          loc: SpanList.range([callee, args]),
+        }),
+        loc,
+      });
     }
   }
 

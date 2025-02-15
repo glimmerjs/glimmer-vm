@@ -1,6 +1,6 @@
-import type { ASTv2, KeywordType } from '@glimmer/syntax';
+import type { KeywordType } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { generateSyntaxError, isKeyword, KEYWORDS_TYPES } from '@glimmer/syntax';
+import { ASTv2, generateSyntaxError, isKeyword, KEYWORDS_TYPES } from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 import type { NormalizationState } from '../context';
@@ -48,8 +48,8 @@ class KeywordImpl<
 
     let path = getCalleeExpression(node);
 
-    if (path !== null && path.type === 'Path' && path.ref.type === 'Resolved') {
-      return path.ref.name === this.keyword;
+    if (path !== null && ASTv2.isResolvedReference(path)) {
+      return path.name === this.keyword;
     } else {
       return false;
     }
@@ -81,15 +81,15 @@ class KeywordImpl<
 export const KEYWORD_NODES = {
   Call: ['Call'],
   Block: ['InvokeBlock'],
-  Append: ['AppendContent'],
+  Append: ['AppendContent', 'AppendResolvedInvokable'],
   Modifier: ['ElementModifier'],
 } as const;
 
 export interface KeywordCandidates {
-  Call: ASTv2.ExpressionNode;
-  Block: ASTv2.InvokeBlock;
-  Append: ASTv2.AppendContent;
-  Modifier: ASTv2.ElementModifier;
+  Call: ASTv2.ExpressionNode | ASTv2.ResolvedHelperCallee;
+  Block: ASTv2.InvokeBlock | ASTv2.ResolvedComponentCallee;
+  Append: ASTv2.AppendContent | ASTv2.ResolvedAppendable | ASTv2.AppendResolvedInvokable;
+  Modifier: ASTv2.ElementModifier | ASTv2.ResolvedModifierCallee;
 }
 
 export type KeywordCandidate = KeywordCandidates[keyof KeywordCandidates];
@@ -113,15 +113,22 @@ export type KeywordNode =
   | GenericKeywordNode
   | ASTv2.CallExpression
   | ASTv2.InvokeBlock
-  | ASTv2.ElementModifier;
+  | ASTv2.ElementModifier
+  | ASTv2.AppendResolvedInvokable;
 
 export type PossibleKeyword = KeywordNode;
 type OutFor<K extends Keyword | BlockKeyword> =
   K extends BlockKeyword<infer Out> ? Out : K extends Keyword<KeywordType, infer Out> ? Out : never;
 
 function getCalleeExpression(
-  node: KeywordNode | ASTv2.ExpressionNode
-): ASTv2.ExpressionNode | null {
+  node: KeywordNode | ASTv2.ExpressionNode | ASTv2.ResolvedAppendable
+): ASTv2.ExpressionNode | ASTv2.ResolvedAppendable | null;
+function getCalleeExpression(
+  node: KeywordNode | ASTv2.ExpressionNode | ASTv2.ResolvedReference
+): ASTv2.ExpressionNode | ASTv2.ResolvedReference | null;
+function getCalleeExpression(
+  node: KeywordNode | ASTv2.ExpressionNode | ASTv2.ResolvedReference | ASTv2.AppendResolvedInvokable
+): ASTv2.ExpressionNode | ASTv2.ResolvedReference | ASTv2.AppendResolvedInvokable | null {
   switch (node.type) {
     // This covers the inside of attributes and expressions, as well as the callee
     // of call nodes
@@ -132,6 +139,13 @@ function getCalleeExpression(
     case 'Call':
     case 'InvokeBlock':
     case 'ElementModifier':
+      return node.callee;
+    case 'ResolvedAppendable':
+    case 'ResolvedComponentCallee':
+    case 'ResolvedHelperCallee':
+    case 'ResolvedModifierCallee':
+      return node;
+    case 'AppendResolvedInvokable':
       return node.callee;
     default:
       return null;
@@ -170,8 +184,8 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
 
     let path = getCalleeExpression(node);
 
-    if (path && path.type === 'Path' && path.ref.type === 'Resolved' && isKeyword(path.ref.name)) {
-      let { name } = path.ref as { name: keyof typeof KEYWORDS_TYPES };
+    if (path && ASTv2.isResolvedReference(path) && isKeyword(path.name)) {
+      let { name } = path as { name: keyof typeof KEYWORDS_TYPES };
 
       let usedType = this._type;
       let validTypes: readonly KeywordType[] = KEYWORDS_TYPES[name];

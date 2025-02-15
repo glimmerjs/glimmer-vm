@@ -155,6 +155,12 @@ function visitAppendResolvedInvokable(
   append: ASTv2.AppendResolvedInvokable,
   state: NormalizationState
 ): Result<mir.AppendResolvedInvokableCautiously | mir.AppendTrustingResolvedInvokable> {
+  const keyword = APPEND_KEYWORDS.translate(append, state);
+
+  if (keyword) {
+    return keyword;
+  }
+
   return visitArgs(append.args, state).mapOk((args) => {
     if (append.trusting) {
       return new mir.AppendTrustingResolvedInvokable({
@@ -163,6 +169,7 @@ function visitAppendResolvedInvokable(
         args,
       });
     } else {
+      debugger;
       return new mir.AppendResolvedInvokableCautiously({
         loc: append.loc,
         callee: append.callee,

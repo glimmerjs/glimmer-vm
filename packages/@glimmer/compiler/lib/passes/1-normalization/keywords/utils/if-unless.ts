@@ -10,7 +10,7 @@ import { visitExpr } from '../../visitors/expressions';
 
 function assertIfUnlessInlineKeyword(type: string) {
   return (
-    originalNode: ASTv2.AppendContent | ASTv2.ExpressionNode
+    originalNode: ASTv2.AppendContent | ASTv2.ExpressionNode | ASTv2.AppendResolvedInvokable
   ): Result<{
     condition: ASTv2.ExpressionNode;
     truthy: ASTv2.ExpressionNode;
@@ -19,8 +19,10 @@ function assertIfUnlessInlineKeyword(type: string) {
     let inverted = type === 'unless';
 
     let node = originalNode.type === 'AppendContent' ? originalNode.value : originalNode;
-    let named = node.type === 'Call' ? node.args.named : null;
-    let positional = node.type === 'Call' ? node.args.positional : null;
+    let named =
+      node.type === 'Call' || node.type === 'AppendResolvedInvokable' ? node.args.named : null;
+    let positional =
+      node.type === 'Call' || node.type === 'AppendResolvedInvokable' ? node.args.positional : null;
 
     if (named && !named.isEmpty()) {
       return Err(

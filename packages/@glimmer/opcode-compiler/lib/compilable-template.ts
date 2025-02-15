@@ -173,8 +173,6 @@ export function compileContent(encode: EncodeOp, content: Content): void {
     case Op.InvokeResolvedComponent: {
       const [, expr, args] = content;
 
-      debugger;
-
       const component = encode.resolveComponent(expr);
       encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
 

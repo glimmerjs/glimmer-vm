@@ -22,6 +22,7 @@ import type * as mir from './mir';
 
 import { buildComponentArgs } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
+import { CALL_KEYWORDS } from '../1-normalization/keywords';
 import {
   callArgs,
   encodeComponentBlockArgs,
