@@ -152,7 +152,7 @@ export class InvokeResolvedComponentKeyword extends node('InvokeResolvedComponen
 }>() {}
 
 export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
-  html: ExpressionValueNode | ASTv2.UnresolvedBinding;
+  html: ExpressionValueNode | ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
 }>() {}
 
 /**
@@ -161,24 +161,20 @@ export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
  * - `{{<expr>}}` where `expr` is not a resolved or lexical reference.
  */
 export class AppendValueCautiously extends node('AppendValueCautiously').fields<{
-  value: ExpressionValueNode | ASTv2.UnresolvedBinding;
+  value: ExpressionValueNode | ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
 }>() {}
 
 export class AppendStaticContent extends node('AppendStaticContent').fields<{
   value: ASTv2.LiteralExpression;
 }>() {}
 
-export class AppendResolvedInvokableCautiously extends node(
-  'AppendResolvedInvokableCautiously'
-).fields<{
-  callee: ASTv2.ResolvedCallee;
+export class AppendInvokableCautiously extends node('AppendInvokableCautiously').fields<{
+  callee: ASTv2.ResolvedName | CalleeExpression;
   args: Args;
 }>() {}
 
-export class AppendTrustingResolvedInvokable extends node(
-  'AppendTrustingResolvedInvokable'
-).fields<{
-  callee: ASTv2.ResolvedCallee;
+export class AppendTrustingInvokable extends node('AppendTrustingInvokable').fields<{
+  callee: ASTv2.ResolvedName | CalleeExpression;
   args: Args;
 }>() {}
 
@@ -196,7 +192,7 @@ export class Yield extends node('Yield').fields<{
 export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
 
 export class ResolvedAngleBracketComponent extends node('ResolvedAngleBracketComponent').fields<{
-  tag: ASTv2.ResolvedCallee;
+  tag: ASTv2.ResolvedName;
   params: ElementParameters;
   args: NamedArguments;
   blocks: NamedBlocks;
@@ -229,7 +225,7 @@ export class StaticAttr extends node('StaticAttr').fields<{
 export class DynamicAttr extends node('DynamicAttr').fields<{
   kind: AttrKind;
   name: SourceSlice;
-  value: AttrValueExpressionNode; // interpolation is allowed here
+  value: AttrValueExpressionNode | ASTv2.ResolvedName; // interpolation is allowed here
   namespace?: string | undefined;
 }>() {}
 
@@ -260,7 +256,7 @@ export class CallExpression extends node('CallExpression').fields<{
  * then resolved as a helper using the runtime resolver.
  */
 export class ResolvedCallExpression extends node('ResolvedCallExpression').fields<{
-  callee: ASTv2.ResolvedCallee;
+  callee: ASTv2.ResolvedName;
   args: Args;
 }>() {}
 
@@ -300,7 +296,7 @@ export class IfExpression extends node('IfExpression').fields<{
 }>() {}
 
 export class ResolvedModifier extends node('ResolvedModifier').fields<{
-  callee: ASTv2.ResolvedCallee;
+  callee: ASTv2.ResolvedName;
   args: Args;
 }>() {}
 export class DynamicModifier extends node('DynamicModifier').fields<{
@@ -317,7 +313,7 @@ export class InvokeBlockComponent extends node('InvokeBlockComponent').fields<{
   blocks: NamedBlocks;
 }>() {}
 export class InvokeResolvedBlockComponent extends node('InvokeResolvedBlockComponent').fields<{
-  head: ASTv2.ResolvedCallee;
+  head: ASTv2.ResolvedName;
   args: Args;
   blocks: NamedBlocks;
 }>() {}
@@ -387,12 +383,7 @@ export class NamedBlock extends node('NamedBlock').fields<{
 
 export type MaybeMissingExpressionNode = AttrValueExpressionNode | Missing;
 
-export type BlockCallee =
-  | PathExpression
-  | ASTv2.KeywordExpression
-  | ASTv2.VariableReference
-  | ASTv2.ResolvedCallee;
-
+export type BlockCallee = PathExpression | ASTv2.KeywordExpression | ASTv2.VariableReference;
 export type CalleeExpression = BlockCallee | SomeCallExpression;
 
 export type CustomExpression =
@@ -438,8 +429,8 @@ export type Content =
   | AppendTrustedHTML
   | AppendStaticContent
   | AppendValueCautiously
-  | AppendTrustingResolvedInvokable
-  | AppendResolvedInvokableCautiously
+  | AppendTrustingInvokable
+  | AppendInvokableCautiously
   | AngleBracketComponent
   | ResolvedAngleBracketComponent
   | SimpleElement

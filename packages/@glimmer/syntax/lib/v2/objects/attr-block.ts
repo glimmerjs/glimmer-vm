@@ -1,5 +1,5 @@
 import type { SourceSlice } from '../../source/slice';
-import type { CurlyArgs, ResolvedCallee } from './args';
+import type { CurlyArgs, ResolvedName } from './args';
 import type { DynamicCallee } from './base';
 import type { AttrValueNode, ExpressionValueNode, InterpolateExpression } from './expr';
 
@@ -66,7 +66,7 @@ export class ElementModifier extends node('ElementModifier').fields<{
 }
 
 export class ResolvedElementModifier extends node('ResolvedElementModifier').fields<{
-  callee: ResolvedCallee;
+  resolved: ResolvedName;
   args: CurlyArgs;
 }>() {
   readonly isResolved = true;

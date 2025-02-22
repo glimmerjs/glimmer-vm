@@ -15,7 +15,7 @@ export interface GlimmerSyntaxError extends Error {
 
 export function unresolvedBindingError({
   context,
-  notes,
+  notes = [],
 }: {
   context: PathValidationContext;
   notes?: string[] | undefined;
@@ -29,8 +29,11 @@ export function unresolvedBindingError({
 
   let message: string;
 
-  if (quotedCode || notes) {
-    const notesString = notes ? `${notes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
+  const allNotes = [...context.notes, ...notes];
+
+  if (quotedCode || allNotes.length > 0) {
+    const notesString =
+      allNotes.length > 0 ? `${allNotes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
     message = `${context.error}:${quotedCode}${notesString}${where}`;
   } else {
     message = `${context.error}: ${where}`;

@@ -1,9 +1,13 @@
 import type {
   AppendDynamicInvokableOpcode,
   AppendHtmlTextOpcode,
+  AppendInvokableCautiouslyOpcode,
   AppendResolvedInvokableCautiouslyOpcode,
+  AppendResolvedTrustedHtmlOpcode,
+  AppendResolvedValueCautiouslyOpcode,
   AppendStaticOpcode,
   AppendTrustedHtmlOpcode,
+  AppendTrustedInvokableOpcode,
   AppendTrustedResolvedInvokableOpcode,
   AppendValueCautiouslyOpcode,
   AttrSplatOpcode,
@@ -78,10 +82,12 @@ export const POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE =
 
 export const opcodes = {
   AppendValueCautiously: 1 satisfies AppendValueCautiouslyOpcode,
+  AppendResolvedValueCautiously: 303 satisfies AppendResolvedValueCautiouslyOpcode,
   AppendStatic: 104 satisfies AppendStaticOpcode,
   AppendResolvedInvokableCautiously: 100 satisfies AppendResolvedInvokableCautiouslyOpcode,
+  AppendInvokableCautiously: 300 satisfies AppendInvokableCautiouslyOpcode,
   AppendTrustedResolvedInvokable: 200 satisfies AppendTrustedResolvedInvokableOpcode,
-  AppendDynamicInvokable: 103 satisfies AppendDynamicInvokableOpcode,
+  AppendTrustedInvokable: 301 satisfies AppendTrustedInvokableOpcode,
 
   InvokeDynamicComponent: 58 satisfies InvokeDynamicComponentOpcode,
   InvokeComponentKeyword: 46 satisfies InvokeComponentKeywordOpcode,
@@ -90,6 +96,7 @@ export const opcodes = {
   InvokeDynamicBlock: 57 satisfies InvokeDynamicBlockOpcode,
 
   AppendTrustedHtml: 4 satisfies AppendTrustedHtmlOpcode,
+  AppendTrustedResolvedHtml: 302 satisfies AppendResolvedTrustedHtmlOpcode,
   AppendHtmlText: 106 satisfies AppendHtmlTextOpcode,
   Comment: 5 satisfies CommentOpcode,
   DynamicModifier: 6 satisfies DynamicModifierOpcode,

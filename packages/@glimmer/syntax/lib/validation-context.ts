@@ -158,7 +158,7 @@ class PathValidationContext extends AbstractValidationContext {
   readonly path: SourceSpan;
   readonly head: Optional<SourceSpan>;
   readonly type: PathSyntaxType;
-  notes?: string[] | undefined;
+  notes: string[] = [];
 
   readonly kind = 'path';
 

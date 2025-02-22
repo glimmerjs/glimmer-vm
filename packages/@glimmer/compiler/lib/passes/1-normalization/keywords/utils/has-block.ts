@@ -8,17 +8,17 @@ import {
 
 import type { Result } from '../../../../shared/result';
 import type { NormalizationState } from '../../context';
-import type { InvokeKeywordCandidate, KeywordDelegate } from '../impl';
+import type { InvokeKeywordMatch, InvokeKeywordInfo, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 
 function assertHasBlockKeyword(type: string) {
-  return (node: InvokeKeywordCandidate): Result<SourceSlice> => {
-    const { positional, named } = node.args;
+  return ({ args, loc }: InvokeKeywordInfo): Result<SourceSlice> => {
+    const { positional, named } = args;
 
     if (!named.isEmpty()) {
-      return Err(generateSyntaxError(`(${type}) does not take any named arguments`, node.loc));
+      return Err(generateSyntaxError(`(${type}) does not take any named arguments`, loc));
     }
 
     const positionals = positional.asPresent();
@@ -32,7 +32,7 @@ function assertHasBlockKeyword(type: string) {
     if (second) {
       return Err(
         invalidExprError(`(${type}) only takes a single positional argument`, {
-          context: ContentValidationContext.of(node, { custom: 'has-block' }).withOuter(
+          context: ContentValidationContext.of(loc, { custom: 'has-block' }).withOuter(
             second.loc.withEnd(positionals.loc.getEnd())
           ),
           problem: rest.length > 0 ? 'extra arguments' : 'extra argument',
@@ -46,7 +46,7 @@ function assertHasBlockKeyword(type: string) {
       return Err(
         generateSyntaxError(
           `(${type}) can only receive a string literal as its first argument`,
-          node.loc
+          loc
         )
       );
     }
@@ -55,7 +55,7 @@ function assertHasBlockKeyword(type: string) {
 
 function translateHasBlockKeyword(type: string) {
   return (
-    { node, state: { scope } }: { node: InvokeKeywordCandidate; state: NormalizationState },
+    { node, state: { scope } }: { node: InvokeKeywordMatch; state: NormalizationState },
     target: SourceSlice
   ): Result<mir.HasBlock | mir.HasBlockParams> => {
     let block =
@@ -73,7 +73,7 @@ function translateHasBlockKeyword(type: string) {
 
 export function hasBlockKeyword(
   type: string
-): KeywordDelegate<InvokeKeywordCandidate, SourceSlice, mir.HasBlock | mir.HasBlockParams> {
+): KeywordDelegate<InvokeKeywordMatch, SourceSlice, mir.HasBlock | mir.HasBlockParams> {
   return {
     assert: assertHasBlockKeyword(type),
     translate: translateHasBlockKeyword(type),

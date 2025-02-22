@@ -106,7 +106,7 @@ class Builders {
     inverseStrip = DEFAULT_STRIP,
     closeStrip = DEFAULT_STRIP,
   }: {
-    path: ASTv1.PathExpression | ASTv1.SubExpression;
+    path: ASTv1.PathExpression;
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     defaultBlock: ASTv1.Block;

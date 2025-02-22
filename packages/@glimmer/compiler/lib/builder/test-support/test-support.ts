@@ -139,29 +139,15 @@ export function buildStatement(
     case APPEND_EXPR_HEAD: {
       if (normalized.expr.type === GET_VAR_EXPR && normalized.expr.variable.kind === 'Resolved') {
         if (normalized.trusted) {
-          return [
-            [
-              Op.AppendTrustedResolvedInvokable,
-              symbols.resolved(normalized.expr.variable.name),
-              [EMPTY_ARGS_OPCODE],
-            ],
-          ];
+          return [[Op.AppendTrustedResolvedHtml, symbols.resolved(normalized.expr.variable.name)]];
         }
       }
 
       if (normalized.expr.type === GET_VAR_EXPR && normalized.expr.variable.kind === 'Resolved') {
         return [
           normalized.trusted
-            ? [
-                Op.AppendTrustedResolvedInvokable,
-                symbols.resolved(normalized.expr.variable.name),
-                [EMPTY_ARGS_OPCODE],
-              ]
-            : [
-                Op.AppendResolvedInvokableCautiously,
-                symbols.resolved(normalized.expr.variable.name),
-                [EMPTY_ARGS_OPCODE],
-              ],
+            ? [Op.AppendTrustedResolvedHtml, symbols.resolved(normalized.expr.variable.name)]
+            : [Op.AppendResolvedValueCautiously, symbols.resolved(normalized.expr.variable.name)],
         ];
       }
 
@@ -221,7 +207,10 @@ export function buildStatement(
 
 export function buildAppendCautiously(
   expr: Expressions.Expression
-): WireFormat.Content.SomeAppend | WireFormat.Content.AppendHtmlText {
+):
+  | WireFormat.Content.AppendValueCautiously
+  | WireFormat.Content.AppendHtmlText
+  | WireFormat.Content.AppendStatic {
   if (Array.isArray(expr)) {
     return [Op.AppendValueCautiously, expr];
   }

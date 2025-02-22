@@ -91,9 +91,9 @@ function encodeContent(stmt: mir.Content): Buildable<WireFormat.Content> | WireC
       return Debugger(stmt);
     case 'AppendStaticContent':
       return AppendStaticContent(stmt);
-    case 'AppendResolvedInvokableCautiously':
+    case 'AppendInvokableCautiously':
       return AppendResolvedInvokableCautiously(stmt);
-    case 'AppendTrustingResolvedInvokable':
+    case 'AppendTrustingInvokable':
       return AppendTrustedResolvedInvokable(stmt);
     case 'AppendHtmlComment':
       return AppendComment(stmt);
@@ -203,14 +203,26 @@ export function InvokeResolvedBlockComponent({
 
 export function AppendTrustedHTML({
   html,
-}: mir.AppendTrustedHTML): WireFormat.Content.AppendTrustedHtml {
-  return [Op.AppendTrustedHtml, encodeExpr(html)];
+}: mir.AppendTrustedHTML):
+  | WireFormat.Content.AppendTrustedHtml
+  | WireFormat.Content.AppendTrustedResolvedHtml {
+  if (html.type === 'ResolvedName') {
+    return [Op.AppendTrustedResolvedHtml, html.symbol];
+  } else {
+    return [Op.AppendTrustedHtml, encodeExpr(html)];
+  }
 }
 
 export function AppendValueCautiously({
   value,
-}: mir.AppendValueCautiously): WireFormat.Content.AppendValueCautiously {
-  return [Op.AppendValueCautiously, encodeExpr(value)];
+}: mir.AppendValueCautiously):
+  | WireFormat.Content.AppendValueCautiously
+  | WireFormat.Content.AppendResolvedValueCautiously {
+  if (value.type === 'ResolvedName') {
+    return [Op.AppendResolvedValueCautiously, value.symbol];
+  } else {
+    return [Op.AppendValueCautiously, encodeExpr(value)];
+  }
 }
 
 export function AppendComment({
@@ -228,21 +240,39 @@ export function AppendStaticContent({
 export function AppendResolvedInvokableCautiously({
   callee,
   args,
-}: mir.AppendResolvedInvokableCautiously): WireFormat.Content.AppendResolvedInvokableCautiously {
-  return [
-    Op.AppendResolvedInvokableCautiously,
-    callee.symbol,
-    callArgs(args.positional, args.named),
-  ];
+}: mir.AppendInvokableCautiously):
+  | WireFormat.Content.AppendResolvedInvokableCautiously
+  | WireFormat.Content.AppendInvokableCautiously {
+  if (callee.type === 'ResolvedName') {
+    return [
+      Op.AppendResolvedInvokableCautiously,
+      callee.symbol,
+      callArgs(args.positional, args.named),
+    ];
+  } else {
+    return [
+      Op.AppendInvokableCautiously,
+      encodeExpr(callee),
+      callArgs(args.positional, args.named),
+    ];
+  }
 }
 
 export function AppendTrustedResolvedInvokable({
   callee,
   args,
-}: mir.AppendTrustingResolvedInvokable):
+}: mir.AppendTrustingInvokable):
   | WireFormat.Content.AppendTrustedResolvedInvokable
-  | WireFormat.Content.AppendResolvedInvokableCautiously {
-  return [Op.AppendTrustedResolvedInvokable, callee.symbol, callArgs(args.positional, args.named)];
+  | WireFormat.Content.AppendTrustedInvokable {
+  if (callee.type === 'ResolvedName') {
+    return [
+      Op.AppendTrustedResolvedInvokable,
+      callee.symbol,
+      callArgs(args.positional, args.named),
+    ];
+  } else {
+    return [Op.AppendTrustedInvokable, encodeExpr(callee), callArgs(args.positional, args.named)];
+  }
 }
 
 export function AppendText({ value }: mir.AppendHtmlText): WireFormat.Content.AppendHtmlText {
