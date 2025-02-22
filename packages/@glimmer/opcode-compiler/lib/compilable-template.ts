@@ -52,7 +52,7 @@ import {
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
 import { ContentType } from '@glimmer/vm';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
+import { EMPTY_ARGS_OPCODE, SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
@@ -187,6 +187,42 @@ export function compileContent(encode: EncodeOp, content: Content): void {
       return;
     }
 
+    case Op.AppendResolvedValueCautiously: {
+      const [, callee] = content;
+
+      encode.append(callee, {
+        ifComponent(component: CompileTimeComponent) {
+          encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+          InvokeResolvedComponent(encode, component, [EMPTY_ARGS_OPCODE]);
+        },
+        ifHelper(handle: number) {
+          encode.op(VM_PUSH_FRAME_OP);
+          Call(encode, handle, [EMPTY_ARGS_OPCODE]);
+          encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('cautious-non-dynamic-append'));
+          encode.op(VM_POP_FRAME_OP);
+        },
+      });
+      return;
+    }
+
+    case Op.AppendTrustedResolvedHtml: {
+      const [, callee] = content;
+
+      encode.append(callee, {
+        ifComponent(component: CompileTimeComponent) {
+          encode.op(VM_PUSH_COMPONENT_DEFINITION_OP, component.handle);
+          InvokeResolvedComponent(encode, component, [EMPTY_ARGS_OPCODE]);
+        },
+        ifHelper(handle: number) {
+          encode.op(VM_PUSH_FRAME_OP);
+          Call(encode, handle, [EMPTY_ARGS_OPCODE]);
+          encode.op(VM_INVOKE_STATIC_OP, encode.stdlibFn('trusting-non-dynamic-append'));
+          encode.op(VM_POP_FRAME_OP);
+        },
+      });
+      return;
+    }
+
     // In classic mode only, this corresponds to `{{name ...args}}` where `name` is not an in-scope
     // variable. In strict mode, this is a syntax error.
     //
@@ -217,7 +253,7 @@ export function compileContent(encode: EncodeOp, content: Content): void {
       return;
     }
 
-    case Op.AppendDynamicInvokable: {
+    case Op.AppendInvokableCautiously: {
       const [, callee, args] = content;
       // This corresponds to `{{<expr> ...args}}` where `<expr>` only references in-scope variables (and
       // no resolved variables).
@@ -430,8 +466,8 @@ export function compileContent(encode: EncodeOp, content: Content): void {
 
       for (let i = 0; i < positional.length; i++) {
         encode.op(VM_DUP_FP_OP, positional.length - i);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-        encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
+
+        encode.op(VM_SET_VARIABLE_OP, parameters[i]);
       }
 
       encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));

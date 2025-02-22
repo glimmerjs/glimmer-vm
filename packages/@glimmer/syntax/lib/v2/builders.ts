@@ -265,7 +265,7 @@ export class Builder {
       symbols: SymbolTable;
       program: ASTv2.Block;
       inverse?: ASTv2.Block | null;
-      callee: ASTv2.BlockCallee | ASTv2.ResolvedCallee;
+      callee: ASTv2.BlockCallee | ASTv2.ResolvedName;
       args: ASTv2.CurlyArgs;
     },
     loc: SourceSpan
@@ -280,11 +280,11 @@ export class Builder {
       blocks.push(this.namedBlock(SourceSlice.synthetic('else'), inverse, inverse.loc));
     }
 
-    if (callee.type === 'ResolvedCallee') {
+    if (callee.type === 'ResolvedName') {
       return new ASTv2.InvokeResolvedBlock({
         loc,
         blocks: this.namedBlocks(blocks, blocksLoc),
-        callee,
+        resolved: callee,
         args: call.args,
       });
     } else {
@@ -316,11 +316,7 @@ export class BuildElement {
     this.builder = new Builder();
   }
 
-  simple(
-    tag: SourceSlice | ASTv2.UnresolvedBinding,
-    body: ASTv2.ContentNode[],
-    loc: SourceSpan
-  ): ASTv2.SimpleElement {
+  simple(tag: SourceSlice, body: ASTv2.ContentNode[], loc: SourceSpan): ASTv2.SimpleElement {
     return new ASTv2.SimpleElement({
       ...this.base,
       tag,
@@ -339,10 +335,10 @@ export class BuildElement {
   }
 
   selfClosingComponent(
-    callee: ASTv2.PathExpression | ASTv2.ResolvedCallee,
+    callee: ASTv2.PathExpression | ASTv2.ResolvedName,
     loc: SourceSpan
   ): ASTv2.InvokeAngleBracketComponent | ASTv2.InvokeResolvedAngleBracketComponent {
-    if (callee.type === 'ResolvedCallee') {
+    if (callee.type === 'ResolvedName') {
       return new ASTv2.InvokeResolvedAngleBracketComponent({
         ...this.base,
         loc,
@@ -368,7 +364,7 @@ export class BuildElement {
   }
 
   componentWithDefaultBlock(
-    callee: ASTv2.PathExpression | ASTv2.ResolvedCallee,
+    callee: ASTv2.PathExpression | ASTv2.ResolvedName,
     children: ASTv2.ContentNode[],
     symbols: BlockSymbolTable,
     loc: SourceSpan
@@ -376,7 +372,7 @@ export class BuildElement {
     let block = this.builder.block(symbols, children, loc);
     let namedBlock = this.builder.namedBlock(SourceSlice.synthetic('default'), block, loc); // BUILDER.simpleNamedBlock('default', children, symbols, loc);
 
-    if (callee.type === 'ResolvedCallee') {
+    if (callee.type === 'ResolvedName') {
       return new ASTv2.InvokeResolvedAngleBracketComponent({
         ...this.base,
         loc,
@@ -394,11 +390,11 @@ export class BuildElement {
   }
 
   componentWithNamedBlocks(
-    callee: ASTv2.PathExpression | ASTv2.ResolvedCallee,
+    callee: ASTv2.PathExpression | ASTv2.ResolvedName,
     blocks: PresentArray<ASTv2.NamedBlock>,
     loc: SourceSpan
   ): ASTv2.InvokeAngleBracketComponent | ASTv2.InvokeResolvedAngleBracketComponent {
-    if (callee.type === 'ResolvedCallee') {
+    if (callee.type === 'ResolvedName') {
       return new ASTv2.InvokeResolvedAngleBracketComponent({
         ...this.base,
         loc,

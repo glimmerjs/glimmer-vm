@@ -1,7 +1,7 @@
 import type { SourceSlice } from '../../source/slice';
 import type { SourceSpan } from '../../source/span';
 import type { SymbolTable } from '../../symbol-table';
-import type { ComponentArgs, CurlyArgs, ResolvedCallee, UnresolvedBinding } from './args';
+import type { ComponentArgs, CurlyArgs, ResolvedName, UnresolvedBinding } from './args';
 import type {
   ComponentArg,
   ElementModifier,
@@ -28,8 +28,10 @@ export type ContentNode =
   | HtmlText
   | HtmlComment
   | AppendContent
+  | AppendResolvedContent
   | AppendStaticContent
   | AppendResolvedInvokable
+  | AppendInvokable
   | InvokeBlock
   | InvokeResolvedBlock
   | InvokeAngleBracketComponent
@@ -46,9 +48,24 @@ export class AppendStaticContent extends node('AppendStaticContent').fields<{
 }>() {}
 
 export class AppendResolvedInvokable extends node('AppendResolvedInvokable').fields<{
-  callee: ResolvedCallee;
+  resolved: ResolvedName;
   trusting: boolean;
   args: CurlyArgs;
+}>() {
+  readonly isResolved = true;
+}
+
+export class AppendInvokable extends node('AppendInvokable').fields<{
+  callee: DynamicCallee;
+  trusting: boolean;
+  args: CurlyArgs;
+}>() {
+  readonly isResolved = false;
+}
+
+export class AppendResolvedContent extends node('AppendResolvedContent').fields<{
+  resolved: ResolvedName;
+  trusting: boolean;
 }>() {
   readonly isResolved = true;
 }
@@ -72,7 +89,7 @@ export class InvokeBlock extends node('InvokeBlock').fields<{
 }
 
 export class InvokeResolvedBlock extends node('InvokeResolvedBlock').fields<{
-  callee: ResolvedCallee;
+  resolved: ResolvedName;
   args: CurlyArgs;
   blocks: NamedBlocks;
 }>() {
@@ -91,7 +108,7 @@ interface InvokeComponentFields extends BaseInvokeComponentFields {
 }
 
 interface InvokeResolvedComponentFields extends BaseInvokeComponentFields {
-  callee: ResolvedCallee;
+  callee: ResolvedName;
 }
 
 /**

@@ -196,6 +196,11 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     const program = this.Program(repairedBlock.program, blockParams);
     const inverse = repairedBlock.inverse ? this.Program(repairedBlock.inverse, []) : null;
 
+    localAssert(
+      path.type !== 'SubExpression',
+      '[BUG] BlockStatement in parser unexpectedly had SubExpression path'
+    );
+
     const node = b.block({
       path,
       params,

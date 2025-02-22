@@ -2,23 +2,24 @@ import type { ASTv2 } from '@glimmer/syntax';
 import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../../context';
-import type { ContentKeywordCandidate, KeywordDelegate } from '../impl';
+import type { ContentKeywordInfo, ContentKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import { visitExpr } from '../../visitors/expressions';
 
 function assertIfUnlessInlineKeyword(type: string) {
-  return (
-    originalNode: ContentKeywordCandidate
-  ): Result<{
+  return ({
+    args,
+    loc,
+  }: ContentKeywordInfo): Result<{
     condition: ASTv2.ExpressionValueNode;
     truthy: ASTv2.ExpressionValueNode;
     falsy: ASTv2.ExpressionValueNode | null;
   }> => {
     let inverted = type === 'unless';
 
-    const { positional, named } = originalNode.args;
+    const { positional, named } = args;
 
     if (!named.isEmpty()) {
       return Err(
@@ -26,7 +27,7 @@ function assertIfUnlessInlineKeyword(type: string) {
           `(${type}) cannot receive named parameters, received ${named.entries
             .map((e) => e.name.chars)
             .join(', ')}`,
-          originalNode.loc
+          loc
         )
       );
     }
@@ -37,7 +38,7 @@ function assertIfUnlessInlineKeyword(type: string) {
           `When used inline, (${type}) requires at least two parameters 1. the condition that determines the state of the (${type}), and 2. the value to return if the condition is ${
             inverted ? 'false' : 'true'
           }. Did not receive any parameters`,
-          originalNode.loc
+          loc
         )
       );
     }
@@ -51,7 +52,7 @@ function assertIfUnlessInlineKeyword(type: string) {
           `When used inline, (${type}) requires at least two parameters 1. the condition that determines the state of the (${type}), and 2. the value to return if the condition is ${
             inverted ? 'false' : 'true'
           }. Received only one parameter, the condition`,
-          originalNode.loc
+          loc
         )
       );
     }
@@ -66,7 +67,7 @@ function assertIfUnlessInlineKeyword(type: string) {
           }, and 3. the value to return if the condition is ${
             inverted ? 'true' : 'false'
           }. Received ${positional.size} parameters`,
-          originalNode.loc
+          loc
         )
       );
     }
@@ -79,7 +80,7 @@ function translateIfUnlessInlineKeyword(type: string) {
   let inverted = type === 'unless';
 
   return (
-    { node, state }: { node: ContentKeywordCandidate; state: NormalizationState },
+    { node, state }: { node: ContentKeywordMatch; state: NormalizationState },
     {
       condition,
       truthy,
@@ -112,7 +113,7 @@ function translateIfUnlessInlineKeyword(type: string) {
 }
 
 export function ifUnlessInlineKeyword(type: string): KeywordDelegate<
-  ContentKeywordCandidate,
+  ContentKeywordMatch,
   {
     condition: ASTv2.ExpressionValueNode;
     truthy: ASTv2.ExpressionValueNode;

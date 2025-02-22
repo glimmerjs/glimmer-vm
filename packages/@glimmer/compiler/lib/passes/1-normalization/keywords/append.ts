@@ -2,7 +2,7 @@ import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/constants';
 import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../context';
-import type { ContentKeywordCandidate } from './impl';
+import type { ContentKeywordMatch } from './impl';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
@@ -23,12 +23,10 @@ export const APPEND_KEYWORDS = keywords('Append')
   .kw('if', toAppend(ifUnlessInlineKeyword('if')))
   .kw('unless', toAppend(ifUnlessInlineKeyword('unless')))
   .kw('yield', {
-    assert(node: ContentKeywordCandidate): Result<{
+    assert({ args }): Result<{
       target: src.SourceSlice;
       positional: ASTv2.PositionalArguments;
     }> {
-      let { args } = node;
-
       if (args.named.isEmpty()) {
         return Ok({
           target: src.SourceSpan.synthetic('default').toSlice(),
@@ -54,7 +52,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
 
     translate(
-      { node, state }: { node: ContentKeywordCandidate; state: NormalizationState },
+      { node, state }: { node: ContentKeywordMatch; state: NormalizationState },
       {
         target,
         positional,
@@ -75,8 +73,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
   })
   .kw('debugger', {
-    assert(node): Result<void> {
-      let { args } = node;
+    assert({ node, args }): Result<void> {
       let { positional } = args;
 
       if (args.isEmpty()) {

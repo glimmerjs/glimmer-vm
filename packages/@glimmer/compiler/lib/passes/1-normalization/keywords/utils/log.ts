@@ -3,26 +3,24 @@ import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';
 import type { NormalizationState } from '../../context';
-import type { InvokeKeywordCandidate, KeywordDelegate } from '../impl';
+import type { InvokeKeywordInfo, InvokeKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import { visitPositional } from '../../visitors/expressions';
 
-function assertLogKeyword(node: InvokeKeywordCandidate): Result<ASTv2.PositionalArguments> {
-  let {
-    args: { named, positional },
-  } = node;
+function assertLogKeyword({ args, loc }: InvokeKeywordInfo): Result<ASTv2.PositionalArguments> {
+  let { named, positional } = args;
 
   if (named.isEmpty()) {
     return Ok(positional);
   } else {
-    return Err(generateSyntaxError(`(log) does not take any named arguments`, node.loc));
+    return Err(generateSyntaxError(`(log) does not take any named arguments`, loc));
   }
 }
 
 function translateLogKeyword(
-  { node, state }: { node: InvokeKeywordCandidate; state: NormalizationState },
+  { node, state }: { node: InvokeKeywordMatch; state: NormalizationState },
   positional: ASTv2.PositionalArguments
 ): Result<mir.Log> {
   return visitPositional(positional, state).mapOk(
@@ -30,11 +28,7 @@ function translateLogKeyword(
   );
 }
 
-export const logKeyword: KeywordDelegate<
-  InvokeKeywordCandidate,
-  ASTv2.PositionalArguments,
-  mir.Log
-> = {
+export const logKeyword: KeywordDelegate<InvokeKeywordMatch, ASTv2.PositionalArguments, mir.Log> = {
   assert: assertLogKeyword,
   translate: translateLogKeyword,
 };

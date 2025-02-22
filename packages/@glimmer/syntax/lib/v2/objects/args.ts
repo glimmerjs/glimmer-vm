@@ -1,113 +1,21 @@
 import type { Optional, PresentArray } from '@glimmer/interfaces';
 import type { FixedLengthArray, Simplify } from 'type-fest';
-import { exhausted } from '@glimmer/debug-util';
 
 import type { SourceSlice } from '../../source/slice';
-import type * as ASTv1 from '../../v1/api';
-import type {
-  AttrValueNode,
-  CallSyntax,
-  CallSyntaxKind,
-  CallSyntaxType,
-  ExpressionValueNode,
-} from './expr';
+import type { AttrValueNode, ExpressionValueNode } from './expr';
 
 import { SourceSpan } from '../../source/span';
 import { SpanList } from '../../source/span-list';
-import { parseCallSyntax } from './expr';
 import { node } from './node';
 
-export class ResolvedCallee extends node('ResolvedCallee').fields<{
+export class ResolvedName extends node('ResolvedName').fields<{
   name: string;
   symbol: number;
-}>() {
-  constructor(...args) {
-    super(...args);
-
-    if (this.loc.asString() !== this.name) {
-      debugger;
-      throw new Error(`Expected ${this.name} but got ${this.loc.asString()}`);
-    }
-  }
-}
+}>() {}
 
 export class UnresolvedBinding extends node('UnresolvedBinding').fields<{
   name: string;
-}>() {
-  constructor(...args) {
-    super(...args);
-
-    if (this.loc.asString() !== this.name) {
-      throw new Error(`Expected ${this.name} but got ${this.loc.asString()}`);
-    }
-  }
-}
-
-export function calleeDescription(type: CallSyntaxType, kind: CallSyntaxKind): string {
-  switch (type) {
-    case 'call':
-      return 'helper';
-    case 'component':
-      return 'component';
-    case 'attr':
-      return kind === 'callee' ? 'helper' : `attribute value`;
-    case 'block':
-      return 'component';
-    case 'modifier':
-      return `modifier`;
-    case 'content':
-      return kind === 'callee' ? `helper` : `content`;
-    case 'arg':
-      return kind === 'callee' ? 'helper' : 'argument';
-    default:
-      return exhausted(type);
-  }
-}
-
-function syntaxTypeDescription(
-  type: CallSyntaxType,
-  kind: CallSyntaxKind,
-  sourceString?: SourceSpan
-): string {
-  const source = sourceString ? ` \`${sourceString.asString()}\`` : '';
-  const sourceAs = sourceString ? `${source} as` : '';
-
-  switch (type) {
-    case 'call':
-      return 'invoke a helper';
-    case 'component':
-      return 'invoke a component';
-    case 'attr':
-      return kind === 'callee' ? 'invoke a value' : `set${sourceAs} as an attribute`;
-    case 'block':
-      return 'invoke a block';
-    case 'modifier':
-      return `invoke${sourceAs} as a modifier`;
-    case 'content':
-      return kind === 'callee' ? `invoke${sourceAs} a helper` : `append${source}`;
-    case 'arg':
-      return kind === 'callee' ? 'invoke a helper' : 'pass an argument';
-    default:
-      return exhausted(type);
-  }
-}
-
-export function callSyntaxDescription(
-  callee: { name: string; syntax: CallSyntax },
-  options: SyntaxOptions
-): { description: string; callee: string } {
-  const { type, kind } = parseCallSyntax(callee.syntax);
-  const calleeDesc = calleeDescription(type, kind);
-
-  const path = getPathSyntax(options);
-  const desc = syntaxTypeDescription(type, kind, path);
-
-  if (path.asString() === callee.name) {
-    return { description: `${desc}, but it was not in scope`, callee: calleeDesc };
-  } else {
-    return { description: `${desc}, but \`${callee.name}\` was not in scope`, callee: calleeDesc };
-  }
-}
+}>() {}
 
 /**
  * Corresponds to syntaxes with positional and named arguments:

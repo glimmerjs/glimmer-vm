@@ -1,4 +1,4 @@
-import type { ASTv2, HasSourceSpan, StrictMode, ValidationContentType } from '@glimmer/syntax';
+import type { ASTv2, StrictMode } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
 import { ContentValidationContext, unresolvedBindingError } from '@glimmer/syntax';
 
@@ -72,9 +72,9 @@ export default class ValidatorPass {
       case 'AppendValueCautiously':
         return this.AppendValueCautiously(statement);
 
-      case 'AppendResolvedInvokableCautiously':
-      case 'AppendTrustingResolvedInvokable':
-        return this.AppendResolvedInvokable(statement);
+      case 'AppendInvokableCautiously':
+      case 'AppendTrustingInvokable':
+        return this.AppendInvokable(statement);
 
       case 'ResolvedAngleBracketComponent':
       case 'AngleBracketComponent':
@@ -129,8 +129,22 @@ export default class ValidatorPass {
     return result;
   }
 
+  BlockCallee(
+    expression: mir.BlockCallee | ASTv2.ResolvedName,
+    context: StrictMode.ContentValidationContext
+  ): Result<null> {
+    switch (expression.type) {
+      case 'PathExpression':
+        return this.PathExpression(expression, context, 'call:callee');
+      case 'ResolvedName':
+        return this.ResolvedName(expression, context, 'call:callee');
+      default:
+        return Ok(null);
+    }
+  }
+
   CalleeExpression(
-    expression: mir.CalleeExpression | mir.Missing,
+    expression: mir.CalleeExpression | ASTv2.ResolvedName | mir.Missing,
     context: StrictMode.ValidationContext,
     syntax: ASTv2.PathSyntaxType
   ): Result<null> {
@@ -138,8 +152,8 @@ export default class ValidatorPass {
       return Ok(null);
     }
 
-    if (expression.type === 'ResolvedCallee') {
-      return this.ResolvedCallee(expression, context.upsertOuterExpr(expression), syntax);
+    if (expression.type === 'ResolvedName') {
+      return this.ResolvedName(expression, context.upsertOuterExpr(expression), syntax);
     }
 
     if (mir.isVariableReference(expression)) {
@@ -183,7 +197,11 @@ export default class ValidatorPass {
   }
 
   ExpressionValue(
-    expression: mir.ExpressionValueNode | mir.Missing | ASTv2.UnresolvedBinding,
+    expression:
+      | mir.ExpressionValueNode
+      | mir.Missing
+      | ASTv2.UnresolvedBinding
+      | ASTv2.ResolvedName,
     context: StrictMode.ValidationContext,
     syntax: ASTv2.PathSyntaxType
   ) {
@@ -192,6 +210,8 @@ export default class ValidatorPass {
         return Ok(null);
       case 'UnresolvedBinding':
         return this.errorFor(expression, context.withPathHead(expression, syntax));
+      case 'ResolvedName':
+        return this.ResolvedName(expression, context.upsertOuterExpr(expression), syntax);
       default:
         return this.CalleeExpression(expression, context, syntax);
     }
@@ -303,7 +323,7 @@ export default class ValidatorPass {
         return this.DynamicAttr(param);
       case 'ResolvedModifier': {
         const context = ContentValidationContext.of(param, 'modifier');
-        return this.ResolvedCallee(param.callee, context, 'modifier:callee').andThen(() =>
+        return this.ResolvedName(param.callee, context, 'modifier:callee').andThen(() =>
           this.Args(param.args, context)
         );
       }
@@ -327,7 +347,6 @@ export default class ValidatorPass {
   }
 
   DynamicAttr(attr: mir.DynamicAttr): Result<null> {
-    debugger;
     const context = ContentValidationContext.of(attr, 'attr');
     switch (attr.value.type) {
       case 'Literal':
@@ -350,8 +369,8 @@ export default class ValidatorPass {
       case 'Keyword': {
         return this.KeywordExpression(attr.value, context.withPathHead(attr.value, 'attr:value'));
       }
-      case 'ResolvedCallee':
-        return this.ResolvedCallee(attr.value, context, 'attr:value');
+      case 'ResolvedName':
+        return this.ResolvedName(attr.value, context, 'attr:value');
       default:
         if (mir.isVariableReference(attr.value)) {
           return this.VariableReference(attr.value, context.withPathHead(attr.value, 'attr:value'));
@@ -375,7 +394,7 @@ export default class ValidatorPass {
     context: StrictMode.OuterContext,
     syntax: { ifArgs: ASTv2.PathSyntaxType; noArgs: ASTv2.PathSyntaxType }
   ): Result<null> {
-    return this.ResolvedCallee(
+    return this.ResolvedName(
       expr.callee,
       context,
       expr.args.isEmpty() ? syntax.noArgs : syntax.ifArgs
@@ -396,13 +415,21 @@ export default class ValidatorPass {
     return Ok(null);
   }
 
-  AppendResolvedInvokable(
-    statement: mir.AppendResolvedInvokableCautiously | mir.AppendTrustingResolvedInvokable
+  AppendInvokable(
+    statement: mir.AppendInvokableCautiously | mir.AppendTrustingInvokable
   ): Result<null> {
     const context = ContentValidationContext.of(statement, 'content');
-    return this.ResolvedCallee(statement.callee, context, getAppendType(statement)).andThen(() =>
-      this.Args(statement.args, context.withOuter(statement.args))
-    );
+    const callee = statement.callee;
+
+    const args = this.Args(statement.args, context.withOuter(statement.args));
+
+    if (callee.type === 'ResolvedName') {
+      return this.ResolvedName(callee, context, getAppendType(statement)).andThen(() => args);
+    } else {
+      return this.ExpressionValue(callee, context.withOuter(callee), 'append:callee').andThen(
+        () => args
+      );
+    }
   }
 
   InElement(inElement: mir.InElement): Result<null> {
@@ -449,7 +476,7 @@ export default class ValidatorPass {
       return this.ExpressionValue(
         statement.value,
         ContentValidationContext.of(statement, 'content'),
-        getAppendType(statement.value)
+        'append:value'
       );
     }
   }
@@ -458,17 +485,34 @@ export default class ValidatorPass {
     statement: mir.AngleBracketComponent | mir.ResolvedAngleBracketComponent
   ): Result<null> {
     const context = ContentValidationContext.of(statement, 'component');
-    debugger;
-    return this.CalleeExpression(
-      statement.tag,
-      context
-        .withPathNode(getCallee(statement.tag), 'component:callee')
-        .addNotes('TODO: implement strict mode'),
-      'component:callee'
-    )
+
+    return this.ComponentTag(statement.tag, context)
       .andThen(() => this.ElementParameters(statement.params, context))
       .andThen(() => this.NamedArguments(statement.args, context))
       .andThen(() => this.NamedBlocks(statement.blocks));
+  }
+
+  ComponentTag(
+    tag: mir.BlockCallee | ASTv2.ResolvedName,
+    context: StrictMode.ContentValidationContext
+  ): Result<null> {
+    switch (tag.type) {
+      case 'ResolvedName':
+        if (this.#strict) {
+          return this.errorFor(
+            tag,
+            context
+              .withPathHead(tag, 'component:callee')
+              .addNotes(
+                `If you wanted to create an element with that name, convert it to lowercase - \`<${tag.name.toLowerCase()}>\``
+              )
+          );
+        } else {
+          return Ok(null);
+        }
+      default:
+        return this.CalleeExpression(tag, context, 'component:callee');
+    }
   }
 
   SimpleElement(statement: mir.SimpleElement): Result<null> {
@@ -611,8 +655,8 @@ export default class ValidatorPass {
     return this.Positional(expression.positional, context.replaceOuterExpr(expression.positional));
   }
 
-  ResolvedCallee(
-    callee: ASTv2.ResolvedCallee,
+  ResolvedName(
+    callee: ASTv2.ResolvedName,
     context: StrictMode.OuterContext,
     syntax: ASTv2.PathSyntaxType
   ): Result<null> {
@@ -624,9 +668,8 @@ export default class ValidatorPass {
   }
 
   errorFor(
-    callee: ASTv2.ResolvedCallee | ASTv2.UnresolvedBinding,
-    context: StrictMode.PathValidationContext,
-    notes?: string[] | undefined
+    callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding,
+    context: StrictMode.PathValidationContext
   ): Result<null> {
     if (this.template.scope.hasKeyword(callee.name)) {
       return Ok(null);
@@ -635,25 +678,8 @@ export default class ValidatorPass {
     return Err(
       unresolvedBindingError({
         context,
-        notes,
       })
     );
-  }
-}
-
-function getCallee(
-  path: mir.BlockCallee | ASTv2.ResolvedCallee
-): HasSourceSpan & { head: HasSourceSpan } {
-  switch (path.type) {
-    case 'PathExpression':
-      return path;
-    case 'ResolvedCallee':
-    case 'Keyword':
-    case 'This':
-    case 'Arg':
-    case 'Local':
-    case 'Lexical':
-      return { loc: path.loc, head: path };
   }
 }
 
@@ -661,14 +687,14 @@ function getAppendType(
   expr:
     | mir.ExpressionValueNode
     | ASTv2.UnresolvedBinding
-    | mir.AppendResolvedInvokableCautiously
-    | mir.AppendTrustingResolvedInvokable
+    | mir.AppendInvokableCautiously
+    | mir.AppendTrustingInvokable
 ): ASTv2.PathSyntaxType {
   switch (expr.type) {
     case 'ResolvedCallExpression':
     case 'CallExpression':
-    case 'AppendResolvedInvokableCautiously':
-    case 'AppendTrustingResolvedInvokable':
+    case 'AppendInvokableCautiously':
+    case 'AppendTrustingInvokable':
       return expr.args.isEmpty() ? 'append:value' : 'append:callee';
     default:
       return 'append:value';

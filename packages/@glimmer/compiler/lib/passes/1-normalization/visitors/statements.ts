@@ -42,11 +42,13 @@ function visitContent(
     case 'GlimmerComment':
       return Ok(null);
     case 'AppendContent':
+    case 'AppendResolvedContent':
       return visitAppendContent(node, state);
     case 'AppendStaticContent':
       return Ok(visitStaticAppend(node));
     case 'AppendResolvedInvokable':
-      return visitAppendResolvedInvokable(node, state);
+    case 'AppendInvokable':
+      return visitAppendInvokable(node, state);
     case 'HtmlText':
       return Ok(visitTextNode(node));
     case 'HtmlComment':
@@ -90,16 +92,25 @@ function visitInvokeBlock(
     return translated;
   }
 
-  let head =
-    node.callee.type === 'ResolvedCallee' ? Ok(node.callee) : visitExpr(node.callee, state);
-  let args = visitCurlyArgs(node.args, state);
+  const args = visitCurlyArgs(node.args, state);
+  const blocks = visitNamedBlocks(node.blocks, state);
 
-  return Result.all(head, args).andThen(([head, args]) => {
-    if (
-      head.type !== 'PathExpression' &&
-      head.type !== 'ResolvedCallee' &&
-      head.type !== 'Lexical'
-    ) {
+  if (node.type === 'InvokeResolvedBlock') {
+    return Result.all(args, blocks).mapOk(
+      ([args, blocks]) =>
+        new mir.InvokeResolvedBlockComponent({
+          loc: node.loc,
+          head: node.resolved,
+          args,
+          blocks,
+        })
+    );
+  }
+
+  const head = visitExpr(node.callee, state);
+
+  return Result.all(head, args, blocks).andThen(([head, args, blocks]) => {
+    if (head.type !== 'PathExpression' && head.type !== 'Lexical') {
       return Err(
         generateSyntaxError(
           `expected a path expression or variable reference, got ${head.type}`,
@@ -108,22 +119,14 @@ function visitInvokeBlock(
       );
     }
 
-    return visitNamedBlocks(node.blocks, state).mapOk((blocks) => {
-      if (head.type === 'ResolvedCallee') {
-        return new mir.InvokeResolvedBlockComponent({
-          loc: node.loc,
-          head,
-          args,
-          blocks,
-        });
-      }
-      return new mir.InvokeBlockComponent({
+    return Ok(
+      new mir.InvokeBlockComponent({
         loc: node.loc,
         head,
         args,
         blocks,
-      });
-    });
+      })
+    );
   });
 }
 
@@ -166,10 +169,30 @@ function visitStaticAppend(append: ASTv2.AppendStaticContent): mir.AppendStaticC
   });
 }
 
-function visitAppendResolvedInvokable(
-  append: ASTv2.AppendResolvedInvokable,
+function visitAppendInvokable(
+  append: ASTv2.AppendResolvedInvokable | ASTv2.AppendInvokable,
   state: NormalizationState
-): Result<mir.AppendResolvedInvokableCautiously | mir.AppendTrustingResolvedInvokable> {
+): Result<mir.AppendInvokableCautiously | mir.AppendTrustingInvokable> {
+  if (append.type === 'AppendInvokable') {
+    return Result.all(visitExpr(append.callee, state), visitCurlyArgs(append.args, state)).mapOk(
+      ([callee, args]) => {
+        if (append.trusting) {
+          return new mir.AppendTrustingInvokable({
+            loc: append.loc,
+            callee,
+            args,
+          });
+        } else {
+          return new mir.AppendInvokableCautiously({
+            loc: append.loc,
+            callee,
+            args,
+          });
+        }
+      }
+    );
+  }
+
   const keyword = APPEND_KEYWORDS.translate(append, state);
 
   if (keyword) {
@@ -178,15 +201,15 @@ function visitAppendResolvedInvokable(
 
   return visitCurlyArgs(append.args, state).mapOk((args) => {
     if (append.trusting) {
-      return new mir.AppendTrustingResolvedInvokable({
+      return new mir.AppendTrustingInvokable({
         loc: append.loc,
-        callee: append.callee,
+        callee: append.resolved,
         args,
       });
     } else {
-      return new mir.AppendResolvedInvokableCautiously({
+      return new mir.AppendInvokableCautiously({
         loc: append.loc,
-        callee: append.callee,
+        callee: append.resolved,
         args,
       });
     }
@@ -194,7 +217,7 @@ function visitAppendResolvedInvokable(
 }
 
 function visitAppendContent(
-  append: ASTv2.AppendContent,
+  append: ASTv2.AppendContent | ASTv2.AppendResolvedContent,
   state: NormalizationState
 ): Result<mir.Content> {
   let translated = APPEND_KEYWORDS.translate(append, state);
@@ -203,10 +226,25 @@ function visitAppendContent(
     return translated;
   }
 
-  // @audit
-  let value = visitHeadExpr(append.value, state);
+  if (append.type === 'AppendResolvedContent') {
+    if (append.trusting) {
+      return Ok(
+        new mir.AppendTrustedHTML({
+          loc: append.loc,
+          html: append.resolved,
+        })
+      );
+    } else {
+      return Ok(
+        new mir.AppendValueCautiously({
+          loc: append.loc,
+          value: append.resolved,
+        })
+      );
+    }
+  }
 
-  return value.mapOk((value) => {
+  return visitHeadExpr(append.value, state).mapOk((value) => {
     if (append.trusting) {
       return new mir.AppendTrustedHTML({
         loc: append.loc,
