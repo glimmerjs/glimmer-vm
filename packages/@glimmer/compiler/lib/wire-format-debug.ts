@@ -132,17 +132,17 @@ export default class WireFormatDebugger {
           return ['html-text', opcode[1]];
 
         case Op.LexicalModifier:
-          return ['modifier', this.formatLexical(opcode[1]), this.formatArgs(opcode[2])];
+          return ['{{ <modifier> }}', this.formatLexical(opcode[1]), ...this.formatArgs(opcode[2])];
 
         case Op.ResolvedModifier:
           return [
-            'modifier',
-            this.formatResolved(opcode[1], 'modifier'),
-            this.formatArgs(opcode[2]),
+            '{{ <resolved:modifier> }}',
+            this.formatResolved(opcode[1]),
+            ...this.formatArgs(opcode[2]),
           ];
 
         case Op.DynamicModifier:
-          return ['modifier', this.formatOpcode(opcode[1]), this.formatArgs(opcode[2])];
+          return ['{{ <modifier> }}', this.formatOpcode(opcode[1]), this.formatArgs(opcode[2])];
 
         case Op.HasBlock:
           return ['has-block', this.formatOpcode(opcode[1])];
@@ -155,20 +155,20 @@ export default class WireFormatDebugger {
             'curry',
             this.formatOpcode(opcode[1]),
             this.formatCurryType(opcode[2]),
-            this.formatArgs(opcode[3]),
+            ...this.formatArgs(opcode[3]),
           ];
 
         case Op.Undefined:
           return ['undefined'];
 
         case Op.CallResolved:
-          return ['call:resolved', this.upvars[opcode[1]], this.formatArgs(opcode[2])];
+          return ['( <call:resolved> )', this.upvars[opcode[1]], ...this.formatArgs(opcode[2])];
 
         case Op.CallDynamicValue:
-          return ['call', this.formatOpcode(opcode[1]), this.formatArgs(opcode[2])];
+          return ['( <call> )', this.formatOpcode(opcode[1]), ...this.formatArgs(opcode[2])];
 
         case Op.Concat:
-          return ['concat', this.formatParams(opcode[1])];
+          return ['concat', ...this.formatParams(opcode[1])];
 
         case Op.GetKeyword:
           return ['get-strict-free', this.upvars[opcode[1]]];
@@ -235,14 +235,14 @@ export default class WireFormatDebugger {
 
         case Op.InvokeDynamicBlock: {
           const [, path, args] = opcode;
-          return ['block', this.formatOpcode(path), this.formatBlockArgs(args)];
+          return ['{{# <block> }}', this.formatOpcode(path), this.formatBlockArgs(args)];
         }
 
         case Op.InvokeDynamicComponent:
         case Op.InvokeResolvedComponent: {
           const [op, path, args] = opcode;
           return [
-            op === Op.InvokeResolvedComponent ? 'component:resolved' : 'component',
+            op === Op.InvokeResolvedComponent ? '< {component:resolved} >' : '< {component} >',
             this.formatOpcode(path),
             this.formatComponentArgs(args),
           ];
@@ -250,27 +250,32 @@ export default class WireFormatDebugger {
 
         case Op.AppendResolvedInvokableCautiously: {
           const [, callee, args] = opcode;
-          return [
-            '{{ <invokable> }}',
-            this.formatResolved(callee, 'invokable'),
-            this.formatArgs(args),
-          ];
+          return ['{{ <invoke> }}', this.formatResolved(callee), ...this.formatArgs(args)];
         }
 
         case Op.AppendTrustedResolvedInvokable: {
           const [, callee, args] = opcode;
           return [
-            '{{{ <invokable> }}}',
-            this.formatResolved(callee, 'invokable'),
-            this.formatArgs(args),
+            '{{{ <invoke:resolved> }}}',
+            this.formatResolved(callee),
+            ...this.formatArgs(args),
           ];
         }
 
         case Op.AppendStatic:
           return ['append:static', this.formatOpcode(opcode[1])];
 
-        case Op.AppendDynamicInvokable:
-          return ['append:lexical', this.formatOpcode(opcode[1])];
+        case Op.AppendInvokableCautiously:
+          return ['{{ <invoke> }}', this.formatOpcode(opcode[1]), ...this.formatArgs(opcode[2])];
+
+        case Op.AppendResolvedValueCautiously:
+          return ['{{ <append:resolved> }}', this.formatResolved(opcode[1])];
+
+        case Op.AppendTrustedInvokable:
+          return ['{{{ <invoke> }}}', this.formatOpcode(opcode[1]), ...this.formatArgs(opcode[2])];
+
+        case Op.AppendTrustedResolvedHtml:
+          return ['{{{ <append:resolved> }}}', this.formatResolved(opcode[1])];
 
         default:
           exhausted(opcode);
@@ -297,8 +302,8 @@ export default class WireFormatDebugger {
     return `^${this.lexicalSymbols[symbol]}`;
   }
 
-  private formatResolved(symbol: number, kind: string) {
-    return `${kind}:${this.upvars[symbol]}`;
+  private formatResolved(symbol: number) {
+    return this.upvars[symbol];
   }
 
   private formatElementParams(
@@ -323,8 +328,8 @@ export default class WireFormatDebugger {
     }
   }
 
-  private formatArgs(args: Optional<WireFormat.Core.CallArgs>) {
-    if (!args) return;
+  private formatArgs(args: Optional<WireFormat.Core.CallArgs>): unknown[] {
+    if (!args) return [];
 
     const formatted = [];
 
@@ -387,7 +392,7 @@ export default class WireFormatDebugger {
   private formatParams(opcodes: WireFormat.Core.Params): unknown[];
   private formatParams(opcodes: Optional<WireFormat.Core.Params>): Optional<unknown[]>;
   private formatParams(opcodes: Optional<WireFormat.Core.Params>): Optional<unknown[]> {
-    if (!opcodes) return;
+    if (!opcodes) return [];
     return opcodes.map((o) => this.formatOpcode(o));
   }
 

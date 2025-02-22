@@ -160,6 +160,11 @@ export interface ResolveAppendInvokableOptions {
   ifHelper: (handle: number) => void;
 }
 
+export interface ResolveAppendableOptions {
+  ifComponent: (component: CompileTimeComponent) => void;
+  ifHelper: (handle: number) => void;
+}
+
 /**
  * {{maybeHelperOrComponent}}
  */

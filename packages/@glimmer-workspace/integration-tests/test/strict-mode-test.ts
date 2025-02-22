@@ -7,10 +7,10 @@ import {
   GlimmerishComponent,
   jitSuite,
   RenderTest,
+  syntaxErrorFor,
   test,
   TestHelper,
   trackedObj,
-  syntaxErrorFor,
 } from '@glimmer-workspace/integration-tests';
 import { unresolvedErrorFor } from '@glimmer-workspace/test-utils';
 
@@ -416,9 +416,9 @@ class StaticStrictModeTest extends RenderTest {
       () => {
         defineComponent({}, '<Foo/>');
       },
-      unresolvedErrorFor('component', 'tag:unresolved', '<<|Foo|>/>', 'an unknown module', {
+      unresolvedErrorFor('component', 'component:callee', '<<|Foo|>/>', 'an unknown module', {
         notes: [
-          'If you wanted to create an element with that name, convert it to lowercase - \`<foo>\`',
+          'If you wanted to create an element with that name, convert it to lowercase - `<foo>`',
         ],
       })
     );

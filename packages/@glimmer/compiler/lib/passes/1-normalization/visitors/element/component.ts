@@ -12,7 +12,7 @@ export class ClassifiedComponent implements Classified {
   readonly dynamicFeatures = true;
 
   constructor(
-    private tag: mir.BlockCallee | ASTv2.ResolvedCallee,
+    private tag: mir.BlockCallee | ASTv2.ResolvedName,
     private element: ASTv2.InvokeAngleBracketComponent | ASTv2.InvokeResolvedAngleBracketComponent
   ) {}
 
@@ -33,7 +33,7 @@ export class ClassifiedComponent implements Classified {
     let { element, state } = component;
 
     return this.blocks(state).mapOk((blocks) => {
-      if (this.tag.type === 'ResolvedCallee') {
+      if (this.tag.type === 'ResolvedName') {
         return new mir.ResolvedAngleBracketComponent({
           loc: element.loc,
           tag: this.tag,

@@ -37,6 +37,10 @@ export function visitExpr(
   state: NormalizationState
 ): Result<mir.CallExpression>;
 export function visitExpr(
+  node: ASTv2.DynamicCallee,
+  state: NormalizationState
+): Result<mir.CalleeExpression>;
+export function visitExpr(
   node: ASTv2.ExpressionValueNode,
   state: NormalizationState
 ): Result<mir.ExpressionValueNode>;
@@ -44,10 +48,6 @@ export function visitExpr(
   node: ASTv2.AttrValueNode,
   state: NormalizationState
 ): Result<mir.AttrValueExpressionNode>;
-export function visitExpr(
-  node: ASTv2.DynamicCallee,
-  state: NormalizationState
-): Result<mir.CalleeExpression>;
 export function visitExpr(
   node: ASTv2.AppendValueNode,
   state: NormalizationState
@@ -161,7 +161,7 @@ function visitResolvedCallExpression(
     (args) =>
       new mir.ResolvedCallExpression({
         loc: expr.loc,
-        callee: expr.callee,
+        callee: expr.resolved,
         args,
       })
   );

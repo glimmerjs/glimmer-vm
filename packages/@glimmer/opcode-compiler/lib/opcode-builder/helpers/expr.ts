@@ -71,6 +71,7 @@ export function expr(encode: EncodeOp, expression: WireFormat.Expression): void 
       case Op.CallDynamicValue: {
         const [, callee, args] = expression;
 
+        debugger;
         expr(encode, callee);
         encode.op(VM_PUSH_FRAME_OP);
         callArgs(encode, args);

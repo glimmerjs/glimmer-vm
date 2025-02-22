@@ -155,7 +155,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
       }
     | {
         type: 'resolved';
-        callee: ASTv2.ResolvedCallee;
+        callee: ASTv2.ResolvedName;
         loc: SourceSpan;
       }
     | {
@@ -187,7 +187,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
         const loc = this.loc(node.head.loc);
         return {
           type: 'resolved',
-          callee: new ASTv2.ResolvedCallee({ name: node.head.name, symbol, loc }),
+          callee: new ASTv2.ResolvedName({ name: node.head.name, symbol, loc }),
           loc: this.loc(node.loc),
         };
       }
@@ -209,15 +209,15 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
   handleCallee(
     node: ASTv1.PathExpression,
     expr: ExpressionNormalizer
-  ): ASTv2.ResolvedCallee | ASTv2.KeywordExpression | ASTv2.PathExpression;
+  ): ASTv2.ResolvedName | ASTv2.KeywordExpression | ASTv2.PathExpression;
   handleCallee(
     node: ASTv1.Expression,
     expr: ExpressionNormalizer
-  ): ASTv2.ResolvedCallee | ASTv2.KeywordExpression | ASTv2.DynamicCallee;
+  ): ASTv2.ResolvedName | ASTv2.KeywordExpression | ASTv2.DynamicCallee;
   handleCallee(
     node: ASTv1.Expression,
     expr: ExpressionNormalizer
-  ): ASTv2.KeywordExpression | ASTv2.DynamicCallee | ASTv2.ResolvedCallee | ASTv2.PathExpression {
+  ): ASTv2.KeywordExpression | ASTv2.DynamicCallee | ASTv2.ResolvedName | ASTv2.PathExpression {
     return this.getCallee(node, expr).callee;
   }
 
@@ -329,7 +329,7 @@ class ExpressionNormalizer {
 
         if (result.type === 'resolved') {
           return new ASTv2.ResolvedCallExpression({
-            callee: result.callee,
+            resolved: result.callee,
             args,
             loc: this.block.loc(expr.loc),
           });
@@ -518,7 +518,12 @@ class StatementNormalizer {
    */
   MustacheStatement(
     mustache: ASTv1.MustacheStatement
-  ): ASTv2.AppendContent | ASTv2.AppendStaticContent | ASTv2.AppendResolvedInvokable {
+  ):
+    | ASTv2.AppendContent
+    | ASTv2.AppendResolvedContent
+    | ASTv2.AppendStaticContent
+    | ASTv2.AppendInvokable
+    | ASTv2.AppendResolvedInvokable {
     const { path, params, hash, trusting } = mustache;
     const loc = this.block.loc(mustache.loc);
 
@@ -549,30 +554,39 @@ class StatementNormalizer {
     const result = this.block.getCallee(path, this.expr);
 
     if (result.type === 'resolved') {
-      return new ASTv2.AppendResolvedInvokable({
-        loc,
-        callee: result.callee,
-        args: args ?? ASTv2.EmptyCurlyArgs(result.loc.collapse('end')),
-        trusting,
-      });
+      if (args) {
+        return new ASTv2.AppendResolvedInvokable({
+          loc,
+          resolved: result.callee,
+          args,
+          trusting,
+        });
+      } else {
+        return new ASTv2.AppendResolvedContent({
+          loc,
+          resolved: result.callee,
+          trusting,
+        });
+      }
     }
 
     const callee = result.callee;
 
-    const value = args
-      ? new ASTv2.CallExpression({
-          callee,
-          args,
-          loc: SpanList.range([result, args]),
-        })
-      : callee;
-
-    return new ASTv2.AppendContent({
-      table: this.block.table,
-      trusting,
-      value,
-      loc,
-    });
+    if (args) {
+      return new ASTv2.AppendInvokable({
+        loc,
+        callee,
+        args,
+        trusting,
+      });
+    } else {
+      return new ASTv2.AppendContent({
+        table: this.block.table,
+        trusting,
+        value: callee,
+        loc,
+      });
+    }
   }
 
   /**
@@ -704,9 +718,9 @@ class ElementNormalizer {
     const args =
       this.expr.callArgs(params, hash) ?? ASTv2.EmptyCurlyArgs(callee.loc.collapse('end'));
 
-    if (callee.type === 'ResolvedCallee') {
+    if (callee.type === 'ResolvedName') {
       return new ASTv2.ResolvedElementModifier({
-        callee,
+        resolved: callee,
         args,
         loc: this.ctx.loc(m.loc),
       });
@@ -747,9 +761,9 @@ class ElementNormalizer {
 
     const callee = this.ctx.handleCallee(path, this.expr);
 
-    if (callee.type === 'ResolvedCallee') {
+    if (callee.type === 'ResolvedName') {
       return new ASTv2.ResolvedCallExpression({
-        callee,
+        resolved: callee,
         args: args ?? ASTv2.EmptyCurlyArgs(callee.loc.collapse('end')),
         loc: this.ctx.loc(mustache.loc),
       });
@@ -886,7 +900,7 @@ class ElementNormalizer {
     variable: string,
     tail: string[],
     loc: SourceSpan
-  ): ASTv2.PathExpression | ASTv2.ResolvedCallee | 'ElementHead' {
+  ): ASTv2.PathExpression | ASTv2.ResolvedName | 'ElementHead' {
     let uppercase = isUpperCase(variable);
     let inScope = variable[0] === '@' || variable === 'this' || this.ctx.hasBinding(variable);
     let variableLoc = loc.sliceStartChars({ skipStart: 1, chars: variable.length });
@@ -894,7 +908,7 @@ class ElementNormalizer {
     if (this.ctx.strict && !inScope) {
       if (uppercase) {
         // this will turn into an error in `@glimmer/compiler`
-        return new ASTv2.ResolvedCallee({
+        return new ASTv2.ResolvedName({
           name: variable,
           loc: variableLoc,
           symbol: this.ctx.table.allocateFree(variable, true),
@@ -932,7 +946,7 @@ class ElementNormalizer {
         return this.expr.normalizeExpr(path);
       }
 
-      return new ASTv2.ResolvedCallee({
+      return new ASTv2.ResolvedName({
         name: variable,
         symbol: this.ctx.table.allocateFree(variable, true),
         loc: variableLoc,
@@ -1063,14 +1077,6 @@ class ElementChildren extends Children {
     );
   }
 
-  assertUnresolvedBinding(name: SourceSlice): ASTv2.SimpleElement {
-    return this.el.simple(
-      new ASTv2.UnresolvedBinding({ name: name.chars, loc: name.loc }),
-      this.nonBlockChildren,
-      this.loc
-    );
-  }
-
   assertElement(name: SourceSlice, hasBlockParams: boolean): ASTv2.SimpleElement {
     if (hasBlockParams) {
       throw generateSyntaxError(
@@ -1100,10 +1106,12 @@ class ElementChildren extends Children {
   }
 
   assertComponent(
-    name: string | ASTv2.UnresolvedBinding,
+    nameNode: string | ASTv2.UnresolvedBinding,
     table: BlockSymbolTable,
     hasBlockParams: boolean
   ): PresentArray<ASTv2.NamedBlock> {
+    const name = typeof nameNode === 'string' ? nameNode : nameNode.name;
+
     if (isPresentArray(this.namedBlocks) && this.hasSemanticContent) {
       throw generateSyntaxError(
         `Unexpected content inside <${name}> component invocation: when using named blocks, the tag cannot contain other content`,

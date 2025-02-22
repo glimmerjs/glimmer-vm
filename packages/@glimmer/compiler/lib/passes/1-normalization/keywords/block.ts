@@ -68,7 +68,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
                 body,
                 destination,
                 insertBefore: new mir.Missing({
-                  loc: node.callee.loc.collapse('end'),
+                  loc: node.resolved.loc.collapse('end'),
                 }),
               });
             }
@@ -270,11 +270,9 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('let', {
-    assert(node): Result<{
+    assert({ node, args }): Result<{
       positional: ASTv2.PresentPositional;
     }> {
-      let { args } = node;
-
       if (!args.named.isEmpty()) {
         return Err(
           generateSyntaxError(

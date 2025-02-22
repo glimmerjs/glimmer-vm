@@ -1,6 +1,6 @@
 import type { Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import type { ASTv2 } from '@glimmer/syntax';
-import { assertPresentArray, exhausted, mapPresentArray } from '@glimmer/debug-util';
+import { assertPresentArray, exhausted, localAssert, mapPresentArray } from '@glimmer/debug-util';
 import {
   BLOCKS_OPCODE,
   EMPTY_ARGS_OPCODE,
@@ -26,17 +26,29 @@ export function encodeMaybeExpr(
 }
 
 export function encodeExpr(
-  expr: ASTv2.LiteralExpression
+  expr: ASTv2.LiteralExpression | ASTv2.UnresolvedBinding
 ): string | number | boolean | null | WireFormat.Expressions.Undefined;
-export function encodeExpr(expr: mir.CallExpression): WireFormat.Expressions.SomeCallHelper;
 export function encodeExpr(
-  expr: mir.PathExpression | ASTv2.VariableReference
+  expr: mir.CallExpression | ASTv2.UnresolvedBinding
+): WireFormat.Expressions.SomeCallHelper;
+export function encodeExpr(
+  expr: mir.PathExpression | ASTv2.VariableReference | ASTv2.UnresolvedBinding
 ): WireFormat.Expressions.Get;
-export function encodeExpr(expr: Extract<mir.AttrValueExpressionNode, object>): WireFormat.TupleExpression;
-export function encodeExpr(expr: mir.AttrValueExpressionNode): WireFormat.Expression;
 export function encodeExpr(
-  expr: mir.AttrValueExpressionNode | mir.Missing
+  expr: Extract<mir.AttrValueExpressionNode, object> | ASTv2.UnresolvedBinding
+): WireFormat.TupleExpression;
+export function encodeExpr(
+  expr: mir.AttrValueExpressionNode | ASTv2.UnresolvedBinding
+): WireFormat.Expression;
+export function encodeExpr(
+  expr: mir.AttrValueExpressionNode | mir.Missing | ASTv2.UnresolvedBinding
 ): WireFormat.Expression | undefined {
+  localAssert(
+    expr.type !== 'UnresolvedBinding',
+    // @todo make a variant of the mir types that don't include `UnresolvedBinding`
+    `Unresolved bindings should be removed during verification and should not reach the encoder`
+  );
+
   switch (expr.type) {
     case 'Missing':
       return undefined;
@@ -74,6 +86,7 @@ export function encodeExpr(
       return GetDynamicVar(expr);
     case 'Log':
       return Log(expr);
+
     default:
       exhausted(expr);
   }

@@ -8,8 +8,6 @@ import type { VariableReference } from './refs';
 
 import { SourceSlice } from '../../source/slice';
 import { node } from './node';
-import { loc } from '../../source/span-list';
-import { generateSyntaxError } from '../../syntax-error';
 
 /**
  * A Handlebars literal.
@@ -171,8 +169,7 @@ export type PathSyntaxType =
   | 'component:arg'
   | 'arg:positional'
   | 'arg:named'
-  | 'value:fixme'
-  | 'tag:unresolved';
+  | 'value:fixme';
 
 export function describeUnresolvedItem(type: PathSyntaxType): string {
   switch (type) {
@@ -201,8 +198,6 @@ export function describeUnresolvedItem(type: PathSyntaxType): string {
       return 'named argument';
     case 'value:fixme':
       return 'value';
-    case 'tag:unresolved':
-      return 'tag';
   }
 }
 
@@ -239,12 +234,6 @@ export function describeUnresolvedError(type: PathSyntaxType, path: string, head
       return `Attempted to pass ${attempt} as a named argument, but ${name} was not in scope`;
     case 'value:fixme':
       return `Attempted to use ${attempt} as a value, but ${name} was not in scope`;
-    case 'tag:unresolved':
-      //     throw generateSyntaxError(
-      //   `Attempted to invoke a component that was not in scope in a strict mode template, \`<${variable}>\`. If you wanted to create an element with that name, convert it to lowercase - \`<${variable.toLowerCase()}>\``,
-      //   loc
-      // );
-      return `Attempted to invoke ${attempt} as a component, but ${name} was not in scope`;
     default:
       return exhausted(type);
   }
@@ -279,7 +268,7 @@ export function callSyntaxFor(
 }
 
 export class ResolvedCallExpression extends node('ResolvedCall').fields<{
-  callee: ASTv2.ResolvedCallee;
+  resolved: ASTv2.ResolvedName;
   args: ASTv2.CurlyArgs;
 }>() {
   readonly isResolved = true;

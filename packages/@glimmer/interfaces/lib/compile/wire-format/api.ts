@@ -5,11 +5,14 @@ import type { PresentArray } from '../../array';
 import type { Nullable, Optional } from '../../core';
 import type { CurriedType } from '../../curry';
 import type {
-  AppendDynamicInvokableOpcode,
   AppendHtmlTextOpcode,
+  AppendInvokableCautiouslyOpcode,
   AppendResolvedInvokableCautiouslyOpcode,
+  AppendResolvedTrustedHtmlOpcode,
+  AppendResolvedValueCautiouslyOpcode,
   AppendStaticOpcode,
   AppendTrustedHtmlOpcode,
+  AppendTrustedInvokableOpcode,
   AppendTrustedResolvedInvokableOpcode,
   AppendValueCautiouslyOpcode,
   AttrOpcode,
@@ -301,19 +304,6 @@ export namespace Content {
   export type Blocks = Core.Blocks;
   export type Path = Core.Path;
 
-  // Corresponds to `{{...}}`
-  export type SomeAppend =
-    // `{{value}}` where `value` is in scope
-    | AppendValueCautiously
-    // `{{"static"}}`: a special-case for literal values
-    | AppendStatic
-    // `{{<expr> ...args}}` where `expr` only references in-scope variables. Either `args` is
-
-    // present or `expr` is known to be an invokable.
-    | AppendDynamicInvokable
-    // `{{<resolved var> ...args}}` where `resolved var` is _not_ an in-scope variable.
-    | AppendResolvedInvokableCautiously;
-
   export type SomeModifier = DynamicModifier | ResolvedModifier | LexicalModifier;
   export type SomeInvokeComponent =
     | InvokeComponentKeyword
@@ -323,19 +313,29 @@ export namespace Content {
   export type SomeBlock = InvokeResolvedComponent | InvokeDynamicBlock | InvokeLexicalComponent;
 
   export type AppendValueCautiously = [AppendValueCautiouslyOpcode, TupleExpression];
-  export type AppendDynamicInvokable = [
-    AppendDynamicInvokableOpcode,
-    callee: Expression,
-    args: Core.CallArgs,
-  ];
+  export type AppendResolvedValueCautiously = [AppendResolvedValueCautiouslyOpcode, upvar: number];
+
   export type AppendResolvedInvokableCautiously = [
     AppendResolvedInvokableCautiouslyOpcode,
     upvar: number,
     args: Core.CallArgs,
   ];
+
+  export type AppendInvokableCautiously = [
+    AppendInvokableCautiouslyOpcode,
+    callee: Expression,
+    args: Core.CallArgs,
+  ];
+
   export type AppendTrustedResolvedInvokable = [
     AppendTrustedResolvedInvokableOpcode,
     upvar: number,
+    args: Core.CallArgs,
+  ];
+
+  export type AppendTrustedInvokable = [
+    AppendTrustedInvokableOpcode,
+    callee: Expression,
     args: Core.CallArgs,
   ];
 
@@ -343,6 +343,8 @@ export namespace Content {
 
   // Corresponds to `{{{...}}}`
   export type AppendTrustedHtml = [AppendTrustedHtmlOpcode, Expression];
+  export type AppendTrustedResolvedHtml = [AppendResolvedTrustedHtmlOpcode, upvar: number];
+
   export type AppendHtmlComment = [CommentOpcode, string];
   export type AppendHtmlText = [AppendHtmlTextOpcode, string];
   export type DynamicModifier = [DynamicModifierOpcode, Expression, args: Core.CallArgs];
@@ -470,10 +472,15 @@ export namespace Content {
    * A Handlebars statement
    */
   export type Content =
-    | SomeAppend
-    | AppendTrustedHtml
+    | AppendStatic
+    | AppendValueCautiously
+    | AppendResolvedValueCautiously
+    | AppendInvokableCautiously
     | AppendResolvedInvokableCautiously
+    | AppendTrustedInvokable
     | AppendTrustedResolvedInvokable
+    | AppendTrustedHtml
+    | AppendTrustedResolvedHtml
     | StaticHtmlContent
     | DynamicHtmlContent
     | SomeModifier
