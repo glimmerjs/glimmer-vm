@@ -8,7 +8,7 @@ import {
 
 import type { Result } from '../../../../shared/result';
 import type { NormalizationState } from '../../context';
-import type { InvokeKeywordMatch, InvokeKeywordInfo, KeywordDelegate } from '../impl';
+import type { InvokeKeywordInfo, InvokeKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
@@ -55,13 +55,19 @@ function assertHasBlockKeyword(type: string) {
 
 function translateHasBlockKeyword(type: string) {
   return (
-    { node, state: { scope } }: { node: InvokeKeywordMatch; state: NormalizationState },
+    { node, keyword, state: { scope } }: InvokeKeywordInfo,
     target: SourceSlice
   ): Result<mir.HasBlock | mir.HasBlockParams> => {
     let block =
       type === 'has-block'
-        ? new mir.HasBlock({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
+        ? new mir.HasBlock({
+            keyword,
+            loc: node.loc,
+            target,
+            symbol: scope.allocateBlock(target.chars),
+          })
         : new mir.HasBlockParams({
+            keyword,
             loc: node.loc,
             target,
             symbol: scope.allocateBlock(target.chars),

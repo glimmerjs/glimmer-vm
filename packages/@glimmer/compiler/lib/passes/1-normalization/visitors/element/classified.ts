@@ -7,19 +7,19 @@ import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
 import { MODIFIER_KEYWORDS } from '../../keywords';
-import { convertPathToCallIfKeyword, visitCurlyArgs, visitExpr } from '../expressions';
+import { visitAttrValue, visitCurlyArgs, visitExpr } from '../expressions';
 
 export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 
 type ProcessedAttributes = {
   attrs: ValidAttr[];
-  args: mir.NamedArguments;
+  args: mir.ComponentArguments;
 };
 
 export interface Classified {
   readonly dynamicFeatures: boolean;
 
-  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.NamedArgument>;
+  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.ComponentArgument>;
   toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Content>;
 }
 
@@ -57,7 +57,7 @@ export class ClassifiedElement {
       );
     }
 
-    return visitExpr(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
+    return visitAttrValue(rawValue, this.state).mapOk((value) => {
       let isTrusting = attr.trusting;
 
       return new mir.DynamicAttr({
@@ -113,7 +113,7 @@ export class ClassifiedElement {
 
   private attrs(): Result<ProcessedAttributes> {
     let attrs = new ResultArray<ValidAttr>();
-    let args = new ResultArray<mir.NamedArgument>();
+    let args = new ResultArray<mir.ComponentArgument>();
 
     // Unlike most attributes, the `type` attribute can change how
     // subsequent attributes are interpreted by the browser. To address
@@ -121,7 +121,7 @@ export class ClassifiedElement {
     // last. For elements with splattributes, where attribute order affects
     // precedence, this re-ordering happens at runtime instead.
     // See https://github.com/glimmerjs/glimmer-vm/pull/726
-    let typeAttr: ASTv2.AttrNode | null = null;
+    let typeAttr: ASTv2.HtmlAttr | null = null;
     let simple = this.element.attrs.filter((attr) => attr.type === 'SplatAttr').length === 0;
 
     for (let attr of this.element.attrs) {
@@ -146,7 +146,7 @@ export class ClassifiedElement {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: new mir.NamedArguments({
+      args: new mir.ComponentArguments({
         loc: maybeLoc(args, src.SourceSpan.NON_EXISTENT),
         entries: OptionalList(args),
       }),
@@ -173,7 +173,7 @@ export class ClassifiedElement {
 }
 
 export interface PreparedArgs {
-  args: mir.NamedArguments;
+  args: mir.ComponentArguments;
   params: mir.ElementParameters;
 }
 

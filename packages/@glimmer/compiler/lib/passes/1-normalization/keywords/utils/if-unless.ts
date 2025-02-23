@@ -1,7 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { generateSyntaxError } from '@glimmer/syntax';
 
-import type { NormalizationState } from '../../context';
 import type { ContentKeywordInfo, ContentKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
@@ -80,7 +79,7 @@ function translateIfUnlessInlineKeyword(type: string) {
   let inverted = type === 'unless';
 
   return (
-    { node, state }: { node: ContentKeywordMatch; state: NormalizationState },
+    { node, keyword, state }: ContentKeywordInfo,
     {
       condition,
       truthy,
@@ -102,6 +101,7 @@ function translateIfUnlessInlineKeyword(type: string) {
         }
 
         return new mir.IfExpression({
+          keyword,
           loc: node.loc,
           condition,
           truthy,

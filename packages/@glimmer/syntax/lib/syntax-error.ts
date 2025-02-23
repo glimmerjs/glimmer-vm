@@ -3,9 +3,8 @@ import { localAssert } from '@glimmer/debug-util';
 
 import type * as src from './source/api';
 import type {
-  OuterExpressionValidationContext,
   PathValidationContext,
-  ValidationContext,
+  VariableReferenceValidationContext,
 } from './validation-context';
 
 export interface GlimmerSyntaxError extends Error {
@@ -17,7 +16,7 @@ export function unresolvedBindingError({
   context,
   notes = [],
 }: {
-  context: PathValidationContext;
+  context: VariableReferenceValidationContext;
   notes?: string[] | undefined;
 }): GlimmerSyntaxError {
   const loc = context.loc;
@@ -124,6 +123,7 @@ function quoteInvalidExpr(context: OuterExpressionValidationContext, problem: st
 function quoteInvalidPath(context: PathValidationContext, problem: string): string {
   const { callee, syntax } = context;
 
+  const fullContext = context.lines;
   const highlightContext = context.highlightContext;
 
   if (!highlightContext || !callee) {
@@ -134,7 +134,13 @@ function quoteInvalidPath(context: PathValidationContext, problem: string): stri
 
   const codeString = highlightContext.asString();
 
-  const lines = new LineBuffers([path.startPosition.line]);
+  const fullRange = LineRange.for(
+    context.content.getSource(),
+    fullContext.startPosition.line,
+    fullContext.endPosition.line
+  );
+
+  const lines = new LineBuffers([...fullRange]);
   const code = lines
     .forLine(path.startPosition.line, highlightContext.startPosition.column)
     .add(codeString);
@@ -331,4 +337,47 @@ function drawUnderline(highlightContext: src.SourceSpan, head: src.SourceSpan, p
   const trail = trailSize > 0 ? '┈'.repeat(trailSize) : '';
 
   return `|  ${' '.repeat(head.startPosition.column - highlightContext.startPosition.column)}${primary}${trail}┈┈┈┈┈ ${problem}\n`;
+}
+
+class LineRange implements Iterable<number> {
+  static for(source: src.Source, start: number, end: number): LineRange {
+    return new LineRange(source, start, end);
+  }
+
+  #source: src.Source;
+  #start: number;
+  #end: number;
+
+  constructor(source: src.Source, start: number, end: number) {
+    this.#source = source;
+    this.#start = start;
+    this.#end = end;
+  }
+
+  *[Symbol.iterator]() {
+    for (let i = this.#start; i <= this.#end; i++) {
+      yield i;
+    }
+  }
+
+  get first(): string {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return this.#source.getLine(this.#start)!;
+  }
+
+  get last(): Optional<string> {
+    return this.#source.getLine(this.#end);
+  }
+
+  get(line: number): Optional<string> {
+    return this.#source.getLine(line);
+  }
+
+  get size() {
+    return this.#end - this.#start + 1;
+  }
+
+  contains(pos: number): boolean {
+    return pos >= this.#start && pos <= this.#end;
+  }
 }

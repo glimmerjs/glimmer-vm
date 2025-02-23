@@ -1,10 +1,11 @@
 import type { PresentArray } from '@glimmer/interfaces';
-import { exhausted, getLast, isPresentArray } from '@glimmer/debug-util';
+import { exhausted, getLast, isPresentArray, mapPresentArray } from '@glimmer/debug-util';
 import { ASTv2, KEYWORDS_TYPES } from '@glimmer/syntax';
 
-import type { AnyOptionalList, PresentList } from '../../../shared/list';
+import type { AnyOptionalList } from '../../../shared/list';
 import type { NormalizationState } from '../context';
 
+import { OptionalList, PresentList } from '../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import { CALL_KEYWORDS } from '../keywords';
@@ -17,6 +18,17 @@ export function visitHeadExpr(
     return Ok(node);
   } else {
     return visitExpr(node, state);
+  }
+}
+
+export function visitAttrValue(
+  node: ASTv2.AttrValueNode,
+  state: NormalizationState
+): Result<mir.AttrStyleValue> {
+  if (node.type === 'Interpolate') {
+    return visitInterpolate(node, state);
+  } else {
+    return visitInterpolatePart(node, state);
   }
 }
 
@@ -45,24 +57,23 @@ export function visitExpr(
   state: NormalizationState
 ): Result<mir.ExpressionValueNode>;
 export function visitExpr(
-  node: ASTv2.AttrValueNode,
-  state: NormalizationState
-): Result<mir.AttrValueExpressionNode>;
-export function visitExpr(
   node: ASTv2.AppendValueNode,
   state: NormalizationState
 ): Result<ASTv2.LiteralExpression | mir.CalleeExpression>;
 export function visitExpr(
-  node: ASTv2.AttrValueNode,
+  node: ASTv2.DynamicCallee | ASTv2.UnresolvedBinding,
   state: NormalizationState
-): Result<mir.AttrValueExpressionNode | ASTv2.UnresolvedBinding> {
+): Result<mir.ExpressionValueNode | ASTv2.UnresolvedBinding>;
+
+export function visitExpr(
+  node: ASTv2.ExpressionValueNode | ASTv2.UnresolvedBinding,
+  state: NormalizationState
+): Result<mir.ExpressionValueNode | ASTv2.UnresolvedBinding> {
   switch (node.type) {
     case 'Literal':
       return Ok(node);
     case 'Keyword':
       return Ok(node);
-    case 'Interpolate':
-      return visitInterpolate(node, state);
     case 'Path':
       return visitPathExpression(node);
     case 'Arg':
@@ -83,6 +94,9 @@ export function visitExpr(
       return visitResolvedCallExpression(node, state);
     }
 
+    case 'UnresolvedBinding':
+      return Ok(node);
+
     default:
       exhausted(node);
   }
@@ -97,19 +111,9 @@ export function visitExprs(
   state: NormalizationState
 ): Result<AnyOptionalList<mir.ExpressionValueNode>>;
 export function visitExprs(
-  nodes: PresentArray<ASTv2.AttrValueNode>,
+  nodes: readonly ASTv2.ExpressionValueNode[],
   state: NormalizationState
-): Result<PresentList<mir.AttrValueExpressionNode>>;
-export function visitExprs(
-  nodes: readonly ASTv2.AttrValueNode[],
-  state: NormalizationState
-): Result<AnyOptionalList<mir.AttrValueExpressionNode>>;
-export function visitExprs(
-  nodes: readonly ASTv2.AttrValueNode[] | readonly ASTv2.ExpressionValueNode[],
-  state: NormalizationState
-):
-  | Result<AnyOptionalList<mir.AttrValueExpressionNode>>
-  | Result<AnyOptionalList<mir.ExpressionValueNode>> {
+): Result<AnyOptionalList<mir.ExpressionValueNode>> {
   return new ResultArray(nodes.map((e) => visitExpr(e, state))).toOptionalList();
 }
 
@@ -142,11 +146,48 @@ function visitInterpolate(
   expr: ASTv2.InterpolateExpression,
   state: NormalizationState
 ): Result<mir.InterpolateExpression> {
-  let parts = expr.parts.map(convertPathToCallIfKeyword) as PresentArray<ASTv2.ExpressionValueNode>;
-
-  return visitExprs(parts, state).mapOk(
-    (parts) => new mir.InterpolateExpression({ loc: expr.loc, parts: parts })
+  let parts = mapPresentArray(expr.parts, (p) =>
+    visitInterpolatePart(convertPathToCallIfKeyword(p), state)
   );
+
+  return Result.all(...parts).mapOk(
+    (parts) => new mir.InterpolateExpression({ loc: expr.loc, parts: new PresentList(parts) })
+  );
+}
+
+function visitInterpolatePart(
+  part: ASTv2.InterpolatePartNode,
+  state: NormalizationState
+): Result<mir.AttrStyleInterpolatePart> {
+  switch (part.type) {
+    case 'Literal':
+    case 'CurlyResolvedAttrValue':
+      return Ok(part);
+    case 'CurlyAttrValue':
+      return visitExpr(part.value, state).mapOk(
+        (value) => new mir.CurlyAttrValue({ loc: part.loc, value })
+      );
+    case 'CurlyInvokeAttr':
+      return Result.all(visitExpr(part.callee, state), visitCurlyArgs(part.args, state)).mapOk(
+        ([callee, args]) =>
+          new mir.CurlyInvokeAttr({
+            loc: part.loc,
+            callee,
+            args,
+          })
+      );
+    case 'CurlyInvokeResolvedAttr':
+      return visitCurlyArgs(part.args, state).mapOk(
+        (args) =>
+          new mir.CurlyInvokeResolvedAttr({
+            loc: part.loc,
+            resolved: part.resolved,
+            args,
+          })
+      );
+    default:
+      exhausted(part);
+  }
 }
 
 /**
@@ -181,25 +222,14 @@ function visitCallExpression(
   );
 }
 
-export function visitComponentArgs(
-  { positional, named, loc }: ASTv2.ComponentArgs,
-  state: NormalizationState
-): Result<mir.Args> {
-  return Result.all(visitPositional(positional, state), visitNamedArguments(named, state)).mapOk(
-    ([positional, named]) =>
-      new mir.Args({
-        loc,
-        positional,
-        named,
-      })
-  );
-}
-
 export function visitCurlyArgs(
   { positional, named, loc }: ASTv2.CurlyArgs,
   state: NormalizationState
 ): Result<mir.Args> {
-  return Result.all(visitPositional(positional, state), visitNamedArguments(named, state)).mapOk(
+  return Result.all(
+    visitPositional(positional, state),
+    visitCurlyNamedArguments(named, state)
+  ).mapOk(
     ([positional, named]) =>
       new mir.Args({
         loc,
@@ -233,21 +263,19 @@ export function visitPositional(
 export function visitComponentArguments(
   named: ASTv2.PresentComponentNamedArguments,
   state: NormalizationState
-): Result<mir.PresentNamedArguments>;
+): Result<mir.PresentComponentArguments>;
 export function visitComponentArguments(
   named: ASTv2.ComponentNamedArguments,
   state: NormalizationState
-): Result<mir.NamedArguments>;
+): Result<mir.ComponentArguments>;
 export function visitComponentArguments(
   named: ASTv2.ComponentNamedArguments,
   state: NormalizationState
-): Result<mir.NamedArguments> {
+): Result<mir.ComponentArguments> {
   let pairs = named.entries.map((arg) => {
-    let value = convertPathToCallIfKeyword(arg.value);
-
-    return visitExpr(value, state).mapOk(
+    return visitAttrValue(arg.value, state).mapOk(
       (value) =>
-        new mir.NamedArgument({
+        new mir.ComponentArgument({
           loc: arg.loc,
           key: arg.name,
           value,
@@ -255,29 +283,29 @@ export function visitComponentArguments(
     );
   });
 
-  return new ResultArray(pairs)
-    .toOptionalList()
-    .mapOk((pairs) => new mir.NamedArguments({ loc: named.loc, entries: pairs }));
+  return Result.all(...pairs).mapOk(
+    (pairs) => new mir.ComponentArguments({ loc: named.loc, entries: OptionalList(pairs) })
+  );
 }
 
-export function visitNamedArguments(
-  named: ASTv2.PresentNamedArguments,
+export function visitCurlyNamedArguments(
+  named: ASTv2.PresentCurlyNamedArguments,
   state: NormalizationState
-): Result<mir.PresentNamedArguments>;
-export function visitNamedArguments(
-  named: ASTv2.NamedArguments,
+): Result<mir.PresentCurlyNamedArguments>;
+export function visitCurlyNamedArguments(
+  named: ASTv2.CurlyNamedArguments,
   state: NormalizationState
-): Result<mir.NamedArguments>;
-export function visitNamedArguments(
-  named: ASTv2.NamedArguments,
+): Result<mir.CurlyNamedArguments>;
+export function visitCurlyNamedArguments(
+  named: ASTv2.CurlyNamedArguments,
   state: NormalizationState
-): Result<mir.NamedArguments> {
+): Result<mir.CurlyNamedArguments> {
   let pairs = named.entries.map((arg) => {
     let value = convertPathToCallIfKeyword(arg.value);
 
     return visitExpr(value, state).mapOk(
       (value) =>
-        new mir.NamedArgument({
+        new mir.CurlyNamedArgument({
           loc: arg.loc,
           key: arg.name,
           value,
@@ -287,13 +315,15 @@ export function visitNamedArguments(
 
   return new ResultArray(pairs)
     .toOptionalList()
-    .mapOk((pairs) => new mir.NamedArguments({ loc: named.loc, entries: pairs }));
+    .mapOk((pairs) => new mir.CurlyNamedArguments({ loc: named.loc, entries: pairs }));
 }
 
 export function convertPathToCallIfKeyword(
   path: ASTv2.ExpressionValueNode
 ): ASTv2.ExpressionValueNode;
-export function convertPathToCallIfKeyword(path: ASTv2.AttrValueNode): ASTv2.AttrValueNode;
+export function convertPathToCallIfKeyword(
+  path: ASTv2.InterpolatePartNode
+): ASTv2.InterpolatePartNode;
 export function convertPathToCallIfKeyword(
   path: ASTv2.ExpressionValueNode | ASTv2.AttrValueNode
 ): ASTv2.ExpressionValueNode | ASTv2.AttrValueNode {

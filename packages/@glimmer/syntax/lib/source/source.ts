@@ -1,4 +1,4 @@
-import type { Nullable } from '@glimmer/interfaces';
+import type { Nullable, Optional } from '@glimmer/interfaces';
 import { localAssert, setLocalDebugType } from '@glimmer/debug-util';
 
 import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
@@ -31,6 +31,15 @@ export class Source {
 
   offsetFor(line: number, column: number): SourceOffset {
     return SourceOffset.forHbsPos(this, { line, column });
+  }
+
+  hasLine(line: number): boolean {
+    return line >= 0 && line <= this.source.split('\n').length;
+  }
+
+  getLine(line: number): Optional<string> {
+    const lines = this.source.split('\n');
+    return lines[line];
   }
 
   spanFor({ start, end }: Readonly<SourceLocation>): SourceSpan {

@@ -17,7 +17,7 @@ export class ClassifiedSimpleElement implements Classified {
 
   readonly isComponent = false;
 
-  arg(attr: ASTv2.ComponentArg): Result<mir.NamedArgument> {
+  arg(attr: ASTv2.ComponentArg): Result<mir.ComponentArgument> {
     return Err(
       generateSyntaxError(
         `${attr.name.chars} is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${this.tag.chars}\`) is a regular, non-component HTML element.`,

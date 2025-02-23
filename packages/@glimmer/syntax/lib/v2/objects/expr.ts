@@ -282,10 +282,32 @@ export class ResolvedCallExpression extends node('ResolvedCall').fields<{
  * ```
  */
 export class InterpolateExpression extends node('Interpolate').fields<{
-  parts: PresentArray<ExpressionValueNode>;
+  parts: PresentArray<InterpolatePartNode>;
 }>() {}
 
-export type AttrValueNode = ExpressionValueNode | InterpolateExpression;
+export class CurlyAttrValue extends node('CurlyAttrValue').fields<{
+  value: ExpressionValueNode;
+}>() {}
+
+export class CurlyResolvedAttrValue extends node('CurlyResolvedAttrValue').fields<{
+  resolved: ASTv2.ResolvedName;
+}>() {}
+
+export class CurlyInvokeResolvedAttr extends node('CurlyInvokeResolvedAttr').fields<{
+  resolved: ASTv2.ResolvedName;
+  args: ASTv2.CurlyArgs;
+}>() {}
+
+export class CurlyInvokeAttr extends node('CurlyInvokeAttr').fields<CallFields>() {}
+
+export type InterpolatePartNode =
+  | CurlyAttrValue
+  | CurlyResolvedAttrValue
+  | CurlyInvokeAttr
+  | CurlyInvokeResolvedAttr
+  | StringLiteral;
+
+export type AttrValueNode = InterpolatePartNode | InterpolateExpression;
 
 export type ExpressionValueNode =
   | LiteralExpression
