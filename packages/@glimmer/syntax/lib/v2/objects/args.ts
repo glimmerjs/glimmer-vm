@@ -28,12 +28,27 @@ export class UnresolvedBinding extends node('UnresolvedBinding').fields<{
  * If `Args` is empty, the `SourceOffsets` for this node should be the collapsed position
  * immediately after the parent call node's `callee`.
  */
-export class BaseArgs<N extends CurlyArgument | ComponentArgument> extends node().fields<{
-  positional: PositionalArguments;
-  named: BaseNamedArguments<CurlyArgument | ComponentArgument>;
-}>() {
+export class BaseArgs<N extends CurlyArgument | ComponentArgument> {
+  readonly loc: SourceSpan;
+  readonly positional: PositionalArguments;
+  readonly named: BaseNamedArguments<N>;
+
+  constructor(fields: {
+    loc: SourceSpan;
+    positional: PositionalArguments;
+    named: BaseNamedArguments<N>;
+  }) {
+    this.loc = fields.loc;
+    this.positional = fields.positional;
+    this.named = fields.named;
+  }
+
   nth(offset: number): N['value'] | null {
     return this.positional.nth(offset);
+  }
+
+  getNode(name: string): N | null {
+    return this.named.getNode(name);
   }
 
   get(name: string): N['value'] | null {
@@ -139,9 +154,15 @@ export type PresentPositional = PositionalArguments & { exprs: PresentArray<Expr
  * If `PositionalArguments` is not empty but `NamedArguments` is empty, the `SourceOffsets` for this
  * node should be the collapsed position immediately after the last positional argument.
  */
-export class BaseNamedArguments<A extends CurlyArgument | ComponentArgument> extends node().fields<{
-  entries: readonly (CurlyArgument | ComponentArgument)[];
-}>() {
+export class BaseNamedArguments<A extends CurlyArgument | ComponentArgument> {
+  readonly loc: SourceSpan;
+  readonly entries: readonly A[];
+
+  constructor(fields: { loc: SourceSpan; entries: readonly A[] }) {
+    this.loc = fields.loc;
+    this.entries = fields.entries;
+  }
+
   get size(): number {
     return this.entries.length;
   }
@@ -154,6 +175,10 @@ export class BaseNamedArguments<A extends CurlyArgument | ComponentArgument> ext
         ? PresentCurlyNamedArguments
         : PresentComponentNamedArguments;
     }
+  }
+
+  getNode(name: string): A | null {
+    return (this.entries as A[]).filter((e) => e.name.chars === name)[0] ?? null;
   }
 
   get(name: string): A['value'] | null {
@@ -189,7 +214,6 @@ export function ComponentNamedArguments(
 
 export type CurlyNamedArguments = BaseNamedArguments<CurlyArgument>;
 export type ComponentNamedArguments = BaseNamedArguments<ComponentArgument>;
-export type NamedArguments = CurlyNamedArguments | ComponentNamedArguments;
 
 export type PresentNamedArguments = PresentCurlyNamedArguments | PresentComponentNamedArguments;
 export type PresentCurlyNamedArguments = CurlyNamedArguments & {

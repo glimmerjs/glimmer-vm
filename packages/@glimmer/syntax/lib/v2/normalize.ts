@@ -742,19 +742,22 @@ class ElementNormalizer {
    * <a href="{{url}}.html" />
    * ```
    */
-  private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.ExpressionValueNode {
+  private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.InterpolatePartNode {
     let { path, params, hash, loc } = mustache;
 
     if (isLiteral(path)) {
       if (params.length === 0 && hash.pairs.length === 0) {
-        return this.expr.normalizeExpr(path);
+        return new ASTv2.CurlyAttrValue({
+          loc: mustache.loc,
+          value: this.expr.normalizeExpr(path),
+        });
       } else {
         assertIllegalLiteral(path, loc);
       }
     }
 
     if (params.length === 0 && hash.pairs.length === 0 && !this.ctx.exprIsResolveCandidate(path)) {
-      return this.expr.normalizeExpr(path);
+      return new ASTv2.CurlyAttrValue({ loc: mustache.loc, value: this.expr.normalizeExpr(path) });
     }
 
     const args = this.expr.callArgs(params, hash);
@@ -762,17 +765,31 @@ class ElementNormalizer {
     const callee = this.ctx.handleCallee(path, this.expr);
 
     if (callee.type === 'ResolvedName') {
-      return new ASTv2.ResolvedCallExpression({
-        resolved: callee,
-        args: args ?? ASTv2.EmptyCurlyArgs(callee.loc.collapse('end')),
-        loc: this.ctx.loc(mustache.loc),
-      });
+      if (args) {
+        return new ASTv2.CurlyInvokeResolvedAttr({
+          resolved: callee,
+          args,
+          loc: mustache.loc,
+        });
+      } else {
+        return new ASTv2.CurlyResolvedAttrValue({
+          resolved: callee,
+          loc: mustache.loc,
+        });
+      }
     } else {
-      return new ASTv2.CallExpression({
-        callee,
-        args: args ?? ASTv2.EmptyCurlyArgs(callee.loc.collapse('end')),
-        loc: this.ctx.loc(mustache.loc),
-      });
+      if (args) {
+        return new ASTv2.CurlyInvokeAttr({
+          callee,
+          args,
+          loc: this.ctx.loc(mustache.loc),
+        });
+      } else {
+        return new ASTv2.CurlyAttrValue({
+          value: this.expr.normalizeExpr(path),
+          loc: mustache.loc,
+        });
+      }
     }
   }
 
@@ -781,7 +798,7 @@ class ElementNormalizer {
    * allowed as a concat part (you can't nest concats).
    */
   private attrPart(part: ASTv1.MustacheStatement | ASTv1.TextNode): {
-    expr: ASTv2.ExpressionValueNode;
+    expr: ASTv2.InterpolatePartNode;
     trusting: boolean;
   } {
     switch (part.type) {

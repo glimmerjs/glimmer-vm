@@ -10,6 +10,7 @@ import { Err } from '../../../shared/result';
 export interface KeywordInfo<Match extends KeywordMatch> {
   node: Match;
   loc: SourceSpan;
+  keyword: SourceSpan;
   state: NormalizationState;
   args: ASTv2.CurlyArgs;
 }
@@ -60,9 +61,10 @@ class KeywordImpl<
   translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
     if (this.match(node)) {
       const args = getKeywordArgs(node);
-      let param = this.delegate.assert({ node, loc: node.loc, state, args });
+      const keyword = node.resolved.loc;
+      let param = this.delegate.assert({ node, keyword, loc: node.loc, state, args });
       return param.andThen((param) =>
-        this.delegate.translate({ node, loc: node.loc, state, args }, param)
+        this.delegate.translate({ node, keyword, loc: node.loc, state, args }, param)
       );
     } else {
       return null;

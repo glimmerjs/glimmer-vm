@@ -190,7 +190,7 @@ export class Builder {
     });
   }
 
-  interpolate(parts: ASTv2.ExpressionValueNode[], loc: SourceSpan): ASTv2.InterpolateExpression {
+  interpolate(parts: ASTv2.InterpolatePartNode[], loc: SourceSpan): ASTv2.InterpolateExpression {
     assertPresentArray(parts);
 
     return new ASTv2.InterpolateExpression({
