@@ -6,8 +6,8 @@ import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import {
   visitCurlyArgs,
+  visitCurlyNamedArguments,
   visitExpr,
-  visitNamedArguments,
   visitPositional,
 } from '../visitors/expressions';
 import { visitNamedBlock, visitNamedBlocks } from '../visitors/statements';
@@ -17,7 +17,7 @@ import { assertCurryKeyword } from './utils/curry';
 export const BLOCK_KEYWORDS = keywords('Block')
   .kw('in-element', {
     assert(node): Result<{
-      insertBefore: ASTv2.ExpressionValueNode | null;
+      insertBefore: ASTv2.CurlyArgument | null;
       destination: ASTv2.ExpressionValueNode;
     }> {
       let { args } = node;
@@ -28,7 +28,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
         return Err(generateSyntaxError(`Cannot pass \`guid\` to \`{{#in-element}}\``, guid.loc));
       }
 
-      let insertBefore = args.get('insertBefore');
+      let insertBefore = args.getNode('insertBefore');
       let destination = args.nth(0);
 
       if (destination === null) {
@@ -45,7 +45,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ insertBefore, destination });
     },
 
-    translate({ node, state }, { insertBefore, destination }): Result<mir.InElement> {
+    translate({ node, keyword, state }, { insertBefore, destination }): Result<mir.InElement> {
       let named = node.blocks.get('default');
       let body = visitNamedBlock(named, state);
       let destinationResult = visitExpr(destination, state);
@@ -55,13 +55,13 @@ export const BLOCK_KEYWORDS = keywords('Block')
           ([body, destination]): Result<{
             body: mir.NamedBlock;
             destination: mir.ExpressionValueNode;
-            insertBefore: mir.ExpressionValueNode | mir.Missing;
+            insertBefore: mir.CustomNamedArgument<mir.ExpressionValueNode> | mir.Missing;
           }> => {
             if (insertBefore) {
-              return visitExpr(insertBefore, state).mapOk((insertBefore) => ({
+              return visitExpr(insertBefore.value, state).mapOk((insertBeforeValue) => ({
                 body,
                 destination,
-                insertBefore,
+                insertBefore: mir.CustomNamedArgument.from(insertBefore, insertBeforeValue),
               }));
             } else {
               return Ok({
@@ -77,6 +77,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
         .mapOk(
           ({ body, destination, insertBefore }) =>
             new mir.InElement({
+              keyword,
               loc: node.loc,
               block: body,
               insertBefore,
@@ -126,7 +127,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ condition });
     },
 
-    translate({ node, state }, { condition }): Result<mir.IfContent> {
+    translate({ node, keyword, state }, { condition }): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
@@ -137,6 +138,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
           new mir.IfContent({
+            keyword,
             loc: node.loc,
             condition,
             block,
@@ -185,7 +187,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ condition });
     },
 
-    translate({ node, state }, { condition }): Result<mir.IfContent> {
+    translate({ node, keyword, state }, { condition }): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
@@ -196,6 +198,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
           new mir.IfContent({
+            keyword,
             loc: node.loc,
             condition: new mir.Not({ value: condition, loc: node.loc }),
             block,
@@ -207,7 +210,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
   .kw('each', {
     assert(node): Result<{
       value: ASTv2.ExpressionValueNode;
-      key: ASTv2.ExpressionValueNode | null;
+      key: ASTv2.CurlyArgument | null;
     }> {
       let { args } = node;
 
@@ -233,7 +236,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       let value = args.nth(0);
-      let key = args.get('key');
+      let key = args.getNode('key');
 
       if (value === null) {
         return Err(
@@ -247,22 +250,24 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ value, key });
     },
 
-    translate({ node, state }, { value, key }): Result<mir.Each> {
+    translate({ node, keyword, state }, { value, key }): Result<mir.Each> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
       let valueResult = visitExpr(value, state);
-      let keyResult = key ? visitExpr(key, state) : Ok(null);
+      let keyResult = key ? visitExpr(key.value, state) : Ok(null);
 
       let blockResult = visitNamedBlock(block, state);
       let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
       return Result.all(valueResult, keyResult, blockResult, inverseResult).mapOk(
-        ([value, key, block, inverse]) =>
+        ([value, keyExpr, block, inverse]) =>
           new mir.Each({
+            keyword,
             loc: node.loc,
             value,
-            key,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            key: keyExpr ? mir.CustomNamedArgument.from(key!, keyExpr) : null,
             block,
             inverse,
           })
@@ -304,7 +309,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ positional });
     },
 
-    translate({ node, state }, { positional }): Result<mir.Let> {
+    translate({ node, keyword, state }, { positional }): Result<mir.Let> {
       let block = node.blocks.get('default');
 
       let positionalResult = visitPositional(positional, state);
@@ -313,6 +318,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Result.all(positionalResult, blockResult).mapOk(
         ([positional, block]) =>
           new mir.Let({
+            keyword,
             loc: node.loc,
             positional,
             block,
@@ -333,15 +339,16 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
     },
 
-    translate({ node, state }, { named }): Result<mir.WithDynamicVars> {
+    translate({ node, keyword, state }, { named }): Result<mir.WithDynamicVars> {
       let block = node.blocks.get('default');
 
-      let namedResult = visitNamedArguments(named, state);
+      let namedResult = visitCurlyNamedArguments(named, state);
       let blockResult = visitNamedBlock(block, state);
 
       return Result.all(namedResult, blockResult).mapOk(
         ([named, block]) =>
           new mir.WithDynamicVars({
+            keyword,
             loc: node.loc,
             named,
             block,
@@ -353,7 +360,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
     assert: assertCurryKeyword(CURRIED_COMPONENT),
 
     translate(
-      { node, state },
+      { node, keyword, state },
       { definition, args }
     ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
       let definitionResult = visitExpr(definition, state);
@@ -374,6 +381,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
             return Ok(
               new mir.InvokeResolvedComponentKeyword({
+                keyword,
                 loc: node.loc,
                 definition: definition.value,
                 args,
@@ -384,6 +392,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
           return Ok(
             new mir.InvokeComponentKeyword({
+              keyword,
               loc: node.loc,
               definition,
               args,

@@ -51,14 +51,8 @@ export function node(): {
   fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
 };
 
-export function node<T extends string>(
-  name: T,
-  options?: { debugger?: boolean }
-): TypedNodeDefinition<T>;
-export function node<T extends string>(
-  name?: T,
-  options?: { debugger?: boolean }
-): NodeDefinition | TypedNodeDefinition<T> {
+export function node<T extends string>(name: T): TypedNodeDefinition<T>;
+export function node<T extends string>(name?: T): NodeDefinition | TypedNodeDefinition<T> {
   if (name !== undefined) {
     const type = name;
     return {

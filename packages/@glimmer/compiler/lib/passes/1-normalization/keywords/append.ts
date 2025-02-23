@@ -1,9 +1,6 @@
 import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/constants';
 import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
 
-import type { NormalizationState } from '../context';
-import type { ContentKeywordMatch } from './impl';
-
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import { visitCurlyArgs, visitExpr, visitPositional } from '../visitors/expressions';
@@ -51,19 +48,11 @@ export const APPEND_KEYWORDS = keywords('Append')
       }
     },
 
-    translate(
-      { node, state }: { node: ContentKeywordMatch; state: NormalizationState },
-      {
-        target,
-        positional,
-      }: {
-        target: src.SourceSlice;
-        positional: ASTv2.PositionalArguments;
-      }
-    ): Result<mir.Content> {
+    translate({ node, keyword, state }, { target, positional }): Result<mir.Content> {
       return visitPositional(positional, state).mapOk(
         (positional) =>
           new mir.Yield({
+            keyword,
             loc: node.loc,
             target,
             to: state.scope.allocateBlock(target.chars),
@@ -89,15 +78,15 @@ export const APPEND_KEYWORDS = keywords('Append')
       }
     },
 
-    translate({ node, state: { scope } }): Result<mir.Content> {
-      return Ok(new mir.Debugger({ loc: node.loc, scope }));
+    translate({ node, keyword, state: { scope } }): Result<mir.Content> {
+      return Ok(new mir.Debugger({ keyword, loc: node.loc, scope }));
     },
   })
   .kw('component', {
     assert: assertCurryKeyword(CURRIED_COMPONENT),
 
     translate(
-      { node, state },
+      { node, keyword, state },
       { definition, args }
     ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
       let definitionResult = visitExpr(definition, state);
@@ -116,6 +105,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
           return Ok(
             new mir.InvokeResolvedComponentKeyword({
+              keyword,
               loc: node.loc,
               definition: definition.value,
               args,
@@ -125,6 +115,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
         return Ok(
           new mir.InvokeComponentKeyword({
+            keyword,
             loc: node.loc,
             definition,
             args,

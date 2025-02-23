@@ -2,8 +2,7 @@ import type { ASTv2 } from '@glimmer/syntax';
 import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';
-import type { NormalizationState } from '../../context';
-import type { InvokeKeywordMatch, InvokeKeywordInfo, KeywordDelegate } from '../impl';
+import type { InvokeKeywordInfo, InvokeKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
@@ -37,10 +36,12 @@ function assertGetDynamicVarKeyword({
 }
 
 function translateGetDynamicVarKeyword(
-  { node, state }: { node: InvokeKeywordMatch; state: NormalizationState },
+  { node, keyword, state }: InvokeKeywordInfo,
   name: ASTv2.ExpressionValueNode
 ): Result<mir.GetDynamicVar> {
-  return visitExpr(name, state).mapOk((name) => new mir.GetDynamicVar({ name, loc: node.loc }));
+  return visitExpr(name, state).mapOk(
+    (name) => new mir.GetDynamicVar({ keyword, name, loc: node.loc })
+  );
 }
 
 export const getDynamicVarKeyword: KeywordDelegate<

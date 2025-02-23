@@ -4,8 +4,10 @@ import type {
   BlockSymbolTable,
   ProgramSymbolTable,
   SourceSlice,
+  SourceSpan,
   SymbolTable,
 } from '@glimmer/syntax';
+import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/constants';
 import { node } from '@glimmer/syntax';
 
 import type { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
@@ -18,12 +20,30 @@ export class Template extends node('Template').fields<{
   body: Content[];
 }>() {}
 
+export class CustomNamedArgument<T> {
+  static from<T>(arg: ASTv2.CurlyArgument, value: T): CustomNamedArgument<T> {
+    return new CustomNamedArgument({ loc: arg.loc, key: arg.name, value });
+  }
+
+  readonly type = 'CustomNamedArgument';
+  readonly loc: SourceSpan;
+  readonly key: SourceSlice;
+  readonly value: T;
+
+  constructor(fields: { loc: SourceSpan; key: SourceSlice; value: T }) {
+    this.loc = fields.loc;
+    this.key = fields.key;
+    this.value = fields.value;
+  }
+}
+
 /**
  * Syntax: `{{#in-element ...}} ... {{/in-element}}`
  */
 export class InElement extends node('InElement').fields<{
+  keyword: SourceSpan;
   guid: string;
-  insertBefore: ExpressionValueNode | Missing;
+  insertBefore: CustomNamedArgument<ExpressionValueNode> | Missing;
   destination: ExpressionValueNode;
   block: NamedBlock;
 }>() {}
@@ -31,7 +51,9 @@ export class InElement extends node('InElement').fields<{
 /**
  * Used internally in the `unless` keywords.
  */
-export class Not extends node('Not').fields<{ value: ExpressionValueNode }>() {}
+export class Not extends node('Not').fields<{ value: ExpressionValueNode }>() {
+  readonly syntax = 'not';
+}
 
 /**
  * Syntaxes
@@ -58,6 +80,7 @@ export class Not extends node('Not').fields<{ value: ExpressionValueNode }>() {}
  * where `%not` is the above {@linkcode Not} node.
  */
 export class IfContent extends node('IfContent').fields<{
+  keyword: SourceSpan;
   condition: ExpressionValueNode;
   block: NamedBlock;
   inverse: NamedBlock | null;
@@ -73,8 +96,9 @@ export class IfContent extends node('IfContent').fields<{
  * ```
  */
 export class Each extends node('Each').fields<{
+  keyword: SourceSpan;
   value: ExpressionValueNode;
-  key: ExpressionValueNode | null;
+  key: CustomNamedArgument<ExpressionValueNode> | null;
   block: NamedBlock;
   inverse: NamedBlock | null;
 }>() {}
@@ -89,6 +113,7 @@ export class Each extends node('Each').fields<{
  * ```
  */
 export class Let extends node('Let').fields<{
+  keyword: SourceSpan;
   positional: PresentPositional;
   block: NamedBlock;
 }>() {}
@@ -103,7 +128,8 @@ export class Let extends node('Let').fields<{
  * ```
  */
 export class WithDynamicVars extends node('WithDynamicVars').fields<{
-  named: PresentNamedArguments;
+  keyword: SourceSpan;
+  named: PresentCurlyNamedArguments;
   block: NamedBlock;
 }>() {}
 
@@ -114,8 +140,11 @@ export class WithDynamicVars extends node('WithDynamicVars').fields<{
  * - `{{-get-dynamic-var <expr>}}`
  */
 export class GetDynamicVar extends node('GetDynamicVar').fields<{
+  keyword: SourceSpan;
   name: ExpressionValueNode;
-}>() {}
+}>() {
+  readonly syntax = '-get-dynamic-var';
+}
 
 /**
  * Syntax:
@@ -124,8 +153,11 @@ export class GetDynamicVar extends node('GetDynamicVar').fields<{
  * - `(log ...)`
  */
 export class Log extends node('Log').fields<{
+  keyword: SourceSpan;
   positional: Positional;
-}>() {}
+}>() {
+  readonly syntax = 'log';
+}
 
 /**
  * Syntax:
@@ -134,6 +166,7 @@ export class Log extends node('Log').fields<{
  * - `{{#component <expr>}}`
  */
 export class InvokeComponentKeyword extends node('InvokeComponentKeyword').fields<{
+  keyword: SourceSpan;
   definition: CalleeExpression | ASTv2.StringLiteral;
   args: Args;
   blocks?: Optional<NamedBlocks>;
@@ -146,6 +179,7 @@ export class InvokeComponentKeyword extends node('InvokeComponentKeyword').field
  * - `{{#component "name-to-resolve"}}`
  */
 export class InvokeResolvedComponentKeyword extends node('InvokeResolvedComponentKeyword').fields<{
+  keyword: SourceSpan;
   definition: string;
   args: Args;
   blocks?: Optional<NamedBlocks>;
@@ -185,23 +219,27 @@ export class AppendHtmlText extends node('AppendHtmlText').fields<{
 export class AppendHtmlComment extends node('AppendHtmlComment').fields<{ value: SourceSlice }>() {}
 
 export class Yield extends node('Yield').fields<{
+  keyword: SourceSpan;
   target: SourceSlice;
   to: number;
   positional: Positional;
 }>() {}
-export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
+export class Debugger extends node('Debugger').fields<{
+  keyword: SourceSpan;
+  scope: SymbolTable;
+}>() {}
 
 export class ResolvedAngleBracketComponent extends node('ResolvedAngleBracketComponent').fields<{
   tag: ASTv2.ResolvedName;
   params: ElementParameters;
-  args: NamedArguments;
+  args: ComponentArguments;
   blocks: NamedBlocks;
 }>() {}
 
 export class AngleBracketComponent extends node('AngleBracketComponent').fields<{
   tag: BlockCallee;
   params: ElementParameters;
-  args: NamedArguments;
+  args: ComponentArguments;
   blocks: NamedBlocks;
 }>() {}
 
@@ -225,7 +263,7 @@ export class StaticAttr extends node('StaticAttr').fields<{
 export class DynamicAttr extends node('DynamicAttr').fields<{
   kind: AttrKind;
   name: SourceSlice;
-  value: AttrValueExpressionNode | ASTv2.ResolvedName; // interpolation is allowed here
+  value: AttrStyleInterpolatePart | InterpolateExpression; // interpolation is allowed here
   namespace?: string | undefined;
 }>() {}
 
@@ -260,16 +298,6 @@ export class ResolvedCallExpression extends node('ResolvedCallExpression').field
   args: Args;
 }>() {}
 
-export function isMirCalleeExpression(expr: AttrValueExpressionNode): expr is CalleeExpression {
-  switch (expr.type) {
-    case 'InterpolateExpression':
-    case 'Literal':
-      return false;
-    default:
-      return true;
-  }
-}
-
 /**
  * Syntax: `(if ...)`
  *
@@ -290,10 +318,13 @@ export function isMirCalleeExpression(expr: AttrValueExpressionNode): expr is Ca
  * ```
  */
 export class IfExpression extends node('IfExpression').fields<{
+  keyword: SourceSpan;
   condition: ExpressionValueNode;
   truthy: ExpressionValueNode;
   falsy: ExpressionValueNode | null;
-}>() {}
+}>() {
+  readonly syntax = 'if';
+}
 
 export class ResolvedModifier extends node('ResolvedModifier').fields<{
   callee: ASTv2.ResolvedName;
@@ -325,18 +356,39 @@ export class PathExpression extends node('PathExpression').fields<{
 
 export class Missing extends node('Missing').fields() {}
 export class InterpolateExpression extends node('InterpolateExpression').fields<{
-  parts: PresentList<ExpressionValueNode>;
+  parts: PresentList<AttrStyleInterpolatePart>;
 }>() {}
-export class HasBlock extends node('HasBlock').fields<{ target: SourceSlice; symbol: number }>() {}
-export class HasBlockParams extends node('HasBlockParams').fields<{
+export class HasBlock extends node('HasBlock').fields<{
+  keyword: SourceSpan;
   target: SourceSlice;
   symbol: number;
-}>() {}
+}>() {
+  readonly syntax = 'has-block';
+}
+export class HasBlockParams extends node('HasBlockParams').fields<{
+  keyword: SourceSpan;
+  target: SourceSlice;
+  symbol: number;
+}>() {
+  readonly syntax = 'has-block-params';
+}
 export class Curry extends node('Curry').fields<{
+  keyword: SourceSpan;
   definition: ExpressionValueNode;
   curriedType: CurriedType;
   args: Args;
-}>() {}
+}>() {
+  get syntax() {
+    switch (this.curriedType) {
+      case CURRIED_COMPONENT:
+        return 'component';
+      case CURRIED_HELPER:
+        return 'helper';
+      case CURRIED_MODIFIER:
+        return 'modifier';
+    }
+  }
+}
 export class Positional extends node('Positional').fields<{
   list: OptionalList<ExpressionValueNode | ASTv2.UnresolvedBinding>;
 }>() {
@@ -344,26 +396,70 @@ export class Positional extends node('Positional').fields<{
     return !this.list.isPresent;
   }
 }
-export type PresentPositional = Positional & { list: PresentList<AttrValueExpressionNode> };
-export class NamedArguments extends node('NamedArguments').fields<{
-  entries: OptionalList<NamedArgument>;
+export type PresentPositional = Positional & { list: PresentList<ExpressionValueNode> };
+export class CurlyNamedArguments extends node('NamedArguments').fields<{
+  entries: OptionalList<CurlyNamedArgument>;
 }>() {
   isEmpty() {
     return !this.entries.isPresent;
   }
 }
-export type PresentNamedArguments = NamedArguments & { entries: PresentList<NamedArgument> };
-export class NamedArgument extends node('NamedArgument').fields<{
-  key: SourceSlice;
-  value: AttrValueExpressionNode | ASTv2.UnresolvedBinding;
+
+export class ComponentArguments extends node('ComponentArguments').fields<{
+  entries: OptionalList<ComponentArgument>;
+}>() {
+  isEmpty() {
+    return !this.entries.isPresent;
+  }
+}
+
+/**
+ * Captures the `{{}}` wrapping span of an attribute value expression.
+ */
+export type AttrStyleInterpolatePart =
+  | CurlyAttrValue
+  | ASTv2.CurlyResolvedAttrValue
+  | CurlyInvokeAttr
+  | CurlyInvokeResolvedAttr
+  | ASTv2.StringLiteral;
+
+export type AttrStyleValue = AttrStyleInterpolatePart | InterpolateExpression;
+
+export class CurlyAttrValue extends node('mir.CurlyAttrValue').fields<{
+  value: ExpressionValueNode | ASTv2.UnresolvedBinding;
 }>() {}
+
+export class CurlyInvokeAttr extends node('mir.CurlyInvokeAttr').fields<{
+  callee: ExpressionValueNode | ASTv2.UnresolvedBinding;
+  args: Args;
+}>() {}
+
+export class CurlyInvokeResolvedAttr extends node('mir.CurlyInvokeResolvedAttr').fields<{
+  resolved: ASTv2.ResolvedName;
+  args: Args;
+}>() {}
+
+export type PresentCurlyNamedArguments = CurlyNamedArguments & {
+  entries: PresentList<CurlyNamedArgument>;
+};
+export class CurlyNamedArgument extends node('NamedArgument').fields<{
+  key: SourceSlice;
+  value: ExpressionValueNode | ASTv2.UnresolvedBinding;
+}>() {}
+
+export type PresentComponentArguments = ComponentArguments & {
+  entries: PresentList<ComponentArgument>;
+};
 export class ComponentArgument extends node('ComponentArgument').fields<{
   key: SourceSlice;
-  value: AttrValueExpressionNode; // interpolation is allowed here
+  value: ComponentArgumentValue;
 }>() {}
+
+export type ComponentArgumentValue = AttrStyleInterpolatePart | InterpolateExpression;
+
 export class Args extends node('Args').fields<{
   positional: Positional;
-  named: NamedArguments;
+  named: CurlyNamedArguments;
 }>() {
   isEmpty() {
     return this.positional.isEmpty() && this.named.isEmpty();
@@ -381,8 +477,6 @@ export class NamedBlock extends node('NamedBlock').fields<{
   body: Content[];
 }>() {}
 
-export type MaybeMissingExpressionNode = AttrValueExpressionNode | Missing;
-
 export type BlockCallee = PathExpression | ASTv2.KeywordExpression | ASTv2.VariableReference;
 export type CalleeExpression = BlockCallee | SomeCallExpression;
 
@@ -398,10 +492,6 @@ export type CustomExpression =
 export type SomeCallExpression = CallExpression | ResolvedCallExpression | CustomExpression;
 
 export type ExpressionValueNode = ASTv2.LiteralExpression | CalleeExpression;
-export type AttrValueExpressionNode =
-  | ASTv2.LiteralExpression
-  | InterpolateExpression
-  | CalleeExpression;
 
 export type ElementParameter =
   | StaticAttr
@@ -414,8 +504,8 @@ export type ElementParameter =
 export type Internal =
   | Args
   | Positional
-  | NamedArguments
-  | NamedArgument
+  | CurlyNamedArguments
+  | CurlyNamedArgument
   | Tail
   | NamedBlock
   | NamedBlocks
@@ -444,7 +534,7 @@ export type Content =
   | InvokeComponentKeyword
   | InvokeResolvedComponentKeyword;
 
-export function isCustomExpr(node: AttrValueExpressionNode): node is CustomExpression {
+export function isCustomExpr(node: CalleeExpression): node is CustomExpression {
   switch (node.type) {
     case 'Not':
     case 'IfExpression':
@@ -456,14 +546,12 @@ export function isCustomExpr(node: AttrValueExpressionNode): node is CustomExpre
       node satisfies CustomExpression;
       return true;
     default:
-      node satisfies Exclude<AttrValueExpressionNode, CustomExpression>;
+      node satisfies Exclude<CalleeExpression, CustomExpression>;
       return false;
   }
 }
 
-export function isVariableReference(
-  node: AttrValueExpressionNode
-): node is ASTv2.VariableReference {
+export function isVariableReference(node: ExpressionValueNode): node is ASTv2.VariableReference {
   switch (node.type) {
     case 'This':
     case 'Arg':
@@ -472,7 +560,7 @@ export function isVariableReference(
       node satisfies ASTv2.VariableReference;
       return true;
     default:
-      node satisfies Exclude<AttrValueExpressionNode, ASTv2.VariableReference>;
+      node satisfies Exclude<ExpressionValueNode, ASTv2.VariableReference>;
       return false;
   }
 }

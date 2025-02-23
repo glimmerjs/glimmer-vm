@@ -2,8 +2,12 @@ import type { CurriedType } from '@glimmer/interfaces';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/constants';
 import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
-import type { NormalizationState } from '../../context';
-import type { ContentKeywordMatch, KeywordDelegate, KeywordInfo } from '../impl';
+import type {
+  ContentKeywordInfo,
+  ContentKeywordMatch,
+  KeywordDelegate,
+  KeywordInfo,
+} from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
@@ -82,7 +86,7 @@ export function assertCurryKeyword(curriedType: CurriedType): ({
 
 function translateCurryKeyword(curriedType: CurriedType) {
   return (
-    { node, state }: { node: ContentKeywordMatch; state: NormalizationState },
+    { node, keyword, state }: ContentKeywordInfo,
     { definition, args }: { definition: ASTv2.ExpressionValueNode; args: ASTv2.CurlyArgs }
   ): Result<mir.Curry> => {
     let definitionResult = visitExpr(definition, state);
@@ -91,6 +95,7 @@ function translateCurryKeyword(curriedType: CurriedType) {
     return Result.all(definitionResult, argsResult).mapOk(
       ([definition, args]) =>
         new mir.Curry({
+          keyword,
           loc: node.loc,
           curriedType,
           definition,

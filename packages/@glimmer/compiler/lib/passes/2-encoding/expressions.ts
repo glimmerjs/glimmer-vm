@@ -106,15 +106,15 @@ export function encodePositional({ list }: mir.Positional): Optional<WireFormat.
  * - `{{component ...}}`: yes. Their arguments are equivalent to `@`-prefixed named arguments.
  */
 export function encodeNamedArguments(
-  named: mir.PresentNamedArguments,
+  named: mir.PresentCurlyNamedArguments,
   { insertAtPrefix }: { insertAtPrefix: boolean }
 ): WireFormat.Core.Hash;
 export function encodeNamedArguments(
-  named: mir.NamedArguments,
+  named: mir.CurlyNamedArguments,
   { insertAtPrefix }: { insertAtPrefix: boolean }
 ): Optional<WireFormat.Core.Hash>;
 export function encodeNamedArguments(
-  { entries: pairs }: mir.NamedArguments,
+  { entries: pairs }: mir.CurlyNamedArguments,
   { insertAtPrefix }: { insertAtPrefix: boolean }
 ): Optional<WireFormat.Core.Hash> {
   let list = pairs.toPresentArray();
@@ -172,7 +172,7 @@ export function callArgs(
 
 export function encodeComponentBlockArgs(
   positionalArgs: mir.Positional,
-  namedArgs: mir.NamedArguments,
+  namedArgs: mir.CurlyNamedArguments,
   blocksArgs: Optional<mir.NamedBlocks>
 ): WireFormat.Core.BlockArgs {
   const blocks = blocksArgs && NamedBlocks(blocksArgs);
@@ -195,7 +195,7 @@ export function encodeComponentBlockArgs(
   }
 }
 
-function encodeNamedArgument({ key, value }: mir.NamedArgument): HashPair {
+function encodeNamedArgument({ key, value }: mir.CurlyNamedArgument): HashPair {
   return [key.chars, encodeExpr(value)];
 }
 

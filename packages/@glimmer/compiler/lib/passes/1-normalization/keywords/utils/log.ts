@@ -2,7 +2,6 @@ import type { ASTv2 } from '@glimmer/syntax';
 import { generateSyntaxError } from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';
-import type { NormalizationState } from '../../context';
 import type { InvokeKeywordInfo, InvokeKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
@@ -20,11 +19,11 @@ function assertLogKeyword({ args, loc }: InvokeKeywordInfo): Result<ASTv2.Positi
 }
 
 function translateLogKeyword(
-  { node, state }: { node: InvokeKeywordMatch; state: NormalizationState },
+  { node, keyword, state }: InvokeKeywordInfo,
   positional: ASTv2.PositionalArguments
 ): Result<mir.Log> {
   return visitPositional(positional, state).mapOk(
-    (positional) => new mir.Log({ positional, loc: node.loc })
+    (positional) => new mir.Log({ keyword, positional, loc: node.loc })
   );
 }
 

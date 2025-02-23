@@ -1,9 +1,8 @@
 import type { SourceSlice } from '../../source/slice';
 import type { CurlyArgs, ResolvedName } from './args';
 import type { DynamicCallee } from './base';
-import type { AttrValueNode, ExpressionValueNode, InterpolateExpression } from './expr';
+import type { AttrValueNode } from './expr';
 
-import { ComponentArgument } from './args';
 import { node } from './node';
 
 /**
@@ -43,17 +42,10 @@ export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
 /**
  * Corresponds to an argument passed by a component (`@x=<value>`)
  */
-export class ComponentArg extends node().fields<ArgNodeOptions>() {
-  /**
-   * Convert the component argument into a named argument node
-   */
-  toComponentArgument(): ComponentArgument {
-    return new ComponentArgument({
-      name: this.name,
-      value: this.value,
-    });
-  }
-}
+export class ComponentArg extends node().fields<{
+  name: SourceSlice;
+  value: AttrValueNode;
+}>() {}
 
 /**
  * An `ElementModifier` is just a normal call node in modifier position.
@@ -74,7 +66,7 @@ export class ResolvedElementModifier extends node('ResolvedElementModifier').fie
 
 export interface AttrNodeOptions {
   name: SourceSlice;
-  value: ExpressionValueNode | InterpolateExpression;
+  value: AttrValueNode;
   trusting: boolean;
 }
 
