@@ -6,12 +6,12 @@ import type { HasSourceSpan } from './source/span-list';
 
 import { loc } from './source/span-list';
 
-type AnyNode = HasSourceSpan & { type: string };
-type ArgsNode = HasSourceSpan & { positional: AnyNode; named: AnyNode };
-type NameNode = AnyNode & { name: string };
-type PathNode = AnyNode & { tail: unknown };
-type CallNode = AnyNode & { args: unknown };
-type KeywordNode = AnyNode & { keyword: SourceSpan };
+export type AnyNode = HasSourceSpan & { type: string };
+export type ArgsNode = HasSourceSpan & { positional: AnyNode; named: AnyNode };
+export type NameNode = AnyNode & { name: string };
+export type PathNode = AnyNode & { tail: unknown };
+export type CallNode = AnyNode & { args: unknown };
+export type KeywordNode = AnyNode & { keyword: HasSourceSpan };
 
 export class AngleBracketValidationContext {
   static component(span: HasSourceSpan): AngleBracketValidationContext {
@@ -22,17 +22,19 @@ export class AngleBracketValidationContext {
     return new AngleBracketValidationContext(loc(span), 'element');
   }
 
+  readonly context: SourceSpan;
   readonly type: 'component' | 'element';
   readonly syntax = 'angle-bracket';
   #span: SourceSpan;
 
   private constructor(span: SourceSpan, type: 'component' | 'element') {
+    this.context = span;
     this.type = type;
     this.#span = span;
   }
 
-  tag(name: AnyNode): PathValidationContext {
-    return new PathValidationContext(this, loc(name), true);
+  tag<N extends AnyNode>(name: N): PathValidationContext {
+    return new PathValidationContext(this, loc(name), { type: 'a component', callee: true });
   }
 
   attr(attr: HasSourceSpan) {
@@ -49,6 +51,7 @@ export class AngleBracketValidationContext {
 }
 
 export class VariableReferenceValidationContext {
+  readonly context: SourceSpan;
   #parent: PathValidationContext;
   #name: string;
   #callee: boolean;
@@ -56,10 +59,29 @@ export class VariableReferenceValidationContext {
   #notes: string[] = [];
 
   constructor(parent: PathValidationContext, name: string, callee: boolean, span: SourceSpan) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#name = name;
     this.#callee = callee;
     this.#span = span;
+  }
+
+  get path(): { path: SourceSpan; head?: SourceSpan } {
+    const path = this.#parent.path;
+
+    if (path.isEqual(this.#span)) {
+      return { path };
+    } else {
+      return { path, head: this.#span };
+    }
+  }
+
+  get error() {
+    return 'unimplemented';
+  }
+
+  get loc() {
+    return this.#span;
   }
 
   get isCallee() {
@@ -68,6 +90,10 @@ export class VariableReferenceValidationContext {
 
   get name() {
     return this.#name;
+  }
+
+  get notes() {
+    return this.#notes;
   }
 
   addNotes(...notes: string[]) {
@@ -82,6 +108,7 @@ export class VariableReferenceValidationContext {
 export class FullElementParameterValidationContext {
   #parent: AngleBracketValidationContext;
   #container: SourceSpan;
+  readonly context: SourceSpan;
   readonly type: 'attr' | 'arg';
   readonly isConcat: boolean;
 
@@ -91,6 +118,7 @@ export class FullElementParameterValidationContext {
     type: 'attr' | 'arg',
     isConcat: boolean
   ) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#container = container;
     this.type = type;
@@ -131,11 +159,13 @@ export interface ArgsContainerValidationContext {
 }
 
 export class ArgsValidationContext implements ArgsContainerValidationContext {
+  readonly context: SourceSpan;
   #parent: ArgsParentValidationContext;
   #positional: SourceSpan;
   #named: SourceSpan;
 
   constructor(parent: ArgsParentValidationContext, positional: SourceSpan, named: SourceSpan) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#positional = positional;
     this.#named = named;
@@ -155,10 +185,12 @@ export class ArgsValidationContext implements ArgsContainerValidationContext {
 }
 
 export class PositionalValidationContext {
+  readonly context: SourceSpan;
   #parent: ArgsParentValidationContext;
   #span: SourceSpan;
 
   constructor(parent: ArgsParentValidationContext, span: SourceSpan) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#span = span;
   }
@@ -168,25 +200,13 @@ export class PositionalValidationContext {
   }
 }
 
-export class ConcatValidationContext {
-  #parent: FullElementParameterValidationContext;
-  #span: SourceSpan;
-
-  constructor(parent: FullElementParameterValidationContext, span: SourceSpan) {
-    this.#parent = parent;
-    this.#span = span;
-  }
-
-  value(value: HasSourceSpan) {
-    return ValueValidationContext.concat(this.#parent, loc(value));
-  }
-}
-
 export class NamedArgValidationContext {
+  readonly context: SourceSpan;
   #parent: ArgsParentValidationContext;
   #container: NamedArgContainer;
 
   constructor(parent: ArgsParentValidationContext, container: NamedArgContainer) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#container = container;
   }
@@ -225,6 +245,11 @@ type ValueParent =
       parent: FullElementParameterValidationContext;
       curly: SourceSpan;
     };
+
+interface What {
+  type: string;
+  callee: boolean;
+}
 
 /**
  * Values (standalone expressions that evaluate to standalone values without additional context) can
@@ -272,19 +297,21 @@ export class ValueValidationContext {
     return new ValueValidationContext({ type: parent.type, parent, curly }, value);
   }
 
+  readonly context: SourceSpan;
   #parent: ValueParent;
   #value: SourceSpan;
   /**
    * If the argument is named, this includes the `name=` part.
    */
   #arg: Optional<SourceSpan>;
-  #label: Optional<string>;
+  #what: { type: string; callee: boolean };
 
-  private constructor(parent: ValueParent, value: SourceSpan, arg?: SourceSpan, label?: string) {
+  private constructor(parent: ValueParent, value: SourceSpan, arg?: SourceSpan, what: What) {
+    this.context = parent.parent.context;
     this.#parent = parent;
     this.#value = value;
     this.#arg = arg;
-    this.#label = label;
+    this.#what = what;
   }
 
   resolved(node: NameNode): VariableReferenceValidationContext {
@@ -313,9 +340,11 @@ export class AppendValueValidationContext {
     return new AppendValueValidationContext(loc(span));
   }
 
+  readonly context: SourceSpan;
   #append: SourceSpan;
 
   constructor(span: SourceSpan) {
+    this.context = span;
     this.#append = span;
   }
 
@@ -333,9 +362,11 @@ export class InvokeBlockValidationContext {
     return new InvokeBlockValidationContext(loc(span));
   }
 
+  readonly context: SourceSpan;
   #block: SourceSpan;
 
   constructor(span: SourceSpan) {
+    this.context = span;
     this.#block = span;
   }
 
@@ -354,13 +385,14 @@ export class InvokeBlockValidationContext {
 
 export class InvokeCustomSyntaxValidationContext implements ArgsContainerValidationContext {
   static keyword(syntax: KeywordNode) {
-    return new InvokeCustomSyntaxValidationContext(syntax.keyword, loc(syntax));
+    return new InvokeCustomSyntaxValidationContext(loc(syntax.keyword), loc(syntax));
   }
 
   static expr(parent: ValueValidationContext, syntax: KeywordNode) {
-    return new InvokeCustomSyntaxValidationContext(syntax.keyword, loc(syntax), parent);
+    return new InvokeCustomSyntaxValidationContext(loc(syntax.keyword), loc(syntax), parent);
   }
 
+  readonly context: SourceSpan;
   /**
    * This is present for expression keywords
    */
@@ -369,6 +401,7 @@ export class InvokeCustomSyntaxValidationContext implements ArgsContainerValidat
   #syntax: SourceSpan;
 
   constructor(name: SourceSpan, syntax: SourceSpan, parent?: Optional<ValueValidationContext>) {
+    this.context = parent?.context ?? syntax;
     this.#name = name;
     this.#syntax = syntax;
     this.#parent = parent;
@@ -400,9 +433,11 @@ export class AppendInvokeValidationContext {
     return new AppendInvokeValidationContext(loc(span));
   }
 
+  readonly context: SourceSpan;
   #append: SourceSpan;
 
   constructor(span: SourceSpan) {
+    this.context = span;
     this.#append = span;
   }
 
@@ -436,6 +471,7 @@ export type CalleeParentContext =
 export class ElementParameterValidationContext {
   #parent: FullElementParameterValidationContext | AngleBracketValidationContext;
   #curly: SourceSpan;
+  readonly context: SourceSpan;
   readonly type: FullElementParameterValidationContext['type'] | 'modifier';
 
   constructor(parent: AngleBracketValidationContext, curly: SourceSpan, type: 'modifier');
@@ -449,9 +485,21 @@ export class ElementParameterValidationContext {
     curly: SourceSpan,
     type: FullElementParameterValidationContext['type'] | 'modifier'
   ) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#curly = curly;
     this.type = type;
+  }
+
+  get what() {
+    switch (this.type) {
+      case 'attr':
+        return 'an attribute';
+      case 'arg':
+        return 'an argument to a component';
+      case 'modifier':
+        return 'an element modifier';
+    }
   }
 
   callee(callee: HasSourceSpan): ValueValidationContext {
@@ -494,11 +542,13 @@ export type SubExpressionParentContext =
 
 export class SubExpressionValidationContext {
   readonly type = 'subexpression';
+  readonly context: SourceSpan;
   #custom: Optional<string>;
   #parent: SubExpressionParentContext;
   #call: SourceSpan;
 
   constructor(parent: SubExpressionParentContext, call: SourceSpan) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#call = call;
   }
@@ -528,11 +578,13 @@ export type ArgsParentValidationContext =
   | InvokeBlockValidationContext;
 
 export class KeywordValidationContext {
+  readonly context: SourceSpan;
   #parent: PathValidationContext;
   #name: string;
   #keyword: SourceSpan;
 
   constructor(parent: PathValidationContext, name: string, keyword: SourceSpan) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#name = name;
     this.#keyword = keyword;
@@ -542,6 +594,7 @@ export class KeywordValidationContext {
 export type PathParentValidationContext = ArgsParentValidationContext | ValueValidationContext;
 
 export class PathValidationContext {
+  readonly context: SourceSpan;
   #parent: PathParentValidationContext;
   #path: SourceSpan;
   /**
@@ -549,12 +602,21 @@ export class PathValidationContext {
    * errors for syntax like `{{foo bar}}` as "attempted to invoke ...", where syntax like `{{foo}}`
    * will report as "attempted to append" or equivalent.
    */
-  #callee: boolean;
+  #what: { type: string; callee: boolean };
 
-  constructor(parent: PathParentValidationContext, path: SourceSpan, callee: boolean) {
+  constructor(
+    parent: PathParentValidationContext,
+    path: SourceSpan,
+    what: { type: string; callee: boolean }
+  ) {
+    this.context = parent.context;
     this.#parent = parent;
     this.#path = path;
-    this.#callee = callee;
+    this.#what = what;
+  }
+
+  get path(): SourceSpan {
+    return this.#path;
   }
 
   head(head: NameNode): VariableReferenceValidationContext {

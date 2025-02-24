@@ -161,8 +161,18 @@ function visitInterpolatePart(
 ): Result<mir.AttrStyleInterpolatePart> {
   switch (part.type) {
     case 'Literal':
-    case 'CurlyResolvedAttrValue':
       return Ok(part);
+    case 'CurlyResolvedAttrValue': {
+      let translated = CALL_KEYWORDS.translate(part, state);
+
+      if (translated !== null) {
+        return translated.mapOk(
+          (value) => new mir.CustomInterpolationPart({ loc: part.loc, value })
+        );
+      }
+
+      return Ok(part);
+    }
     case 'CurlyAttrValue':
       return visitExpr(part.value, state).mapOk(
         (value) => new mir.CurlyAttrValue({ loc: part.loc, value })
@@ -176,7 +186,15 @@ function visitInterpolatePart(
             args,
           })
       );
-    case 'CurlyInvokeResolvedAttr':
+    case 'CurlyInvokeResolvedAttr': {
+      let translated = CALL_KEYWORDS.translate(part, state);
+
+      if (translated !== null) {
+        return translated.mapOk(
+          (value) => new mir.CustomInterpolationPart({ loc: part.loc, value })
+        );
+      }
+
       return visitCurlyArgs(part.args, state).mapOk(
         (args) =>
           new mir.CurlyInvokeResolvedAttr({
@@ -185,6 +203,7 @@ function visitInterpolatePart(
             args,
           })
       );
+    }
     default:
       exhausted(part);
   }
