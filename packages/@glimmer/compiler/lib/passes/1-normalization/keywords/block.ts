@@ -200,7 +200,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
           new mir.IfContent({
             keyword,
             loc: node.loc,
-            condition: new mir.Not({ value: condition, loc: node.loc }),
+            condition: new mir.Not({ keyword, value: condition, loc: node.loc }),
             block,
             inverse,
           })

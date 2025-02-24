@@ -1,20 +1,19 @@
 import {
   ASTv2,
-  ContentValidationContext,
   generateSyntaxError,
   invalidExprError,
   SourceSlice,
+  StrictMode as Validation,
 } from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';
-import type { NormalizationState } from '../../context';
 import type { InvokeKeywordInfo, InvokeKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 
 function assertHasBlockKeyword(type: string) {
-  return ({ args, loc }: InvokeKeywordInfo): Result<SourceSlice> => {
+  return ({ args, keyword, loc }: InvokeKeywordInfo): Result<SourceSlice> => {
     const { positional, named } = args;
 
     if (!named.isEmpty()) {
@@ -32,7 +31,7 @@ function assertHasBlockKeyword(type: string) {
     if (second) {
       return Err(
         invalidExprError(`(${type}) only takes a single positional argument`, {
-          context: ContentValidationContext.of(loc, { custom: 'has-block' }).withOuter(
+          context: Validation.InvokeCustomSyntaxValidationContext.keyword(keyword).lol(
             second.loc.withEnd(positionals.loc.getEnd())
           ),
           problem: rest.length > 0 ? 'extra arguments' : 'extra argument',

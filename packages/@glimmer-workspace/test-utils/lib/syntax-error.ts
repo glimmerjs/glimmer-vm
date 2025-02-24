@@ -1,5 +1,5 @@
-import type { ASTv2, ValidationContentType } from '@glimmer/syntax';
-import { ContentValidationContext, src, unresolvedBindingError } from '@glimmer/syntax';
+import type { StrictMode } from '@glimmer/syntax';
+import { loc, src, unresolvedBindingError } from '@glimmer/syntax';
 
 /**
  * If specifying context, it should be represented as: `{{<|code|>}}`, where the full string is the
@@ -62,8 +62,9 @@ function formatCode({
  * context, and `code` is the code inside the context.
  */
 export function unresolvedErrorFor(
-  contentType: ValidationContentType,
-  syntax: ASTv2.PathSyntaxType,
+  path: (outer: src.SourceSpan) => {
+    resolved: (name: StrictMode.NameNode) => StrictMode.VariableReferenceValidationContext;
+  },
   code: string,
   moduleName: string,
   options?: { notes?: string[] }
@@ -82,8 +83,11 @@ export function unresolvedErrorFor(
     extracted.inner.end
   );
 
+  const name = { type: 'tag', name: headSpan.asString(), loc: loc(headSpan) };
+  const ctx = path(outerSpan).resolved(name);
+
   return unresolvedBindingError({
-    context: ContentValidationContext.of(outerSpan, contentType).withPathHead(headSpan, syntax),
+    context: ctx,
     notes: options?.notes,
   });
 }

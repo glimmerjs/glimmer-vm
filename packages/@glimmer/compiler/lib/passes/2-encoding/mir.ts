@@ -51,7 +51,10 @@ export class InElement extends node('InElement').fields<{
 /**
  * Used internally in the `unless` keywords.
  */
-export class Not extends node('Not').fields<{ value: ExpressionValueNode }>() {
+export class Not extends node('Not').fields<{
+  keyword: SourceSpan;
+  value: ExpressionValueNode;
+}>() {
   readonly syntax = 'not';
 }
 
@@ -416,12 +419,18 @@ export class ComponentArguments extends node('ComponentArguments').fields<{
 /**
  * Captures the `{{}}` wrapping span of an attribute value expression.
  */
-export type AttrStyleInterpolatePart =
+export type CoreAttrStyleInterpolatePart =
   | CurlyAttrValue
   | ASTv2.CurlyResolvedAttrValue
   | CurlyInvokeAttr
   | CurlyInvokeResolvedAttr
   | ASTv2.StringLiteral;
+
+export type AttrStyleInterpolatePart = CoreAttrStyleInterpolatePart | CustomInterpolationPart;
+
+export class CustomInterpolationPart extends node('mir.CustomInterpolationPart').fields<{
+  value: CustomExpression;
+}>() {}
 
 export type AttrStyleValue = AttrStyleInterpolatePart | InterpolateExpression;
 
@@ -492,6 +501,7 @@ export type CustomExpression =
 export type SomeCallExpression = CallExpression | ResolvedCallExpression | CustomExpression;
 
 export type ExpressionValueNode = ASTv2.LiteralExpression | CalleeExpression;
+export type ExpressionNode = ExpressionValueNode | CustomNamedArgument<ExpressionValueNode>;
 
 export type ElementParameter =
   | StaticAttr

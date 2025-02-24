@@ -312,7 +312,7 @@ export namespace Content {
     | InvokeResolvedComponent;
   export type SomeBlock = InvokeResolvedComponent | InvokeDynamicBlock | InvokeLexicalComponent;
 
-  export type AppendValueCautiously = [AppendValueCautiouslyOpcode, TupleExpression];
+  export type AppendValueCautiously = [AppendValueCautiouslyOpcode, Expression];
   export type AppendResolvedValueCautiously = [AppendResolvedValueCautiouslyOpcode, upvar: number];
 
   export type AppendResolvedInvokableCautiously = [
