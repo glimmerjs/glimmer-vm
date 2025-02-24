@@ -1,0 +1,22 @@
+(node:2060) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Warning: unknown package "@glimmer-workspace/bin"
+Warning: unknown package "@glimmer-workspace/meta-updater"
+Warning: unknown package "@glimmer-workspace/benchmark-env"
+Warning: unknown package "@glimmer-workspace/build-support"
+Warning: unknown package "@glimmer-workspace/eslint-plugin"
+Warning: unknown package "@glimmer-workspace/integration-node-tests"
+Warning: unknown package "@glimmer-workspace/integration-tests"
+Warning: unknown package "@glimmer-workspace/test-utils"
+Warning: unknown package "@glimmer/constants"
+Warning: unknown package "@glimmer/debug-util"
+Warning: unknown package "@glimmer/debug"
+Warning: unknown package "@glimmer/local-debug-flags"
+Warning: unknown package "@glimmer-workspace/repo-metadata"
+# Unlabeled Changes
+
+* `@glimmer/compiler`, `@glimmer/syntax`
+  * [#1717](https://github.com/glimmerjs/glimmer-vm/pull/1717) Fix source slicing for whitespace-stripping comments ([@chancancode](https://github.com/chancancode))
+
+
+*Cannot plan release until the above changes are labeled*.
