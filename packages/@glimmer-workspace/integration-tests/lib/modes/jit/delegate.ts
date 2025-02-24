@@ -209,6 +209,7 @@ export class JitRenderDelegate implements RenderDelegate {
 
     let { env } = this.context;
 
+
     return renderTemplate(
       template,
       this.context,

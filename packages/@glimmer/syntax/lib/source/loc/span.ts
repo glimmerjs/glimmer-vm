@@ -2,13 +2,13 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';
 
 import type { SourceLocation, SourcePosition } from '../location';
-import type { Source } from '../source';
 import type { InvisibleKind, OffsetKind } from './kinds';
 import type { MatchFn } from './match';
 import type { AnyPosition, SourceOffset } from './offset';
 
 import { BROKEN_LOCATION, NON_EXISTENT_LOCATION } from '../location';
 import { SourceSlice } from '../slice';
+import { Source } from '../source';
 import {
   BROKEN_KIND,
   CHAR_OFFSET_KIND,
@@ -25,6 +25,7 @@ import { BROKEN, CharPosition, HbsPosition, InvisiblePosition } from './offset';
  */
 interface SpanData {
   readonly kind: OffsetKind;
+  readonly source: Source;
 
   /**
    * Convert this span into a string. If the span is broken, return `''`.
@@ -122,6 +123,13 @@ export class SourceSpan implements SourceLocation {
     assertNever(serialized);
   }
 
+  static forLineRange(source: Source, start: number, end: number): SourceSpan {
+    return SourceSpan.forHbsLoc(source, {
+      start: { line: start, column: 0 },
+      end: { line: end, column: 0 },
+    });
+  }
+
   static forHbsLoc(source: Source, loc: SourceLocation): SourceSpan {
     const start = new HbsPosition(source, loc.start);
     const end = new HbsPosition(source, loc.end);
@@ -147,6 +155,17 @@ export class SourceSpan implements SourceLocation {
 
   constructor(private data: SpanData & AnySpan) {
     this.isInvisible = isInvisible(data.kind);
+  }
+
+  fullLines(): SourceSpan {
+    const start = this.loc.start;
+    const end = this.loc.end;
+
+    return SourceSpan.forLineRange(this.data.source, start.line, end.line);
+  }
+
+  getSource(): Source {
+    return this.data.source;
   }
 
   getStart(): SourceOffset {
@@ -302,6 +321,13 @@ export class SourceSpan implements SourceLocation {
 
   sliceEndChars({ skipEnd = 0, chars }: { skipEnd?: number; chars: number }): SourceSpan {
     return span(this.getEnd().move(skipEnd - chars).data, this.getStart().move(-skipEnd).data);
+  }
+
+  isEqual(other: SourceSpan): boolean {
+    // @todo optimize this for the situation where the spans are both CharPositionSpans. For now,
+    // this is only used inside of error handling, so a little bit of performance overhead is
+    // acceptable
+    return this.getStart() === other.getStart() && this.getEnd() === other.getEnd();
   }
 }
 
@@ -485,6 +511,8 @@ export class HbsSpan implements SpanData {
 }
 
 class InvisibleSpan implements SpanData {
+  readonly source: Source = Source.from('');
+
   constructor(
     readonly kind: InvisibleKind,
     // whatever was provided, possibly broken

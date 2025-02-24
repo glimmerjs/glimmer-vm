@@ -17,13 +17,13 @@ export interface ComponentDefinition<
   D extends ComponentDefinitionState = ComponentDefinitionState,
   I = ComponentInstanceState,
   M extends InternalComponentManager<I, D> = InternalComponentManager<I, D>,
-> {
+> extends CompileTimeComponent {
   resolvedName: string | null;
   handle: number;
   state: D;
   manager: M;
   capabilities: CapabilityMask;
-  compilable: CompilableProgram | null;
+  layout: CompilableProgram | null;
   debugName?: string | undefined;
 }
 

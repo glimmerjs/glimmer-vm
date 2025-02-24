@@ -1,10 +1,23 @@
 import { setLocalDebugType } from '@glimmer/debug-util';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assign } from '@glimmer/util';
 
 import type { SourceSpan } from '../../source/span';
 
 export interface BaseNodeFields {
   loc: SourceSpan;
+}
+
+export interface AbstractNode extends BaseNodeFields {
+  type: string;
+}
+
+interface TypedNodeDefinition<T extends string> {
+  fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
+}
+
+interface NodeDefinition {
+  fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
 }
 
 /**
@@ -37,21 +50,9 @@ export interface BaseNodeFields {
 export function node(): {
   fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
 };
-export function node<T extends string>(
-  name: T
-): {
-  fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
-};
 
-export function node<T extends string>(
-  name?: T
-):
-  | {
-      fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
-    }
-  | {
-      fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
-    } {
+export function node<T extends string>(name: T): TypedNodeDefinition<T>;
+export function node<T extends string>(name?: T): NodeDefinition | TypedNodeDefinition<T> {
   if (name !== undefined) {
     const type = name;
     return {
@@ -66,6 +67,12 @@ export function node<T extends string>(
             assign(this, fields);
 
             setLocalDebugType('syntax:mir:node', this);
+
+            if (LOCAL_DEBUG) {
+              if (Reflect.get(this, 'LOCAL_DEBUG')) {
+                this.LOCAL_DEBUG();
+              }
+            }
           }
         } as TypedNodeConstructor<T, BaseNodeFields & Fields>;
       },
@@ -79,6 +86,12 @@ export function node<T extends string>(
 
           constructor(fields: BaseNodeFields & Fields) {
             assign(this, fields);
+
+            if (LOCAL_DEBUG) {
+              if (Reflect.get(this, 'LOCAL_DEBUG')) {
+                this.LOCAL_DEBUG();
+              }
+            }
           }
         } as NodeConstructor<BaseNodeFields & Fields>;
       },

@@ -1,40 +1,52 @@
-import { ASTv2, generateSyntaxError, SourceSlice } from '@glimmer/syntax';
+import {
+  ASTv2,
+  generateSyntaxError,
+  invalidExprError,
+  SourceSlice,
+  StrictMode as Validation,
+} from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';
-import type { NormalizationState } from '../../context';
-import type { GenericKeywordNode, KeywordDelegate } from '../impl';
+import type { InvokeKeywordInfo, InvokeKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 
 function assertHasBlockKeyword(type: string) {
-  return (node: GenericKeywordNode): Result<SourceSlice> => {
-    let call = node.type === 'AppendContent' ? node.value : node;
+  return ({ args, keyword, loc }: InvokeKeywordInfo): Result<SourceSlice> => {
+    const { positional, named } = args;
 
-    let named = call.type === 'Call' ? call.args.named : null;
-    let positionals = call.type === 'Call' ? call.args.positional : null;
-
-    if (named && !named.isEmpty()) {
-      return Err(generateSyntaxError(`(${type}) does not take any named arguments`, call.loc));
+    if (!named.isEmpty()) {
+      return Err(generateSyntaxError(`(${type}) does not take any named arguments`, loc));
     }
 
-    if (!positionals || positionals.isEmpty()) {
+    const positionals = positional.asPresent();
+
+    if (!positionals) {
       return Ok(SourceSlice.synthetic('default'));
-    } else if (positionals.exprs.length === 1) {
-      let positional = positionals.exprs[0] as ASTv2.ExpressionNode;
-      if (ASTv2.isLiteral(positional, 'string')) {
-        return Ok(positional.toSlice());
-      } else {
-        return Err(
-          generateSyntaxError(
-            `(${type}) can only receive a string literal as its first argument`,
-            call.loc
-          )
-        );
-      }
+    }
+
+    const [first, second, ...rest] = positionals.exprs;
+
+    if (second) {
+      return Err(
+        invalidExprError(`(${type}) only takes a single positional argument`, {
+          context: Validation.InvokeCustomSyntaxValidationContext.keyword(keyword).lol(
+            second.loc.withEnd(positionals.loc.getEnd())
+          ),
+          problem: rest.length > 0 ? 'extra arguments' : 'extra argument',
+        })
+      );
+    }
+
+    if (ASTv2.isLiteral(first, 'string')) {
+      return Ok(first.toSlice());
     } else {
       return Err(
-        generateSyntaxError(`(${type}) only takes a single positional argument`, call.loc)
+        generateSyntaxError(
+          `(${type}) can only receive a string literal as its first argument`,
+          loc
+        )
       );
     }
   };
@@ -42,16 +54,19 @@ function assertHasBlockKeyword(type: string) {
 
 function translateHasBlockKeyword(type: string) {
   return (
-    {
-      node,
-      state: { scope },
-    }: { node: ASTv2.CallExpression | ASTv2.AppendContent; state: NormalizationState },
+    { node, keyword, state: { scope } }: InvokeKeywordInfo,
     target: SourceSlice
   ): Result<mir.HasBlock | mir.HasBlockParams> => {
     let block =
       type === 'has-block'
-        ? new mir.HasBlock({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
+        ? new mir.HasBlock({
+            keyword,
+            loc: node.loc,
+            target,
+            symbol: scope.allocateBlock(target.chars),
+          })
         : new mir.HasBlockParams({
+            keyword,
             loc: node.loc,
             target,
             symbol: scope.allocateBlock(target.chars),
@@ -63,11 +78,7 @@ function translateHasBlockKeyword(type: string) {
 
 export function hasBlockKeyword(
   type: string
-): KeywordDelegate<
-  ASTv2.CallExpression | ASTv2.AppendContent,
-  SourceSlice,
-  mir.HasBlock | mir.HasBlockParams
-> {
+): KeywordDelegate<InvokeKeywordMatch, SourceSlice, mir.HasBlock | mir.HasBlockParams> {
   return {
     assert: assertHasBlockKeyword(type),
     translate: translateHasBlockKeyword(type),

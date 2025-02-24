@@ -52,7 +52,7 @@ function buildMustache(
 type PossiblyDeprecatedBlock = ASTv1.Block | ASTv1.Template;
 
 function buildBlock(
-  path: BuilderHead,
+  path: string | ASTv1.PathExpression,
   params: Nullable<ASTv1.Expression[]>,
   hash: Nullable<ASTv1.Hash>,
   _defaultBlock: PossiblyDeprecatedBlock,
