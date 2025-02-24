@@ -24,6 +24,8 @@ import { buildComponentArgs } from '../../builder/builder';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import {
   callArgs,
+  encodeAttrValue,
+  encodeComponentArguments,
   encodeComponentBlockArgs,
   encodeExpr,
   encodeMaybeExpr,
@@ -302,7 +304,7 @@ export function ResolvedAngleBracketComponent({
   blocks,
 }: mir.ResolvedAngleBracketComponent): WireFormat.Content.InvokeResolvedComponent {
   let wireSplattributes = ElementParameters(params);
-  let wireNamed = encodeNamedArguments(named, { insertAtPrefix: false });
+  let wireNamed = encodeComponentArguments(named);
 
   let wireNamedBlocks = NamedBlocks(blocks);
 
@@ -318,7 +320,7 @@ export function AngleBracketComponent({
   blocks,
 }: mir.AngleBracketComponent): WireFormat.Content.SomeInvokeComponent {
   let wireSplattributes = ElementParameters(params);
-  let wireNamed = encodeNamedArguments(named, { insertAtPrefix: false });
+  let wireNamed = encodeComponentArguments(named);
 
   let wireNamedBlocks = NamedBlocks(blocks);
 
@@ -412,7 +414,7 @@ export function Each({ value, key, block, inverse }: mir.Each): WireFormat.Conte
   return compactSexpr([
     Op.Each,
     encodeExpr(value),
-    key ? encodeExpr(key) : null,
+    key ? encodeExpr(key.value) : null,
     namedBlock(block.body, block.scope),
     inverse ? namedBlock(inverse.body, inverse.scope) : undefined,
   ]);
@@ -480,7 +482,7 @@ export type DynamicAttrArgs = [
 ];
 
 function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {
-  let out: DynamicAttrArgs = [deflateAttrName(name.chars), encodeExpr(value)];
+  let out: DynamicAttrArgs = [deflateAttrName(name.chars), encodeAttrValue(value)];
 
   if (namespace) {
     out.push(namespace);

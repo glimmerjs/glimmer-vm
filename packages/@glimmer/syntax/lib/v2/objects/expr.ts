@@ -291,12 +291,16 @@ export class CurlyAttrValue extends node('CurlyAttrValue').fields<{
 
 export class CurlyResolvedAttrValue extends node('CurlyResolvedAttrValue').fields<{
   resolved: ASTv2.ResolvedName;
-}>() {}
+}>() {
+  readonly isResolved = true;
+}
 
 export class CurlyInvokeResolvedAttr extends node('CurlyInvokeResolvedAttr').fields<{
   resolved: ASTv2.ResolvedName;
   args: ASTv2.CurlyArgs;
-}>() {}
+}>() {
+  readonly isResolved = true;
+}
 
 export class CurlyInvokeAttr extends node('CurlyInvokeAttr').fields<CallFields>() {}
 

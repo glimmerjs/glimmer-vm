@@ -171,9 +171,8 @@ export default class ValidatorPass {
         return this.AttrStyleValue(value, context);
     }
   }
-
-  AttrStyleValue(
-    part: mir.AttrStyleInterpolatePart,
+  CoreAttrStyleValue(
+    part: mir.CoreAttrStyleInterpolatePart,
     value: Validation.FullElementParameterValidationContext
   ) {
     switch (part.type) {
@@ -195,6 +194,37 @@ export default class ValidatorPass {
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
+    }
+  }
+
+  AttrStyleValue(
+    part: mir.AttrStyleInterpolatePart,
+    value: Validation.FullElementParameterValidationContext
+  ) {
+    switch (part.type) {
+      case 'mir.CustomInterpolationPart':
+        return this.CustomExpression(part.value, value.value({ curly: part, value: part.value }));
+
+      case 'Literal':
+        return this.Literal(part);
+      case 'CurlyResolvedAttrValue':
+        return this.ResolvedName(part.resolved, value.resolved(part));
+      case 'mir.CurlyAttrValue':
+        return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
+      case 'mir.CurlyInvokeAttr': {
+        const invokeContext = value.invoke(part);
+        return this.ExpressionValue(part.callee, invokeContext.callee(part.callee)).andThen(() =>
+          this.Args(part.args, invokeContext.args(part.args))
+        );
+      }
+      case 'mir.CurlyInvokeResolvedAttr': {
+        const invokeContext = value.invoke(part);
+        return this.ResolvedName(part.resolved, value.resolved(part)).andThen(() =>
+          this.Args(part.args, invokeContext.args(part.args))
+        );
+      }
+      default:
+        exhausted(part);
     }
   }
 
@@ -260,7 +290,7 @@ export default class ValidatorPass {
     expression: mir.CustomExpression,
     valueContext: Validation.ValueValidationContext
   ): Result<null> {
-    const context = valueContext.custom(expression.syntax, expression);
+    const context = valueContext.custom(expression);
     switch (expression.type) {
       case 'GetDynamicVar':
         return this.GetDynamicVar(expression, context);
@@ -290,13 +320,13 @@ export default class ValidatorPass {
 
   GetDynamicVar(
     expression: mir.GetDynamicVar,
-    context: Validation.CustomValidationContext
+    context: Validation.InvokeCustomSyntaxValidationContext
   ): Result<null> {
-    return this.ExpressionValue(expression.name, context.positional(expression));
+    return this.ExpressionValue(expression.name, context.positional('name', expression));
   }
 
-  Not(expression: mir.Not, context: Validation.CustomValidationContext): Result<null> {
-    return this.ExpressionValue(expression.value, context.positional(expression));
+  Not(expression: mir.Not, context: Validation.InvokeCustomSyntaxValidationContext): Result<null> {
+    return this.ExpressionValue(expression.value, context.positional('value', expression.value));
   }
 
   HasBlock(_expression: mir.HasBlock): Result<null> {

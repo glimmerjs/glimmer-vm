@@ -151,7 +151,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Cannot invoke a modifier definition based on this fallback lookup in resolution mode'() {
-    this.registerComponent('TemplateOnly', 'Bar', `<div\n  {{x.foo}}></div>`);
+    this.registerComponent('TemplateOnly', 'Bar', `<div {{x.foo}}></div>`);
 
     this.assert.throws(
       () => {

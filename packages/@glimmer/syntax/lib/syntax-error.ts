@@ -2,10 +2,7 @@ import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
 import type * as src from './source/api';
-import type {
-  PathValidationContext,
-  VariableReferenceValidationContext,
-} from './validation-context';
+import type { VariableReferenceValidationContext } from './validation-context';
 
 export interface GlimmerSyntaxError extends Error {
   location: src.SourceSpan | null;
@@ -108,7 +105,7 @@ function quoteInvalid(context: ValidationContext, problem: string): string {
     return quoteInvalidExpr(context, problem);
   }
 
-  return simpleQuote(context.content);
+  return simpleQuote(context.loc);
 }
 
 function quoteInvalidExpr(context: OuterExpressionValidationContext, problem: string): string {
@@ -120,22 +117,25 @@ function quoteInvalidExpr(context: OuterExpressionValidationContext, problem: st
   return `\n\n|  ${codeString}\n${underline}\n\n`;
 }
 
-function quoteInvalidPath(context: PathValidationContext, problem: string): string {
-  const { callee, syntax } = context;
+function quoteInvalidPath(validation: VariableReferenceValidationContext, problem: string): string {
+  const { path, head } = validation.path;
+  const highlightContext = validation.context;
 
-  const fullContext = context.lines;
-  const highlightContext = context.highlightContext;
+  // const { callee, syntax } = context;
 
-  if (!highlightContext || !callee) {
-    return simpleQuote(context.path);
-  }
+  const fullContext = highlightContext.fullLines();
+  // const highlightContext = context.highlightContext;
 
-  const { path, head } = callee;
+  // if (!highlightContext || !callee) {
+  //   return simpleQuote(context.path);
+  // }
+
+  // const { path, head } = callee;
 
   const codeString = highlightContext.asString();
 
   const fullRange = LineRange.for(
-    context.content.getSource(),
+    highlightContext.getSource(),
     fullContext.startPosition.line,
     fullContext.endPosition.line
   );
@@ -145,7 +145,7 @@ function quoteInvalidPath(context: PathValidationContext, problem: string): stri
     .forLine(path.startPosition.line, highlightContext.startPosition.column)
     .add(codeString);
 
-  const underline = drawPathUnderline(lines, highlightContext, path, head ?? path, problem, syntax);
+  const underline = drawPathUnderline(lines, highlightContext, path, head ?? path, problem, 'todo');
   return `\n\n${code}\n${underline}\n\n`;
 }
 

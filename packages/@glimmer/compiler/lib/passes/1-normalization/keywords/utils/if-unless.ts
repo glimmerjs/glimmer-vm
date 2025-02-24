@@ -97,7 +97,7 @@ function translateIfUnlessInlineKeyword(type: string) {
     return Result.all(conditionResult, truthyResult, falsyResult).mapOk(
       ([condition, truthy, falsy]) => {
         if (inverted) {
-          condition = new mir.Not({ value: condition, loc: node.loc });
+          condition = new mir.Not({ keyword, value: condition, loc: node.loc });
         }
 
         return new mir.IfExpression({

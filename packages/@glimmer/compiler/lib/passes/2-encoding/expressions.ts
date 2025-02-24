@@ -20,9 +20,52 @@ import { NamedBlocks } from './content';
 export type HashPair = [string, WireFormat.Expression];
 
 export function encodeMaybeExpr(
-  expr: mir.AttrValueExpressionNode | mir.Missing
+  expr: mir.ExpressionNode | mir.Missing
 ): WireFormat.Expression | undefined {
   return expr.type === 'Missing' ? undefined : encodeExpr(expr);
+}
+
+export function encodeInterpolatePart(expr: mir.AttrStyleInterpolatePart) {
+  switch (expr.type) {
+    case 'mir.CustomInterpolationPart':
+      return encodeExpr(expr.value);
+    default:
+      return encodeCoreInterpolatePart(expr);
+  }
+}
+
+export function encodeCoreInterpolatePart(
+  expr: mir.CoreAttrStyleInterpolatePart
+): WireFormat.Expressions.Expression {
+  switch (expr.type) {
+    case 'Literal':
+      return Literal(expr);
+    case 'mir.CurlyAttrValue':
+      return encodeExpr(expr.value);
+    case 'CurlyResolvedAttrValue':
+      return [Op.CallResolved, expr.resolved.symbol, [EMPTY_ARGS_OPCODE]];
+
+    case 'mir.CurlyInvokeAttr':
+      return CallExpression(expr);
+    case 'mir.CurlyInvokeResolvedAttr':
+      return [
+        Op.CallResolved,
+        expr.resolved.symbol,
+        encodeCallArgs(expr.args.positional, expr.args.named, { insertAtPrefix: false }),
+      ];
+
+    default:
+      exhausted(expr);
+  }
+}
+
+export function encodeAttrValue(expr: mir.AttrStyleValue): WireFormat.Expression {
+  switch (expr.type) {
+    case 'InterpolateExpression':
+      return InterpolateExpression(expr);
+    default:
+      return encodeInterpolatePart(expr);
+  }
 }
 
 export function encodeExpr(
@@ -35,13 +78,10 @@ export function encodeExpr(
   expr: mir.PathExpression | ASTv2.VariableReference | ASTv2.UnresolvedBinding
 ): WireFormat.Expressions.Get;
 export function encodeExpr(
-  expr: Extract<mir.AttrValueExpressionNode, object> | ASTv2.UnresolvedBinding
-): WireFormat.TupleExpression;
-export function encodeExpr(
-  expr: mir.AttrValueExpressionNode | ASTv2.UnresolvedBinding
+  expr: Extract<mir.ExpressionNode, object> | ASTv2.UnresolvedBinding
 ): WireFormat.Expression;
 export function encodeExpr(
-  expr: mir.AttrValueExpressionNode | mir.Missing | ASTv2.UnresolvedBinding
+  expr: mir.ExpressionNode | mir.InterpolateExpression | mir.Missing | ASTv2.UnresolvedBinding
 ): WireFormat.Expression | undefined {
   localAssert(
     expr.type !== 'UnresolvedBinding',
@@ -80,12 +120,14 @@ export function encodeExpr(
       return Not(expr);
     case 'IfExpression':
       return IfInline(expr);
-    case 'InterpolateExpression':
-      return InterpolateExpression(expr);
     case 'GetDynamicVar':
       return GetDynamicVar(expr);
     case 'Log':
       return Log(expr);
+    case 'InterpolateExpression':
+      return InterpolateExpression(expr);
+    case 'CustomNamedArgument':
+      return encodeExpr(expr.value);
 
     default:
       exhausted(expr);
@@ -96,6 +138,28 @@ export function encodePositional(positional: mir.PresentPositional): WireFormat.
 export function encodePositional(positional: mir.Positional): Optional<WireFormat.Core.Params>;
 export function encodePositional({ list }: mir.Positional): Optional<WireFormat.Core.Params> {
   return list.map((l) => encodeExpr(l)).toPresentArray();
+}
+
+export function encodeComponentArguments(
+  args: mir.ComponentArguments
+): Optional<WireFormat.Core.Hash> {
+  let list = args.entries.toPresentArray();
+
+  if (list) {
+    let names: string[] = [];
+    let values: WireFormat.Expression[] = [];
+
+    for (let pair of list) {
+      let [name, value] = encodeComponentArgument(pair);
+      names.push(name);
+      values.push(value);
+    }
+
+    assertPresentArray(names);
+    assertPresentArray(values);
+
+    return [names, values];
+  }
 }
 
 /**
@@ -199,6 +263,10 @@ function encodeNamedArgument({ key, value }: mir.CurlyNamedArgument): HashPair {
   return [key.chars, encodeExpr(value)];
 }
 
+function encodeComponentArgument({ key, value }: mir.ComponentArgument): HashPair {
+  return [key.chars, encodeAttrValue(value)];
+}
+
 function This(): WireFormat.Expressions.GetLocalSymbol {
   return [Op.GetLocalSymbol, 0];
 }
@@ -253,7 +321,7 @@ function PathExpression({ head, tail }: mir.PathExpression): WireFormat.Expressi
 function InterpolateExpression({
   parts,
 }: mir.InterpolateExpression): WireFormat.Expressions.Concat {
-  return [Op.Concat, parts.map((e) => encodeExpr(e)).toArray()];
+  return [Op.Concat, parts.map((e) => encodeInterpolatePart(e)).toArray()];
 }
 
 function ResolvedCallExpression({
@@ -266,7 +334,7 @@ function ResolvedCallExpression({
 function CallExpression({
   callee,
   args,
-}: mir.CallExpression): WireFormat.Expressions.SomeCallHelper {
+}: mir.CallExpression | mir.CurlyInvokeAttr): WireFormat.Expressions.SomeCallHelper {
   return [Op.CallDynamicValue, encodeExpr(callee), callArgs(args.positional, args.named)];
 }
 
