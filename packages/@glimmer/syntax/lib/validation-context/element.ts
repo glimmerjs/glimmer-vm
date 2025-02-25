@@ -48,6 +48,10 @@ export class FullElementParameterValidationContext
     }
   }
 
+  resolved(node: NameNode) {
+    return this.value({ value: node, curly: node }).resolved(node);
+  }
+
   concat(concat: HasSourceSpan): ConcatContext {
     return new ConcatContext(this, loc(concat));
   }

@@ -3,7 +3,7 @@ import {
   generateSyntaxError,
   invalidExprError,
   SourceSlice,
-  StrictMode as Validation,
+  Validation as Validation,
 } from '@glimmer/syntax';
 
 import type { Result } from '../../../../shared/result';

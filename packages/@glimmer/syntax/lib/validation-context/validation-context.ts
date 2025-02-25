@@ -59,7 +59,7 @@ export class VariableReferenceValidationContext {
   }
 
   get path(): { path: SourceSpan; head?: SourceSpan } {
-    const path = this.#parent.path;
+    const path = this.#parent.span;
 
     if (path.isEqual(this.#span)) {
       return { path };
@@ -68,8 +68,13 @@ export class VariableReferenceValidationContext {
     }
   }
 
-  get error() {
-    return 'unimplemented';
+  get what(): What {
+    return this.#parent.what(this.#parent.span.asString());
+  }
+
+  attemptedTo(what: What) {
+    const varName = this.#parent.span.isEqual(this.#span) ? 'it' : `\`${this.#span.asString()}\``;
+    return `Attempted to ${what.attempted}, but ${varName} was not in scope`;
   }
 
   get loc() {
@@ -130,6 +135,44 @@ type ValueParent =
       parent: ConcatContext;
       curly: SourceSpan;
     };
+
+export function describeValueParent(parent: ValueParent): WhatFn {
+  return (path: string) => {
+    const formatted = `\`${path}\``;
+
+    switch (parent.type) {
+      case 'positional':
+        return {
+          attempted: `pass ${formatted} as a positional argument`,
+          describe: 'the argument',
+        };
+      case 'named':
+        return { attempted: `pass ${formatted} as a named argument`, describe: 'the argument' };
+      case 'concat':
+        return { attempted: `concatenate ${formatted}`, describe: 'the value' };
+      case 'append':
+        return { attempted: `append ${formatted}`, describe: 'the value' };
+      case 'callee':
+        switch (parent.kind) {
+          case 'modifier':
+            return { attempted: `invoke ${formatted} as a modifier`, describe: 'modifier' };
+          case 'append':
+          case 'subexpression':
+          case 'arg':
+          case 'attr':
+            return { attempted: `invoke ${formatted} as a helper`, describe: 'helper' };
+          case 'block':
+            return { attempted: `invoke ${formatted} as a component`, describe: 'component name' };
+          case 'component':
+            return { attempted: `invoke ${formatted} as a component`, describe: 'component name' };
+        }
+      case 'attr':
+        return { attempted: `set ${formatted} as an attribute`, describe: 'attribute value' };
+      case 'arg':
+        return { attempted: `pass ${formatted} as an argument`, describe: 'the value' };
+    }
+  };
+}
 
 /**
  * Values (standalone expressions that evaluate to standalone values without additional context) can
@@ -202,7 +245,7 @@ export class ValueValidationContext {
   }
 
   resolved(node: NameNode): VariableReferenceValidationContext {
-    return new PathValidationContext(this, loc(node), this.#what).head(node);
+    return new PathValidationContext(this, loc(node), describeValueParent(this.#parent)).head(node);
   }
 
   custom(node: KeywordNode): InvokeCustomSyntaxValidationContext {
@@ -214,7 +257,7 @@ export class ValueValidationContext {
   }
 
   path(): PathValidationContext {
-    return new PathValidationContext(this, this.#value, this.#what);
+    return new PathValidationContext(this, this.#value, describeValueParent(this.#parent));
   }
 
   labelled(name: string): ValueValidationContext {
@@ -410,29 +453,33 @@ export class KeywordValidationContext {
 
 export type PathParentValidationContext = ArgsParentValidationContext | ValueValidationContext;
 
+export interface What {
+  /**
+   * Text describing the attempted action (e.g. "invoke it as a helper")
+   */
+  attempted: string;
+  /**
+   * Description of the path (e.g. "helper")
+   */
+  describe: string;
+}
+
+export type WhatFn = (path: string) => What;
+
 export class PathValidationContext {
   readonly context: SourceSpan;
   #parent: PathParentValidationContext;
   #path: SourceSpan;
-  /**
-   * Whether the path is used as a callee. If a path is used as a callee, error messages will report
-   * errors for syntax like `{{foo bar}}` as "attempted to invoke ...", where syntax like `{{foo}}`
-   * will report as "attempted to append" or equivalent.
-   */
-  #what: { type: string; callee: boolean };
+  readonly what: WhatFn;
 
-  constructor(
-    parent: PathParentValidationContext,
-    path: SourceSpan,
-    what: { type: string; callee: boolean }
-  ) {
+  constructor(parent: PathParentValidationContext, path: SourceSpan, what: WhatFn) {
     this.context = parent.context;
     this.#parent = parent;
     this.#path = path;
-    this.#what = what;
+    this.what = what;
   }
 
-  get path(): SourceSpan {
+  get span(): SourceSpan {
     return this.#path;
   }
 

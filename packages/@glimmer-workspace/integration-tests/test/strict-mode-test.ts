@@ -1,6 +1,6 @@
 import { castToBrowser } from '@glimmer/debug-util';
 import { array, concat, fn, get, hash, on } from '@glimmer/runtime';
-import { StrictMode } from '@glimmer/syntax';
+import { Validation } from '@glimmer/syntax';
 import {
   defineComponent,
   defineSimpleHelper,
@@ -419,8 +419,7 @@ class StaticStrictModeTest extends RenderTest {
       },
       unresolvedErrorFor(
         (outer) => ({
-          resolved: (name) =>
-            StrictMode.AngleBracketValidationContext.component(outer).tag(name).head(name),
+          resolved: (name) => Validation.component(outer).tag(name).head(name),
         }),
         '<<|Foo|>/>',
         'an unknown module',
@@ -441,7 +440,7 @@ class StaticStrictModeTest extends RenderTest {
       },
       unresolvedErrorFor(
         (outer, name) =>
-          StrictMode.AppendValueValidationContext.of(outer).append(name).resolved(name),
+          Validation.AppendValueValidationContext.of(outer).append(name).resolved(name),
         'append:value',
         '[%{{<|foo|>}}%]',
         'an unknown module'
@@ -484,8 +483,7 @@ class StaticStrictModeTest extends RenderTest {
         defineComponent({}, '<div class={{foo}} />');
       },
       unresolvedErrorFor(
-        'component',
-        'attr:value',
+        (outer, content) => Validation.component(content).attr(outer),
         '<div [%class={{<|foo|>}}%] />',
         'an unknown module'
       )

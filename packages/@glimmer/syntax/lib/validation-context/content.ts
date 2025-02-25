@@ -42,6 +42,7 @@ export class AngleBracketContext implements AnyValidationContext {
   #span: SourceSpan;
 
   private constructor(span: SourceSpan, type: 'component' | 'element') {
+    debugger;
     this.context = span;
     this.type = type;
     this.#span = span;
@@ -57,7 +58,10 @@ export class AngleBracketContext implements AnyValidationContext {
   }
 
   tag<N extends AnyNode>(name: N): PathValidationContext {
-    return new PathValidationContext(this, loc(name), { type: 'a component', callee: true });
+    return new PathValidationContext(this, loc(name), (path) => ({
+      attempted: `invoke \`${path}\` as a component`,
+      describe: 'component name',
+    }));
   }
 
   attr(attr: HasSourceSpan) {
