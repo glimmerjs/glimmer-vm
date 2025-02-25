@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { StrictMode as Validation, unresolvedBindingError } from '@glimmer/syntax';
+import { unresolvedBindingError,Validation as Validation } from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 

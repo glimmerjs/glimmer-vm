@@ -2,7 +2,10 @@ import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
 import type * as src from './source/api';
-import type { VariableReferenceValidationContext } from './validation-context/validation-context';
+import type {
+  AnyValidationContext,
+  VariableReferenceValidationContext,
+} from './validation-context/validation-context';
 
 export interface GlimmerSyntaxError extends Error {
   location: src.SourceSpan | null;
@@ -22,6 +25,7 @@ export function unresolvedBindingError({
 
   const quotedCode = quoteInvalidPath(context, 'not in scope');
   const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
+  const what = context.what;
 
   let message: string;
 
@@ -30,9 +34,9 @@ export function unresolvedBindingError({
   if (quotedCode || allNotes.length > 0) {
     const notesString =
       allNotes.length > 0 ? `${allNotes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
-    message = `${context.error}:${quotedCode}${notesString}${where}`;
+    message = `${context.attemptedTo(what)}:${quotedCode}${notesString}${where}`;
   } else {
-    message = `${context.error}: ${where}`;
+    message = `${context.attemptedTo(what)}: ${where}`;
   }
 
   const code = loc.asString();
@@ -96,7 +100,7 @@ export function generateSyntaxError(message: string, location: src.SourceSpan): 
   return error;
 }
 
-function quoteInvalid(context: ValidationContext, problem: string): string {
+function quoteInvalid(context: AnyValidationContext, problem: string): string {
   if (context.kind === 'path') {
     return quoteInvalidPath(context, problem);
   }
@@ -145,7 +149,14 @@ function quoteInvalidPath(validation: VariableReferenceValidationContext, proble
     .forLine(path.startPosition.line, highlightContext.startPosition.column)
     .add(codeString);
 
-  const underline = drawPathUnderline(lines, highlightContext, path, head ?? path, problem, 'todo');
+  const underline = drawPathUnderline(
+    lines,
+    highlightContext,
+    path,
+    head ?? path,
+    problem,
+    validation.what.describe
+  );
   return `\n\n${code}\n${underline}\n\n`;
 }
 
