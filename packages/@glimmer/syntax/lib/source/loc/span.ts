@@ -327,7 +327,10 @@ export class SourceSpan implements SourceLocation {
     // @todo optimize this for the situation where the spans are both CharPositionSpans. For now,
     // this is only used inside of error handling, so a little bit of performance overhead is
     // acceptable
-    return this.getStart() === other.getStart() && this.getEnd() === other.getEnd();
+    return (
+      this.getStart().offset === other.getStart().offset &&
+      this.getEnd().offset === other.getEnd().offset
+    );
   }
 }
 

@@ -1,4 +1,4 @@
-import type { StrictMode } from '@glimmer/syntax';
+import type { Validation } from '@glimmer/syntax';
 import { loc, src, unresolvedBindingError } from '@glimmer/syntax';
 
 /**
@@ -62,8 +62,11 @@ function formatCode({
  * context, and `code` is the code inside the context.
  */
 export function unresolvedErrorFor(
-  path: (outer: src.SourceSpan) => {
-    resolved: (name: StrictMode.NameNode) => StrictMode.VariableReferenceValidationContext;
+  path: (
+    outer: src.SourceSpan,
+    content: src.SourceSpan
+  ) => {
+    resolved: (name: Validation.NameNode) => Validation.VariableReferenceValidationContext;
   },
   code: string,
   moduleName: string,
@@ -84,7 +87,10 @@ export function unresolvedErrorFor(
   );
 
   const name = { type: 'tag', name: headSpan.asString(), loc: loc(headSpan) };
-  const ctx = path(outerSpan).resolved(name);
+  const ctx = path(
+    outerSpan,
+    src.SourceSpan.forCharPositions(source, 0, extracted.full.length)
+  ).resolved(name);
 
   return unresolvedBindingError({
     context: ctx,

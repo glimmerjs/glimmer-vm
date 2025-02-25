@@ -37,7 +37,7 @@ export class ArgsContext implements ArgsContainerContext {
   }
 
   namedArg(arg: NamedArgContainer & { value: AnyNode }): ValueValidationContext {
-    return this.namedArg(arg);
+    return this.namedContainer(arg).value(arg.value);
   }
 }
 
@@ -68,7 +68,7 @@ export class NamedArgContext {
     this.#container = container;
   }
 
-  value(arg: HasSourceSpan) {
+  value(arg: AnyNode) {
     return ValueValidationContext.named(this.#parent, loc(arg), this.#container);
   }
 }
