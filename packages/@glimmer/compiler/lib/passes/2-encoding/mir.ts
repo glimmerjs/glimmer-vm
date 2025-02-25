@@ -41,7 +41,7 @@ export class CustomNamedArgument<T> {
  * Syntax: `{{#in-element ...}} ... {{/in-element}}`
  */
 export class InElement extends node('InElement').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   guid: string;
   insertBefore: CustomNamedArgument<ExpressionValueNode> | Missing;
   destination: ExpressionValueNode;
@@ -52,7 +52,7 @@ export class InElement extends node('InElement').fields<{
  * Used internally in the `unless` keywords.
  */
 export class Not extends node('Not').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   value: ExpressionValueNode;
 }>() {
   readonly syntax = 'not';
@@ -83,7 +83,7 @@ export class Not extends node('Not').fields<{
  * where `%not` is the above {@linkcode Not} node.
  */
 export class IfContent extends node('IfContent').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   condition: ExpressionValueNode;
   block: NamedBlock;
   inverse: NamedBlock | null;
@@ -99,7 +99,7 @@ export class IfContent extends node('IfContent').fields<{
  * ```
  */
 export class Each extends node('Each').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   value: ExpressionValueNode;
   key: CustomNamedArgument<ExpressionValueNode> | null;
   block: NamedBlock;
@@ -116,7 +116,7 @@ export class Each extends node('Each').fields<{
  * ```
  */
 export class Let extends node('Let').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   positional: PresentPositional;
   block: NamedBlock;
 }>() {}
@@ -131,7 +131,7 @@ export class Let extends node('Let').fields<{
  * ```
  */
 export class WithDynamicVars extends node('WithDynamicVars').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   named: PresentCurlyNamedArguments;
   block: NamedBlock;
 }>() {}
@@ -143,7 +143,7 @@ export class WithDynamicVars extends node('WithDynamicVars').fields<{
  * - `{{-get-dynamic-var <expr>}}`
  */
 export class GetDynamicVar extends node('GetDynamicVar').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   name: ExpressionValueNode;
 }>() {
   readonly syntax = '-get-dynamic-var';
@@ -156,7 +156,7 @@ export class GetDynamicVar extends node('GetDynamicVar').fields<{
  * - `(log ...)`
  */
 export class Log extends node('Log').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   positional: Positional;
 }>() {
   readonly syntax = 'log';
@@ -169,7 +169,7 @@ export class Log extends node('Log').fields<{
  * - `{{#component <expr>}}`
  */
 export class InvokeComponentKeyword extends node('InvokeComponentKeyword').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   definition: CalleeExpression | ASTv2.StringLiteral;
   args: Args;
   blocks?: Optional<NamedBlocks>;
@@ -182,14 +182,14 @@ export class InvokeComponentKeyword extends node('InvokeComponentKeyword').field
  * - `{{#component "name-to-resolve"}}`
  */
 export class InvokeResolvedComponentKeyword extends node('InvokeResolvedComponentKeyword').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   definition: string;
   args: Args;
   blocks?: Optional<NamedBlocks>;
 }>() {}
 
 export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
-  html: ExpressionValueNode | ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
+  value: ExpressionValueNode | ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
 }>() {}
 
 /**
@@ -222,13 +222,13 @@ export class AppendHtmlText extends node('AppendHtmlText').fields<{
 export class AppendHtmlComment extends node('AppendHtmlComment').fields<{ value: SourceSlice }>() {}
 
 export class Yield extends node('Yield').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   target: SourceSlice;
   to: number;
   positional: Positional;
 }>() {}
 export class Debugger extends node('Debugger').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   scope: SymbolTable;
 }>() {}
 
@@ -321,7 +321,7 @@ export class ResolvedCallExpression extends node('ResolvedCallExpression').field
  * ```
  */
 export class IfExpression extends node('IfExpression').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   condition: ExpressionValueNode;
   truthy: ExpressionValueNode;
   falsy: ExpressionValueNode | null;
@@ -362,21 +362,21 @@ export class InterpolateExpression extends node('InterpolateExpression').fields<
   parts: PresentList<AttrStyleInterpolatePart>;
 }>() {}
 export class HasBlock extends node('HasBlock').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   target: SourceSlice;
   symbol: number;
 }>() {
   readonly syntax = 'has-block';
 }
 export class HasBlockParams extends node('HasBlockParams').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   target: SourceSlice;
   symbol: number;
 }>() {
   readonly syntax = 'has-block-params';
 }
 export class Curry extends node('Curry').fields<{
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   definition: ExpressionValueNode;
   curriedType: CurriedType;
   args: Args;

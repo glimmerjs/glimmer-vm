@@ -1,6 +1,12 @@
 import type { KeywordType, SourceSpan } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { ASTv2, generateSyntaxError, isKeyword, KEYWORDS_TYPES } from '@glimmer/syntax';
+import {
+  ASTv2,
+  generateSyntaxError,
+  isKeyword,
+  KEYWORDS_TYPES,
+  SourceSlice,
+} from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 import type { NormalizationState } from '../context';
@@ -10,7 +16,7 @@ import { Err } from '../../../shared/result';
 export interface KeywordInfo<Match extends KeywordMatch> {
   node: Match;
   loc: SourceSpan;
-  keyword: SourceSpan;
+  keyword: SourceSlice;
   state: NormalizationState;
   args: ASTv2.CurlyArgs;
 }
@@ -61,7 +67,7 @@ class KeywordImpl<
   translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
     if (this.match(node)) {
       const args = getKeywordArgs(node);
-      const keyword = node.resolved.loc;
+      const keyword = SourceSlice.keyword(this.keyword, node.resolved.loc);
       let param = this.delegate.assert({ node, keyword, loc: node.loc, state, args });
       return param.andThen((param) =>
         this.delegate.translate({ node, keyword, loc: node.loc, state, args }, param)

@@ -231,7 +231,7 @@ function visitAppendContent(
       return Ok(
         new mir.AppendTrustedHTML({
           loc: append.loc,
-          html: append.resolved,
+          value: append.resolved,
         })
       );
     } else {
@@ -248,7 +248,7 @@ function visitAppendContent(
     if (append.trusting) {
       return new mir.AppendTrustedHTML({
         loc: append.loc,
-        html: value,
+        value: value,
       });
     } else {
       return new mir.AppendValueCautiously({

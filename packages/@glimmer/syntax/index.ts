@@ -43,7 +43,7 @@ export { default as visitorKeys } from './lib/v1/visitor-keys';
 export * as ASTv2 from './lib/v2/api';
 export { normalize } from './lib/v2/normalize';
 export { node } from './lib/v2/objects/node';
-export * as StrictMode from './lib/validation-context';
+export * as StrictMode from './lib/validation-context/validation-context';
 
 /** @deprecated use WalkerPath instead */
 export { default as Path } from './lib/traversal/walker';

@@ -204,14 +204,14 @@ export function InvokeResolvedBlockComponent({
 }
 
 export function AppendTrustedHTML({
-  html,
+  value,
 }: mir.AppendTrustedHTML):
   | WireFormat.Content.AppendTrustedHtml
   | WireFormat.Content.AppendTrustedResolvedHtml {
-  if (html.type === 'ResolvedName') {
-    return [Op.AppendTrustedResolvedHtml, html.symbol];
+  if (value.type === 'ResolvedName') {
+    return [Op.AppendTrustedResolvedHtml, value.symbol];
   } else {
-    return [Op.AppendTrustedHtml, encodeExpr(html)];
+    return [Op.AppendTrustedHtml, encodeExpr(value)];
   }
 }
 

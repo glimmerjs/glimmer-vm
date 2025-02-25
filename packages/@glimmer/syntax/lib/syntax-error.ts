@@ -2,7 +2,7 @@ import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
 import type * as src from './source/api';
-import type { VariableReferenceValidationContext } from './validation-context';
+import type { VariableReferenceValidationContext } from './validation-context/validation-context';
 
 export interface GlimmerSyntaxError extends Error {
   location: src.SourceSpan | null;

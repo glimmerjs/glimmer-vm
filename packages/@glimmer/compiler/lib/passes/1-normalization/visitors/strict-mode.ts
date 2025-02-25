@@ -117,7 +117,7 @@ export default class ValidatorPass {
 
   Expressions(
     expressions: (mir.ExpressionValueNode | ASTv2.UnresolvedBinding)[],
-    context: Validation.PositionalValidationContext
+    context: Validation.PositionalArgsContext
   ): Result<null> {
     let result = Ok(null);
 
@@ -145,7 +145,7 @@ export default class ValidatorPass {
         return this.KeywordExpression(expression);
 
       case 'ResolvedCallExpression': {
-        return this.ResolvedCallExpression(expression, context);
+        return this.ResolvedCallExpression(expression, context.subexpression(expression));
       }
 
       case 'PathExpression':
@@ -166,20 +166,21 @@ export default class ValidatorPass {
     const value = expression.value;
     switch (value.type) {
       case 'InterpolateExpression':
-        return this.InterpolateExpression(value, context.concat());
+        return this.InterpolateExpression(value, context.concat(value));
       default:
         return this.AttrStyleValue(value, context);
     }
   }
+
   CoreAttrStyleValue(
     part: mir.CoreAttrStyleInterpolatePart,
-    value: Validation.FullElementParameterValidationContext
+    value: Validation.AnyAttrLikeContainerContext
   ) {
     switch (part.type) {
       case 'Literal':
         return this.Literal(part);
       case 'CurlyResolvedAttrValue':
-        return this.ResolvedName(part.resolved, value.resolved(part));
+        return this.ResolvedName(part.resolved, value.invoke(part));
       case 'mir.CurlyAttrValue':
         return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
       case 'mir.CurlyInvokeAttr': {
@@ -190,7 +191,7 @@ export default class ValidatorPass {
       }
       case 'mir.CurlyInvokeResolvedAttr': {
         const invokeContext = value.invoke(part);
-        return this.ResolvedName(part.resolved, value.resolved(part)).andThen(() =>
+        return this.ResolvedName(part.resolved, value.invoke(part)).andThen(() =>
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
@@ -199,32 +200,13 @@ export default class ValidatorPass {
 
   AttrStyleValue(
     part: mir.AttrStyleInterpolatePart,
-    value: Validation.FullElementParameterValidationContext
+    value: Validation.AnyAttrLikeContainerContext
   ) {
     switch (part.type) {
       case 'mir.CustomInterpolationPart':
         return this.CustomExpression(part.value, value.value({ curly: part, value: part.value }));
-
-      case 'Literal':
-        return this.Literal(part);
-      case 'CurlyResolvedAttrValue':
-        return this.ResolvedName(part.resolved, value.resolved(part));
-      case 'mir.CurlyAttrValue':
-        return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
-      case 'mir.CurlyInvokeAttr': {
-        const invokeContext = value.invoke(part);
-        return this.ExpressionValue(part.callee, invokeContext.callee(part.callee)).andThen(() =>
-          this.Args(part.args, invokeContext.args(part.args))
-        );
-      }
-      case 'mir.CurlyInvokeResolvedAttr': {
-        const invokeContext = value.invoke(part);
-        return this.ResolvedName(part.resolved, value.resolved(part)).andThen(() =>
-          this.Args(part.args, invokeContext.args(part.args))
-        );
-      }
       default:
-        exhausted(part);
+        return this.CoreAttrStyleValue(part, value);
     }
   }
 
@@ -241,11 +223,7 @@ export default class ValidatorPass {
   }
 
   ExpressionValue(
-    expression:
-      | mir.ExpressionValueNode
-      | mir.Missing
-      | ASTv2.UnresolvedBinding
-      | ASTv2.ResolvedName,
+    expression: mir.ExpressionValueNode | mir.Missing | ASTv2.UnresolvedBinding,
     context: Validation.ValueValidationContext
   ) {
     switch (expression.type) {
@@ -253,8 +231,6 @@ export default class ValidatorPass {
         return Ok(null);
       case 'UnresolvedBinding':
         return this.errorFor(context.resolved(expression));
-      case 'ResolvedName':
-        return this.ResolvedName(expression, context.resolved(expression));
       case 'Missing':
         return Ok(null);
       case 'PathExpression':
@@ -337,23 +313,20 @@ export default class ValidatorPass {
     return Ok(null);
   }
 
-  Args(args: mir.Args, context: Validation.ArgsContainerValidationContext): Result<null> {
+  Args(args: mir.Args, context: Validation.ArgsContainerContext): Result<null> {
     return this.Positional(args.positional, context.positionalArgs(args.positional)).andThen(() =>
       this.NamedArguments(args.named, context)
     );
   }
 
-  Positional(
-    positional: mir.Positional,
-    context: Validation.PositionalValidationContext
-  ): Result<null> {
+  Positional(positional: mir.Positional, context: Validation.PositionalArgsContext): Result<null> {
     let expressions = positional.list.toArray();
     return this.Expressions(expressions, context);
   }
 
   ComponentArguments(
     { entries }: mir.ComponentArguments,
-    context: Validation.AngleBracketValidationContext
+    context: Validation.AngleBracketContext
   ): Result<null> {
     let result = Ok(null);
 
@@ -366,7 +339,7 @@ export default class ValidatorPass {
 
   NamedArguments(
     { entries }: mir.CurlyNamedArguments,
-    context: Validation.ArgsContainerValidationContext
+    context: Validation.ArgsContainerContext
   ): Result<null> {
     let result = Ok(null);
 
@@ -379,14 +352,14 @@ export default class ValidatorPass {
 
   NamedArgument(
     arg: mir.CurlyNamedArgument,
-    context: Validation.ArgsContainerValidationContext
+    context: Validation.ArgsContainerContext
   ): Result<null> {
     return this.ExpressionValue(arg.value, context.namedArg(arg));
   }
 
   ElementParameters(
     { body }: mir.ElementParameters,
-    context: Validation.AngleBracketValidationContext
+    context: Validation.AngleBracketContext
   ): Result<null> {
     let result = Ok(null);
 
@@ -399,14 +372,14 @@ export default class ValidatorPass {
 
   ElementParameter(
     param: mir.ElementParameter,
-    content: Validation.AngleBracketValidationContext
+    content: Validation.AngleBracketContext
   ): Result<null> {
     switch (param.type) {
       case 'DynamicAttr':
         return this.AttrStyleArgument(param, content.attr(param));
       case 'ResolvedModifier': {
         const context = content.modifier(param);
-        return this.ResolvedName(param.callee, context.resolved(param.callee)).andThen(() =>
+        return this.ResolvedName(param.callee, context).andThen(() =>
           this.Args(param.args, context.args(param.args))
         );
       }
@@ -433,15 +406,13 @@ export default class ValidatorPass {
 
   ResolvedCallExpression(
     expr: mir.ResolvedCallExpression,
-    context: Validation.ValueValidationContext
+    context: Validation.AnyInvokeParentContext
   ): Result<null> {
     if (expr.args.isEmpty()) {
-      return this.ResolvedName(expr.callee, context.resolved(expr.callee));
+      return this.ResolvedName(expr.callee, context);
     } else {
-      const callContext = context.subexpression(expr);
-
-      return this.ResolvedName(expr.callee, callContext.resolved(expr.callee)).andThen(() =>
-        this.Args(expr.args, callContext.args(expr.args))
+      return this.ResolvedName(expr.callee, context).andThen(() =>
+        this.Args(expr.args, context.args(expr.args))
       );
     }
   }
@@ -467,20 +438,20 @@ export default class ValidatorPass {
   AppendInvokable(
     statement: mir.AppendInvokableCautiously | mir.AppendTrustingInvokable
   ): Result<null> {
-    const context = Validation.AppendInvokeValidationContext.of(statement);
+    const context = Validation.appending(statement).invoke();
     const callee = statement.callee;
 
     const args = this.Args(statement.args, context.args(statement.args));
 
     if (callee.type === 'ResolvedName') {
-      return this.ResolvedName(callee, context.resolvedCallee(callee)).andThen(() => args);
+      return this.ResolvedName(callee, context).andThen(() => args);
     } else {
       return this.ExpressionValue(callee, context.callee(callee)).andThen(() => args);
     }
   }
 
   InElement(inElement: mir.InElement): Result<null> {
-    const context = Validation.InvokeCustomSyntaxValidationContext.keyword(inElement);
+    const context = Validation.custom(inElement);
 
     return this.ExpressionValue(
       inElement.destination,
@@ -500,23 +471,24 @@ export default class ValidatorPass {
   }
 
   AppendTrustedHTML(statement: mir.AppendTrustedHTML): Result<null> {
-    return this.ExpressionValue(
-      statement.html,
-      Validation.AppendValueValidationContext.of(statement).append(statement.html)
-    );
+    if (statement.value.type === 'ResolvedName') {
+      return this.ResolvedName(statement.value, Validation.appending(statement).invoke());
+    }
+    return this.ExpressionValue(statement.value, Validation.append(statement));
   }
 
   AppendValueCautiously(statement: mir.AppendValueCautiously): Result<null> {
-    return this.ExpressionValue(
-      statement.value,
-      Validation.AppendValueValidationContext.of(statement).append(statement.value)
-    );
+    if (statement.value.type === 'ResolvedName') {
+      return this.ResolvedName(statement.value, Validation.appending(statement).invoke());
+    }
+
+    return this.ExpressionValue(statement.value, Validation.append(statement));
   }
 
   AngleBracketComponent(
     statement: mir.AngleBracketComponent | mir.ResolvedAngleBracketComponent
   ): Result<null> {
-    const context = Validation.AngleBracketValidationContext.component(statement);
+    const context = Validation.component(statement);
 
     return this.ComponentTag(statement.tag, context)
       .andThen(() => this.ElementParameters(statement.params, context))
@@ -526,7 +498,7 @@ export default class ValidatorPass {
 
   ComponentTag(
     tag: mir.BlockCallee | ASTv2.ResolvedName,
-    context: Validation.AngleBracketValidationContext
+    context: Validation.AngleBracketContext
   ): Result<null> {
     switch (tag.type) {
       case 'ResolvedName':
@@ -550,7 +522,7 @@ export default class ValidatorPass {
   }
 
   SimpleElement(statement: mir.SimpleElement): Result<null> {
-    const context = Validation.AngleBracketValidationContext.element(statement);
+    const context = Validation.element(statement);
     return this.ElementParameters(statement.params, context).andThen(() =>
       this.ContentItems(statement.body)
     );
@@ -559,11 +531,11 @@ export default class ValidatorPass {
   InvokeBlock(
     statement: mir.InvokeBlockComponent | mir.InvokeResolvedBlockComponent
   ): Result<null> {
-    const context = Validation.InvokeBlockValidationContext.of(statement);
+    const context = Validation.block(statement);
 
     const callee =
       statement.type === 'InvokeResolvedBlockComponent'
-        ? this.ResolvedName(statement.head, context.resolved(statement.head))
+        ? this.ResolvedName(statement.head, context)
         : this.CalleeExpression(statement.head, context.callee(statement.head));
 
     return callee
@@ -646,7 +618,7 @@ export default class ValidatorPass {
 
   InterpolateExpression(
     expression: mir.InterpolateExpression,
-    context: Validation.FullElementParameterValidationContext
+    context: Validation.ConcatContext
   ): Result<null> {
     let expressions = expression.parts.toArray();
     let result = Ok(null);
@@ -705,11 +677,11 @@ export default class ValidatorPass {
   }
 
   ResolvedName(
-    _callee: ASTv2.ResolvedName,
-    context: Validation.VariableReferenceValidationContext
+    callee: ASTv2.ResolvedName,
+    context: Validation.AnyInvokeParentContext
   ): Result<null> {
     if (this.#strict) {
-      return this.errorFor(context);
+      return this.errorFor(context.callee(callee));
     } else {
       return Ok(null);
     }
@@ -725,23 +697,5 @@ export default class ValidatorPass {
         context,
       })
     );
-  }
-}
-
-function getAppendType(
-  expr:
-    | mir.ExpressionValueNode
-    | ASTv2.UnresolvedBinding
-    | mir.AppendInvokableCautiously
-    | mir.AppendTrustingInvokable
-): ASTv2.PathSyntaxType {
-  switch (expr.type) {
-    case 'ResolvedCallExpression':
-    case 'CallExpression':
-    case 'AppendInvokableCautiously':
-    case 'AppendTrustingInvokable':
-      return expr.args.isEmpty() ? 'append:value' : 'append:callee';
-    default:
-      return 'append:value';
   }
 }
