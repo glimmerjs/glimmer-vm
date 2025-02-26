@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { unresolvedBindingError,Validation as Validation } from '@glimmer/syntax';
+import { unresolvedBindingError, Validation as Validation } from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 
@@ -180,7 +180,7 @@ export default class ValidatorPass {
       case 'Literal':
         return this.Literal(part);
       case 'CurlyResolvedAttrValue':
-        return this.ResolvedName(part.resolved, value.invoke(part));
+        return this.ResolvedName(part.resolved, value.callee(part));
       case 'mir.CurlyAttrValue':
         return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
       case 'mir.CurlyInvokeAttr': {
@@ -191,7 +191,7 @@ export default class ValidatorPass {
       }
       case 'mir.CurlyInvokeResolvedAttr': {
         const invokeContext = value.invoke(part);
-        return this.ResolvedName(part.resolved, value.invoke(part)).andThen(() =>
+        return this.ResolvedName(part.resolved, value.callee(part)).andThen(() =>
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
@@ -212,7 +212,7 @@ export default class ValidatorPass {
 
   CustomNamedArgument(
     expression: mir.CustomNamedArgument<mir.ExpressionValueNode> | mir.Missing,
-    context: Validation.InvokeCustomSyntaxValidationContext
+    context: Validation.InvokeCustomSyntaxContext
   ) {
     switch (expression.type) {
       case 'Missing':
@@ -296,12 +296,12 @@ export default class ValidatorPass {
 
   GetDynamicVar(
     expression: mir.GetDynamicVar,
-    context: Validation.InvokeCustomSyntaxValidationContext
+    context: Validation.InvokeCustomSyntaxContext
   ): Result<null> {
     return this.ExpressionValue(expression.name, context.positional('name', expression));
   }
 
-  Not(expression: mir.Not, context: Validation.InvokeCustomSyntaxValidationContext): Result<null> {
+  Not(expression: mir.Not, context: Validation.InvokeCustomSyntaxContext): Result<null> {
     return this.ExpressionValue(expression.value, context.positional('value', expression.value));
   }
 
@@ -379,7 +379,7 @@ export default class ValidatorPass {
         return this.AttrStyleArgument(param, content.attr(param));
       case 'ResolvedModifier': {
         const context = content.modifier(param);
-        return this.ResolvedName(param.callee, context).andThen(() =>
+        return this.ResolvedName(param.callee, context.callee(param)).andThen(() =>
           this.Args(param.args, context.args(param.args))
         );
       }
@@ -408,12 +408,12 @@ export default class ValidatorPass {
     expr: mir.ResolvedCallExpression,
     context: Validation.AnyInvokeParentContext
   ): Result<null> {
+    const name = this.ResolvedName(expr.callee, context.callee(expr));
+
     if (expr.args.isEmpty()) {
-      return this.ResolvedName(expr.callee, context);
+      return name;
     } else {
-      return this.ResolvedName(expr.callee, context).andThen(() =>
-        this.Args(expr.args, context.args(expr.args))
-      );
+      return name.andThen(() => this.Args(expr.args, context.args(expr.args)));
     }
   }
 
@@ -444,7 +444,7 @@ export default class ValidatorPass {
     const args = this.Args(statement.args, context.args(statement.args));
 
     if (callee.type === 'ResolvedName') {
-      return this.ResolvedName(callee, context).andThen(() => args);
+      return this.ResolvedName(callee, context.callee(callee)).andThen(() => args);
     } else {
       return this.ExpressionValue(callee, context.callee(callee)).andThen(() => args);
     }
@@ -464,25 +464,29 @@ export default class ValidatorPass {
   Yield(statement: mir.Yield): Result<null> {
     return this.Positional(
       statement.positional,
-      Validation.InvokeCustomSyntaxValidationContext.keyword(statement).positionalArgs(
+      Validation.InvokeCustomSyntaxContext.keyword(statement).positionalArgs(
         statement.positional
       )
     );
   }
 
   AppendTrustedHTML(statement: mir.AppendTrustedHTML): Result<null> {
+    const context = Validation.appending(statement);
     if (statement.value.type === 'ResolvedName') {
-      return this.ResolvedName(statement.value, Validation.appending(statement).invoke());
+      return this.ResolvedName(statement.value, context.append(statement.value));
+    } else {
+      return this.ExpressionValue(statement.value, context.append(statement.value));
     }
-    return this.ExpressionValue(statement.value, Validation.append(statement));
   }
 
   AppendValueCautiously(statement: mir.AppendValueCautiously): Result<null> {
-    if (statement.value.type === 'ResolvedName') {
-      return this.ResolvedName(statement.value, Validation.appending(statement).invoke());
-    }
+    const context = Validation.appending(statement);
 
-    return this.ExpressionValue(statement.value, Validation.append(statement));
+    if (statement.value.type === 'ResolvedName') {
+      return this.ResolvedName(statement.value, context.append(statement.value));
+    } else {
+      return this.ExpressionValue(statement.value, context.append(statement.value));
+    }
   }
 
   AngleBracketComponent(
@@ -535,7 +539,7 @@ export default class ValidatorPass {
 
     const callee =
       statement.type === 'InvokeResolvedBlockComponent'
-        ? this.ResolvedName(statement.head, context)
+        ? this.ResolvedName(statement.head, context.callee(statement.head))
         : this.CalleeExpression(statement.head, context.callee(statement.head));
 
     return callee
@@ -544,7 +548,7 @@ export default class ValidatorPass {
   }
 
   IfContent(statement: mir.IfContent): Result<null> {
-    const context = Validation.InvokeCustomSyntaxValidationContext.keyword(statement);
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
 
     return this.ExpressionValue(
       statement.condition,
@@ -561,7 +565,7 @@ export default class ValidatorPass {
   }
 
   Each(statement: mir.Each): Result<null> {
-    const context = Validation.InvokeCustomSyntaxValidationContext.keyword(statement);
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
 
     return this.ExpressionValue(statement.value, context.positional('value', statement.value))
       .andThen(() => {
@@ -582,7 +586,7 @@ export default class ValidatorPass {
   }
 
   Let(statement: mir.Let): Result<null> {
-    const context = Validation.InvokeCustomSyntaxValidationContext.keyword(statement);
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
 
     return this.Positional(
       statement.positional,
@@ -591,7 +595,7 @@ export default class ValidatorPass {
   }
 
   WithDynamicVars(statement: mir.WithDynamicVars): Result<null> {
-    const context = Validation.InvokeCustomSyntaxValidationContext.keyword(statement);
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
 
     return this.NamedArguments(statement.named, context).andThen(() =>
       this.NamedBlock(statement.block)
@@ -599,7 +603,7 @@ export default class ValidatorPass {
   }
 
   InvokeComponentKeyword(statement: mir.InvokeComponentKeyword): Result<null> {
-    const context = Validation.InvokeCustomSyntaxValidationContext.keyword(statement);
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
 
     return this.ExpressionValue(
       statement.definition,
@@ -608,7 +612,7 @@ export default class ValidatorPass {
   }
 
   InvokeResolvedComponentKeyword(statement: mir.InvokeResolvedComponentKeyword): Result<null> {
-    const context = Validation.InvokeCustomSyntaxValidationContext.keyword(statement);
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
 
     return this.Args(statement.args, context).andThen(() => {
       if (statement.blocks) this.NamedBlocks(statement.blocks);
@@ -632,7 +636,7 @@ export default class ValidatorPass {
 
   CallExpression(
     expression: mir.CallExpression,
-    context: Validation.SubExpressionValidationContext
+    context: Validation.SubExpressionContext
   ): Result<null> {
     return this.ExpressionValue(expression.callee, context.callee(expression.callee)).andThen(() =>
       this.Args(expression.args, context.args(expression.args))
@@ -641,7 +645,7 @@ export default class ValidatorPass {
 
   IfExpression(
     expression: mir.IfExpression,
-    context: Validation.InvokeCustomSyntaxValidationContext
+    context: Validation.InvokeCustomSyntaxContext
   ): Result<null> {
     return this.ExpressionValue(
       expression.condition,
@@ -664,7 +668,7 @@ export default class ValidatorPass {
 
   Curry(
     expression: mir.Curry,
-    context: Validation.InvokeCustomSyntaxValidationContext
+    context: Validation.InvokeCustomSyntaxContext
   ): Result<null> {
     return this.ExpressionValue(
       expression.definition,
@@ -672,22 +676,22 @@ export default class ValidatorPass {
     ).andThen(() => this.Args(expression.args, context));
   }
 
-  Log(expression: mir.Log, context: Validation.InvokeCustomSyntaxValidationContext): Result<null> {
+  Log(expression: mir.Log, context: Validation.InvokeCustomSyntaxContext): Result<null> {
     return this.Positional(expression.positional, context.positionalArgs(expression.positional));
   }
 
   ResolvedName(
-    callee: ASTv2.ResolvedName,
-    context: Validation.AnyInvokeParentContext
+    _callee: ASTv2.ResolvedName,
+    context: Validation.VariableReferenceContext
   ): Result<null> {
     if (this.#strict) {
-      return this.errorFor(context.callee(callee));
+      return this.errorFor(context);
     } else {
       return Ok(null);
     }
   }
 
-  errorFor(context: Validation.VariableReferenceValidationContext): Result<null> {
+  errorFor(context: Validation.VariableReferenceContext): Result<null> {
     if (this.template.scope.hasKeyword(context.name)) {
       return Ok(null);
     }

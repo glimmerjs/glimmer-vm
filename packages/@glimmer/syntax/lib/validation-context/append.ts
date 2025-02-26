@@ -5,13 +5,18 @@ import type {
   ArgsNode,
   CallNode,
   NameNode,
-  VariableReferenceValidationContext,
+  ResolvedNode,
+  VariableReferenceContext,
 } from './validation-context';
 
 import { loc } from '../source/span-list';
 import { ArgsContext } from './args';
 import { getCalleeContext } from './content';
-import { SubExpressionValidationContext, ValueValidationContext } from './validation-context';
+import {
+  isResolvedName,
+  SubExpressionContext,
+  ValueValidationContext,
+} from './validation-context';
 
 export class AppendInvokeContext implements AnyInvokeParentContext {
   static of(node: AnyNode) {
@@ -28,7 +33,7 @@ export class AppendInvokeContext implements AnyInvokeParentContext {
     this.#append = span;
   }
 
-  callee(callee: NameNode): VariableReferenceValidationContext;
+  callee(callee: NameNode): VariableReferenceContext;
   callee(callee: AnyNode): ValueValidationContext;
   callee(callee: AnyNode) {
     return getCalleeContext('append', this, callee);
@@ -57,11 +62,14 @@ export class AppendValueContext {
   }
 
   subexpression(value: CallNode) {
-    return new SubExpressionValidationContext(this, loc(value));
+    return new SubExpressionContext(this, loc(value));
   }
 
-  append(value: AnyNode) {
-    return ValueValidationContext.append(this, loc(value));
+  append(value: NameNode): VariableReferenceContext;
+  append(value: AnyNode): ValueValidationContext;
+  append(value: AnyNode | ResolvedNode): ValueValidationContext | VariableReferenceContext {
+    const valueContext = ValueValidationContext.append(this, loc(value));
+    return isResolvedName(value) ? valueContext.resolved(value) : valueContext;
   }
 }
 

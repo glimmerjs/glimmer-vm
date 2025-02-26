@@ -8,13 +8,14 @@ import type {
   InvokeKind,
   InvokeParentContext,
   NameNode,
-  VariableReferenceValidationContext,
+  VariableReferenceContext,
 } from './validation-context';
 
 import { loc } from '../source/span-list';
 import { ArgsContext } from './args';
 import { FullElementParameterValidationContext, InvokeElementParameterContext } from './element';
 import {
+  hasCallee,
   isResolvedName,
   PathValidationContext,
   ValueValidationContext,
@@ -42,7 +43,6 @@ export class AngleBracketContext implements AnyValidationContext {
   #span: SourceSpan;
 
   private constructor(span: SourceSpan, type: 'component' | 'element') {
-    debugger;
     this.context = span;
     this.type = type;
     this.#span = span;
@@ -91,7 +91,7 @@ export class InvokeBlockValidationContext implements AnyInvokeParentContext {
     this.#block = span;
   }
 
-  callee(callee: NameNode): VariableReferenceValidationContext;
+  callee(callee: NameNode): VariableReferenceContext;
   callee(callee: AnyNode): ValueValidationContext;
   callee(callee: AnyNode) {
     return getCalleeContext('block', this, callee);
@@ -107,6 +107,9 @@ export type SomeContentValidationContext = AngleBracketContext | InvokeBlockVali
 export function getCalleeContext(kind: InvokeKind, context: InvokeParentContext, callee: AnyNode) {
   if (isResolvedName(callee)) {
     return ValueValidationContext.callee(kind, context, loc(callee)).resolved(callee);
+  } else if (hasCallee(callee)) {
+    return getCalleeContext(kind, context, callee.callee);
+  } else {
+    return ValueValidationContext.callee(kind, context, loc(callee));
   }
-  return ValueValidationContext.callee(kind, context, loc(callee));
 }
