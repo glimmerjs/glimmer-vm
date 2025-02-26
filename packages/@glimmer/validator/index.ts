@@ -9,8 +9,9 @@ if (Reflect.has(globalThis, GLIMMER_VALIDATOR_REGISTRATION)) {
 Reflect.set(globalThis, GLIMMER_VALIDATOR_REGISTRATION, true);
 
 export { debug } from './lib/debug';
-export { dirtyTagFor, tagFor, type TagMeta, tagMetaFor } from './lib/meta';
+export { dirtyTagFor, infoForTag, tagFor, type TagMeta, tagMetaFor } from './lib/meta';
 export { trackedData } from './lib/tracked-data';
+export * from './lib/tracked-utils';
 export {
   beginTrackFrame,
   beginUntrackFrame,
