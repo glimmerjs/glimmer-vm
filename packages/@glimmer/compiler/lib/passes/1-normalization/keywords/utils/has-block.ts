@@ -29,13 +29,15 @@ function assertHasBlockKeyword(type: string) {
     const [first, second, ...rest] = positionals.exprs;
 
     if (second) {
+      const message = `\`${type}\` only takes a single positional argument`;
+      const problem = rest.length > 0 ? 'extra arguments' : 'extra argument';
       return Err(
-        invalidExprError(`(${type}) only takes a single positional argument`, {
-          context: Validation.InvokeCustomSyntaxValidationContext.keyword(keyword).lol(
-            second.loc.withEnd(positionals.loc.getEnd())
-          ),
-          problem: rest.length > 0 ? 'extra arguments' : 'extra argument',
-        })
+        invalidExprError(
+          Validation.error(second.loc.withEnd(positionals.loc.getEnd()), message, problem, {
+            header: keyword,
+            content: loc,
+          })
+        )
       );
     }
 
