@@ -7,7 +7,7 @@ import {
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
 
-import type * as src from './source/api';
+import * as src from './source/api';
 import type * as ASTv1 from './v1/api';
 import type * as HBS from './v1/handlebars-ast';
 
@@ -67,6 +67,18 @@ export abstract class Parser {
     this.source = source;
     this.lines = source.source.split(/\r\n?|\n/u);
     this.tokenizer = new EventedTokenizer(this, entityParser, mode);
+  }
+
+  getCurrentNodeStart(): src.SourceOffset {
+    if (this.currentAttribute) {
+      return this.currentAttribute.start;
+    }
+
+    if (this.currentNode) {
+      return this.currentNode.start;
+    }
+
+    return this.source.start;
   }
 
   offset(): src.SourceOffset {

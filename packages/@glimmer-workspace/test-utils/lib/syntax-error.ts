@@ -1,5 +1,5 @@
 import type { Validation } from '@glimmer/syntax';
-import { loc, src, unresolvedBindingError } from '@glimmer/syntax';
+import { loc, src, quoteReportable } from '@glimmer/syntax';
 
 /**
  * If specifying context, it should be represented as: `{{<|code|>}}`, where the full string is the
@@ -92,10 +92,7 @@ export function unresolvedErrorFor(
     src.SourceSpan.forCharPositions(source, 0, extracted.full.length)
   ).resolved(name);
 
-  return unresolvedBindingError({
-    context: ctx,
-    notes: options?.notes,
-  });
+  return quoteReportable(ctx.addNotes(...(options?.notes ?? [])));
 }
 
 function extractCode(source: string) {

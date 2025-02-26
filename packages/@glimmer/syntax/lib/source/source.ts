@@ -5,17 +5,26 @@ import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation, SourcePosition } from './location';
 
 import { SourceOffset, SourceSpan } from './span';
+import { CharPosition } from './loc/offset';
+import { HighlightSpan } from 'typescript';
+import { HighlightedSpan, IntoHighlightedSpan } from '../validation-context/validation-context';
 
 export class Source {
   static from(source: string, options: PrecompileOptions = {}): Source {
     return new Source(source, options.meta?.moduleName);
   }
 
+  #linesCache: Optional<string[]> = undefined;
+
   constructor(
     readonly source: string,
     readonly module = 'an unknown module'
   ) {
     setLocalDebugType('syntax:source', this);
+  }
+
+  get start(): SourceOffset {
+    return new CharPosition(this, 0).wrap();
   }
 
   /**
@@ -34,12 +43,43 @@ export class Source {
   }
 
   hasLine(line: number): boolean {
-    return line >= 0 && line <= this.source.split('\n').length;
+    return line >= 0 && line <= this.#getLines().length;
   }
 
-  getLine(line: number): Optional<string> {
-    const lines = this.source.split('\n');
-    return lines[line];
+  #getLines(): string[] {
+    let lines = this.#linesCache;
+    if (lines === undefined) {
+      lines = this.#linesCache = this.source.split('\n');
+    }
+
+    return lines;
+  }
+
+  getLine(lineno: number): Optional<string> {
+    return this.#getLines()[lineno - 1];
+  }
+
+  /**
+   * Returns a span for the given line number.
+   */
+  lineSpan(lineno: number): SourceSpan {
+    const line = this.getLine(lineno);
+
+    localAssert(line !== undefined, `invalid line number: ${lineno}`);
+
+    return SourceSpan.forHbsLoc(this, {
+      start: { line: lineno, column: 0 },
+      end: { line: lineno, column: line.length },
+    });
+  }
+
+  highlightFor(
+    { loc: { start, end } }: { loc: Readonly<SourceLocation> },
+    label: string
+  ): HighlightedSpan {
+    const loc = this.spanFor({ start, end });
+
+    return HighlightedSpan.from({ loc, label });
   }
 
   spanFor({ start, end }: Readonly<SourceLocation>): SourceSpan {

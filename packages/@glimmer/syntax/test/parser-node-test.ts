@@ -947,9 +947,9 @@ test('Handlebars decorator block should error', (assert) => {
 test('disallowed mustaches in the tagName space', (assert) => {
   assert.throws(
     () => {
-      parse('<{{"asdf"}}></{{"asdf"}}>', { meta: { moduleName: 'test-module' } });
+      parse(`<{{'asdf'}}></{{'asdf'}}>`, { meta: { moduleName: 'test-module' } });
     },
-    syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{"asdf"}}', 'test-module', 1, 1)
+    syntaxErrorFor('Cannot use mustaches in an elements tagname', `{{'asdf'}}`, 'test-module', 1, 1)
   );
 
   assert.throws(
