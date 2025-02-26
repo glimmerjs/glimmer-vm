@@ -1,4 +1,5 @@
 import type { Optional } from '@glimmer/interfaces';
+import { localAssert } from '@glimmer/debug-util';
 
 import type { SourceSpan } from '../source/loc/span';
 import type { SourceSlice } from '../source/slice';
@@ -22,6 +23,7 @@ export type AnyNode = HasSourceSpan & { type: string };
 export type AppendValueNode = AnyNode & { value: AnyNode };
 export type ArgsNode = HasSourceSpan & { positional: AnyNode; named: AnyNode };
 export type NameNode = AnyNode & { name: string };
+export type InvokeResolvedNode = AnyNode & { callee: NameNode };
 export type ResolvedNode = AnyNode & { resolved: NameNode };
 export type PathNode = AnyNode & { tail: unknown };
 export type CallNode = AnyNode & { args: unknown };
@@ -31,10 +33,16 @@ export function isResolvedName(node: AnyNode): node is NameNode {
   return node.type === 'ResolvedName';
 }
 
+export function hasCallee(
+  node: AnyNode & Partial<{ callee: AnyNode }>
+): node is InvokeResolvedNode {
+  return !!node.callee && isResolvedName(node.callee);
+}
+
 export interface AnyAttrLikeContainerContext {
   value(options: { value: HasSourceSpan; curly: HasSourceSpan }): ValueValidationContext;
   invoke(curly: HasSourceSpan): InvokeElementParameterContext;
-  callee(node: ResolvedNode): VariableReferenceValidationContext;
+  callee(node: ResolvedNode): VariableReferenceContext;
 }
 
 export interface AnyValidationContext {
@@ -44,8 +52,62 @@ export interface AnyValidationContext {
   readonly context: SourceSpan;
 }
 
-export class VariableReferenceValidationContext {
+export interface ReportableContext extends AnyValidationContext {
+  readonly loc: SourceSpan;
+  readonly error: string;
+  readonly notes: string[];
+  highlights(): Highlights;
+}
+
+export class Highlight {
+  readonly loc: SourceSpan;
+  readonly label: string;
+
+  constructor(loc: SourceSpan, label: string) {
+    this.loc = loc;
+    this.label = label;
+  }
+
+  get size() {
+    const size = this.loc.endPosition.column - this.loc.startPosition.column;
+    localAssert(size > 0, `The size of a highlight for an error must be greater than 0`);
+    return size;
+  }
+
+  get start() {
+    return this.loc.startPosition.column;
+  }
+
+  get end() {
+    return this.loc.endPosition.column;
+  }
+}
+
+export class Highlights {
+  readonly full: SourceSpan;
+  readonly primary: Highlight;
+  readonly expanded?: Highlight | undefined;
+
+  constructor(
+    full: SourceSpan,
+    primary: { loc: SourceSpan; label: string },
+    expanded?: { loc: SourceSpan; label: string }
+  ) {
+    this.full = full;
+    this.primary = new Highlight(primary.loc, primary.label);
+    this.expanded = expanded
+      ? new Highlight(primary.loc.getEnd().until(expanded.loc.getEnd()), expanded.label)
+      : undefined;
+  }
+
+  get start() {
+    return this.primary.loc.startPosition.column;
+  }
+}
+
+export class VariableReferenceContext implements ReportableContext {
   readonly context: SourceSpan;
+  readonly problem = 'not in scope';
   #parent: PathValidationContext;
   #name: string;
   #span: SourceSpan;
@@ -58,23 +120,27 @@ export class VariableReferenceValidationContext {
     this.#span = span;
   }
 
-  get path(): { path: SourceSpan; head?: SourceSpan } {
-    const path = this.#parent.span;
+  highlights(): Highlights {
+    const hasExpanded = !this.#span.isEqual(this.#parent.span);
+    const primary = {
+      loc: this.#span,
+      label: hasExpanded ? this.problem : describeWhatInline(this.what, this.problem),
+    };
 
-    if (path.isEqual(this.#span)) {
-      return { path };
-    } else {
-      return { path, head: this.#span };
-    }
+    const expanded = hasExpanded
+      ? { loc: this.#parent.span, label: this.what.describe }
+      : undefined;
+
+    return new Highlights(this.context, primary, expanded);
   }
 
-  get what(): What {
+  get what(): FullWhat {
     return this.#parent.what(this.#parent.span.asString());
   }
 
-  attemptedTo(what: What) {
+  get error() {
     const varName = this.#parent.span.isEqual(this.#span) ? 'it' : `\`${this.#span.asString()}\``;
-    return `Attempted to ${what.attempted}, but ${varName} was not in scope`;
+    return `Attempted to ${this.what.attempted}, but ${varName} was not in scope`;
   }
 
   get loc() {
@@ -144,14 +210,19 @@ export function describeValueParent(parent: ValueParent): WhatFn {
       case 'positional':
         return {
           attempted: `pass ${formatted} as a positional argument`,
-          describe: 'the argument',
+          describe: 'argument',
+          inline: false,
         };
       case 'named':
-        return { attempted: `pass ${formatted} as a named argument`, describe: 'the argument' };
+        return {
+          attempted: `pass ${formatted} as a named argument`,
+          describe: 'argument',
+          inline: false,
+        };
       case 'concat':
-        return { attempted: `concatenate ${formatted}`, describe: 'the value' };
+        return { attempted: `concatenate ${formatted}`, describe: 'value', inline: false };
       case 'append':
-        return { attempted: `append ${formatted}`, describe: 'the value' };
+        return { attempted: `append ${formatted}`, describe: 'value', inline: false };
       case 'callee':
         switch (parent.kind) {
           case 'modifier':
@@ -167,9 +238,13 @@ export function describeValueParent(parent: ValueParent): WhatFn {
             return { attempted: `invoke ${formatted} as a component`, describe: 'component name' };
         }
       case 'attr':
-        return { attempted: `set ${formatted} as an attribute`, describe: 'attribute value' };
+        return {
+          attempted: `set ${formatted} as an attribute`,
+          describe: 'attribute value',
+          inline: false,
+        };
       case 'arg':
-        return { attempted: `pass ${formatted} as an argument`, describe: 'the value' };
+        return { attempted: `pass ${formatted} as an argument`, describe: 'value', inline: false };
     }
   };
 }
@@ -244,16 +319,16 @@ export class ValueValidationContext {
     return this.#what;
   }
 
-  resolved(node: NameNode): VariableReferenceValidationContext {
+  resolved(node: NameNode): VariableReferenceContext {
     return new PathValidationContext(this, loc(node), describeValueParent(this.#parent)).head(node);
   }
 
-  custom(node: KeywordNode): InvokeCustomSyntaxValidationContext {
-    return InvokeCustomSyntaxValidationContext.expr(this, node);
+  custom(node: KeywordNode): InvokeCustomSyntaxContext {
+    return InvokeCustomSyntaxContext.expr(this, node);
   }
 
-  subexpression(node: CallNode): SubExpressionValidationContext {
-    return new SubExpressionValidationContext(this, loc(node));
+  subexpression(node: CallNode): SubExpressionContext {
+    return new SubExpressionContext(this, loc(node));
   }
 
   path(): PathValidationContext {
@@ -265,13 +340,73 @@ export class ValueValidationContext {
   }
 }
 
-export class InvokeCustomSyntaxValidationContext implements ArgsContainerContext {
-  static keyword(this: void, syntax: KeywordNode) {
-    return new InvokeCustomSyntaxValidationContext(syntax.keyword, loc(syntax));
+export class CustomErrorContext implements ReportableContext {
+  static for(
+    this: void,
+    highlight: HasSourceSpan,
+    message: string,
+    problem: string,
+    options: { header?: HasSourceSpan; content: HasSourceSpan }
+  ) {
+    return new CustomErrorContext(
+      message,
+      problem,
+      loc(options.content),
+      loc(highlight),
+      options.header && loc(options.header)
+    );
+  }
+
+  readonly context: SourceSpan;
+  readonly error: string;
+  readonly problem: string;
+  readonly #highlight: SourceSpan;
+  readonly #header: Optional<SourceSpan>;
+  readonly #notes: string[] = [];
+
+  constructor(
+    error: string,
+    problem: string,
+    content: SourceSpan,
+    highlight: SourceSpan,
+    header?: SourceSpan
+  ) {
+    this.context = content;
+    this.error = error;
+    this.problem = problem;
+    this.#highlight = highlight;
+    this.#header = header;
+  }
+
+  get what(): What {
+    return { describe: this.problem, inline: false };
+  }
+
+  get loc() {
+    return this.#highlight;
+  }
+
+  highlights(): Highlights {
+    return new Highlights(this.context, { loc: this.#highlight, label: this.problem });
+  }
+
+  get notes() {
+    return this.#notes;
+  }
+
+  addNotes(notes: string[]) {
+    this.#notes.push(...notes);
+    return this;
+  }
+}
+
+export class InvokeCustomSyntaxContext implements ArgsContainerContext {
+  static keyword(this: void, syntax: KeywordNode): InvokeCustomSyntaxContext {
+    return new InvokeCustomSyntaxContext(syntax.keyword, loc(syntax));
   }
 
   static expr(parent: ValueValidationContext, syntax: KeywordNode) {
-    return new InvokeCustomSyntaxValidationContext(syntax.keyword, loc(syntax), parent);
+    return new InvokeCustomSyntaxContext(syntax.keyword, loc(syntax), parent);
   }
 
   readonly context: SourceSpan;
@@ -364,7 +499,7 @@ export function isInvokeSyntax(type: CalleeSyntaxType): type is InvokeSyntaxType
 export interface AnyInvokeParentContext extends AnyValidationContext {
   readonly type: InvokeSyntaxType;
 
-  callee(callee: NameNode): VariableReferenceValidationContext;
+  callee(callee: NameNode | InvokeResolvedNode): VariableReferenceContext;
   callee(callee: AnyNode): ValueValidationContext;
   args(args: ArgsNode): ArgsContext;
 }
@@ -378,8 +513,8 @@ export type InvokeParentContext =
   | InvokeElementParameterContext
   | InvokeBlockValidationContext
   | AppendInvokeContext
-  | InvokeCustomSyntaxValidationContext
-  | SubExpressionValidationContext;
+  | InvokeCustomSyntaxContext
+  | SubExpressionContext;
 
 export type ValueParentContext =
   | InvokeElementParameterContext
@@ -401,7 +536,7 @@ export type SubExpressionParentContext =
  * Syntaxes like `{{helper-name ...}}` are _not_ subexpressions, but are instead represented by the
  * types like {@linkcode AppendInvokeContext}.
  */
-export class SubExpressionValidationContext implements AnyInvokeParentContext {
+export class SubExpressionContext implements AnyInvokeParentContext {
   readonly type = 'subexpression';
   readonly isInvoke = true;
   readonly context: SourceSpan;
@@ -415,7 +550,7 @@ export class SubExpressionValidationContext implements AnyInvokeParentContext {
     this.#call = call;
   }
 
-  callee(callee: NameNode): VariableReferenceValidationContext;
+  callee(callee: NameNode): VariableReferenceContext;
   callee(callee: AnyNode): ValueValidationContext;
   callee(callee: AnyNode) {
     return getCalleeContext('subexpression', this, callee);
@@ -432,9 +567,9 @@ export class SubExpressionValidationContext implements AnyInvokeParentContext {
 export type ArgsParentValidationContext =
   | AngleBracketContext
   | InvokeElementParameterContext
-  | SubExpressionValidationContext
+  | SubExpressionContext
   | AppendInvokeContext
-  | InvokeCustomSyntaxValidationContext
+  | InvokeCustomSyntaxContext
   | InvokeBlockValidationContext;
 
 export class KeywordValidationContext {
@@ -453,18 +588,62 @@ export class KeywordValidationContext {
 
 export type PathParentValidationContext = ArgsParentValidationContext | ValueValidationContext;
 
-export interface What {
+export interface FullWhat {
   /**
    * Text describing the attempted action (e.g. "invoke it as a helper")
    */
   attempted: string;
   /**
-   * Description of the path (e.g. "helper")
+   * Description of the path (e.g. "modifier").
+   *
+   * ```
+   * SyntaxError: Attempted to invoke `x.foo` as a modifier, but `x` was not in scope:
+   *
+   * 1 | <div {{x.foo}}></div>
+   *   |        ┳─┬──
+   *   |        ┃ └── modifier // <- here
+   *   |        ┗━━━━ not in scope
+   * ```
+   *
    */
   describe: string;
+
+  /**
+   * Description of the path when used inline.
+   *
+   * When `inline` is missing or `true`, its value is the same as `describe`.
+   *
+   * ```
+   * SyntaxError: Attempted to invoke `bar` as a modifier, but it was not in scope:
+   *
+   * 1 | {{bar}}
+   *   |   ━┳━
+   *   |    ┗━ modifier not in scope
+   * ```
+   *
+   * When `inline` is absent:
+   *
+   * ```
+   * SyntaxError: Attempted to append `bar`, but it was not in scope:
+   *
+   * 1 | {{bar}}
+   *   |   ━┳━
+   *   |    ┗━ not in scope
+   * ```
+   */
+  inline?: boolean | string | undefined;
 }
 
-export type WhatFn = (path: string) => What;
+export type What = Pick<FullWhat, 'describe' | 'inline'>;
+
+export function describeWhatInline(what: What, suffix: string): string {
+  if (what.inline === false) return suffix;
+  return typeof what.inline === 'string'
+    ? `${what.inline} ${suffix}`
+    : `${what.describe} ${suffix}`;
+}
+
+export type WhatFn = (path: string) => FullWhat;
 
 export class PathValidationContext {
   readonly context: SourceSpan;
@@ -483,8 +662,8 @@ export class PathValidationContext {
     return this.#path;
   }
 
-  head(head: NameNode): VariableReferenceValidationContext {
-    return new VariableReferenceValidationContext(this, head.name, loc(head));
+  head(head: NameNode): VariableReferenceContext {
+    return new VariableReferenceContext(this, head.name, loc(head));
   }
 
   keyword(node: NameNode) {
@@ -499,9 +678,9 @@ export type SomeValidationContext =
   | SomeAppendContext
   | SomeArgsContext
   | PathValidationContext
-  | VariableReferenceValidationContext
+  | VariableReferenceContext
   | ValueValidationContext
-  | InvokeCustomSyntaxValidationContext
+  | InvokeCustomSyntaxContext
   | KeywordValidationContext;
 
 export type { AppendInvokeContext, AppendValueContext, SomeAppendContext } from './append';
@@ -539,7 +718,7 @@ export const appending = AppendValueContext.of;
 /**
  * Validate the syntax of a keyword (e.g. `{{yield}}` or `{{#in-element}}`)
  */
-export const custom = InvokeCustomSyntaxValidationContext.keyword;
+export const custom = InvokeCustomSyntaxContext.keyword;
 /**
  * Validate the syntax of an angle bracket component.
  */
@@ -553,3 +732,5 @@ export const element = AngleBracketContext.element;
  * Validate the syntax of a block (i.e. `{{#block}}`)
  */
 export const block = InvokeBlockValidationContext.of;
+
+export const error = CustomErrorContext.for;

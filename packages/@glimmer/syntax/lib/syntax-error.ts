@@ -1,11 +1,8 @@
 import type { Optional } from '@glimmer/interfaces';
-import { localAssert } from '@glimmer/debug-util';
 
 import type * as src from './source/api';
-import type {
-  AnyValidationContext,
-  VariableReferenceValidationContext,
-} from './validation-context/validation-context';
+import type * as Validation from './validation-context/validation-context';
+import type { Highlights, ReportableContext } from './validation-context/validation-context';
 
 export interface GlimmerSyntaxError extends Error {
   location: src.SourceSpan | null;
@@ -16,16 +13,15 @@ export function unresolvedBindingError({
   context,
   notes = [],
 }: {
-  context: VariableReferenceValidationContext;
+  context: ReportableContext;
   notes?: string[] | undefined;
 }): GlimmerSyntaxError {
   const loc = context.loc;
   const module = loc.module;
   let { line, column } = loc.startPosition;
 
-  const quotedCode = quoteInvalidPath(context, 'not in scope');
+  const quotedCode = quoteReportable(context);
   const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
-  const what = context.what;
 
   let message: string;
 
@@ -34,9 +30,9 @@ export function unresolvedBindingError({
   if (quotedCode || allNotes.length > 0) {
     const notesString =
       allNotes.length > 0 ? `${allNotes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
-    message = `${context.attemptedTo(what)}:${quotedCode}${notesString}${where}`;
+    message = `${context.error}${quotedCode}${notesString}${where}`;
   } else {
-    message = `${context.attemptedTo(what)}: ${where}`;
+    message = `${context.error} ${where}`;
   }
 
   const code = loc.asString();
@@ -50,24 +46,22 @@ export function unresolvedBindingError({
   return error;
 }
 
-export function invalidExprError(
-  header: string,
-  { context, notes, problem }: { context: ValidationContext; notes?: string[]; problem: string }
-): GlimmerSyntaxError {
-  const loc = context.loc;
+export function invalidExprError(context: Validation.CustomErrorContext): GlimmerSyntaxError {
+  const { loc, notes } = context;
   const module = loc.module;
   let { line, column } = loc.startPosition;
 
-  const quotedCode = quoteInvalid(context, problem);
+  const quotedCode = quoteReportable(context);
   const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
 
   let message: string;
 
-  if (quotedCode || notes) {
-    const notesString = notes ? `\n\n${notes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
-    message = `${header}:${quotedCode}${notesString}${where}`;
+  if (quotedCode || notes.length > 0) {
+    const notesString =
+      notes.length > 0 ? `${notes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
+    message = `${context.error}:${quotedCode}${notesString}${where}`;
   } else {
-    message = `${header}: ${where}`;
+    message = `${context.error}: ${where}`;
   }
 
   const code = loc.asString();
@@ -100,63 +94,28 @@ export function generateSyntaxError(message: string, location: src.SourceSpan): 
   return error;
 }
 
-function quoteInvalid(context: AnyValidationContext, problem: string): string {
-  if (context.kind === 'path') {
-    return quoteInvalidPath(context, problem);
-  }
+function quoteReportable(validation: ReportableContext): string {
+  const highlights = validation.highlights();
+  const { primary, expanded } = highlights;
+  const highlight = expanded?.loc ?? primary.loc;
 
-  if (context.kind === 'expr') {
-    return quoteInvalidExpr(context, problem);
-  }
+  const fullContext = validation.context;
 
-  return simpleQuote(context.loc);
-}
-
-function quoteInvalidExpr(context: OuterExpressionValidationContext, problem: string): string {
-  const highlightContext = context.content;
-
-  const underline = drawUnderline(highlightContext, context.outer, problem);
-  const codeString = highlightContext.asString();
-
-  return `\n\n|  ${codeString}\n${underline}\n\n`;
-}
-
-function quoteInvalidPath(validation: VariableReferenceValidationContext, problem: string): string {
-  const { path, head } = validation.path;
-  const highlightContext = validation.context;
-
-  // const { callee, syntax } = context;
-
-  const fullContext = highlightContext.fullLines();
-  // const highlightContext = context.highlightContext;
-
-  // if (!highlightContext || !callee) {
-  //   return simpleQuote(context.path);
-  // }
-
-  // const { path, head } = callee;
-
-  const codeString = highlightContext.asString();
+  const fullLines = fullContext.fullLines();
+  const codeString = fullContext.asString();
 
   const fullRange = LineRange.for(
-    highlightContext.getSource(),
-    fullContext.startPosition.line,
-    fullContext.endPosition.line
+    fullContext.getSource(),
+    fullLines.startPosition.line,
+    fullLines.endPosition.line
   );
 
   const lines = new LineBuffers([...fullRange]);
   const code = lines
-    .forLine(path.startPosition.line, highlightContext.startPosition.column)
+    .forLine(highlight.startPosition.line, fullContext.startPosition.column)
     .add(codeString);
 
-  const underline = drawPathUnderline(
-    lines,
-    highlightContext,
-    path,
-    head ?? path,
-    problem,
-    validation.what.describe
-  );
+  const underline = drawUnderline(lines, highlights);
   return `\n\n${code}\n${underline}\n\n`;
 }
 
@@ -165,118 +124,86 @@ function simpleQuote(location: src.SourceSpan) {
   return code ? `\n\n|\n|  ${code.split('\n').join('\n|  ')}\n|\n\n` : '';
 }
 
-function primaryPositions(
-  path: src.SourceSpan,
-  head: src.SourceSpan
-): { at: number; end: number; chars: string; under: [string, string] } {
-  const start = head.startPosition.column;
-  const primarySize = head.endPosition.column - head.startPosition.column;
-  const secondarySize = path.endPosition.column - head.endPosition.column;
-
-  localAssert(primarySize > 0, `The size of the path for a path error must be greater than 0`);
-
-  if (primarySize === 1) {
-    return {
-      at: start,
-      end: start + primarySize,
-      chars: secondarySize > 0 ? '┳' : '╮',
-      under: ['┃', '┗'],
-    };
-  } else if (primarySize === 2) {
-    return {
-      at: start,
-      end: start + primarySize,
-      chars: secondarySize > 0 ? '━┳' : '━┑',
-      under: [' ┃', ' ┗'],
-    };
-  } else {
-    return {
-      at: start,
-      end: start + primarySize,
-      chars: `━┳${'━'.repeat(primarySize - 2)}`,
-      under: [' ┃', ' ┗'],
-    };
-  }
+interface HighlightPosition {
+  highlight: {
+    label: string;
+    start: number;
+    end: number;
+  };
+  chars: string;
 }
 
-function secondaryPositions(
-  path: src.SourceSpan,
-  head: src.SourceSpan
-): { at: number; end: number; chars: string; under: string } | undefined {
-  const start = head.endPosition.column;
-  const secondarySize = path.endPosition.column - head.endPosition.column;
-
-  if (secondarySize === 0) {
-    return;
-  }
-
-  if (secondarySize === 1) {
-    return {
-      at: start,
-      end: start + secondarySize,
-      chars: '╮',
-      under: '└',
-    };
-  } else if (secondarySize === 2) {
-    return {
-      at: start,
-      end: start + secondarySize,
-      chars: '─╮',
-      under: ' └',
-    };
-  } else {
-    return {
-      at: start,
-      end: start + secondarySize,
-      chars: `─┬${'─'.repeat(secondarySize - 2)}`,
-      under: ' └',
-    };
-  }
+interface PrimaryHighlightPosition extends HighlightPosition {
+  under: [string, string];
 }
 
-function drawPathUnderline(
-  buffers: LineBuffers,
-  highlightContext: src.SourceSpan,
-  path: src.SourceSpan,
-  head: src.SourceSpan,
-  problem: string,
-  syntax: string
-) {
-  const primary = primaryPositions(path, head);
-  const secondary = secondaryPositions(path, head);
+interface ExpandedHighlightPosition extends HighlightPosition {
+  under: string;
+}
+
+interface HighlightPositions {
+  primary: PrimaryHighlightPosition;
+  expanded?: ExpandedHighlightPosition;
+}
+
+function positions({ primary, expanded }: Highlights): HighlightPositions {
+  const primaryPosition: PrimaryHighlightPosition = {
+    highlight: primary,
+    chars: primary.size === 1 ? '┳' : `━┳${'━'.repeat(primary.size - 2)}`,
+    under: primary.size === 1 ? ['┃', '┗'] : [' ┃', ' ┗'],
+  };
+
+  if (!expanded) return { primary: primaryPosition };
+
+  const under = `${' '.repeat(Math.min(1, expanded.size - 1))}└`;
+  const chars = `${'─'.repeat(Math.min(1, expanded.size - 1))}┬${'─'.repeat(Math.max(0, expanded.size - 2))}`;
+
+  const expandedPosition: ExpandedHighlightPosition = {
+    highlight: expanded,
+    chars,
+    under,
+  };
+
+  return { primary: primaryPosition, expanded: expandedPosition };
+}
+
+function drawUnderline(buffers: LineBuffers, highlight: Highlights) {
+  const { primary, expanded } = positions(highlight);
+
+  const full = highlight.full;
 
   const line1 = buffers
-    .blank(highlightContext.startPosition.column)
-    .until(primary.at, ' ')
+    .blank(full.startPosition.column)
+    .until(primary.highlight.start, ' ')
     .add(primary.chars)
-    .add(secondary?.chars);
+    .add(expanded?.chars);
 
-  const line2 = buffers.blank(highlightContext.startPosition.column);
+  const line2 = buffers.blank(full.startPosition.column);
 
-  if (secondary) {
+  if (expanded && highlight.expanded) {
     line2
-      .until(primary.at, ' ')
+      .until(primary.highlight.start, ' ')
       .add(primary.under[0])
-      .until(secondary.at, ' ')
-      .add(secondary.under)
-      .until(Math.max(primary.end, secondary.end), '─')
+      .until(expanded.highlight.start, ' ')
+      .add(expanded.under)
+      .until(Math.max(primary.highlight.end, expanded.highlight.end), '─')
       .space()
-      .add(syntax);
+      .add(expanded.highlight.label);
     const line3 = buffers
-      .blank(highlightContext.startPosition.column)
-      .until(primary.at, ' ')
+      .blank(full.startPosition.column)
+      .until(primary.highlight.start, ' ')
       .add(primary.under[1])
-      .until(Math.max(primary.end, secondary.end), '━')
+      .until(Math.max(primary.highlight.end, expanded.highlight.end), '━')
       .space()
-      .add(problem);
+      .add(primary.highlight.label);
     return `${line1}\n${line2}\n${line3}\n`;
   } else {
     line2
-      .until(primary.at, ' ')
+      .until(primary.highlight.start, ' ')
       .add(primary.under[1])
-      .until(Math.max(primary.end), '━')
+      .until(Math.max(primary.highlight.end), '━')
       .space()
-      .add(`${syntax} ${problem}`);
+      .add(highlight.primary.label);
   }
 
   return `${line1}\n${line2}\n`;
@@ -312,14 +239,21 @@ class LineBuffer {
     this.#startColumn = startColumn;
   }
 
-  add(str: Optional<string>) {
-    if (str === undefined) {
+  add(string: Optional<string>): this;
+  add(strings: Optional<string>[] | Optional<string>, separator?: string): this;
+  add(strings: Optional<string>[] | Optional<string>, separator: string = ' ') {
+    if (Array.isArray(strings)) {
+      const presentStrings = strings.filter(
+        Boolean as unknown as (value: Optional<string>) => value is string
+      );
+      return this.add(presentStrings.join(separator));
+    } else if (strings === undefined) {
+      return this;
+    } else {
+      this.#content += strings;
+      this.#offset += strings.length;
       return this;
     }
-
-    this.#content += str;
-    this.#offset += str.length;
-    return this;
   }
 
   space() {
@@ -339,15 +273,6 @@ class LineBuffer {
   get line(): string {
     return `${this.#content}\n`;
   }
-}
-
-function drawUnderline(highlightContext: src.SourceSpan, head: src.SourceSpan, problem: string) {
-  const primarySize = head.endPosition.column - head.startPosition.column;
-  const primary = primarySize > 0 ? '━'.repeat(primarySize) : '';
-  const trailSize = head.endPosition.column - highlightContext.endPosition.column;
-  const trail = trailSize > 0 ? '┈'.repeat(trailSize) : '';
-
-  return `|  ${' '.repeat(head.startPosition.column - highlightContext.startPosition.column)}${primary}${trail}┈┈┈┈┈ ${problem}\n`;
 }
 
 class LineRange implements Iterable<number> {

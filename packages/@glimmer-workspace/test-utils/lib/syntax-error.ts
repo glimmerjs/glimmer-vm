@@ -66,7 +66,7 @@ export function unresolvedErrorFor(
     outer: src.SourceSpan,
     content: src.SourceSpan
   ) => {
-    resolved: (name: Validation.NameNode) => Validation.VariableReferenceValidationContext;
+    resolved: (name: Validation.NameNode) => Validation.VariableReferenceContext;
   },
   code: string,
   moduleName: string,
