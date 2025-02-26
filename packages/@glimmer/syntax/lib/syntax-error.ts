@@ -1,38 +1,35 @@
 import type { Optional } from '@glimmer/interfaces';
 
 import type * as src from './source/api';
-import type * as Validation from './validation-context/validation-context';
-import type { Highlights, ReportableContext } from './validation-context/validation-context';
+import * as Validation from './validation-context/validation-context';
+import type { HighlightedCode, ReportableContext } from './validation-context/validation-context';
 
 export interface GlimmerSyntaxError extends Error {
   location: src.SourceSpan | null;
   code: string | null;
 }
 
-export function unresolvedBindingError({
-  context,
-  notes = [],
-}: {
-  context: ReportableContext;
-  notes?: string[] | undefined;
-}): GlimmerSyntaxError {
-  const loc = context.loc;
+export function quote(
+  highlights: HighlightedCode,
+  options: { error: string; notes?: string[] }
+): GlimmerSyntaxError {
+  const loc = highlights.full;
   const module = loc.module;
   let { line, column } = loc.startPosition;
 
-  const quotedCode = quoteReportable(context);
+  const quotedCode = _quoteReportable(highlights);
   const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
 
   let message: string;
 
-  const allNotes = [...context.notes, ...notes];
+  const allNotes = [...(options.notes ?? [])];
 
   if (quotedCode || allNotes.length > 0) {
     const notesString =
       allNotes.length > 0 ? `${allNotes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
-    message = `${context.error}${quotedCode}${notesString}${where}`;
+    message = `${options.error}${quotedCode}${notesString}${where}`;
   } else {
-    message = `${context.error} ${where}`;
+    message = `${options.error} ${where}`;
   }
 
   const code = loc.asString();
@@ -46,60 +43,23 @@ export function unresolvedBindingError({
   return error;
 }
 
-export function invalidExprError(context: Validation.CustomErrorContext): GlimmerSyntaxError {
-  const { loc, notes } = context;
-  const module = loc.module;
-  let { line, column } = loc.startPosition;
-
-  const quotedCode = quoteReportable(context);
-  const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
-
-  let message: string;
-
-  if (quotedCode || notes.length > 0) {
-    const notesString =
-      notes.length > 0 ? `${notes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
-    message = `${context.error}:${quotedCode}${notesString}${where}`;
-  } else {
-    message = `${context.error}: ${where}`;
-  }
-
-  const code = loc.asString();
-
-  let error = new Error(message) as GlimmerSyntaxError;
-
-  error.name = 'SyntaxError';
-  error.location = loc;
-  error.code = code;
-
-  return error;
+export function quoteReportable(context: ReportableContext): GlimmerSyntaxError {
+  return quote(context.highlights(), { error: context.error, notes: context.notes });
 }
 
-export function generateSyntaxError(message: string, location: src.SourceSpan): GlimmerSyntaxError {
-  let { module, loc } = location;
-  let { line, column } = loc.start;
-
-  let code = location.asString();
-
-  let quotedCode = simpleQuote(location);
-
-  let error = new Error(
-    `${message}: ${quotedCode}(error occurred in '${module}' @ line ${line} : column ${column})`
-  ) as GlimmerSyntaxError;
-
-  error.name = 'SyntaxError';
-  error.location = location;
-  error.code = code;
-
-  return error;
+export function generateSyntaxError(
+  message: string,
+  location: Validation.IntoHighlight,
+  options?: { full?: Optional<src.SourceSpan> }
+): GlimmerSyntaxError {
+  return quote(Validation.HighlightedCode.from(options?.full, location), { error: message });
 }
 
-function quoteReportable(validation: ReportableContext): string {
-  const highlights = validation.highlights();
-  const { primary, expanded } = highlights;
+function _quoteReportable(highlighted: HighlightedCode): string {
+  const { primary, expanded } = highlighted.highlight;
   const highlight = expanded?.loc ?? primary.loc;
 
-  const fullContext = validation.context;
+  const fullContext = highlighted.full;
 
   const fullLines = fullContext.fullLines();
   const codeString = fullContext.asString();
@@ -113,100 +73,112 @@ function quoteReportable(validation: ReportableContext): string {
   const lines = new LineBuffers([...fullRange]);
   const code = lines
     .forLine(highlight.startPosition.line, fullContext.startPosition.column)
-    .add(codeString);
+    .add(codeString.split('\n')[0]);
 
-  const underline = drawUnderline(lines, highlights);
+  const underline = drawUnderline(lines, highlighted);
   return `\n\n${code}\n${underline}\n\n`;
 }
 
-function simpleQuote(location: src.SourceSpan) {
-  const code = location.asString();
-  return code ? `\n\n|\n|  ${code.split('\n').join('\n|  ')}\n|\n\n` : '';
-}
+function drawUnderline(buffers: LineBuffers, { full, highlight }: HighlightedCode) {
+  const { primary, expanded, prefix, suffix } = highlight;
 
-interface HighlightPosition {
-  highlight: {
-    label: string;
-    start: number;
-    end: number;
-  };
-  chars: string;
-}
+  const lines = [];
 
-interface PrimaryHighlightPosition extends HighlightPosition {
-  under: [string, string];
-}
+  const line1 = buffers.blank(full.startPosition.column);
 
-interface ExpandedHighlightPosition extends HighlightPosition {
-  under: string;
-}
-
-interface HighlightPositions {
-  primary: PrimaryHighlightPosition;
-  expanded?: ExpandedHighlightPosition;
-}
-
-function positions({ primary, expanded }: Highlights): HighlightPositions {
-  const primaryPosition: PrimaryHighlightPosition = {
-    highlight: primary,
-    chars: primary.size === 1 ? '┳' : `━┳${'━'.repeat(primary.size - 2)}`,
-    under: primary.size === 1 ? ['┃', '┗'] : [' ┃', ' ┗'],
-  };
-
-  if (!expanded) return { primary: primaryPosition };
-
-  const under = `${' '.repeat(Math.min(1, expanded.size - 1))}└`;
-  const chars = `${'─'.repeat(Math.min(1, expanded.size - 1))}┬${'─'.repeat(Math.max(0, expanded.size - 2))}`;
-
-  const expandedPosition: ExpandedHighlightPosition = {
-    highlight: expanded,
-    chars,
-    under,
-  };
-
-  return { primary: primaryPosition, expanded: expandedPosition };
-}
-
-function drawUnderline(buffers: LineBuffers, highlight: Highlights) {
-  const { primary, expanded } = positions(highlight);
-
-  const full = highlight.full;
-
-  const line1 = buffers
-    .blank(full.startPosition.column)
-    .until(primary.highlight.start, ' ')
-    .add(primary.chars)
-    .add(expanded?.chars);
-
-  const line2 = buffers.blank(full.startPosition.column);
-
-  if (expanded && highlight.expanded) {
-    line2
-      .until(primary.highlight.start, ' ')
-      .add(primary.under[0])
-      .until(expanded.highlight.start, ' ')
-      .add(expanded.under)
-      .until(Math.max(primary.highlight.end, expanded.highlight.end), '─')
-      .space()
-      .add(expanded.highlight.label);
-    const line3 = buffers
-      .blank(full.startPosition.column)
-      .until(primary.highlight.start, ' ')
-      .add(primary.under[1])
-      .until(Math.max(primary.highlight.end, expanded.highlight.end), '━')
-      .space()
-      .add(primary.highlight.label);
-    return `${line1}\n${line2}\n${line3}\n`;
+  if (prefix && suffix) {
+    line1.until(prefix).repeat(prefix.size, '─');
+  } else if (prefix && expanded?.label) {
+    line1.until(prefix).add(prefix.size === 1 ? '┬' : `─┬${'─'.repeat(prefix.size - 2)}`);
   } else {
-    line2
-      .until(primary.highlight.start, ' ')
-      .add(primary.under[1])
-      .until(Math.max(primary.highlight.end), '━')
-      .space()
-      .add(highlight.primary.label);
+    line1.until(primary.loc);
   }
 
-  return `${line1}\n${line2}\n`;
+  if (primary.label) {
+    line1.add(primary.size === 1 ? '┳' : `━┳${'━'.repeat(primary.size - 2)}`);
+  } else {
+    line1.untilEnd(primary.loc, '━');
+  }
+
+  if (suffix) {
+    if (expanded?.label) line1.add(suffix.size > 1 ? '─┬' : '┬');
+    line1.untilEnd(suffix, '─');
+  }
+
+  lines.push(line1);
+
+  if (suffix && expanded) {
+    if (expanded.label) {
+      const line2 = buffers.blank(full.startPosition.column);
+
+      line2.until(primary.loc);
+
+      if (primary.label) {
+        line2.add(primary.size === 1 ? '┃' : ' ┃');
+      }
+
+      line2
+        .untilEnd(primary.loc)
+        .until(suffix)
+        .add(suffix.size === 1 ? '└' : ' └')
+        .untilEnd(suffix, '─')
+        .space()
+        .add(expanded.label);
+
+      lines.push(line2);
+    }
+
+    const line3 = buffers.blank(full.startPosition.column).until(primary.loc);
+
+    if (primary.label) {
+      line3
+        .add(primary.size === 1 ? '┗' : ' ┗')
+        .untilEnd(suffix, '━')
+        .space()
+        .add(primary.label);
+    }
+
+    lines.push(line3);
+  } else if (prefix) {
+    const line2 = buffers.blank(full.startPosition.column);
+
+    line2.until(prefix).add(prefix.size === 1 ? '│' : ` │`);
+
+    if (primary.label) {
+      line2
+        .until(primary.loc)
+        .add(primary.size === 1 ? '┗' : ' ┗')
+        .untilEnd(primary.loc, '━')
+        .space()
+        .add(primary.label);
+    }
+
+    lines.push(line2);
+
+    if (expanded?.label) {
+      const line3 = buffers
+        .blank(full.startPosition.column)
+        .until(prefix)
+        .add(prefix.size === 1 ? '└' : ' └')
+        .untilEnd(primary.loc, '─')
+        .space()
+        .add(expanded.label);
+
+      lines.push(line3);
+    }
+  } else if (primary.label) {
+    lines.push(
+      buffers
+        .blank(full.startPosition.column)
+        .until(primary.loc)
+        .add(primary.size === 1 ? '┗' : ' ┗')
+        .untilEnd(primary.loc, '━')
+        .space()
+        .add(primary.label)
+    );
+  }
+
+  return lines.map((l) => `${l}\n`).join('');
 }
 
 class LineBuffers {
@@ -239,6 +211,11 @@ class LineBuffer {
     this.#startColumn = startColumn;
   }
 
+  repeat(size: Optional<number>, repeat: string) {
+    if (size === undefined) return this;
+    return this.add(repeat.repeat(size));
+  }
+
   add(string: Optional<string>): this;
   add(strings: Optional<string>[] | Optional<string>, separator?: string): this;
   add(strings: Optional<string>[] | Optional<string>, separator: string = ' ') {
@@ -260,7 +237,13 @@ class LineBuffer {
     return this.add(' ');
   }
 
-  until(offset: number, padding: string) {
+  untilEnd(span: Optional<src.SourceSpan>, padding: string = ' ') {
+    return this.until(span?.collapse('end'), padding);
+  }
+
+  until(span: Optional<src.SourceSpan>, padding: string = ' ') {
+    if (!span) return this;
+    const offset = span.startPosition.column;
     this.#content += padding.repeat(offset - this.#offset - this.#startColumn);
     this.#offset = offset - this.#startColumn;
     return this;
@@ -305,8 +288,8 @@ class LineRange implements Iterable<number> {
     return this.#source.getLine(this.#end);
   }
 
-  get(line: number): Optional<string> {
-    return this.#source.getLine(line);
+  get(lineno: number): Optional<string> {
+    return this.#source.getLine(lineno);
   }
 
   get size() {

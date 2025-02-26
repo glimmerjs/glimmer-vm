@@ -326,6 +326,26 @@ export class SourceSpan implements SourceLocation {
       this.getEnd().offset === other.getEnd().offset
     );
   }
+
+  isCollapsed(): boolean {
+    return this.getStart().offset === this.getEnd().offset;
+  }
+
+  get firstLine(): SourceSpan {
+    return this.getSource().lineSpan(this.startPosition.line);
+  }
+
+  get lastLine(): SourceSpan {
+    return this.getSource().lineSpan(this.endPosition.line);
+  }
+
+  get size(): number {
+    return (this.getEnd().offset ?? 0) - (this.getStart().offset ?? 0);
+  }
+
+  highlight(label: string) {
+    return this.getSource().highlightFor(this, label);
+  }
 }
 
 type AnySpan = HbsSpan | CharPositionSpan | InvisibleSpan;
