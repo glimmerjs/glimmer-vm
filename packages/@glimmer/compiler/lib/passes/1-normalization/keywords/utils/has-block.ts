@@ -1,7 +1,7 @@
 import {
   ASTv2,
   generateSyntaxError,
-  invalidExprError,
+  quoteReportable,
   SourceSlice,
   Validation as Validation,
 } from '@glimmer/syntax';
@@ -32,7 +32,7 @@ function assertHasBlockKeyword(type: string) {
       const message = `\`${type}\` only takes a single positional argument`;
       const problem = rest.length > 0 ? 'extra arguments' : 'extra argument';
       return Err(
-        invalidExprError(
+        quoteReportable(
           Validation.error(second.loc.withEnd(positionals.loc.getEnd()), message, problem, {
             header: keyword,
             content: loc,

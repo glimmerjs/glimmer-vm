@@ -142,7 +142,7 @@
   "engines": {
     "node": ">=22.12.0"
   },
-  "packageManager": "pnpm@10.0.0",
+  "packageManager": "pnpm@10.5.0",
   "pnpm": {
     "notes": {
       "override:@glimmer/syntax": "when we run prettier, we want to use our local copy of prettier, not the one it declared in its package.json. This ensures that we don't accidentally break prettier as we make changes to @glimmer/syntax"

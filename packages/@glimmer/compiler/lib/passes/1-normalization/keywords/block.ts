@@ -97,18 +97,30 @@ export const BLOCK_KEYWORDS = keywords('Block')
         return Err(
           generateSyntaxError(
             `{{#if}} cannot receive named parameters, received ${args.named.entries
-              .map((e) => e.name.chars)
+              .map((e) => `\`${e.name.chars}\``)
               .join(', ')}`,
-            node.loc
+            {
+              primary: args.named.entries[0]!.name.loc.highlight('invalid'),
+              expanded: args.named.loc,
+            },
+            { full: node.loc }
           )
         );
       }
 
-      if (args.positional.size > 1) {
+      const [first, second, ...rest] = args.positional.exprs;
+
+      if (second) {
         return Err(
           generateSyntaxError(
             `{{#if}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
-            node.loc
+            {
+              primary: second.loc
+                .withEnd(args.positional.loc.getEnd())
+                .highlight(rest.length === 0 ? 'extra argument' : 'extra arguments'),
+              expanded: args.positional.loc.highlight('positional arguments'),
+            },
+            { full: node.loc }
           )
         );
       }

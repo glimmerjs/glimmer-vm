@@ -1,7 +1,7 @@
 import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
-import type { SourceSpan } from '../source/loc/span';
+import { SourceSpan } from '../source/loc/span';
 import type { SourceSlice } from '../source/slice';
 import type { HasSourceSpan } from '../source/span-list';
 import type { AppendInvokeContext, SomeAppendContext } from './append';
@@ -18,6 +18,7 @@ import { loc } from '../source/span-list';
 import { AppendValueContext } from './append';
 import { ArgsContext, NamedArgContext, PositionalArgsContext } from './args';
 import { AngleBracketContext, getCalleeContext, InvokeBlockValidationContext } from './content';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 export type AnyNode = HasSourceSpan & { type: string };
 export type AppendValueNode = AnyNode & { value: AnyNode };
@@ -52,18 +53,86 @@ export interface AnyValidationContext {
   readonly context: SourceSpan;
 }
 
-export interface ReportableContext extends AnyValidationContext {
-  readonly loc: SourceSpan;
+export interface ReportableContext {
   readonly error: string;
   readonly notes: string[];
-  highlights(): Highlights;
+  highlights(): HighlightedCode;
 }
 
-export class Highlight {
-  readonly loc: SourceSpan;
-  readonly label: string;
+export type IntoHighlightedSpan = SourceSpan | { loc: HasSourceSpan; label?: Optional<string> };
+export type IntoHighlight =
+  | {
+      primary: IntoHighlightedSpan;
+      expanded?: Optional<IntoHighlightedSpan>;
+    }
+  | IntoHighlightedSpan;
 
-  constructor(loc: SourceSpan, label: string) {
+export class Highlight {
+  static from(from: IntoHighlight): Highlight {
+    if ('primary' in from) {
+      const primary = HighlightedSpan.from(from.primary);
+      const expanded = from.expanded ? HighlightedSpan.from(from.expanded) : undefined;
+
+      return new Highlight(
+        primary,
+        expanded && contains(expanded.loc, primary.loc) ? expanded : undefined
+      );
+    } else {
+      return new Highlight(HighlightedSpan.from(from));
+    }
+  }
+
+  readonly primary: HighlightedSpan;
+  readonly expanded: Optional<HighlightedSpan>;
+
+  constructor(
+    primary: { loc: SourceSpan; label?: Optional<string> },
+    expanded?: { loc: SourceSpan; label?: Optional<string> }
+  ) {
+    this.primary = HighlightedSpan.from(primary);
+    this.expanded = expanded ? HighlightedSpan.from(expanded) : undefined;
+  }
+
+  get full(): SourceSpan {
+    return this.expanded ? this.expanded.loc : this.primary.loc;
+  }
+
+  get prefix(): Optional<SourceSpan> {
+    if (this.expanded) {
+      const span = this.expanded.loc.getStart().until(this.primary.loc.getStart());
+      if (!span.isCollapsed()) {
+        return span;
+      }
+    }
+  }
+
+  get suffix(): Optional<SourceSpan> {
+    if (this.expanded) {
+      const span = this.primary.loc.getEnd().until(this.expanded.loc.getEnd());
+      if (!span.isCollapsed()) {
+        return span;
+      }
+    }
+  }
+}
+
+function contains(parent: SourceSpan, child: SourceSpan) {
+  return parent.getStart() <= child.getStart() && parent.getEnd() >= child.getEnd();
+}
+
+export class HighlightedSpan {
+  static from(from: IntoHighlightedSpan): HighlightedSpan {
+    if (from instanceof SourceSpan) {
+      return new HighlightedSpan(from, undefined);
+    } else {
+      return new HighlightedSpan(loc(from.loc), from.label);
+    }
+  }
+
+  readonly loc: SourceSpan;
+  readonly label: string | undefined;
+
+  constructor(loc: SourceSpan, label?: Optional<string>) {
     this.loc = loc;
     this.label = label;
   }
@@ -83,25 +152,18 @@ export class Highlight {
   }
 }
 
-export class Highlights {
-  readonly full: SourceSpan;
-  readonly primary: Highlight;
-  readonly expanded?: Highlight | undefined;
-
-  constructor(
-    full: SourceSpan,
-    primary: { loc: SourceSpan; label: string },
-    expanded?: { loc: SourceSpan; label: string }
-  ) {
-    this.full = full;
-    this.primary = new Highlight(primary.loc, primary.label);
-    this.expanded = expanded
-      ? new Highlight(primary.loc.getEnd().until(expanded.loc.getEnd()), expanded.label)
-      : undefined;
+export class HighlightedCode {
+  static from(span: Optional<HasSourceSpan>, into: IntoHighlight): HighlightedCode {
+    const highlight = Highlight.from(into);
+    return new HighlightedCode(span ? loc(span) : highlight.full, Highlight.from(highlight));
   }
 
-  get start() {
-    return this.primary.loc.startPosition.column;
+  readonly full: SourceSpan;
+  readonly highlight: Highlight;
+
+  constructor(full: SourceSpan, highlight: Highlight) {
+    this.full = full;
+    this.highlight = highlight;
   }
 }
 
@@ -120,7 +182,7 @@ export class VariableReferenceContext implements ReportableContext {
     this.#span = span;
   }
 
-  highlights(): Highlights {
+  highlights(): HighlightedCode {
     const hasExpanded = !this.#span.isEqual(this.#parent.span);
     const primary = {
       loc: this.#span,
@@ -131,7 +193,7 @@ export class VariableReferenceContext implements ReportableContext {
       ? { loc: this.#parent.span, label: this.what.describe }
       : undefined;
 
-    return new Highlights(this.context, primary, expanded);
+    return HighlightedCode.from(this.context, { primary, expanded });
   }
 
   get what(): FullWhat {
@@ -343,7 +405,7 @@ export class ValueValidationContext {
 export class CustomErrorContext implements ReportableContext {
   static for(
     this: void,
-    highlight: HasSourceSpan,
+    highlight: IntoHighlight,
     message: string,
     problem: string,
     options: { header?: HasSourceSpan; content: HasSourceSpan }
@@ -352,7 +414,7 @@ export class CustomErrorContext implements ReportableContext {
       message,
       problem,
       loc(options.content),
-      loc(highlight),
+      Highlight.from(highlight),
       options.header && loc(options.header)
     );
   }
@@ -360,7 +422,7 @@ export class CustomErrorContext implements ReportableContext {
   readonly context: SourceSpan;
   readonly error: string;
   readonly problem: string;
-  readonly #highlight: SourceSpan;
+  readonly #highlight: Highlight;
   readonly #header: Optional<SourceSpan>;
   readonly #notes: string[] = [];
 
@@ -368,7 +430,7 @@ export class CustomErrorContext implements ReportableContext {
     error: string,
     problem: string,
     content: SourceSpan,
-    highlight: SourceSpan,
+    highlight: Highlight,
     header?: SourceSpan
   ) {
     this.context = content;
@@ -386,8 +448,8 @@ export class CustomErrorContext implements ReportableContext {
     return this.#highlight;
   }
 
-  highlights(): Highlights {
-    return new Highlights(this.context, { loc: this.#highlight, label: this.problem });
+  highlights(): HighlightedCode {
+    return HighlightedCode.from(this.context, this.#highlight);
   }
 
   get notes() {

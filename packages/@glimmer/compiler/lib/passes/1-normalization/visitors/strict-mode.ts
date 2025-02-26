@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { unresolvedBindingError, Validation as Validation } from '@glimmer/syntax';
+import { quoteReportable, Validation as Validation } from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 
@@ -464,9 +464,7 @@ export default class ValidatorPass {
   Yield(statement: mir.Yield): Result<null> {
     return this.Positional(
       statement.positional,
-      Validation.InvokeCustomSyntaxContext.keyword(statement).positionalArgs(
-        statement.positional
-      )
+      Validation.InvokeCustomSyntaxContext.keyword(statement).positionalArgs(statement.positional)
     );
   }
 
@@ -666,10 +664,7 @@ export default class ValidatorPass {
       });
   }
 
-  Curry(
-    expression: mir.Curry,
-    context: Validation.InvokeCustomSyntaxContext
-  ): Result<null> {
+  Curry(expression: mir.Curry, context: Validation.InvokeCustomSyntaxContext): Result<null> {
     return this.ExpressionValue(
       expression.definition,
       context.positional('definition', expression.definition)
@@ -696,10 +691,6 @@ export default class ValidatorPass {
       return Ok(null);
     }
 
-    return Err(
-      unresolvedBindingError({
-        context,
-      })
-    );
+    return Err(quoteReportable(context));
   }
 }
