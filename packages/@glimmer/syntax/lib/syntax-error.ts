@@ -58,7 +58,7 @@ export function highlightedError(
   return error;
 }
 
-function highlightCode(highlighted: HighlightedCode): string {
+export function highlightCode(highlighted: HighlightedCode): string {
   const { primary, expanded } = highlighted.highlight;
   const highlight = expanded?.loc ?? primary.loc;
 
