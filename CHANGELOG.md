@@ -1,5 +1,47 @@
 # Changelog
 
+## Release (2025-02-27)
+
+@glimmer/compiler 0.94.9 (patch)
+@glimmer/destroyable 0.94.7 (patch)
+@glimmer/encoder 0.93.7 (patch)
+@glimmer/global-context 0.93.3 (patch)
+@glimmer/interfaces 0.94.6 (patch)
+@glimmer/manager 0.94.8 (patch)
+@glimmer/node 0.94.8 (patch)
+@glimmer/opcode-compiler 0.94.8 (patch)
+@glimmer/owner 0.93.3 (patch)
+@glimmer/program 0.94.8 (patch)
+@glimmer/reference 0.94.7 (patch)
+@glimmer/runtime 0.94.8 (patch)
+@glimmer/syntax 0.94.8 (patch)
+@glimmer/util 0.94.7 (patch)
+@glimmer/validator 0.94.7 (patch)
+@glimmer/vm 0.94.7 (patch)
+@glimmer/vm-babel-plugins 0.93.4 (patch)
+@glimmer/wire-format 0.94.7 (patch)
+
+#### :bug: Bug Fix
+* `@glimmer/syntax`
+  * [#1720](https://github.com/glimmerjs/glimmer-vm/pull/1720) Printer quoting bug ([@ef4](https://github.com/ef4))
+* `@glimmer/compiler`, `@glimmer/syntax`
+  * [#1717](https://github.com/glimmerjs/glimmer-vm/pull/1717) Fix source slicing for whitespace-stripping comments ([@chancancode](https://github.com/chancancode))
+
+#### :house: Internal
+* Other
+  * [#1721](https://github.com/glimmerjs/glimmer-vm/pull/1721) set hoist-workspace-packages=false ([@ef4](https://github.com/ef4))
+* `@glimmer-workspace/bin`
+  * [#1718](https://github.com/glimmerjs/glimmer-vm/pull/1718) Fix accidental success in tests due to ansi-output not matching non-ansi string. ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/syntax`
+  * [#1719](https://github.com/glimmerjs/glimmer-vm/pull/1719) @handlebars/parser 2.1.0 causes errors due to an unreleased fix -- downgrade for now ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer-workspace/meta-updater`, `@glimmer-workspace/bin`, `@glimmer-workspace/benchmark-env`, `@glimmer-workspace/build-support`, `@glimmer-workspace/eslint-plugin`, `@glimmer-workspace/integration-node-tests`, `@glimmer-workspace/integration-tests`, `@glimmer-workspace/test-utils`, `@glimmer/compiler`, `@glimmer/constants`, `@glimmer/debug-util`, `@glimmer/debug`, `@glimmer/destroyable`, `@glimmer/encoder`, `@glimmer/global-context`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/owner`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/vm-babel-plugins`, `@glimmer/vm`, `@glimmer/wire-format`, `@glimmer-workspace/repo-metadata`
+  * [#1714](https://github.com/glimmerjs/glimmer-vm/pull/1714) Dep upgrades from https://github.com/glimmerjs/glimmer-vm/pull/1690/ ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 3
+- Edward Faulkner ([@ef4](https://github.com/ef4))
+- Godfrey Chan ([@chancancode](https://github.com/chancancode))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## Release (2025-02-11)
 
 @glimmer/manager 0.94.7 (patch)
