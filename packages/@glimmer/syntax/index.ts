@@ -30,6 +30,7 @@ export {
   generateSyntaxError,
   type GlimmerSyntaxError,
   highlightedError,
+  highlightCode,
   quoteReportable,
 } from './lib/syntax-error';
 export { cannotRemoveNode, cannotReplaceNode } from './lib/traversal/errors';
