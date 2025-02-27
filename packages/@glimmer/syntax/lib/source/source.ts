@@ -4,10 +4,9 @@ import { localAssert, setLocalDebugType } from '@glimmer/debug-util';
 import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation, SourcePosition } from './location';
 
-import { SourceOffset, SourceSpan } from './span';
+import { HighlightedSpan } from '../validation-context/validation-context';
 import { CharPosition } from './loc/offset';
-import { HighlightSpan } from 'typescript';
-import { HighlightedSpan, IntoHighlightedSpan } from '../validation-context/validation-context';
+import { SourceOffset, SourceSpan } from './span';
 
 export class Source {
   static from(source: string, options: PrecompileOptions = {}): Source {
@@ -80,6 +79,16 @@ export class Source {
     const loc = this.spanFor({ start, end });
 
     return HighlightedSpan.from({ loc, label });
+  }
+
+  fullSpan(): SourceSpan {
+    return new CharPosition(this, 0)
+      .wrap()
+      .until(new CharPosition(this, this.source.length).wrap());
+  }
+
+  offsetSpan({ start, end }: { start: number; end: number }): SourceSpan {
+    return new CharPosition(this, start).wrap().until(new CharPosition(this, end).wrap());
   }
 
   spanFor({ start, end }: Readonly<SourceLocation>): SourceSpan {
