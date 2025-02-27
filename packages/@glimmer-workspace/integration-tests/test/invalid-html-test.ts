@@ -1,3 +1,4 @@
+import { highlightedError } from '@glimmer/syntax';
 import {
   jitSuite,
   preprocess,
@@ -5,6 +6,7 @@ import {
   syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
+import { CreateSnippet, syntaxErrorFor2 } from '@glimmer-workspace/test-utils';
 
 class CompileErrorTests extends RenderTest {
   static suiteName = 'compile errors';
@@ -17,12 +19,15 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor(
-        'Unclosed element `div`',
-        '<div class="my-div" \n foo={{bar}}>',
-        'test-module',
-        2,
-        0
+      highlightedError(
+        new CreateSnippet()
+          .add('\n')
+          .start()
+          .add('<')
+          .main('div')
+          .add(' class="my-div" \n foo={{bar}}>\n<span>\n</span>\n')
+          .done('test-module', { primary: 'unclosed tag' }),
+        { error: 'Unclosed element `div`' }
       )
     );
 
@@ -32,7 +37,14 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor('Unclosed element `span`', '<span>', 'test-module', 3, 0)
+      syntaxErrorFor2(
+        'Unclosed element `span`',
+        '\n<div class="my-div">\n%|<[%main%]span[/main%]>|%\n',
+        {
+          moduleName: 'test-module',
+          primary: 'unclosed tag',
+        }
+      )
     );
   }
 

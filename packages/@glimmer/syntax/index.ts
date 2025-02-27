@@ -26,7 +26,12 @@ export {
   SpanList,
 } from './lib/source/span-list';
 export { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './lib/symbol-table';
-export { generateSyntaxError, type GlimmerSyntaxError, quoteReportable } from './lib/syntax-error';
+export {
+  generateSyntaxError,
+  type GlimmerSyntaxError,
+  highlightedError,
+  quoteReportable,
+} from './lib/syntax-error';
 export { cannotRemoveNode, cannotReplaceNode } from './lib/traversal/errors';
 export { default as WalkerPath } from './lib/traversal/path';
 export { default as traverse } from './lib/traversal/traverse';

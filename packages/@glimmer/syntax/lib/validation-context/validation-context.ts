@@ -1,7 +1,6 @@
 import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
-import { SourceSpan } from '../source/loc/span';
 import type { SourceSlice } from '../source/slice';
 import type { HasSourceSpan } from '../source/span-list';
 import type { AppendInvokeContext, SomeAppendContext } from './append';
@@ -14,11 +13,11 @@ import type {
   SomeElementValidationContext,
 } from './element';
 
+import { SourceSpan } from '../source/loc/span';
 import { loc } from '../source/span-list';
 import { AppendValueContext } from './append';
 import { ArgsContext, NamedArgContext, PositionalArgsContext } from './args';
 import { AngleBracketContext, getCalleeContext, InvokeBlockValidationContext } from './content';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 export type AnyNode = HasSourceSpan & { type: string };
 export type AppendValueNode = AnyNode & { value: AnyNode };

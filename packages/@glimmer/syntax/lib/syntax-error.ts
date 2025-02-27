@@ -1,23 +1,38 @@
 import type { Optional } from '@glimmer/interfaces';
 
 import type * as src from './source/api';
-import * as Validation from './validation-context/validation-context';
 import type { HighlightedCode, ReportableContext } from './validation-context/validation-context';
+
+import * as Validation from './validation-context/validation-context';
 
 export interface GlimmerSyntaxError extends Error {
   location: src.SourceSpan | null;
   code: string | null;
 }
 
-export function quote(
+export function quoteReportable(context: ReportableContext): GlimmerSyntaxError {
+  return highlightedError(context.highlights(), { error: context.error, notes: context.notes });
+}
+
+export function generateSyntaxError(
+  message: string,
+  location: Validation.IntoHighlight,
+  options?: { full?: Optional<src.SourceSpan> }
+): GlimmerSyntaxError {
+  return highlightedError(Validation.HighlightedCode.from(options?.full, location), {
+    error: message,
+  });
+}
+
+export function highlightedError(
   highlights: HighlightedCode,
   options: { error: string; notes?: string[] }
 ): GlimmerSyntaxError {
   const loc = highlights.full;
   const module = loc.module;
-  let { line, column } = loc.startPosition;
+  let { line, column } = highlights.highlight.primary.loc.startPosition;
 
-  const quotedCode = _quoteReportable(highlights);
+  const quotedCode = highlightCode(highlights);
   const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
 
   let message: string;
@@ -43,19 +58,7 @@ export function quote(
   return error;
 }
 
-export function quoteReportable(context: ReportableContext): GlimmerSyntaxError {
-  return quote(context.highlights(), { error: context.error, notes: context.notes });
-}
-
-export function generateSyntaxError(
-  message: string,
-  location: Validation.IntoHighlight,
-  options?: { full?: Optional<src.SourceSpan> }
-): GlimmerSyntaxError {
-  return quote(Validation.HighlightedCode.from(options?.full, location), { error: message });
-}
-
-function _quoteReportable(highlighted: HighlightedCode): string {
+function highlightCode(highlighted: HighlightedCode): string {
   const { primary, expanded } = highlighted.highlight;
   const highlight = expanded?.loc ?? primary.loc;
 
@@ -216,21 +219,11 @@ class LineBuffer {
     return this.add(repeat.repeat(size));
   }
 
-  add(string: Optional<string>): this;
-  add(strings: Optional<string>[] | Optional<string>, separator?: string): this;
-  add(strings: Optional<string>[] | Optional<string>, separator: string = ' ') {
-    if (Array.isArray(strings)) {
-      const presentStrings = strings.filter(
-        Boolean as unknown as (value: Optional<string>) => value is string
-      );
-      return this.add(presentStrings.join(separator));
-    } else if (strings === undefined) {
-      return this;
-    } else {
-      this.#content += strings;
-      this.#offset += strings.length;
-      return this;
-    }
+  add(string: Optional<string>): this {
+    if (string === undefined) return this;
+    this.#content += string;
+    this.#offset += string.length;
+    return this;
   }
 
   space() {
