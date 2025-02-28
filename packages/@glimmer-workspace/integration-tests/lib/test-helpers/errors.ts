@@ -114,7 +114,10 @@ export const highlighted = (strings: TemplateStringsArray, ...args: string[]) =>
   return Validation.HighlightedCode.from(source.fullSpan(), highlight);
 };
 
-const highlightParts = (parts: HighlightParts, { moduleName }: { moduleName: string }) => {
+const highlightParts = (
+  parts: HighlightParts,
+  { moduleName }: { moduleName: string }
+): Validation.HighlightedCode => {
   const { source: full, lineno, primary, expanded } = padLines(parts);
   const source = src.Source.from(full, { meta: { moduleName } });
 
@@ -177,7 +180,7 @@ export function highlightToParts(strings: TemplateStringsArray, ...args: string[
   );
   const lines = text.map((s) => s.slice(leading));
 
-  const [firstLine, underlineLine, firstLabelLine, secondLabelLine] = lines;
+  const [firstLine, underlineLine, firstLabelLine, secondLabelLine, ...rest] = lines;
 
   localAssert(
     firstLine && underlineLine,
@@ -224,6 +227,20 @@ export function highlightToParts(strings: TemplateStringsArray, ...args: string[
   }
 
   return result;
+}
+
+function parseNotes(lines: string[]) {
+  const notes: string[] = [];
+  const notesRegex = /^\s*|\s+NOTE:\s+(?<note>.*)\s*$/u;
+  for (const line of lines) {
+    const match = notesRegex.exec(line);
+
+    if (match) {
+      notes.push((match.groups as { note: string }).note);
+    }
+  }
+
+  return notes;
 }
 
 function buildString(strings: TemplateStringsArray, args: string[]) {

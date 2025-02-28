@@ -95,8 +95,8 @@ export function suite<D extends RenderDelegate>(
       const test = klass.prototype[prop];
 
       if (isTestFunction(test) && shouldRunTest<D>(Delegate)) {
-        if (isSkippedTest(test)) {
-          QUnit.skip(prop, (assert) => {
+        if (isSkippedTest(test) || isTodoTest(test)) {
+          getTestType(test)(prop, (assert) => {
             test.call(instance!, assert, instance!.count);
             instance!.count.assert();
           });
@@ -264,4 +264,14 @@ function isTestFunction(value: any): value is TestFunction {
 
 function isSkippedTest(value: any): boolean {
   return typeof value === 'function' && value.skip;
+}
+
+function isTodoTest(value: any): boolean {
+  return typeof value === 'function' && value.todo;
+}
+
+function getTestType(value: any) {
+  if (isSkippedTest(value)) return QUnit.skip;
+  if (isTodoTest(value)) return QUnit.todo;
+  return QUnit.test;
 }
