@@ -67,6 +67,14 @@ export class SourceOffset {
     return charPos === null ? null : charPos.offset;
   }
 
+  lt(other: SourceOffset): boolean {
+    return lt(this.data, other.data);
+  }
+
+  lte(other: SourceOffset): boolean {
+    return lt(this.data, other.data) || eql(this.data, other.data);
+  }
+
   /**
    * Compare this offset with another one.
    *
@@ -311,6 +319,28 @@ const eql = match<boolean>((m) =>
       HBS_POSITION_KIND,
       CHAR_OFFSET_KIND,
       (left, { offset: right }) => left.toCharPos()?.offset === right
+    )
+    .when(MatchAny, MatchAny, () => false)
+);
+
+const lt = match<boolean>((m) =>
+  m
+    .when(
+      HBS_POSITION_KIND,
+      HBS_POSITION_KIND,
+      ({ hbsPos: left }, { hbsPos: right }) =>
+        left.line < right.line || (left.line === right.line && left.column < right.column)
+    )
+    .when(CHAR_OFFSET_KIND, CHAR_OFFSET_KIND, ({ offset: left }, { offset: right }) => left < right)
+    .when(
+      CHAR_OFFSET_KIND,
+      HBS_POSITION_KIND,
+      ({ offset: left }, right) => left < (right.toCharPos()?.offset ?? -Infinity)
+    )
+    .when(
+      HBS_POSITION_KIND,
+      CHAR_OFFSET_KIND,
+      (left, { offset: right }) => (left.toCharPos()?.offset ?? Infinity) < right
     )
     .when(MatchAny, MatchAny, () => false)
 );

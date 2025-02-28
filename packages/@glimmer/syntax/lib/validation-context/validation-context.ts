@@ -39,6 +39,10 @@ export function hasCallee(
   return !!node.callee && isResolvedName(node.callee);
 }
 
+export function hasResolved(node: AnyNode & Partial<{ resolved: NameNode }>): node is ResolvedNode {
+  return !!node.resolved && isResolvedName(node.resolved);
+}
+
 export interface AnyAttrLikeContainerContext {
   value(options: { value: HasSourceSpan; curly: HasSourceSpan }): ValueValidationContext;
   invoke(curly: HasSourceSpan): InvokeElementParameterContext;
@@ -194,7 +198,7 @@ export class VariableReferenceContext implements ReportableContext {
       ? { loc: this.#parent.span, label: this.what.describe }
       : undefined;
 
-    return HighlightedCode.from(this.context, { primary, expanded });
+    return HighlightedCode.from(this.context, { full: this.context, primary, expanded });
   }
 
   get what(): FullWhat {

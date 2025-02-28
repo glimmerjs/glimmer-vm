@@ -16,6 +16,7 @@ import { ArgsContext } from './args';
 import { FullElementParameterValidationContext, InvokeElementParameterContext } from './element';
 import {
   hasCallee,
+  hasResolved,
   isResolvedName,
   PathValidationContext,
   ValueValidationContext,
@@ -109,6 +110,8 @@ export function getCalleeContext(kind: InvokeKind, context: InvokeParentContext,
     return ValueValidationContext.callee(kind, context, loc(callee)).resolved(callee);
   } else if (hasCallee(callee)) {
     return getCalleeContext(kind, context, callee.callee);
+  } else if (hasResolved(callee)) {
+    return getCalleeContext(kind, context, callee.resolved);
   } else {
     return ValueValidationContext.callee(kind, context, loc(callee));
   }

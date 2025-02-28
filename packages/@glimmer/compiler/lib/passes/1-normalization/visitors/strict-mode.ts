@@ -185,13 +185,13 @@ export default class ValidatorPass {
         return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
       case 'mir.CurlyInvokeAttr': {
         const invokeContext = value.invoke(part);
-        return this.ExpressionValue(part.callee, invokeContext.callee(part.callee)).andThen(() =>
+        return this.ExpressionValue(part.callee, invokeContext.callee(part)).andThen(() =>
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
       case 'mir.CurlyInvokeResolvedAttr': {
         const invokeContext = value.invoke(part);
-        return this.ResolvedName(part.resolved, value.callee(part)).andThen(() =>
+        return this.ResolvedName(part.resolved, invokeContext.callee(part)).andThen(() =>
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
