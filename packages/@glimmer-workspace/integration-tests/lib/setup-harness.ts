@@ -33,6 +33,7 @@ export async function bootQunit(
 export async function setupQunit() {
   const qunitLib: QUnit = await import('qunit');
   await import('qunit/qunit/qunit.css');
+  await import('./harness/tweaks.css');
 
   const testing = Testing.withConfig(
     {

@@ -20,6 +20,7 @@ export * from './lib/setup-harness';
 export * from './lib/snapshot';
 export * from './lib/suites';
 export * from './lib/test-helpers/define';
+export * from './lib/test-helpers/errors';
 export * from './lib/test-helpers/module';
 export * from './lib/test-helpers/strings';
 export * from './lib/test-helpers/test';

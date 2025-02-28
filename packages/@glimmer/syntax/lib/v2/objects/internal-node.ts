@@ -1,11 +1,17 @@
 import type { SourceSlice } from '../../source/slice';
 import type { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
-import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import type { ComponentArgs } from './args';
+import type {
+  ComponentArg,
+  ElementModifier,
+  HtmlOrSplatAttr,
+  ResolvedElementModifier,
+} from './attr-block';
 import type { GlimmerParentNodeOptions } from './base';
 import type { BaseNodeFields } from './node';
 
 import { SpanList } from '../../source/span-list';
-import { Args, NamedArguments } from './args';
+import { ComponentNamedArguments, EmptyComponentArgs } from './args';
 import { node } from './node';
 
 /**
@@ -46,7 +52,7 @@ export interface NamedBlockFields extends BaseNodeFields {
   // these are not currently supported, but are here for future expansion
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
-  modifiers: readonly ElementModifier[];
+  modifiers: readonly (ElementModifier | ResolvedElementModifier)[];
 }
 
 /**
@@ -54,14 +60,11 @@ export interface NamedBlockFields extends BaseNodeFields {
  * `else`).
  */
 export class NamedBlock extends node().fields<NamedBlockFields>() {
-  get args(): Args {
-    let entries = this.componentArgs.map((a) => a.toNamedArgument());
+  get args(): ComponentArgs {
+    let entries = this.componentArgs.map((a) => a.toComponentArgument());
 
-    return Args.named(
-      new NamedArguments({
-        loc: SpanList.range(entries, this.name.loc.collapse('end')),
-        entries,
-      })
+    return EmptyComponentArgs(
+      ComponentNamedArguments(SpanList.range(entries, this.name.loc.collapse('end')), entries)
     );
   }
 }

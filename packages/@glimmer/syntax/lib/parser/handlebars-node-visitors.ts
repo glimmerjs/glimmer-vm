@@ -101,7 +101,11 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // Ensure that that the element stack is balanced properly.
     if (node !== poppedNode) {
       if (poppedNode?.type === 'ElementNode') {
-        throw generateSyntaxError(`Unclosed element \`${poppedNode.tag}\``, poppedNode.loc);
+        throw generateSyntaxError(
+          `Unclosed element \`${poppedNode.tag}\``,
+          { loc: poppedNode.path, label: 'unclosed tag' },
+          { full: poppedNode.loc }
+        );
       } else {
         // If the stack is not balanced, then it is likely our own bug, because
         // any unclosed Handlebars blocks should already been caught by now
@@ -123,7 +127,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if (this.tokenizer.state !== 'data' && this.tokenizer.state !== 'beforeData') {
       throw generateSyntaxError(
         'A block may only be used inside an HTML element or another block.',
-        this.source.spanFor(block.loc)
+        this.source.highlightFor(block.path, 'invalid block'),
+        { full: this.source.spanFor(block.loc) }
       );
     }
 
@@ -196,6 +201,11 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     const program = this.Program(repairedBlock.program, blockParams);
     const inverse = repairedBlock.inverse ? this.Program(repairedBlock.inverse, []) : null;
 
+    localAssert(
+      path.type !== 'SubExpression',
+      '[BUG] BlockStatement in parser unexpectedly had SubExpression path'
+    );
+
     const node = b.block({
       path,
       params,
@@ -229,7 +239,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if ('original' in rawMustache.path && rawMustache.path.original === '...attributes') {
       throw generateSyntaxError(
         'Illegal use of ...attributes',
-        this.source.spanFor(rawMustache.loc)
+        this.source.highlightFor(rawMustache.path, 'invalid'),
+        { full: this.source.spanFor(rawMustache.loc) }
       );
     }
 
@@ -263,7 +274,11 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // Tag helpers
       case 'tagOpen':
       case 'tagName':
-        throw generateSyntaxError(`Cannot use mustaches in an elements tagname`, mustache.loc);
+        throw generateSyntaxError(
+          `Cannot use mustaches in an elements tagname`,
+          this.source.highlightFor(mustache.path, 'invalid mustache'),
+          { full: mustache.loc }
+        );
 
       case 'beforeAttributeName':
         addElementModifier(this.currentStartTag, mustache);
@@ -350,11 +365,17 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         appendChild(this.currentElement(), comment);
         break;
 
-      default:
+      default: {
+        const comment = this.source.spanFor(rawComment.loc);
+        debugger;
         throw generateSyntaxError(
           `Using a Handlebars comment when in the \`${tokenizer['state']}\` state is not supported`,
-          this.source.spanFor(rawComment.loc)
+          this.source.highlightFor(rawComment, 'invalid comment'),
+          {
+            full: this.getCurrentNodeStart().until(comment.getEnd()),
+          }
         );
+      }
     }
 
     return comment;
@@ -363,28 +384,28 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   PartialStatement(partial: HBS.PartialStatement): never {
     throw generateSyntaxError(
       `Handlebars partials are not supported`,
-      this.source.spanFor(partial.loc)
+      this.source.highlightFor(partial, 'invalid partial')
     );
   }
 
   PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): never {
     throw generateSyntaxError(
       `Handlebars partial blocks are not supported`,
-      this.source.spanFor(partialBlock.loc)
+      this.source.highlightFor(partialBlock, 'invalid partial block')
     );
   }
 
   Decorator(decorator: HBS.Decorator): never {
     throw generateSyntaxError(
       `Handlebars decorators are not supported`,
-      this.source.spanFor(decorator.loc)
+      this.source.highlightFor(decorator, 'invalid decorator')
     );
   }
 
   DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): never {
     throw generateSyntaxError(
       `Handlebars decorator blocks are not supported`,
-      this.source.spanFor(decoratorBlock.loc)
+      this.source.highlightFor(decoratorBlock, 'invalid decorator block')
     );
   }
 
@@ -399,28 +420,34 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     if (original.indexOf('/') !== -1) {
       if (original.slice(0, 2) === './') {
-        throw generateSyntaxError(
-          `Using "./" is not supported in Glimmer and unnecessary`,
-          this.source.spanFor(path.loc)
-        );
+        throw generateSyntaxError(`Using "./" is not supported in Glimmer and unnecessary`, {
+          primary: {
+            loc: this.source.spanFor(path.loc).sliceStartChars({ chars: 2 }),
+            label: 'invalid `.` syntax',
+          },
+          expanded: this.source.highlightFor(path, 'invalid path'),
+        });
       }
       if (original.slice(0, 3) === '../') {
-        throw generateSyntaxError(
-          `Changing context using "../" is not supported in Glimmer`,
-          this.source.spanFor(path.loc)
-        );
+        throw generateSyntaxError(`Changing context using "../" is not supported in Glimmer`, {
+          primary: {
+            loc: this.source.spanFor(path.loc).sliceStartChars({ chars: 3 }),
+            label: 'invalid `..` syntax',
+          },
+          expanded: this.source.highlightFor(path, 'invalid path'),
+        });
       }
       if (original.indexOf('.') !== -1) {
         throw generateSyntaxError(
           `Mixing '.' and '/' in paths is not supported in Glimmer; use only '.' to separate property paths`,
-          this.source.spanFor(path.loc)
+          this.source.highlightFor(path, 'invalid mixed syntax')
         );
       }
       parts = [path.parts.join('/')];
     } else if (original === '.') {
       throw generateSyntaxError(
         `'.' is not a supported path in Glimmer; check for a path with a trailing '.'`,
-        this.source.spanFor(path.loc)
+        this.source.highlightFor(path, 'invalid path')
       );
     } else {
       parts = path.parts;
@@ -456,7 +483,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       if (head === undefined) {
         throw generateSyntaxError(
           `Attempted to parse a path expression, but it was not valid. Paths beginning with @ must start with a-z.`,
-          this.source.spanFor(path.loc)
+          this.source.highlightFor(path, 'expected a-z')
         );
       }
 
@@ -591,6 +618,7 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
   node: {
+    loc: HBS.SourceLocation;
     path:
       | HBS.PathExpression
       | HBS.SubExpression
@@ -639,7 +667,8 @@ function acceptCallNodes(
         `${node.path.type} "${
           node.path.type === 'StringLiteral' ? node.path.original : value
         }" cannot be called as a sub-expression, replace (${value}) with ${value}`,
-        compiler.source.spanFor(node.path.loc)
+        compiler.source.highlightFor(node.path, 'invalid sub-expression'),
+        { full: compiler.source.spanFor(node.loc) }
       );
     }
   }
@@ -670,7 +699,11 @@ function addElementModifier(
     const modifier = `{{${printLiteral(path)}}}`;
     const tag = `<${element.name} ... ${modifier} ...`;
 
-    throw generateSyntaxError(`In ${tag}, ${modifier} is not a valid modifier`, mustache.loc);
+    throw generateSyntaxError(
+      `In ${tag}, ${modifier} is not a valid modifier`,
+      loc.getSource().highlightFor(mustache.path, 'invalid literal'),
+      { full: loc }
+    );
   }
 
   const modifier = b.elementModifier({ path, params, hash, loc });

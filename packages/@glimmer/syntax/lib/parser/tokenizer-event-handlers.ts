@@ -116,10 +116,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       if (tag.name === ':') {
         throw generateSyntaxError(
           'Invalid named block named detected, you may have created a named block without a name, or you may have began your name with a number. Named blocks must have names that are at least one character long, and begin with a lower case letter',
-          this.source.spanFor({
-            start: this.currentTag.start.toJSON(),
-            end: this.offset().toJSON(),
-          })
+          this.currentTag.start.until(this.offset()).highlight('block name')
         );
       }
 
@@ -198,7 +195,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     } else {
       throw generateSyntaxError(
         `Invalid end tag: closing tag must not be self-closing`,
-        this.source.spanFor({ start: tag.start.toJSON(), end: this.offset().toJSON() })
+        tag.start.until(this.offset()).highlight('closing tag')
       );
     }
   }
@@ -287,25 +284,34 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     let tag = this.currentTag;
     let tokenizerPos = this.offset();
+    let { name, parts, start, isQuoted, isDynamic, valueSpan } = this.currentAttr;
+    const attrLoc = start.until(tokenizerPos);
+    const tagLoc = this.source.spanFor({ start: tag.start.toJSON(), end: tokenizerPos.toJSON() });
 
     if (tag.type === 'EndTag') {
       throw generateSyntaxError(
         `Invalid end tag: closing tag must not have attributes`,
-        this.source.spanFor({ start: tag.start.toJSON(), end: tokenizerPos.toJSON() })
+        attrLoc.highlight('invalid attribute'),
+        { full: tagLoc }
       );
     }
-
-    let { name, parts, start, isQuoted, isDynamic, valueSpan } = this.currentAttr;
 
     // Just trying to be helpful with `<Hello |foo|>` rather than letting it through as an attribute
     if (name.startsWith('|') && parts.length === 0 && !isQuoted && !isDynamic) {
       throw generateSyntaxError(
         'Invalid block parameters syntax: block parameters must be preceded by the `as` keyword',
-        start.until(start.move(name.length))
+        start.until(start.move(name.length)).highlight('missing `as`'),
+        { full: attrLoc }
       );
     }
 
-    let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, start.until(tokenizerPos));
+    let value = this.assembleAttributeValue(
+      parts,
+      isQuoted,
+      isDynamic,
+      valueSpan.withEnd(tokenizerPos),
+      start.until(tokenizerPos)
+    );
     value.loc = valueSpan.withEnd(tokenizerPos);
 
     let attribute = b.attr({ name, value, loc: start.until(tokenizerPos) });
@@ -367,7 +373,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // Following Handlebars and require a space between "as" and the pipe
           throw generateSyntaxError(
             `Invalid block parameters syntax: expecting at least one space character between "as" and "|"`,
-            as.start.until(this.offset().move(1))
+            as.start.until(this.offset().move(1)).highlight('missing space'),
+            { full: element.start.until(this.offset()) }
           );
         } else {
           // " as{{...", " async...", " as=...", " as>...", " as/>..."
@@ -405,13 +412,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             mustache(loc: src.SourceSpan) {
               throw generateSyntaxError(
                 `Invalid block parameters syntax: mustaches cannot be used inside parameters list`,
-                loc
+                loc.highlight('invalid mustache')
               );
             },
-            eof(loc: src.SourceOffset) {
+            eof: (loc: src.SourceOffset) => {
               throw generateSyntaxError(
                 `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list`,
-                as.start.until(loc)
+                as.start.until(loc).highlight('unexpected end of template'),
+                { full: element.start.until(this.offset()) }
               );
             },
           };
@@ -420,7 +428,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             // Following Handlebars and treat empty block params a syntax error
             throw generateSyntaxError(
               `Invalid block parameters syntax: empty parameters list, expecting at least one identifier`,
-              as.start.until(this.offset().move(1))
+              as.start.until(this.offset().move(1)).highlight('empty parameters list'),
+              { full: element.start.until(this.offset()) }
             );
           } else {
             state = { state: 'AfterEndPipe' };
@@ -429,7 +438,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         } else if (next === '>' || next === '/') {
           throw generateSyntaxError(
             `Invalid block parameters syntax: incomplete parameters list, expecting "|" but the tag was closed prematurely`,
-            as.start.until(this.offset().move(1))
+            as.start.until(this.offset().move(1)).highlight('incomplete parameters list'),
+            { full: element.start.until(this.offset()) }
           );
         } else {
           // slurp up anything else into the name, validate later
@@ -451,16 +461,18 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // to the next span
           state = { state: 'Done' };
           this.pendingError = {
-            mustache(loc: src.SourceSpan) {
+            mustache: (loc: src.SourceSpan) => {
               throw generateSyntaxError(
                 `Invalid block parameters syntax: mustaches cannot be used inside parameters list`,
-                loc
+                loc.highlight('invalid mustache'),
+                { full: element.start.until(this.offset()) }
               );
             },
-            eof(loc: src.SourceOffset) {
+            eof: (loc: src.SourceOffset) => {
               throw generateSyntaxError(
                 `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list`,
-                as.start.until(loc)
+                as.start.until(loc).highlight('unexpected end of template'),
+                { full: element.start.until(this.offset()) }
               );
             },
           };
@@ -470,7 +482,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           if (state.name === 'this' || ID_INVERSE_PATTERN.test(state.name)) {
             throw generateSyntaxError(
               `Invalid block parameters syntax: invalid identifier name \`${state.name}\``,
-              loc
+              loc.highlight('invalid identifier'),
+              { full: element.start.until(this.offset()) }
             );
           }
 
@@ -479,9 +492,16 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           state = next === '|' ? { state: 'AfterEndPipe' } : { state: 'BeforeBlockParamName' };
           this.tokenizer.consume();
         } else if (next === '>' || next === '/') {
+          const here = this.offset();
+          const end = here.move(1);
+
           throw generateSyntaxError(
             `Invalid block parameters syntax: expecting "|" but the tag was closed prematurely`,
-            as.start.until(this.offset().move(1))
+            {
+              primary: here.until(end).highlight('unexpected closing tag'),
+              expanded: as.start.until(end).highlight('block params'),
+            },
+            { full: element.start.until(end) }
           );
         } else {
           // slurp up anything else into the name, validate later
@@ -501,16 +521,18 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // to the next span
           state = { state: 'Done' };
           this.pendingError = {
-            mustache(loc: src.SourceSpan) {
+            mustache: (loc: src.SourceSpan) => {
               throw generateSyntaxError(
                 `Invalid block parameters syntax: modifiers cannot follow parameters list`,
-                loc
+                loc.highlight('invalid mustache'),
+                { full: element.start.until(this.offset()) }
               );
             },
-            eof(loc: src.SourceOffset) {
+            eof: (loc: src.SourceOffset) => {
               throw generateSyntaxError(
                 `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list`,
-                as.start.until(loc)
+                as.start.until(loc).highlight('unexpected end of template'),
+                { full: element.start.until(this.offset()) }
               );
             },
           };
@@ -533,7 +555,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         localAssert(state.state === 'Error', 'bug in block params parser');
 
         if (next === '' || next === '/' || next === '>' || isSpace(next)) {
-          throw generateSyntaxError(state.message, state.start.until(this.offset()));
+          throw generateSyntaxError(state.message, state.start.until(this.offset()), {
+            full: element.start.until(this.offset()),
+          });
         } else {
           // Slurp up the next "token" for the error span
           this.tokenizer.consume();
@@ -558,7 +582,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   reportSyntaxError(message: string): void {
-    throw generateSyntaxError(message, this.offset().collapsed());
+    throw generateSyntaxError(message, this.offset().collapsed().highlight('error'));
   }
 
   assembleConcatenatedValue(
@@ -586,14 +610,17 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       // throw an error for those cases.
       throw generateSyntaxError(
         `<${tag.name}> elements do not need end tags. You should remove it`,
-        tag.loc
+        tag.loc.highlight('void element')
       );
     } else if (element.type !== 'ElementNode') {
-      throw generateSyntaxError(`Closing tag </${tag.name}> without an open tag`, tag.loc);
+      throw generateSyntaxError(
+        `Closing tag </${tag.name}> without an open tag`,
+        tag.loc.highlight('closing tag')
+      );
     } else if (element.tag !== tag.name) {
       throw generateSyntaxError(
         `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`,
-        tag.loc
+        tag.loc.highlight('closing tag')
       );
     }
   }
@@ -602,6 +629,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     parts: ASTv1.AttrPart[],
     isQuoted: boolean,
     isDynamic: boolean,
+    valueSpan: src.SourceSpan,
     span: src.SourceSpan
   ): ASTv1.AttrValue {
     if (isDynamic) {
@@ -618,7 +646,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             `An unquoted attribute value must be a string or a mustache, ` +
               `preceded by whitespace or a '=' character, and ` +
               `followed by whitespace, a '>' character, or '/>'`,
-            span
+            {
+              full: this.getCurrentNodeStart().until(this.offset()),
+              primary: (head.type === 'MustacheStatement' ? head : a).loc.highlight(
+                'invalid mustache'
+              ),
+              expanded: valueSpan.lastSelectedLine.highlight('missing quotes'),
+            },
+            { full: this.getCurrentNodeStart().until(this.offset()).lastSelectedLine }
           );
         }
       }

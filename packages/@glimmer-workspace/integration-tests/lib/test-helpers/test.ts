@@ -1,6 +1,8 @@
 import { keys } from '@glimmer/util';
 
 import type { ComponentTestMeta } from '../test-decorator';
+import { jitSuite } from './module';
+import { Count } from '../render-test';
 
 export function test(meta: ComponentTestMeta): MethodDecorator;
 export function test<T>(
@@ -21,6 +23,14 @@ export function test(...args: any[]) {
   let descriptor = args[2];
   setTestingDescriptor(descriptor);
   return descriptor;
+}
+
+export function testSuite(name: string) {
+  return (klass: new (...args: any[]) => any) => {
+    klass.suiteName = name;
+    jitSuite(klass);
+    return klass;
+  };
 }
 
 function setTestingDescriptor(descriptor: PropertyDescriptor): void {

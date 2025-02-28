@@ -104,7 +104,7 @@ function renderInvocation(
   vm.args.setup(vm.stack, argNames, blockNames, 0, true);
 
   const compilable = expect(
-    reified.compilable,
+    reified.layout,
     'BUG: Expected the root component rendered with renderComponent to have an associated template, set with setComponentTemplate'
   );
   const layoutHandle = unwrapHandle(compilable.compile(context));
