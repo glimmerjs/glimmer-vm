@@ -1,43 +1,46 @@
+import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
-import { Optional } from '@glimmer/interfaces';
-import { highlightCode, src, Validation } from '@glimmer/syntax';
+import { highlightCode, highlightedError, src, Validation } from '@glimmer/syntax';
 
 export function highlight(strings: TemplateStringsArray, ...args: string[]) {
-  return highlightCode(highlightParts(highlightToParts(strings, ...args)));
+  return highlightCode(
+    highlightParts(highlightToParts(strings, ...args), { moduleName: 'test-module' })
+  );
+}
+
+export function highlightError(error: string, notes?: string[]) {
+  return (strings: TemplateStringsArray, ...args: string[]) => {
+    const highlighted = highlightParts(highlightToParts(strings, ...args), {
+      moduleName: 'test-module',
+    });
+    return highlightedError(highlighted, { error, notes });
+  };
 }
 
 export function assertParts(description: string, actualString: string, expected: HighlightParts) {
   const actual = highlightToParts`${actualString}`;
   QUnit.assert.deepEqual(actual, expected, `parts: ${description}`);
   QUnit.assert.equal(
-    highlightCode(highlightParts(actual)),
-    highlightCode(highlightParts(expected)),
+    highlightCode(highlightParts(actual, { moduleName: 'test-module' })),
+    highlightCode(highlightParts(expected, { moduleName: 'test-module' })),
     `string: ${description}`
   );
 }
 
 export function spansForParts(
-  before: string,
-  prefix: string,
-  primary: string,
-  suffix: string
+  parts: [before: string, prefix: string, primary: string, suffix: string]
 ): { primary: { start: number; end: number }; expanded: { start: number; end: number } };
 export function spansForParts(
-  before: string,
-  prefix: `-[ ${string} ]`,
-  primary: `=[ ${string} ]`
+  parts: [before: string, prefix: `-[ ${string} ]`, primary: `=[ ${string} ]`]
 ): { primary: { start: number; end: number }; expanded: { start: number; end: number } };
 export function spansForParts(
-  before: string,
-  primary: `=[ ${string} ]`,
-  suffix: `-[ ${string} ]`
+  parts: [before: string, primary: `=[ ${string} ]`, suffix: `-[ ${string} ]`]
 ): { primary: { start: number; end: number }; expanded: { start: number; end: number } };
+export function spansForParts(parts: [before: string, primary: string]): {
+  primary: { start: number; end: number };
+};
 export function spansForParts(
-  before: string,
-  primary: string
-): { primary: { start: number; end: number } };
-export function spansForParts(
-  ...parts:
+  parts:
     | [before: string, prefix: string, primary: string, suffix: string]
     | [before: string, prefix: `-[ ${string} ]`, primary: `=[ ${string} ]`]
     | [before: string, primary: `=[ ${string} ]`, suffix: `-[ ${string} ]`]
@@ -103,7 +106,7 @@ export const highlighted = (strings: TemplateStringsArray, ...args: string[]) =>
   const source = src.Source.from(content);
 
   const highlight = Validation.Highlight.from({
-    loc: source.offsetSpan({ start: 0, end: line.length }),
+    full: source.offsetSpan({ start: 0, end: line.length }),
     primary: { loc: source.offsetSpan(primary.loc), label: primary.label },
     expanded: expanded && { loc: source.offsetSpan(expanded.loc), label: expanded.label },
   });
@@ -111,20 +114,54 @@ export const highlighted = (strings: TemplateStringsArray, ...args: string[]) =>
   return Validation.HighlightedCode.from(source.fullSpan(), highlight);
 };
 
-const highlightParts = (parts: HighlightParts) => {
-  const source = src.Source.from(parts.content);
+const highlightParts = (parts: HighlightParts, { moduleName }: { moduleName: string }) => {
+  const { source: full, lineno, primary, expanded } = padLines(parts);
+  const source = src.Source.from(full, { meta: { moduleName } });
 
   const highlight = Validation.Highlight.from({
-    loc: source.offsetSpan({ start: 0, end: parts.line.length }),
-    primary: { loc: source.offsetSpan(parts.primary.loc), label: parts.primary.label },
-    expanded: parts.expanded && {
-      loc: source.offsetSpan(parts.expanded.loc),
-      label: parts.expanded.label,
+    full: source.lineSpan(lineno),
+    primary: { loc: source.offsetSpan(primary.loc), label: primary.label },
+    expanded: expanded && {
+      loc: source.offsetSpan(expanded.loc),
+      label: expanded.label,
     },
   });
 
-  return Validation.HighlightedCode.from(source.fullSpan(), highlight);
+  return Validation.HighlightedCode.from(source.lineSpan(lineno), highlight);
 };
+
+function padLines({ primary, expanded, ...parts }: HighlightParts) {
+  if (parts.line === '1') {
+    return { source: parts.content, line: parts.content, lineno: 1, primary, expanded };
+  } else {
+    const line = parseInt(parts.line, 10);
+    let padding = '';
+
+    for (let i = 0; i < line - 1; i++) {
+      padding += '\n';
+    }
+
+    return {
+      source: `${padding}${parts.content}`,
+      lineno: line,
+      primary: {
+        loc: padSpan(primary.loc, padding.length),
+        label: primary.label,
+      },
+      expanded: expanded && {
+        loc: padSpan(expanded.loc, padding.length),
+        label: expanded.label,
+      },
+    };
+  }
+}
+
+function padSpan(
+  span: { start: number; end: number },
+  chars: number
+): { start: number; end: number } {
+  return { start: span.start + chars, end: span.end + chars };
+}
 
 interface HighlightParts {
   line: string;
@@ -214,7 +251,7 @@ function isWS(chars: string) {
 }
 
 function parseLabel(line: string): { primary: string } | { expanded: string } {
-  const regex = /^\s*[|]\s+(?<type>[-]+|[=]+) (?<label>.*)$/u;
+  const regex = /^\s*\|\s+(?<type>-+|[=]+) (?<label>.*)$/u;
 
   const match = regex.exec(line);
 
@@ -244,7 +281,7 @@ function parseFirst(first: string): { line: string; content: string } {
 }
 
 function parseUnderline(underline: string) {
-  const regex = /^\s*\| (?<space>\s*)(?<prefix>[-]*)(?<primary>[=]+)(?<suffix>[-]*)/u;
+  const regex = /^\s*\| (?<space>\s*)(?<prefix>-*)(?<primary>[=]+)(?<suffix>-*)/u;
 
   const match = regex.exec(underline);
 
