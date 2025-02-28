@@ -57,8 +57,6 @@ export class CreateSnippet {
   ): Validation.HighlightedCode {
     localAssert(this.#main, 'main must be set');
 
-    debugger;
-
     const source = new src.Source(this.#code, moduleName);
     const full = source.offsetSpan({
       start: this.#fullStart ?? 0,
@@ -69,6 +67,7 @@ export class CreateSnippet {
     return Validation.HighlightedCode.from(
       { loc: full },
       {
+        full: (expanded ?? main).fullLines(),
         primary: { loc: main, label: labels?.primary },
         expanded: expanded ? { loc: expanded, label: labels?.extended } : undefined,
       }
@@ -224,6 +223,7 @@ export function highlightCode(
   const highlighted = Validation.HighlightedCode.from(
     { loc: source.offsetSpan({ start: fullStart, end: fullEnd }) },
     {
+      full: (expanded ?? primary).fullLines(),
       primary: { loc: primary, label: options.primary },
       expanded: expanded ? { loc: expanded, label: options.extended } : undefined,
     }

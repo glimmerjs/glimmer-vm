@@ -61,6 +61,7 @@ export interface ReportableContext {
 export type IntoHighlightedSpan = SourceSpan | { loc: HasSourceSpan; label?: Optional<string> };
 export type IntoHighlight =
   | {
+      full: HasSourceSpan;
       primary: IntoHighlightedSpan;
       expanded?: Optional<IntoHighlightedSpan>;
     }
@@ -73,27 +74,28 @@ export class Highlight {
       const expanded = from.expanded ? HighlightedSpan.from(from.expanded) : undefined;
 
       return new Highlight(
+        loc(from.full),
         primary,
         expanded && contains(expanded.loc, primary.loc) ? expanded : undefined
       );
     } else {
-      return new Highlight(HighlightedSpan.from(from));
+      const span = HighlightedSpan.from(from);
+      return new Highlight(span.loc, span);
     }
   }
 
+  readonly full: SourceSpan;
   readonly primary: HighlightedSpan;
   readonly expanded: Optional<HighlightedSpan>;
 
-  constructor(
+  private constructor(
+    full: SourceSpan,
     primary: { loc: SourceSpan; label?: Optional<string> },
     expanded?: { loc: SourceSpan; label?: Optional<string> }
   ) {
+    this.full = full;
     this.primary = HighlightedSpan.from(primary);
     this.expanded = expanded ? HighlightedSpan.from(expanded) : undefined;
-  }
-
-  get full(): SourceSpan {
-    return this.expanded ? this.expanded.loc : this.primary.loc;
   }
 
   get prefix(): Optional<SourceSpan> {

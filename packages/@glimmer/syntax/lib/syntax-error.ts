@@ -19,6 +19,7 @@ export function generateSyntaxError(
   location: Validation.IntoHighlight,
   options?: { full?: Optional<src.SourceSpan> }
 ): GlimmerSyntaxError {
+  debugger;
   return highlightedError(Validation.HighlightedCode.from(options?.full, location), {
     error: message,
   });
@@ -26,7 +27,7 @@ export function generateSyntaxError(
 
 export function highlightedError(
   highlights: HighlightedCode,
-  options: { error: string; notes?: string[] }
+  options: { error: string; notes?: Optional<string[]> }
 ): GlimmerSyntaxError {
   const loc = highlights.full;
   const module = loc.module;
@@ -87,98 +88,92 @@ function drawUnderline(buffers: LineBuffers, { full, highlight }: HighlightedCod
 
   const lines = [];
 
+  const end = (expanded ?? primary).loc;
+
   const line1 = buffers.blank(full.startPosition.column);
+  lines.push(line1);
 
-  if (prefix && suffix) {
-    line1.until(prefix).repeat(prefix.size, '─');
-  } else if (prefix && expanded?.label) {
-    line1.until(prefix).add(prefix.size === 1 ? '┬' : `─┬${'─'.repeat(prefix.size - 2)}`);
-  } else {
-    line1.until(primary.loc);
+  const primaryLabel = primary.label;
+  const expandedLabel = expanded?.label;
+
+  if (prefix) {
+    line1.until(prefix);
+    if (expandedLabel) line1.add(expanded.size === 1 ? '┬' : `─┬`);
+    line1.until(primary.loc, '─');
   }
 
-  if (primary.label) {
-    line1.add(primary.size === 1 ? '┳' : `━┳${'━'.repeat(primary.size - 2)}`);
-  } else {
-    line1.untilEnd(primary.loc, '━');
+  line1.until(primary.loc);
+
+  if (primaryLabel) {
+    line1.add(primary.size === 1 ? '┳' : `━┳`);
   }
+
+  line1.untilEnd(primary.loc, '━');
 
   if (suffix) {
-    if (expanded?.label) line1.add(suffix.size > 1 ? '─┬' : '┬');
+    if (!prefix && expandedLabel) line1.add(suffix.size <= 2 ? '┬' : `─┬`);
     line1.untilEnd(suffix, '─');
   }
 
-  lines.push(line1);
+  const line2 = buffers.blank(full.startPosition.column);
+  lines.push(line2);
 
-  if (suffix && expanded) {
-    if (expanded.label) {
-      const line2 = buffers.blank(full.startPosition.column);
-
-      line2.until(primary.loc);
-
-      if (primary.label) {
-        line2.add(primary.size === 1 ? '┃' : ' ┃');
-      }
-
-      line2
-        .untilEnd(primary.loc)
-        .until(suffix)
-        .add(suffix.size === 1 ? '└' : ' └')
-        .untilEnd(suffix, '─')
-        .space()
-        .add(expanded.label);
-
-      lines.push(line2);
+  if (prefix && expandedLabel) {
+    line2.until(prefix);
+    if (primaryLabel) {
+      // If there's a primary label, then the label is on the next line
+      line2.add(prefix.size === 1 ? '│' : ' │');
+    } else {
+      // Otherwise, it's on this line
+      line2.add(prefix.size === 1 ? '└' : ' └');
+      line2.untilEnd(end, '─').space().add(expandedLabel);
     }
+  }
 
-    const line3 = buffers.blank(full.startPosition.column).until(primary.loc);
+  if (primaryLabel) {
+    line2.until(primary.loc);
+    if (!prefix && expandedLabel) {
+      // In this case, the expanded label is on this line, next to the suffix, so the primary is on
+      // the next line.
+      line2.add(primary.size === 1 ? '┃' : ' ┃');
+    } else {
+      // In this case, the primary label is on this line
+      line2
+        .add(primary.size === 1 ? '┗' : ' ┗')
+        .untilEnd(end, '━')
+        .space()
+        .add(primaryLabel);
+    }
+  }
 
-    if (primary.label) {
+  if (!prefix && suffix && expandedLabel) {
+    line2.until(suffix);
+    line2.add(suffix.size <= 2 ? '└' : ' └');
+    line2.untilEnd(end, '─').space().add(expandedLabel);
+  }
+
+  if (!(primaryLabel && expandedLabel)) {
+    return lines.map((l) => `${l}\n`).join('');
+  }
+
+  const line3 = buffers.blank(full.startPosition.column);
+  lines.push(line3);
+
+  if (prefix && expandedLabel) {
+    line3.until(prefix);
+    line3.add(prefix.size === 1 ? '└' : ' └');
+    line3.untilEnd(end, '─').space().add(expandedLabel);
+  } else if (primaryLabel) {
+    line3.until(primary.loc);
+    if (!prefix && expandedLabel) {
+      // In this case, the expanded label is on this line, next to the suffix, so the primary is on
+      // the next line.
       line3
         .add(primary.size === 1 ? '┗' : ' ┗')
-        .untilEnd(suffix, '━')
+        .untilEnd(end, '━')
         .space()
-        .add(primary.label);
+        .add(primaryLabel);
     }
-
-    lines.push(line3);
-  } else if (prefix) {
-    const line2 = buffers.blank(full.startPosition.column);
-
-    line2.until(prefix).add(prefix.size === 1 ? '│' : ` │`);
-
-    if (primary.label) {
-      line2
-        .until(primary.loc)
-        .add(primary.size === 1 ? '┗' : ' ┗')
-        .untilEnd(primary.loc, '━')
-        .space()
-        .add(primary.label);
-    }
-
-    lines.push(line2);
-
-    if (expanded?.label) {
-      const line3 = buffers
-        .blank(full.startPosition.column)
-        .until(prefix)
-        .add(prefix.size === 1 ? '└' : ' └')
-        .untilEnd(primary.loc, '─')
-        .space()
-        .add(expanded.label);
-
-      lines.push(line3);
-    }
-  } else if (primary.label) {
-    lines.push(
-      buffers
-        .blank(full.startPosition.column)
-        .until(primary.loc)
-        .add(primary.size === 1 ? '┗' : ' ┗')
-        .untilEnd(primary.loc, '━')
-        .space()
-        .add(primary.label)
-    );
   }
 
   return lines.map((l) => `${l}\n`).join('');

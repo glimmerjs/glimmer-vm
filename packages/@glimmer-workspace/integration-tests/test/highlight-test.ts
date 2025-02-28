@@ -12,7 +12,7 @@ export class HighlightTest {
 
   @test
   'highlight primary only'() {
-    const spans = spansForParts('<div>{{', 'hello');
+    const spans = spansForParts(['<div>{{', 'hello']);
 
     assertParts(
       'without label',
@@ -43,8 +43,40 @@ export class HighlightTest {
   }
 
   @test
+  'highlight primary only (not line 1)'() {
+    const spans = spansForParts(['<div>{{', 'hello']);
+
+    assertParts(
+      'without label',
+      `
+        3 | <div>{{hello}}</div>
+          |        =====
+      `,
+      {
+        line: '3',
+        content: '<div>{{hello}}</div>',
+        primary: { loc: spans.primary },
+      }
+    );
+
+    assertParts(
+      'with label',
+      `
+        3 | <div>{{hello}}</div>
+          |        =====
+          |          ======= inner
+      `,
+      {
+        line: '3',
+        content: '<div>{{hello}}</div>',
+        primary: { loc: spans.primary, label: 'inner' },
+      }
+    );
+  }
+
+  @test
   'highlight expanded with prefix and suffix'() {
-    const spans = spansForParts('<div>', '{{', 'hello', '}}');
+    const spans = spansForParts(['<div>', '{{', 'hello', '}}']);
 
     assertParts(
       'with both labels',
@@ -109,7 +141,7 @@ export class HighlightTest {
 
   @test
   'highlight expanded with prefix but no suffix'() {
-    const spans = spansForParts('<div>{{', '=[ x ]', '-[ .hello ]');
+    const spans = spansForParts(['<div>{{', '=[ x ]', '-[ .hello ]']);
 
     assertParts(
       'with both labels',
