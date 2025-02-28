@@ -3,6 +3,7 @@ import {
   defineSimpleHelper,
   defineSimpleModifier,
   GlimmerishComponent,
+  highlightError,
   jitSuite,
   RenderTest,
   syntaxErrorFor,
@@ -151,19 +152,16 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Cannot invoke a modifier definition based on this fallback lookup in resolution mode'() {
-    this.registerComponent('TemplateOnly', 'Bar', `<div {{x.foo}}></div>`);
-
     this.assert.throws(
       () => {
         this.registerComponent('TemplateOnly', 'Bar', '<div {{x.foo}}></div>');
       },
-      syntaxErrorFor(
-        'You attempted to invoke a path (`{{x.foo}}`) as a modifier, but x was not in scope',
-        '{{<|x|>.foo}}',
-        'an unknown module',
-        1,
-        5
-      )
+      highlightError('Attempted to invoke `x.foo` as a modifier, but `x` was not in scope')`
+        1 | <div {{x.foo}}></div>
+          |        =----
+          |          \---- modifier
+          |        \====== not in scope
+      `
     );
   }
 

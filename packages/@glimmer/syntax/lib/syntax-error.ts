@@ -66,7 +66,7 @@ export function highlightCode(highlighted: HighlightedCode): string {
   const fullContext = highlighted.full;
 
   const fullLines = fullContext.fullLines();
-  const codeString = fullContext.asString();
+  const codeString = fullLines.asString();
 
   const fullRange = LineRange.for(
     fullContext.getSource(),
@@ -83,8 +83,10 @@ export function highlightCode(highlighted: HighlightedCode): string {
   return `\n\n${code}\n${underline}\n\n`;
 }
 
-function drawUnderline(buffers: LineBuffers, { full, highlight }: HighlightedCode) {
-  const { primary, expanded, prefix, suffix } = highlight;
+function drawUnderline(buffers: LineBuffers, highlighted: HighlightedCode) {
+  const { primary, expanded, prefix, suffix } = highlighted.highlight;
+
+  const full = highlighted.full.fullLines();
 
   const lines = [];
 

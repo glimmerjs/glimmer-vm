@@ -124,10 +124,7 @@ export class SourceSpan implements SourceLocation {
   }
 
   static forLineRange(source: Source, start: number, end: number): SourceSpan {
-    return SourceSpan.forHbsLoc(source, {
-      start: { line: start, column: 0 },
-      end: { line: end, column: 0 },
-    });
+    return source.lineSpan(start).extend(source.lineSpan(end));
   }
 
   static forHbsLoc(source: Source, loc: SourceLocation): SourceSpan {
@@ -343,6 +340,14 @@ export class SourceSpan implements SourceLocation {
 
   get lastLine(): SourceSpan {
     return this.getSource().lineSpan(this.endPosition.line);
+  }
+
+  get lastSelectedLine(): SourceSpan {
+    const line = this.lastLine;
+    const start = line.getStart().lt(this.getStart()) ? this.getStart() : line.getStart();
+    const end = this.getEnd().lt(line.getEnd()) ? this.getEnd() : line.getEnd();
+
+    return start.until(end);
   }
 
   get size(): number {

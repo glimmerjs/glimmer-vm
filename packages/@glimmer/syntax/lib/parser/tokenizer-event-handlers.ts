@@ -305,7 +305,13 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       );
     }
 
-    let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, start.until(tokenizerPos));
+    let value = this.assembleAttributeValue(
+      parts,
+      isQuoted,
+      isDynamic,
+      valueSpan.withEnd(tokenizerPos),
+      start.until(tokenizerPos)
+    );
     value.loc = valueSpan.withEnd(tokenizerPos);
 
     let attribute = b.attr({ name, value, loc: start.until(tokenizerPos) });
@@ -623,6 +629,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     parts: ASTv1.AttrPart[],
     isQuoted: boolean,
     isDynamic: boolean,
+    valueSpan: src.SourceSpan,
     span: src.SourceSpan
   ): ASTv1.AttrValue {
     if (isDynamic) {
@@ -639,8 +646,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             `An unquoted attribute value must be a string or a mustache, ` +
               `preceded by whitespace or a '=' character, and ` +
               `followed by whitespace, a '>' character, or '/>'`,
-            span.highlight('attribute value'),
-            { full: this.getCurrentNodeStart().until(this.offset()) }
+            {
+              full: this.getCurrentNodeStart().until(this.offset()),
+              primary: (head.type === 'MustacheStatement' ? head : a).loc.highlight(
+                'invalid mustache'
+              ),
+              expanded: valueSpan.lastSelectedLine.highlight('missing quotes'),
+            },
+            { full: this.getCurrentNodeStart().until(this.offset()).lastSelectedLine }
           );
         }
       }
