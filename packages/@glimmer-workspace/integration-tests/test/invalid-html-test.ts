@@ -1,12 +1,11 @@
-import { highlightedError } from '@glimmer/syntax';
 import {
+  highlightError,
   jitSuite,
   preprocess,
   RenderTest,
   syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
-import { CreateSnippet, syntaxErrorFor2 } from '@glimmer-workspace/test-utils';
 
 class CompileErrorTests extends RenderTest {
   static suiteName = 'compile errors';
@@ -15,20 +14,15 @@ class CompileErrorTests extends RenderTest {
   'A helpful error message is provided for unclosed elements'() {
     this.assert.throws(
       () => {
-        preprocess('\n<div class="my-div" \n foo={{bar}}>\n<span>\n</span>\n', {
+        preprocess('\n<div class="my-div"\n foo={{bar}}>\n<span>\n</span>\n', {
           meta: { moduleName: 'test-module' },
         });
       },
-      highlightedError(
-        new CreateSnippet()
-          .add('\n')
-          .start()
-          .add('<')
-          .main('div')
-          .add(' class="my-div" \n foo={{bar}}>\n<span>\n</span>\n')
-          .done('test-module', { primary: 'unclosed tag' }),
-        { error: 'Unclosed element `div`' }
-      )
+      highlightError('Unclosed element `div`')`
+        2 | <div class="my-div"
+          |  ===
+          |   \==== unclosed tag
+      `
     );
 
     this.assert.throws(
@@ -37,14 +31,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor2(
-        'Unclosed element `span`',
-        '\n<div class="my-div">\n%|<[%main%]span[/main%]>|%\n',
-        {
-          moduleName: 'test-module',
-          primary: 'unclosed tag',
-        }
-      )
+      highlightError('Unclosed element `span`')`
+        3 | <span>
+          |  ====
+          |   \==== unclosed tag
+      `
     );
   }
 
@@ -54,7 +45,11 @@ class CompileErrorTests extends RenderTest {
       () => {
         preprocess('</p>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor('Closing tag </p> without an open tag', '</p>', 'test-module', 1, 0)
+      highlightError('Closing tag </p> without an open tag')`
+        1 | </p>
+          | ====
+          |  \==== closing tag
+      `
     );
 
     this.assert.throws(
@@ -63,7 +58,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor('Closing tag </div> without an open tag', '</div>', 'test-module', 3, 0)
+      highlightError('Closing tag </div> without an open tag')`
+        3 | </div>
+          | ======
+          |  \==== closing tag
+      `
     );
   }
 
@@ -73,13 +72,11 @@ class CompileErrorTests extends RenderTest {
       () => {
         preprocess('<input></input>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        '<input> elements do not need end tags. You should remove it',
-        '</input>',
-        'test-module',
-        1,
-        7
-      )
+      highlightError('<input> elements do not need end tags. You should remove it')`
+        1 | <input></input>
+          |        ========
+          |         \==== void element
+      `
     );
 
     this.assert.throws(
