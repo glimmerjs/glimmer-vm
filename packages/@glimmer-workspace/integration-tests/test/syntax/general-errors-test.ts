@@ -1,4 +1,5 @@
 import {
+  highlightError,
   jitSuite,
   preprocess,
   RenderTest,
@@ -15,13 +16,11 @@ class SyntaxErrors extends RenderTest {
       () => {
         preprocess('<div><p>{{../value}}</p></div>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Changing context using "../" is not supported in Glimmer',
-        '../value',
-        'test-module',
-        1,
-        10
-      )
+      highlightError('Changing context using `../` is not supported in Glimmer')`
+        1 | <div><p>{{../value}}</p></div>
+          |           ==------
+          |            \=== invalid \`..\` syntax
+      `
     );
   }
 
@@ -31,13 +30,13 @@ class SyntaxErrors extends RenderTest {
       () => {
         preprocess('<div><p>{{a/b.c}}</p></div>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        "Mixing '.' and '/' in paths is not supported in Glimmer; use only '.' to separate property paths",
-        'a/b.c',
-        'test-module',
-        1,
-        10
-      )
+      highlightError(
+        'Mixing `.` and `/` in paths is not supported in Glimmer; use only `.` to separate property paths'
+      )`
+        1 | <div><p>{{a/b.c}}</p></div>
+          |           =====
+          |            \=== invalid mixed syntax
+      `
     );
   }
 
@@ -47,13 +46,11 @@ class SyntaxErrors extends RenderTest {
       () => {
         preprocess('<div><p>{{./value}}</p></div>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Using "./" is not supported in Glimmer and unnecessary',
-        './value',
-        'test-module',
-        1,
-        10
-      )
+      highlightError('Using "./" is not supported in Glimmer and unnecessary')`
+        1 | <div><p>{{./value}}</p></div>
+          |           ==-----
+          |             \==== invalid \`./\` syntax
+      `
     );
   }
 
@@ -63,13 +60,13 @@ class SyntaxErrors extends RenderTest {
       () => {
         preprocess('<x-bar as|foo|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid block parameters syntax: expecting at least one space character between "as" and "|"',
-        'as|',
-        'test-module',
-        1,
-        7
-      )
+      highlightError(
+        'Invalid block parameters syntax: expecting at least one space character between "as" and "|"'
+      )`
+        1 | <x-bar as|foo|>foo</x-bar>
+          |        -==
+          |          \=== missing space
+      `
     );
   }
 
@@ -79,26 +76,26 @@ class SyntaxErrors extends RenderTest {
       () => {
         preprocess('<x-bar as ||>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid block parameters syntax: empty parameters list, expecting at least one identifier',
-        'as ||',
-        'test-module',
-        1,
-        7
-      )
+      highlightError(
+        'Invalid block parameters syntax: empty block params, expecting at least one identifier'
+      )`
+        1 | <x-bar as ||>foo</x-bar>
+          |        ---==
+          |            \=== empty block params
+      `
     );
 
     this.assert.throws(
       () => {
         preprocess('<x-bar as | |>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid block parameters syntax: empty parameters list, expecting at least one identifier',
-        'as | |',
-        'test-module',
-        1,
-        7
-      )
+      highlightError(
+        'Invalid block parameters syntax: empty block params, expecting at least one identifier'
+      )`
+        1 | <x-bar as | |>foo</x-bar>
+          |        ---===
+          |             \=== empty block params
+      `
     );
   }
 
@@ -108,52 +105,50 @@ class SyntaxErrors extends RenderTest {
       () => {
         preprocess('<x-bar as |{{foo}}|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid block parameters syntax: mustaches cannot be used inside parameters list',
-        '{{foo}}',
-        'test-module',
-        1,
-        11
-      )
+      highlightError(
+        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+      )`
+        1 | <x-bar as |{{foo}}|>foo</x-bar>
+          |        ----=======-
+          |              \=== invalid mustache
+      `
     );
 
     this.assert.throws(
       () => {
         preprocess('<x-bar as |foo{{bar}}|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid block parameters syntax: mustaches cannot be used inside parameters list',
-        '{{bar}}',
-        'test-module',
-        1,
-        14
-      )
+      highlightError(
+        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+      )`
+        1 | <x-bar as |foo{{bar}}|>foo</x-bar>
+          |        -------=======-
+          |                 \=== invalid mustache
+      `
     );
 
     this.assert.throws(
       () => {
         preprocess('<x-bar as |foo {{bar}}|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid block parameters syntax: mustaches cannot be used inside parameters list',
-        '{{bar}}',
-        'test-module',
-        1,
-        15
-      )
+      highlightError(
+        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+      )`
+        1 | <x-bar as |foo {{bar}}|>foo</x-bar>
+          |        --------=======-
+          |                  \=== invalid mustache
+      `
     );
 
     this.assert.throws(
       () => {
         preprocess('<x-bar as |foo| {{bar}}>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid block parameters syntax: modifiers cannot follow parameters list',
-        '{{bar}}',
-        'test-module',
-        1,
-        16
-      )
+      highlightError('Invalid block parameters syntax: modifiers cannot follow block params')`
+        1 | <x-bar as |foo| {{bar}}>foo</x-bar>
+          |                 =======
+          |                    \=== invalid modifier
+      `
     );
   }
 
@@ -164,7 +159,7 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as |', { meta: { moduleName: 'test-module' } });
       },
       syntaxErrorFor(
-        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list',
+        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params',
         'as |',
         'test-module',
         1,
@@ -177,7 +172,7 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as |foo', { meta: { moduleName: 'test-module' } });
       },
       syntaxErrorFor(
-        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list',
+        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params',
         'as |foo',
         'test-module',
         1,
@@ -190,7 +185,7 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as |foo|', { meta: { moduleName: 'test-module' } });
       },
       syntaxErrorFor(
-        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list',
+        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params',
         'as |foo|',
         'test-module',
         1,
@@ -221,7 +216,7 @@ class SyntaxErrors extends RenderTest {
         });
       },
       syntaxErrorFor(
-        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list',
+        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params',
         'wat',
         'test-module',
         1,
@@ -234,7 +229,7 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as |x| y|>{{x}},{{y}}</x-bar>', { meta: { moduleName: 'test-module' } });
       },
       syntaxErrorFor(
-        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list',
+        'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params',
         'y|',
         'test-module',
         1,

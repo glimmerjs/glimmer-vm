@@ -1,7 +1,7 @@
 import type { Optional } from '@glimmer/interfaces';
 
 import type * as src from './source/api';
-import type { HighlightedCode, ReportableContext } from './validation-context/validation-context';
+import type { ReportableContext } from './validation-context/validation-context';
 
 import * as Validation from './validation-context/validation-context';
 
@@ -16,24 +16,31 @@ export function quoteReportable(context: ReportableContext): GlimmerSyntaxError 
 
 export function generateSyntaxError(
   message: string,
-  location: Validation.IntoHighlight,
+  location: Validation.IntoHighlightedSpan,
   options?: { full?: Optional<src.SourceSpan> }
 ): GlimmerSyntaxError {
-  debugger;
-  return highlightedError(Validation.HighlightedCode.from(options?.full, location), {
+  return highlightedError(Validation.Highlight.fromSpan(location, { full: options?.full }), {
     error: message,
   });
 }
 
 export function highlightedError(
-  highlights: HighlightedCode,
+  highlights: Validation.IntoHighlight,
   options: { error: string; notes?: Optional<string[]> }
 ): GlimmerSyntaxError {
-  const loc = highlights.full;
-  const module = loc.module;
-  let { line, column } = highlights.highlight.primary.loc.startPosition;
+  const highlight = Validation.Highlight.from(highlights);
+  return syntaxError(highlight, options);
+}
 
-  const quotedCode = highlightCode(highlights);
+export function syntaxError(
+  highlight: Validation.Highlight,
+  options: { error: string; notes?: Optional<string[]> }
+): GlimmerSyntaxError {
+  const loc = highlight.full;
+  const module = loc.module;
+  let { line, column } = highlight.primary.loc.startPosition;
+
+  const quotedCode = highlightCode(highlight);
   const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
 
   let message: string;
@@ -59,8 +66,8 @@ export function highlightedError(
   return error;
 }
 
-export function highlightCode(highlighted: HighlightedCode): string {
-  const { primary, expanded } = highlighted.highlight;
+export function highlightCode(highlighted: Validation.Highlight): string {
+  const { primary, expanded } = highlighted;
   const highlight = expanded?.loc ?? primary.loc;
 
   const fullContext = highlighted.full;
@@ -83,8 +90,8 @@ export function highlightCode(highlighted: HighlightedCode): string {
   return `\n\n${code}\n${underline}\n\n`;
 }
 
-function drawUnderline(buffers: LineBuffers, highlighted: HighlightedCode) {
-  const { primary, expanded, prefix, suffix } = highlighted.highlight;
+function drawUnderline(buffers: LineBuffers, highlighted: Validation.Highlight) {
+  const { primary, expanded, prefix, suffix } = highlighted;
 
   const full = highlighted.full.fullLines();
 

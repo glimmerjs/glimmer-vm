@@ -74,7 +74,7 @@ export class Source {
 
   highlightFor(
     { loc: { start, end } }: { loc: Readonly<SourceLocation> },
-    label: string
+    label?: string
   ): HighlightedSpan {
     const loc = this.spanFor({ start, end });
 

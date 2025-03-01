@@ -1,4 +1,4 @@
-import type { Nullable } from '@glimmer/interfaces';
+import type { Nullable, Optional } from '@glimmer/interfaces';
 import { asPresentArray, expect, getLast, localAssert, unwrap } from '@glimmer/debug-util';
 import { assign } from '@glimmer/util';
 import {
@@ -7,7 +7,7 @@ import {
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
 
-import * as src from './source/api';
+import type * as src from './source/api';
 import type * as ASTv1 from './v1/api';
 import type * as HBS from './v1/handlebars-ast';
 
@@ -23,7 +23,10 @@ export interface StartTag {
   readonly attributes: ASTv1.AttrNode[];
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];
-  readonly params: ASTv1.VarHead[];
+  readonly params: {
+    names: ASTv1.VarHead[];
+    error: Optional<ASTv1.ErrorNode>;
+  };
   selfClosing: boolean;
   readonly loc: src.SourceSpan;
 }
@@ -48,6 +51,7 @@ export abstract class Parser {
   protected elementStack: ASTv1.ParentNode[] = [];
   private lines: string[];
   readonly source: src.Source;
+  public error: ASTv1.ErrorNode | null = null;
   public currentAttribute: Nullable<Attribute> = null;
   public currentNode: Nullable<
     Readonly<

@@ -48,7 +48,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       }
     },
 
-    translate({ node, keyword, state }, { target, positional }): Result<mir.Content> {
+    translate({ node, keyword, state }, { target, positional }): Result<mir.Yield> {
       return visitPositional(positional, state).mapOk(
         (positional) =>
           new mir.Yield({
@@ -78,7 +78,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       }
     },
 
-    translate({ node, keyword, state: { scope } }): Result<mir.Content> {
+    translate({ node, keyword, state: { scope } }): Result<mir.Debugger> {
       return Ok(new mir.Debugger({ keyword, loc: node.loc, scope }));
     },
   })

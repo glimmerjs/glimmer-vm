@@ -1,6 +1,7 @@
 import type { SourceSlice } from '../../source/slice';
 import type { SourceSpan } from '../../source/span';
 import type { SymbolTable } from '../../symbol-table';
+import type * as ASTv1 from '../../v1/api';
 import type { ComponentArgs, CurlyArgs, ResolvedName, UnresolvedBinding } from './args';
 import type {
   ComponentArg,
@@ -37,7 +38,8 @@ export type ContentNode =
   | InvokeAngleBracketComponent
   | InvokeResolvedAngleBracketComponent
   | SimpleElement
-  | GlimmerComment;
+  | GlimmerComment
+  | ASTv1.ErrorNode;
 
 export class GlimmerComment extends node('GlimmerComment').fields<{ text: SourceSlice }>() {}
 export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
@@ -78,7 +80,7 @@ export class AppendContent extends node('AppendContent').fields<{
   readonly isResolved = false;
 }
 
-export type BlockCallee = KeywordExpression | PathExpression | VariableReference;
+export type BlockCallee = KeywordExpression | PathExpression | VariableReference | ASTv1.ErrorNode;
 
 export class InvokeBlock extends node('InvokeBlock').fields<{
   callee: BlockCallee;

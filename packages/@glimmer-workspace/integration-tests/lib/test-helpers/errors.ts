@@ -102,26 +102,24 @@ export function spansForParts(
 }
 
 export const highlighted = (strings: TemplateStringsArray, ...args: string[]) => {
-  const { line, content, primary, expanded } = highlightToParts(strings, ...args);
+  const { lineno, content, primary, expanded } = highlightToParts(strings, ...args);
   const source = src.Source.from(content);
 
-  const highlight = Validation.Highlight.from({
-    full: source.offsetSpan({ start: 0, end: line.length }),
+  return Validation.Highlight.fromInfo({
+    full: source.lineSpan(lineno),
     primary: { loc: source.offsetSpan(primary.loc), label: primary.label },
     expanded: expanded && { loc: source.offsetSpan(expanded.loc), label: expanded.label },
   });
-
-  return Validation.HighlightedCode.from(source.fullSpan(), highlight);
 };
 
 const highlightParts = (
   parts: HighlightParts,
   { moduleName }: { moduleName: string }
-): Validation.HighlightedCode => {
+): Validation.Highlight => {
   const { source: full, lineno, primary, expanded } = padLines(parts);
   const source = src.Source.from(full, { meta: { moduleName } });
 
-  const highlight = Validation.Highlight.from({
+  return Validation.Highlight.fromInfo({
     full: source.lineSpan(lineno),
     primary: { loc: source.offsetSpan(primary.loc), label: primary.label },
     expanded: expanded && {
@@ -129,8 +127,6 @@ const highlightParts = (
       label: expanded.label,
     },
   });
-
-  return Validation.HighlightedCode.from(source.lineSpan(lineno), highlight);
 };
 
 function padLines({ primary, expanded, ...parts }: HighlightParts) {

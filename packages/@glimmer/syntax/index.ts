@@ -29,9 +29,10 @@ export { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './lib/symbol-
 export {
   generateSyntaxError,
   type GlimmerSyntaxError,
-  highlightedError,
   highlightCode,
+  highlightedError,
   quoteReportable,
+  syntaxError,
 } from './lib/syntax-error';
 export { cannotRemoveNode, cannotReplaceNode } from './lib/traversal/errors';
 export { default as WalkerPath } from './lib/traversal/path';

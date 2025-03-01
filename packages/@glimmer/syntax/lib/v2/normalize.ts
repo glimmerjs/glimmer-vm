@@ -43,7 +43,7 @@ export function normalize(
   let normalizeOptions = {
     strictMode: false,
     ...options,
-    locals: ast.blockParams,
+    locals: Array.isArray(ast.blockParams) ? ast.blockParams : [],
     keywords: options.keywords ?? [],
   };
 
@@ -149,8 +149,8 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     | {
         type: 'callee';
         callee: ASTv2.KeywordExpression | IsEqual<E, ASTv1.PathExpression> extends true
-          ? ASTv2.PathExpression
-          : ASTv2.DynamicCallee;
+          ? ASTv1.ParseResult<ASTv2.PathExpression>
+          : ASTv1.ParseResult<ASTv2.DynamicCallee>;
         loc: SourceSpan;
       }
     | {
@@ -198,7 +198,8 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
         callee.type === 'Keyword' ||
           callee.type === 'Path' ||
           callee.type === 'Call' ||
-          callee.type === 'ResolvedCall',
+          callee.type === 'ResolvedCall' ||
+          callee.type === 'Error',
         `BUG: callee should be a dynamic value (keyword, path, or call), but was ${callee.type}`
       );
 
@@ -207,7 +208,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
   }
 
   handleCallee(
-    node: ASTv1.PathExpression,
+    node: ASTv1.ParseResult<ASTv1.PathExpression>,
     expr: ExpressionNormalizer
   ): ASTv2.ResolvedName | ASTv2.KeywordExpression | ASTv2.PathExpression;
   handleCallee(
@@ -217,7 +218,12 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
   handleCallee(
     node: ASTv1.Expression,
     expr: ExpressionNormalizer
-  ): ASTv2.KeywordExpression | ASTv2.DynamicCallee | ASTv2.ResolvedName | ASTv2.PathExpression {
+  ):
+    | ASTv2.KeywordExpression
+    | ASTv2.DynamicCallee
+    | ASTv2.ResolvedName
+    | ASTv2.PathExpression
+    | ASTv1.ErrorNode {
     return this.getCallee(node, expr).callee;
   }
 
@@ -308,6 +314,8 @@ class ExpressionNormalizer {
   normalizeExpr(expr: ASTv1.Expression): ASTv2.ExpressionValueNode;
   normalizeExpr(expr: ASTv1.Expression | ASTv1.MinimalPathExpression): ASTv2.ExpressionValueNode {
     switch (expr.type) {
+      case 'Error':
+        return expr;
       case 'NullLiteral':
       case 'BooleanLiteral':
       case 'NumberLiteral':
@@ -465,8 +473,10 @@ class ExpressionNormalizer {
 class StatementNormalizer {
   constructor(private readonly block: BlockContext) {}
 
-  normalize(node: ASTv1.Statement): ASTv2.ContentNode | ASTv2.NamedBlock {
+  normalize(node: ASTv1.Statement): ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode {
     switch (node.type) {
+      case 'Error':
+        return node;
       case 'BlockStatement':
         return this.BlockStatement(node);
       case 'ElementNode':
@@ -651,7 +661,7 @@ class ElementNormalizer {
    * - the part before the first `.` is a reference to an in-scope variable binding
    * - it begins with an uppercase character
    */
-  ElementNode(element: ASTv1.ElementNode): ASTv2.ElementNode {
+  ElementNode(element: ASTv1.ElementNode): ASTv1.ParseResult<ASTv2.ElementNode> {
     let { tag, selfClosing, comments } = element;
     let loc = this.ctx.loc(element.loc);
 
@@ -666,7 +676,7 @@ class ElementNormalizer {
     let modifiers = element.modifiers.map((m) => this.modifier(m));
 
     // the element's block params are in scope for the children
-    let child = this.ctx.child(element.blockParams);
+    let child = this.ctx.child(Array.isArray(element.blockParams) ? element.blockParams : []);
     let normalizer = new StatementNormalizer(child);
 
     let childNodes = element.children.map((s) => normalizer.normalize(s));
@@ -691,15 +701,19 @@ class ElementNormalizer {
           child.table
         );
       } else {
-        return children.assertElement(tagOffsets.toSlice(tag), element.blockParams.length > 0);
+        return children.assertElement(tagOffsets.toSlice(tag), element.blockParams);
       }
     }
 
     if (element.selfClosing) {
       return el.selfClosingComponent(path, loc);
     } else {
-      let blocks = children.assertComponent(tag, child.table, element.blockParams.length > 0);
-      return el.componentWithNamedBlocks(path, blocks, loc);
+      if (Array.isArray(element.blockParams)) {
+        let blocks = children.assertComponent(tag, child.table, element.blockParams.length > 0);
+        return el.componentWithNamedBlocks(path, blocks, loc);
+      } else {
+        return element.blockParams;
+      }
     }
   }
 
@@ -989,6 +1003,8 @@ class ElementNormalizer {
   }
 }
 
+type ChildNodes = ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode;
+
 class Children {
   readonly namedBlocks: ASTv2.NamedBlock[];
   readonly hasSemanticContent: boolean;
@@ -996,7 +1012,7 @@ class Children {
 
   constructor(
     readonly loc: SourceSpan,
-    readonly children: (ASTv2.ContentNode | ASTv2.NamedBlock)[],
+    readonly children: ChildNodes[],
     readonly block: BlockContext
   ) {
     this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c instanceof ASTv2.NamedBlock);
@@ -1017,7 +1033,7 @@ class Children {
       }).length
     );
     this.nonBlockChildren = children.filter(
-      (c): c is ASTv2.ContentNode => !(c instanceof ASTv2.NamedBlock)
+      (c): c is Exclude<ChildNodes, ASTv2.NamedBlock> => !(c instanceof ASTv2.NamedBlock)
     );
   }
 }
@@ -1046,7 +1062,7 @@ class ElementChildren extends Children {
   constructor(
     private el: BuildElement,
     loc: SourceSpan,
-    children: (ASTv2.ContentNode | ASTv2.NamedBlock)[],
+    children: (ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode)[],
     block: BlockContext
   ) {
     super(loc, children, block);
@@ -1094,9 +1110,18 @@ class ElementChildren extends Children {
     );
   }
 
-  assertElement(name: SourceSlice, hasBlockParams: boolean): ASTv2.SimpleElement {
+  assertElement(
+    name: SourceSlice,
+    blockParams: ASTv1.ElementNode['blockParams']
+  ): ASTv1.ParseResult<ASTv2.SimpleElement> {
+    if (!Array.isArray(blockParams)) {
+      return blockParams;
+    }
+
+    const hasBlockParams = blockParams.length > 0;
+
     if (hasBlockParams) {
-      throw generateSyntaxError(
+      return b.error(
         `Unexpected block params in <${name.chars}>: simple elements cannot have block params`,
         this.loc
       );
@@ -1106,13 +1131,13 @@ class ElementChildren extends Children {
       let names = this.namedBlocks.map((b) => b.name);
 
       if (names.length === 1) {
-        throw generateSyntaxError(
+        return b.error(
           `Unexpected named block <:foo> inside <${name.chars}> HTML element`,
           this.loc
         );
       } else {
         let printedNames = names.map((n) => `<:${n.chars}>`).join(', ');
-        throw generateSyntaxError(
+        return b.error(
           `Unexpected named blocks inside <${name.chars}> HTML element (${printedNames})`,
           this.loc
         );

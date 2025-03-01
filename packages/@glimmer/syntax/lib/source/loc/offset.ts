@@ -67,12 +67,28 @@ export class SourceOffset {
     return charPos === null ? null : charPos.offset;
   }
 
+  max(other: SourceOffset): SourceOffset {
+    return this.lt(other) ? other : this;
+  }
+
+  min(other: SourceOffset): SourceOffset {
+    return this.lt(other) ? this : other;
+  }
+
   lt(other: SourceOffset): boolean {
     return lt(this.data, other.data);
   }
 
+  gt(other: SourceOffset): boolean {
+    return !this.lte(other);
+  }
+
   lte(other: SourceOffset): boolean {
     return lt(this.data, other.data) || eql(this.data, other.data);
+  }
+
+  gte(other: SourceOffset): boolean {
+    return !this.lt(other);
   }
 
   /**
@@ -119,6 +135,10 @@ export class SourceOffset {
         return SourceOffset.broken();
       }
     }
+  }
+
+  next(count: number): SourceSpan {
+    return span(this.data, this.move(count).data);
   }
 
   /**

@@ -1,4 +1,5 @@
 import type { SerializedSourceSpan } from '../../source/span';
+import type * as ASTv1 from '../../v1/api';
 import type { CurlyArgs, UnresolvedBinding } from './args';
 import type { ElementModifier } from './attr-block';
 import type {
@@ -25,7 +26,7 @@ export interface GlimmerParentNodeOptions extends BaseNodeFields {
 }
 
 export interface CallFields extends BaseNodeFields {
-  callee: DynamicCallee | KeywordExpression | UnresolvedBinding;
+  callee: ASTv1.ParseResult<DynamicCallee | KeywordExpression | UnresolvedBinding>;
   args: CurlyArgs;
 }
 
@@ -34,7 +35,8 @@ export type DynamicCallee =
   | PathExpression
   | VariableReference
   | CallExpression
-  | ResolvedCallExpression;
+  | ResolvedCallExpression
+  | ASTv1.ErrorNode;
 
 export type CallNode =
   | CallExpression
