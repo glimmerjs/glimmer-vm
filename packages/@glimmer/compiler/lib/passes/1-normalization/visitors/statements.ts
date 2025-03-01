@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { generateSyntaxError } from '@glimmer/syntax';
+import { generateSyntaxError, syntaxError } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../context';
 
@@ -61,6 +61,8 @@ function visitContent(
       return visitInvokeAngleBracketComponent(node, state);
     case 'SimpleElement':
       return visitSimpleElement(node, state);
+    case 'Error':
+      return Err(syntaxError(node.highlight, { error: node.message }));
     default:
       exhausted(node);
   }
@@ -172,7 +174,7 @@ function visitStaticAppend(append: ASTv2.AppendStaticContent): mir.AppendStaticC
 function visitAppendInvokable(
   append: ASTv2.AppendResolvedInvokable | ASTv2.AppendInvokable,
   state: NormalizationState
-): Result<mir.AppendInvokableCautiously | mir.AppendTrustingInvokable> {
+): Result<mir.Content> {
   if (append.type === 'AppendInvokable') {
     return Result.all(visitExpr(append.callee, state), visitCurlyArgs(append.args, state)).mapOk(
       ([callee, args]) => {

@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { CURRIED_COMPONENT } from '@glimmer/constants';
-import { generateSyntaxError } from '@glimmer/syntax';
+import { generateSyntaxError, highlightedError } from '@glimmer/syntax';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
@@ -95,32 +95,37 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       if (!args.named.isEmpty()) {
         return Err(
-          generateSyntaxError(
-            `{{#if}} cannot receive named parameters, received ${args.named.entries
-              .map((e) => `\`${e.name.chars}\``)
-              .join(', ')}`,
+          highlightedError(
             {
+              full: node.loc,
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               primary: args.named.entries[0]!.name.loc.highlight('invalid'),
               expanded: args.named.loc,
             },
-            { full: node.loc }
+            {
+              error: `{{#if}} cannot receive named parameters, received ${args.named.entries
+                .map((e) => `\`${e.name.chars}\``)
+                .join(', ')}`,
+            }
           )
         );
       }
 
-      const [first, second, ...rest] = args.positional.exprs;
+      const [, second, ...rest] = args.positional.exprs;
 
       if (second) {
         return Err(
-          generateSyntaxError(
-            `{{#if}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
+          highlightedError(
             {
+              full: node.loc,
               primary: second.loc
                 .withEnd(args.positional.loc.getEnd())
                 .highlight(rest.length === 0 ? 'extra argument' : 'extra arguments'),
               expanded: args.positional.loc.highlight('positional arguments'),
             },
-            { full: node.loc }
+            {
+              error: `{{#if}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
+            }
           )
         );
       }

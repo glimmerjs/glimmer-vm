@@ -4,6 +4,7 @@ import { localAssert } from '@glimmer/debug-util';
 import type * as ASTv1 from './api';
 
 import { SourceSpan } from '../source/span';
+import * as Validation from '../validation-context/validation-context';
 import { buildLegacyLiteral, buildLegacyMustache, buildLegacyPath } from './legacy-interop';
 
 const DEFAULT_STRIP = {
@@ -22,6 +23,17 @@ class Builders {
     return {
       line,
       column,
+    };
+  }
+
+  error(message: string, options: Validation.IntoHighlight): ASTv1.ErrorNode {
+    const highlight = Validation.Highlight.from(options);
+
+    return {
+      type: 'Error',
+      loc: highlight.selection.loc,
+      message,
+      highlight,
     };
   }
 
@@ -106,7 +118,7 @@ class Builders {
     inverseStrip = DEFAULT_STRIP,
     closeStrip = DEFAULT_STRIP,
   }: {
-    path: ASTv1.PathExpression;
+    path: ASTv1.ParseResult<ASTv1.PathExpression>;
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     defaultBlock: ASTv1.Block;
@@ -182,7 +194,7 @@ class Builders {
     selfClosing: boolean;
     attributes: ASTv1.AttrNode[];
     modifiers: ASTv1.ElementModifierStatement[];
-    params: ASTv1.VarHead[];
+    params: { names: ASTv1.VarHead[]; error: Optional<ASTv1.ErrorNode> };
     children: ASTv1.Statement[];
     comments: ASTv1.MustacheCommentStatement[];
     openTag: SourceSpan;
@@ -196,7 +208,7 @@ class Builders {
       path,
       attributes,
       modifiers,
-      params,
+      params: params.error ? params.error : params.names,
       comments,
       children,
       openTag,
@@ -208,13 +220,18 @@ class Builders {
       set tag(name: string) {
         this.path.original = name;
       },
-      get blockParams() {
-        return this.params.map((p) => p.name);
+      get blockParams(): string[] | ASTv1.ErrorNode {
+        return params.error ? params.error : params.names.map((p) => p.name);
       },
-      set blockParams(params: string[]) {
-        this.params = params.map((name) => {
-          return b.var({ name, loc: SourceSpan.synthetic(name) });
-        });
+      set blockParams(paramList: string[] | ASTv1.ErrorNode) {
+        params = {
+          names: Array.isArray(paramList)
+            ? paramList.map((name) => {
+                return b.var({ name, loc: SourceSpan.synthetic(name) });
+              })
+            : [],
+          error: Array.isArray(paramList) ? undefined : paramList,
+        };
       },
       get selfClosing() {
         return _selfClosing;
@@ -237,7 +254,7 @@ class Builders {
     hash,
     loc,
   }: {
-    path: ASTv1.PathExpression | ASTv1.SubExpression;
+    path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     loc: SourceSpan;
@@ -282,7 +299,7 @@ class Builders {
     hash,
     loc,
   }: {
-    path: ASTv1.PathExpression | ASTv1.SubExpression;
+    path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     loc: SourceSpan;

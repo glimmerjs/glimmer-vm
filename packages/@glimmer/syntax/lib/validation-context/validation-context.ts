@@ -59,33 +59,46 @@ export interface AnyValidationContext {
 export interface ReportableContext {
   readonly error: string;
   readonly notes: string[];
-  highlights(): HighlightedCode;
+  highlights(): Highlight;
 }
 
 export type IntoHighlightedSpan = SourceSpan | { loc: HasSourceSpan; label?: Optional<string> };
-export type IntoHighlight =
-  | {
-      full: HasSourceSpan;
-      primary: IntoHighlightedSpan;
-      expanded?: Optional<IntoHighlightedSpan>;
-    }
-  | IntoHighlightedSpan;
+export type IntoHighlightInfo = {
+  full?: HasSourceSpan;
+  primary: IntoHighlightedSpan;
+  expanded?: Optional<IntoHighlightedSpan>;
+};
+export type IntoHighlight = IntoHighlightedSpan | IntoHighlightInfo;
 
 export class Highlight {
   static from(from: IntoHighlight): Highlight {
     if ('primary' in from) {
-      const primary = HighlightedSpan.from(from.primary);
-      const expanded = from.expanded ? HighlightedSpan.from(from.expanded) : undefined;
-
-      return new Highlight(
-        loc(from.full),
-        primary,
-        expanded && contains(expanded.loc, primary.loc) ? expanded : undefined
-      );
+      return Highlight.fromInfo(from);
     } else {
-      const span = HighlightedSpan.from(from);
-      return new Highlight(span.loc, span);
+      return Highlight.fromSpan(from);
     }
+  }
+
+  static fromSpan(
+    from: IntoHighlightedSpan,
+    options?: { full?: Optional<HasSourceSpan> }
+  ): Highlight {
+    const span = HighlightedSpan.from(from);
+    return new Highlight(options?.full ? loc(options.full) : span.loc, span);
+  }
+
+  static fromInfo(from: IntoHighlightInfo): Highlight {
+    const primary = HighlightedSpan.from(from.primary);
+    const expanded = from.expanded ? HighlightedSpan.from(from.expanded) : undefined;
+    const selection = expanded ?? primary;
+
+    return new Highlight(
+      from.full
+        ? loc(from.full)
+        : (selection.loc.lastLine.intersect(selection.loc) ?? selection.loc),
+      primary,
+      expanded && contains(expanded.loc, primary.loc) ? expanded : undefined
+    );
   }
 
   readonly full: SourceSpan;
@@ -100,6 +113,10 @@ export class Highlight {
     this.full = full;
     this.primary = HighlightedSpan.from(primary);
     this.expanded = expanded ? HighlightedSpan.from(expanded) : undefined;
+  }
+
+  get selection() {
+    return this.expanded ?? this.primary;
   }
 
   get prefix(): Optional<SourceSpan> {
@@ -142,6 +159,18 @@ export class HighlightedSpan {
     this.label = label;
   }
 
+  withPrimary(span: IntoHighlightedSpan, options?: { full: HasSourceSpan }) {
+    const primary = HighlightedSpan.from(span);
+
+    localAssert(this.loc.contains(primary.loc), `The primary highlight must be within the span`);
+
+    return Highlight.fromInfo({ ...options, primary, expanded: this });
+  }
+
+  asPrimary(options?: { full: HasSourceSpan }) {
+    return Highlight.fromInfo({ ...options, primary: this });
+  }
+
   get size() {
     const size = this.loc.endPosition.column - this.loc.startPosition.column;
     localAssert(size > 0, `The size of a highlight for an error must be greater than 0`);
@@ -154,21 +183,6 @@ export class HighlightedSpan {
 
   get end() {
     return this.loc.endPosition.column;
-  }
-}
-
-export class HighlightedCode {
-  static from(span: Optional<HasSourceSpan>, into: IntoHighlight): HighlightedCode {
-    const highlight = Highlight.from(into);
-    return new HighlightedCode(span ? loc(span) : highlight.full, Highlight.from(highlight));
-  }
-
-  readonly full: SourceSpan;
-  readonly highlight: Highlight;
-
-  constructor(full: SourceSpan, highlight: Highlight) {
-    this.full = full;
-    this.highlight = highlight;
   }
 }
 
@@ -187,7 +201,7 @@ export class VariableReferenceContext implements ReportableContext {
     this.#span = span;
   }
 
-  highlights(): HighlightedCode {
+  highlights(): Highlight {
     const hasExpanded = !this.#span.isEqual(this.#parent.span);
     const primary = {
       loc: this.#span,
@@ -198,7 +212,7 @@ export class VariableReferenceContext implements ReportableContext {
       ? { loc: this.#parent.span, label: this.what.describe }
       : undefined;
 
-    return HighlightedCode.from(this.context, { full: this.context, primary, expanded });
+    return Highlight.fromInfo({ full: this.context, primary, expanded });
   }
 
   get what(): FullWhat {
@@ -419,7 +433,7 @@ export class CustomErrorContext implements ReportableContext {
       message,
       problem,
       loc(options.content),
-      Highlight.from(highlight),
+      Highlight.fromInfo(highlight),
       options.header && loc(options.header)
     );
   }
@@ -453,8 +467,8 @@ export class CustomErrorContext implements ReportableContext {
     return this.#highlight;
   }
 
-  highlights(): HighlightedCode {
-    return HighlightedCode.from(this.context, this.#highlight);
+  highlights(): Highlight {
+    return this.#highlight;
   }
 
   get notes() {
