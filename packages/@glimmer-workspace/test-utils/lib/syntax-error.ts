@@ -7,74 +7,6 @@ interface ContentMatch {
   label?: string;
 }
 
-export class CreateSnippet {
-  #code = '';
-  #fullStart: number | undefined;
-  #fullEnd: number | undefined;
-  #prefix: ContentMatch | undefined;
-  #main: ContentMatch | undefined;
-  #suffix: ContentMatch | undefined;
-
-  add(string: string) {
-    this.#code += string;
-    return this;
-  }
-
-  start() {
-    this.#fullStart = this.#code.length;
-    return this;
-  }
-
-  end() {
-    this.#fullEnd = this.#code.length;
-    return this;
-  }
-
-  #add(string: string) {
-    const span = { start: this.#code.length, end: this.#code.length + string.length };
-    this.#code += string;
-    return span;
-  }
-
-  prefix(string: string) {
-    this.#prefix = this.#add(string);
-    return this;
-  }
-
-  main(string: string) {
-    this.#main = this.#add(string);
-    return this;
-  }
-
-  suffix(string: string) {
-    this.#suffix = this.#add(string);
-    return this;
-  }
-
-  done(
-    moduleName: string,
-    labels?: { primary?: string; extended?: string }
-  ): Validation.HighlightedCode {
-    localAssert(this.#main, 'main must be set');
-
-    const source = new src.Source(this.#code, moduleName);
-    const full = source.offsetSpan({
-      start: this.#fullStart ?? 0,
-      end: this.#fullEnd ?? this.#code.length,
-    });
-    const main = source.offsetSpan(this.#main);
-    const expanded = expandedSpan(source, main, { pre: this.#prefix, post: this.#suffix });
-    return Validation.HighlightedCode.from(
-      { loc: full },
-      {
-        full: (expanded ?? main).fullLines(),
-        primary: { loc: main, label: labels?.primary },
-        expanded: expanded ? { loc: expanded, label: labels?.extended } : undefined,
-      }
-    );
-  }
-}
-
 /**
  * Highlighted code is fundamentally:
  *
@@ -150,10 +82,7 @@ export class CreateSnippet {
  * <[%pre%]<[/pre%][%main%]p[/main%][%post%]>[/%post%]hello</p>
  * ```
  */
-export function highlightCode(
-  code: string,
-  options: SyntaxErrorOptions
-): Validation.HighlightedCode {
+export function highlightCode(code: string, options: SyntaxErrorOptions): Validation.Highlight {
   const spans: {
     pre?: ContentMatch;
     post?: ContentMatch;
@@ -220,16 +149,11 @@ export function highlightCode(
   const source = new src.Source(processedCode, options.moduleName);
   const primary = source.offsetSpan(spans.main);
   const expanded = expandedSpan(source, primary, spans);
-  const highlighted = Validation.HighlightedCode.from(
-    { loc: source.offsetSpan({ start: fullStart, end: fullEnd }) },
-    {
-      full: (expanded ?? primary).fullLines(),
-      primary: { loc: primary, label: options.primary },
-      expanded: expanded ? { loc: expanded, label: options.extended } : undefined,
-    }
-  );
-
-  return highlighted;
+  return Validation.Highlight.fromInfo({
+    full: (expanded ?? primary).fullLines(),
+    primary: { loc: primary, label: options.primary },
+    expanded: expanded ? { loc: expanded, label: options.extended } : undefined,
+  });
 }
 
 function expandedSpan(

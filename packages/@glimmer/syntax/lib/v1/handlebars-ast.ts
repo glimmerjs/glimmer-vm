@@ -14,7 +14,10 @@ export interface CommonNode {
 
 export interface NodeMap {
   Program: { input: Program; output: ASTv1.Block };
-  MustacheStatement: { input: MustacheStatement; output: ASTv1.MustacheStatement | void };
+  MustacheStatement: {
+    input: MustacheStatement;
+    output: ASTv1.ParseResult<ASTv1.MustacheStatement> | void;
+  };
   Decorator: { input: Decorator; output: never };
   BlockStatement: { input: BlockStatement; output: ASTv1.BlockStatement | void };
   DecoratorBlock: { input: DecoratorBlock; output: never };
@@ -23,7 +26,7 @@ export interface NodeMap {
   ContentStatement: { input: ContentStatement; output: void };
   CommentStatement: { input: CommentStatement; output: ASTv1.MustacheCommentStatement | null };
   SubExpression: { input: SubExpression; output: ASTv1.SubExpression };
-  PathExpression: { input: PathExpression; output: ASTv1.PathExpression };
+  PathExpression: { input: PathExpression; output: ASTv1.ParseResult<ASTv1.PathExpression> };
   StringLiteral: { input: StringLiteral; output: ASTv1.StringLiteral };
   BooleanLiteral: { input: BooleanLiteral; output: ASTv1.BooleanLiteral };
   NumberLiteral: { input: NumberLiteral; output: ASTv1.NumberLiteral };

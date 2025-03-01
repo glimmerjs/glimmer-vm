@@ -3,7 +3,6 @@ import {
   jitSuite,
   preprocess,
   RenderTest,
-  syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
 
@@ -257,16 +256,6 @@ class CompileErrorTests extends RenderTest {
           |   \======== invalid mustache
       `
     );
-
-    function expectedError(code: string, line: number, column: number) {
-      return syntaxErrorFor(
-        `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`,
-        code,
-        'test-module',
-        line,
-        column
-      );
-    }
   }
 }
 

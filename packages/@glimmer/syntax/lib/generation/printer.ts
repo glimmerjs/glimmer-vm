@@ -261,7 +261,7 @@ export default class Printer {
           break;
       }
     }
-    if (el.blockParams.length) {
+    if (Array.isArray(el.blockParams) && el.blockParams.length) {
       this.BlockParams(el.blockParams);
     }
     if (el.selfClosing) {

@@ -1,3 +1,4 @@
+import type { Nullable } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';
@@ -124,10 +125,6 @@ export class SourceSpan implements SourceLocation {
     assertNever(serialized);
   }
 
-  static forLineRange(source: Source, start: number, end: number): SourceSpan {
-    return source.lineSpan(start).extend(source.lineSpan(end));
-  }
-
   static forHbsLoc(source: Source, loc: SourceLocation): SourceSpan {
     const start = new HbsPosition(source, loc.start);
     const end = new HbsPosition(source, loc.end);
@@ -155,11 +152,14 @@ export class SourceSpan implements SourceLocation {
     this.isInvisible = isInvisible(data.kind);
   }
 
+  /**
+   * Returns a span that represents the complete starting and ending lines of the selected span.
+   */
   fullLines(): SourceSpan {
     const start = this.loc.start;
     const end = this.loc.end;
-
-    return SourceSpan.forLineRange(this.data.source, start.line, end.line);
+    const source = this.data.source;
+    return source.lineSpan(start.line).extend(source.lineSpan(end.line));
   }
 
   getSource(): Source {
@@ -172,6 +172,10 @@ export class SourceSpan implements SourceLocation {
 
   getEnd(): SourceOffset {
     return this.data.getEnd().wrap();
+  }
+
+  get offsetString() {
+    return `${this.getStart().offset}..${this.getEnd().offset}`;
   }
 
   get loc(): SourceLocation {
@@ -328,6 +332,54 @@ export class SourceSpan implements SourceLocation {
     return this.getStart().offset === this.getEnd().offset;
   }
 
+  /**
+   * Returns a span that represents the intersection of this span and the other span.
+   * If there is no intersection, returns null.
+   *
+   * For example, for this source:
+   *
+   * ```
+   * 1 | Hello, world <div
+   * 2 |   class="foo"></div>
+   * ```
+   *
+   * If the first span is the opening `<div>` tag:
+   *
+   * ```
+   * 1 | Hello, world <div
+   *   |              ====
+   * 2 |   class="foo"></div>
+   *   |===============
+   * ```
+   *
+   * And the second span is the entire line 2:
+   *
+   * ```
+   * 1 | Hello, world <div
+   * 2 |   class="foo"></div>
+   *   | ====================
+   * ```
+   *
+   * Then the intersection is:
+   *
+   * ```
+   * 1 |   class="foo"></div>
+   *   | ==============
+   * 2 | </div>
+   * 3 |
+   * ```
+   */
+  intersect(other: SourceSpan): Nullable<SourceSpan> {
+    const start = this.getStart().max(other.getStart());
+    const end = this.getEnd().min(other.getEnd());
+
+    return start.lt(end) ? start.until(end) : null;
+  }
+
+  contains(other: SourceSpan): boolean {
+    return this.getStart().lte(other.getStart()) && this.getEnd().gte(other.getEnd());
+  }
+
   get firstLine(): SourceSpan {
     return this.getSource().lineSpan(this.startPosition.line);
   }
@@ -348,7 +400,7 @@ export class SourceSpan implements SourceLocation {
     return (this.getEnd().offset ?? 0) - (this.getStart().offset ?? 0);
   }
 
-  highlight(label: string) {
+  highlight(label?: string) {
     return this.getSource().highlightFor(this, label);
   }
 }

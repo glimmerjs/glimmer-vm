@@ -319,5 +319,6 @@ export type ExpressionValueNode =
   | VariableReference
   | KeywordExpression
   | CallExpression
-  | ResolvedCallExpression;
+  | ResolvedCallExpression
+  | ASTv1.ErrorNode;
 export type AppendValueNode = ASTv2.DynamicCallee | KeywordExpression | ASTv2.LiteralExpression;

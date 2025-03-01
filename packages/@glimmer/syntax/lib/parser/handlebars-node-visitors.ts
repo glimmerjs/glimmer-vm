@@ -19,8 +19,11 @@ const BEFORE_ATTRIBUTE_NAME = 'beforeAttributeName' as TokenizerState.beforeAttr
 const ATTRIBUTE_VALUE_UNQUOTED = 'attributeValueUnquoted' as TokenizerState.attributeValueUnquoted;
 
 export interface PendingError {
-  mustache(span: SourceSpan): never;
-  eof(offset: SourceOffset): never;
+  mustache(mustache: SourceSpan, nextChar: string): ASTv1.ErrorNode;
+  eof(offset: SourceOffset, next: string): ASTv1.ErrorNode;
+  content?: {
+    mustache: src.SourceSpan;
+  };
 }
 
 export abstract class HandlebarsNodeVisitors extends Parser {
@@ -31,11 +34,32 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   // This allows the HTML tokenization to stash an error message and the next
   // mustache visitor will attach the message to the appropriate span and throw
   // the error.
-  protected pendingError: Nullable<PendingError> = null;
+  protected pending: Nullable<PendingError> = null;
 
   abstract override appendToCommentData(s: string): void;
   abstract override beginAttributeValue(quoted: boolean): void;
   abstract override finishAttributeValue(): void;
+
+  checkPending(
+    ...args:
+      | ['mustache', mustache: SourceSpan, next: SourceOffset, nextChar: string]
+      | ['eof', SourceOffset]
+  ) {
+    if (!this.pending) {
+      return;
+    }
+
+    if (args[0] === 'mustache') {
+      const [, span, nextOffset, nextChar] = args;
+      const result = this.pending.mustache(span, nextOffset, nextChar);
+      this.pending = null;
+      return result;
+    } else {
+      const result = this.pending.eof(args[1], this.tokenizer.peek());
+      this.pending = null;
+      return result;
+    }
+  }
 
   parse(program: HBS.UpstreamProgram, blockParams: string[]): ASTv1.Template {
     localAssert(program.loc, '[BUG] Program in parser unexpectedly did not have loc');
@@ -52,7 +76,11 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // state when we are "done" parsing. For example, right now, `<foo` parses
     // into `Template { body: [] }` which is obviously incorrect
 
-    this.pendingError?.eof(template.loc.getEnd());
+    const error = this.checkPending('eof', template.loc.getEnd());
+
+    if (error) {
+      node.error = error;
+    }
 
     return template;
   }
@@ -223,8 +251,12 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     appendChild(parentProgram, node);
   }
 
-  MustacheStatement(rawMustache: HBS.MustacheStatement): ASTv1.MustacheStatement | void {
-    this.pendingError?.mustache(this.source.spanFor(rawMustache.loc));
+  MustacheStatement(
+    rawMustache: HBS.MustacheStatement
+  ): ASTv1.ParseResult<ASTv1.MustacheStatement> | void {
+    if (this.pending) {
+      this.pending.content = { mustache: this.source.spanFor(rawMustache.loc) };
+    }
 
     const { tokenizer } = this;
 
@@ -339,7 +371,18 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   ContentStatement(content: HBS.ContentStatement): void {
     updateTokenizerLocation(this.tokenizer, content);
 
-    this.tokenizer.tokenizePart(content.value);
+    if (this.pending?.content) {
+      const span = this.source.spanFor(content.loc);
+      const nextChar = content.value.slice(0, 1);
+      this.tokenizer.input += nextChar;
+      const error = this.pending.mustache(this.pending.content.mustache, nextChar);
+      this.currentStartTag.params.error = error;
+      this.pending = null;
+      this.tokenizer.tokenizePart(content.value.slice(1));
+    } else {
+      this.tokenizer.tokenizePart(content.value);
+    }
+
     this.tokenizer.flushData();
   }
 
@@ -367,7 +410,6 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
       default: {
         const comment = this.source.spanFor(rawComment.loc);
-        debugger;
         throw generateSyntaxError(
           `Using a Handlebars comment when in the \`${tokenizer['state']}\` state is not supported`,
           this.source.highlightFor(rawComment, 'invalid comment'),
@@ -414,33 +456,38 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return b.sexpr({ path, params, hash, loc: this.source.spanFor(sexpr.loc) });
   }
 
-  PathExpression(path: HBS.PathExpression): ASTv1.PathExpression {
+  PathExpression(path: HBS.PathExpression): HBS.Output<'PathExpression'> {
     const { original } = path;
+    const { source } = this;
     let parts: string[];
 
     if (original.indexOf('/') !== -1) {
       if (original.slice(0, 2) === './') {
-        throw generateSyntaxError(`Using "./" is not supported in Glimmer and unnecessary`, {
-          primary: {
-            loc: this.source.spanFor(path.loc).sliceStartChars({ chars: 2 }),
-            label: 'invalid `.` syntax',
-          },
-          expanded: this.source.highlightFor(path, 'invalid path'),
-        });
+        return b.error(
+          `Using "./" is not supported in Glimmer and unnecessary`,
+          this.source
+            .highlightFor(path)
+            .withPrimary(
+              source
+                .spanFor(path.loc)
+                .sliceStartChars({ chars: 2 })
+                .highlight('invalid `./` syntax')
+            )
+        );
       }
       if (original.slice(0, 3) === '../') {
-        throw generateSyntaxError(`Changing context using "../" is not supported in Glimmer`, {
-          primary: {
-            loc: this.source.spanFor(path.loc).sliceStartChars({ chars: 3 }),
-            label: 'invalid `..` syntax',
-          },
-          expanded: this.source.highlightFor(path, 'invalid path'),
+        return b.error(`Changing context using \`../\` is not supported in Glimmer`, {
+          primary: this.source
+            .spanFor(path.loc)
+            .sliceStartChars({ chars: 2 })
+            .highlight('invalid `..` syntax'),
+          expanded: this.source.highlightFor(path),
         });
       }
       if (original.indexOf('.') !== -1) {
-        throw generateSyntaxError(
-          `Mixing '.' and '/' in paths is not supported in Glimmer; use only '.' to separate property paths`,
-          this.source.highlightFor(path, 'invalid mixed syntax')
+        return b.error(
+          'Mixing `.` and `/` in paths is not supported in Glimmer; use only `.` to separate property paths',
+          { primary: this.source.highlightFor(path, 'invalid mixed syntax') }
         );
       }
       parts = [path.parts.join('/')];
@@ -631,11 +678,11 @@ function acceptCallNodes(
     hash?: HBS.Hash;
   }
 ): {
-  path: ASTv1.PathExpression | ASTv1.SubExpression;
+  path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
   params: ASTv1.Expression[];
   hash: ASTv1.Hash;
 } {
-  let path: ASTv1.PathExpression | ASTv1.SubExpression;
+  let path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
 
   switch (node.path.type) {
     case 'PathExpression':
