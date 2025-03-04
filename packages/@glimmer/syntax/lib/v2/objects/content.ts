@@ -1,3 +1,5 @@
+import type { Optional } from '@glimmer/interfaces';
+
 import type { SourceSlice } from '../../source/slice';
 import type { SourceSpan } from '../../source/span';
 import type { SymbolTable } from '../../symbol-table';
@@ -50,7 +52,7 @@ export class AppendStaticContent extends node('AppendStaticContent').fields<{
 }>() {}
 
 export class AppendResolvedInvokable extends node('AppendResolvedInvokable').fields<{
-  resolved: ResolvedName;
+  resolved: ResolvedName | UnresolvedBinding;
   trusting: boolean;
   args: CurlyArgs;
 }>() {
@@ -66,7 +68,7 @@ export class AppendInvokable extends node('AppendInvokable').fields<{
 }
 
 export class AppendResolvedContent extends node('AppendResolvedContent').fields<{
-  resolved: ResolvedName;
+  resolved: ResolvedName | UnresolvedBinding;
   trusting: boolean;
 }>() {
   readonly isResolved = true;
@@ -80,14 +82,27 @@ export class AppendContent extends node('AppendContent').fields<{
   readonly isResolved = false;
 }
 
-export type BlockCallee = KeywordExpression | PathExpression | VariableReference | ASTv1.ErrorNode;
+export type BlockCallee =
+  | KeywordExpression
+  | PathExpression
+  | VariableReference
+  | ASTv1.ErrorNode
+  | UnresolvedBinding;
 
 export class InvokeBlock extends node('InvokeBlock').fields<{
   callee: BlockCallee;
   args: CurlyArgs;
   blocks: NamedBlocks;
 }>() {
-  readonly isResolved = false;
+  get isResolved(): boolean {
+    return this.callee.type === 'UnresolvedBinding';
+  }
+
+  get resolved(): Optional<ResolvedName | UnresolvedBinding> {
+    if (this.callee.type === 'UnresolvedBinding') {
+      return this.callee;
+    }
+  }
 }
 
 export class InvokeResolvedBlock extends node('InvokeResolvedBlock').fields<{

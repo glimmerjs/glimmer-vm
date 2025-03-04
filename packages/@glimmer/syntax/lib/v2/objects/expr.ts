@@ -268,7 +268,7 @@ export function callSyntaxFor(
 }
 
 export class ResolvedCallExpression extends node('ResolvedCall').fields<{
-  resolved: ASTv2.ResolvedName;
+  resolved: ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
   args: ASTv2.CurlyArgs;
 }>() {
   readonly isResolved = true;
@@ -290,13 +290,13 @@ export class CurlyAttrValue extends node('CurlyAttrValue').fields<{
 }>() {}
 
 export class CurlyResolvedAttrValue extends node('CurlyResolvedAttrValue').fields<{
-  resolved: ASTv2.ResolvedName;
+  resolved: ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
 }>() {
   readonly isResolved = true;
 }
 
 export class CurlyInvokeResolvedAttr extends node('CurlyInvokeResolvedAttr').fields<{
-  resolved: ASTv2.ResolvedName;
+  resolved: ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
   args: ASTv2.CurlyArgs;
 }>() {
   readonly isResolved = true;

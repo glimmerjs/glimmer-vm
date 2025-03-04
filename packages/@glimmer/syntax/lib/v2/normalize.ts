@@ -155,7 +155,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
       }
     | {
         type: 'resolved';
-        callee: ASTv2.ResolvedName;
+        callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
         loc: SourceSpan;
       }
     | {
@@ -187,7 +187,9 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
         const loc = this.loc(node.head.loc);
         return {
           type: 'resolved',
-          callee: new ASTv2.ResolvedName({ name: node.head.name, symbol, loc }),
+          callee: this.strict
+            ? new ASTv2.UnresolvedBinding({ name: node.head.name, loc })
+            : new ASTv2.ResolvedName({ name: node.head.name, symbol, loc }),
           loc: this.loc(node.loc),
         };
       }
@@ -210,11 +212,11 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
   handleCallee(
     node: ASTv1.ParseResult<ASTv1.PathExpression>,
     expr: ExpressionNormalizer
-  ): ASTv2.ResolvedName | ASTv2.KeywordExpression | ASTv2.PathExpression;
+  ): ASTv2.ResolvedName | ASTv2.UnresolvedBinding | ASTv2.KeywordExpression | ASTv2.PathExpression;
   handleCallee(
     node: ASTv1.Expression,
     expr: ExpressionNormalizer
-  ): ASTv2.ResolvedName | ASTv2.KeywordExpression | ASTv2.DynamicCallee;
+  ): ASTv2.ResolvedName | ASTv2.UnresolvedBinding | ASTv2.KeywordExpression | ASTv2.DynamicCallee;
   handleCallee(
     node: ASTv1.Expression,
     expr: ExpressionNormalizer
@@ -222,6 +224,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     | ASTv2.KeywordExpression
     | ASTv2.DynamicCallee
     | ASTv2.ResolvedName
+    | ASTv2.UnresolvedBinding
     | ASTv2.PathExpression
     | ASTv1.ErrorNode {
     return this.getCallee(node, expr).callee;
@@ -732,7 +735,7 @@ class ElementNormalizer {
     const args =
       this.expr.callArgs(params, hash) ?? ASTv2.EmptyCurlyArgs(callee.loc.collapse('end'));
 
-    if (callee.type === 'ResolvedName') {
+    if (callee.type === 'ResolvedName' || callee.type === 'UnresolvedBinding') {
       return new ASTv2.ResolvedElementModifier({
         resolved: callee,
         args,
@@ -778,7 +781,7 @@ class ElementNormalizer {
 
     const callee = this.ctx.handleCallee(path, this.expr);
 
-    if (callee.type === 'ResolvedName') {
+    if (callee.type === 'ResolvedName' || callee.type === 'UnresolvedBinding') {
       if (args) {
         return new ASTv2.CurlyInvokeResolvedAttr({
           resolved: callee,
@@ -791,19 +794,19 @@ class ElementNormalizer {
           loc: mustache.loc,
         });
       }
+    }
+
+    if (args) {
+      return new ASTv2.CurlyInvokeAttr({
+        callee,
+        args,
+        loc: this.ctx.loc(mustache.loc),
+      });
     } else {
-      if (args) {
-        return new ASTv2.CurlyInvokeAttr({
-          callee,
-          args,
-          loc: this.ctx.loc(mustache.loc),
-        });
-      } else {
-        return new ASTv2.CurlyAttrValue({
-          value: this.expr.normalizeExpr(path),
-          loc: mustache.loc,
-        });
-      }
+      return new ASTv2.CurlyAttrValue({
+        value: this.expr.normalizeExpr(path),
+        loc: mustache.loc,
+      });
     }
   }
 
@@ -860,56 +863,56 @@ class ElementNormalizer {
     );
   }
 
-  // An arg curly <Foo @bar={{...}} /> is the same as an attribute curly for
-  // our purposes, except that in loose mode <Foo @bar={{baz}} /> is an error:
-  private checkArgCall(arg: ASTv1.AttrNode): void {
-    let { value } = arg;
-
-    if (value.type !== 'MustacheStatement') {
-      return;
-    }
-
-    if (value.params.length !== 0 || value.hash.pairs.length !== 0) {
-      return;
-    }
-
-    let { path } = value;
-
-    if (path.type !== 'PathExpression') {
-      return;
-    }
-
-    if (path.tail.length > 0) {
-      return;
-    }
-
-    let resolution = this.ctx.resolutionFor(path, () => {
-      // We deliberately don't want this to resolve anything. The purpose of
-      // calling `resolutionFor` here is to check for strict mode, in-scope
-      // local variables, etc.
-      return null;
-    });
-
-    if (resolution.result === 'error' && resolution.path !== 'has-block') {
-      throw generateSyntaxError(
-        `You attempted to pass a path as argument (\`${arg.name}={{${resolution.path}}}\`) but ${resolution.head} was not in scope. Try:\n` +
-          `* \`${arg.name}={{this.${resolution.path}}}\` if this is meant to be a property lookup, or\n` +
-          `* \`${arg.name}={{(${resolution.path})}}\` if this is meant to invoke the resolved helper, or\n` +
-          `* \`${arg.name}={{helper "${resolution.path}"}}\` if this is meant to pass the resolved helper by value`,
-        arg.loc
-      );
-    }
-  }
-
   private arg(arg: ASTv1.AttrNode): ASTv2.ComponentArg {
     localAssert(arg.name[0] === '@', 'An arg name must start with `@`');
-    this.checkArgCall(arg);
 
     let offsets = this.ctx.loc(arg.loc);
     let nameSlice = offsets.sliceStartChars({ chars: arg.name.length }).toSlice(arg.name);
-    let value = this.attrValue(arg.value);
 
-    return this.ctx.builder.arg({ name: nameSlice, value: value.expr }, offsets);
+    const argValue = arg.value;
+
+    // Special-case: if the arg value is a simple mustache (like `@arg={{foo}}`), then we make it an
+    // unconditional unresolved binding, even in resolution mode.
+    //
+    // See
+    // https://rfcs.emberjs.com/id/0432-contextual-helpers/#:~:text=Another%20difference%20is%20how%20global%20helpers%20can%20be%20invoked%20without%20arguments
+    // for more information.
+    if (
+      argValue.type === 'MustacheStatement' &&
+      this.ctx.exprIsResolveCandidate(argValue.path) &&
+      argValue.params.length === 0 &&
+      argValue.hash.pairs.length === 0
+    ) {
+      const head = argValue.path.head;
+
+      if (head.name !== 'has-block') {
+        const binding = new ASTv2.UnresolvedBinding({
+          name: head.name,
+          loc: head.loc,
+          notes: [
+            [
+              `Try:\n`,
+              // @todo should we leave this suggestion, given that this-property-fallback is long
+              // deprecated?
+              `* ${arg.name}={{this.${head.name}}} if this was meant to be a property lookup, or`,
+              `* ${arg.name}={{(${head.name})}} if this was meant to invoke the resolved helper, or`,
+              `* ${arg.name}={{helper "${head.name}"}} if this was meant to pass the resolved helper by value`,
+            ].join('\n'),
+          ],
+        });
+
+        debugger;
+        return this.ctx.builder.arg(
+          {
+            name: nameSlice,
+            value: new ASTv2.CurlyResolvedAttrValue({ resolved: binding, loc: argValue.loc }),
+          },
+          offsets
+        );
+      }
+    }
+
+    return this.ctx.builder.arg({ name: nameSlice, value: this.attrValue(argValue).expr }, offsets);
   }
 
   /**

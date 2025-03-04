@@ -206,12 +206,12 @@ export class AppendStaticContent extends node('AppendStaticContent').fields<{
 }>() {}
 
 export class AppendInvokableCautiously extends node('AppendInvokableCautiously').fields<{
-  callee: ASTv2.ResolvedName | CalleeExpression;
+  callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding | CalleeExpression;
   args: Args;
 }>() {}
 
 export class AppendTrustingInvokable extends node('AppendTrustingInvokable').fields<{
-  callee: ASTv2.ResolvedName | CalleeExpression;
+  callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding | CalleeExpression;
   args: Args;
 }>() {}
 
@@ -297,7 +297,7 @@ export class CallExpression extends node('CallExpression').fields<{
  * then resolved as a helper using the runtime resolver.
  */
 export class ResolvedCallExpression extends node('ResolvedCallExpression').fields<{
-  callee: ASTv2.ResolvedName;
+  callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
   args: Args;
 }>() {}
 
@@ -444,7 +444,7 @@ export class CurlyInvokeAttr extends node('mir.CurlyInvokeAttr').fields<{
 }>() {}
 
 export class CurlyInvokeResolvedAttr extends node('mir.CurlyInvokeResolvedAttr').fields<{
-  resolved: ASTv2.ResolvedName;
+  resolved: ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
   args: Args;
 }>() {}
 

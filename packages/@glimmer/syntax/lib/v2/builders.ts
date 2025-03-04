@@ -265,7 +265,7 @@ export class Builder {
       symbols: SymbolTable;
       program: ASTv2.Block;
       inverse?: ASTv2.Block | null;
-      callee: ASTv2.BlockCallee | ASTv2.ResolvedName;
+      callee: ASTv2.BlockCallee | ASTv2.ResolvedName | ASTv2.UnresolvedBinding;
       args: ASTv2.CurlyArgs;
     },
     loc: SourceSpan

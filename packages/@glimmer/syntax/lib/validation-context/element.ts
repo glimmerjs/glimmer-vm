@@ -58,7 +58,7 @@ export class FullElementParameterValidationContext
   }
 
   value({ value, curly }: { value: HasSourceSpan; curly: HasSourceSpan }): ValueValidationContext {
-    return ValueValidationContext.parameter(this, loc(value), { curly: loc(curly) });
+    return ValueValidationContext.parameter(this, loc(value), { curly: loc(curly), callee: false });
   }
 
   invoke(curly: HasSourceSpan) {
@@ -68,6 +68,7 @@ export class FullElementParameterValidationContext
   callee(node: ResolvedNode): VariableReferenceContext {
     return ValueValidationContext.parameter(this, loc(node.resolved), {
       curly: loc(node),
+      callee: true,
     }).resolved(node.resolved);
   }
 }

@@ -22,7 +22,10 @@ import { AngleBracketContext, getCalleeContext, InvokeBlockValidationContext } f
 export type AnyNode = HasSourceSpan & { type: string };
 export type AppendValueNode = AnyNode & { value: AnyNode };
 export type ArgsNode = HasSourceSpan & { positional: AnyNode; named: AnyNode };
-export type NameNode = AnyNode & { name: string };
+export type NameNode = AnyNode & {
+  type: 'ResolvedName' | 'UnresolvedBinding';
+  name: string;
+};
 export type InvokeResolvedNode = AnyNode & { callee: NameNode };
 export type ResolvedNode = AnyNode & { resolved: NameNode };
 export type PathNode = AnyNode & { tail: unknown };
@@ -30,7 +33,7 @@ export type CallNode = AnyNode & { args: unknown };
 export type KeywordNode = AnyNode & { keyword: SourceSlice };
 
 export function isResolvedName(node: AnyNode): node is NameNode {
-  return node.type === 'ResolvedName';
+  return node.type === 'ResolvedName' || node.type === 'UnresolvedBinding';
 }
 
 export function hasCallee(
@@ -221,7 +224,7 @@ export class VariableReferenceContext implements ReportableContext {
 
   get error() {
     const varName = this.#parent.span.isEqual(this.#span) ? 'it' : `\`${this.#span.asString()}\``;
-    return `Attempted to ${this.what.attempted}, but ${varName} was not in scope`;
+    return resolutionError({ attemptedTo: this.what.attempted, unresolved: varName });
   }
 
   get loc() {
@@ -240,6 +243,10 @@ export class VariableReferenceContext implements ReportableContext {
     this.#notes.push(...notes);
     return this;
   }
+}
+
+export function resolutionError(options: { attemptedTo: string; unresolved?: string }) {
+  return `Attempted to ${options.attemptedTo}, but ${options.unresolved ?? 'it'} was not in scope`;
 }
 
 export type InvokeKind =
@@ -271,11 +278,13 @@ type ValueParent =
       type: 'callee';
       kind: InvokeKind;
       parent: InvokeParentContext;
+      curly?: Optional<SourceSpan>;
     }
   | {
       type: 'attr' | 'arg';
       parent: FullElementParameterValidationContext;
       curly: SourceSpan;
+      callee: boolean;
     }
   | {
       type: 'concat';
@@ -317,15 +326,33 @@ export function describeValueParent(parent: ValueParent): WhatFn {
             return { attempted: `invoke ${formatted} as a component`, describe: 'component name' };
           case 'component':
             return { attempted: `invoke ${formatted} as a component`, describe: 'component name' };
+          default:
+            return {
+              attempted: `invoke the ${formatted} keyword`,
+              describe: 'keyword',
+            };
         }
       case 'attr':
-        return {
-          attempted: `set ${formatted} as an attribute`,
-          describe: 'attribute value',
-          inline: false,
-        };
-      case 'arg':
-        return { attempted: `pass ${formatted} as an argument`, describe: 'value', inline: false };
+        if (parent.callee) {
+          return { attempted: `invoke ${formatted} as a helper`, describe: 'helper' };
+        } else {
+          return {
+            attempted: `set ${formatted} as an attribute`,
+            describe: 'attribute value',
+            inline: false,
+          };
+        }
+      case 'arg': {
+        if (parent.callee) {
+          return { attempted: `invoke ${formatted} as a helper`, describe: 'helper' };
+        } else {
+          return {
+            attempted: `pass ${formatted} as an argument`,
+            describe: 'value',
+            inline: false,
+          };
+        }
+      }
     }
   };
 }
@@ -363,9 +390,10 @@ export class ValueValidationContext {
   static callee(
     kind: InvokeKind,
     parent: InvokeParentContext,
-    value: SourceSpan
+    value: SourceSpan,
+    curly?: SourceSpan
   ): ValueValidationContext {
-    return new ValueValidationContext({ type: 'callee', kind, parent }, value);
+    return new ValueValidationContext({ type: 'callee', kind, parent, curly }, value);
   }
 
   static concat(parent: ConcatContext, value: SourceSpan, { curly }: { curly: SourceSpan }) {
@@ -375,9 +403,9 @@ export class ValueValidationContext {
   static parameter(
     parent: FullElementParameterValidationContext,
     value: SourceSpan,
-    { curly }: { curly: SourceSpan }
+    { curly, callee }: { curly: SourceSpan; callee: boolean }
   ) {
-    return new ValueValidationContext({ type: parent.type, parent, curly }, value);
+    return new ValueValidationContext({ type: parent.type, parent, curly, callee }, value);
   }
 
   readonly context: SourceSpan;
@@ -433,7 +461,7 @@ export class CustomErrorContext implements ReportableContext {
       message,
       problem,
       loc(options.content),
-      Highlight.fromInfo(highlight),
+      Highlight.from(highlight),
       options.header && loc(options.header)
     );
   }
@@ -743,7 +771,7 @@ export class PathValidationContext {
     return this.#path;
   }
 
-  head(head: NameNode): VariableReferenceContext {
+  head(head: NameNode | (AnyNode & { type: 'Keyword'; name: string })): VariableReferenceContext {
     return new VariableReferenceContext(this, head.name, loc(head));
   }
 

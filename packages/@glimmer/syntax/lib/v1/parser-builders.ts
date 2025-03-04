@@ -184,6 +184,7 @@ class Builders {
     attributes,
     modifiers,
     params,
+    error,
     comments,
     children,
     openTag,
@@ -194,7 +195,8 @@ class Builders {
     selfClosing: boolean;
     attributes: ASTv1.AttrNode[];
     modifiers: ASTv1.ElementModifierStatement[];
-    params: { names: ASTv1.VarHead[]; error: Optional<ASTv1.ErrorNode> };
+    params: ASTv1.VarHead[];
+    error: Optional<ASTv1.ErrorNode>;
     children: ASTv1.Statement[];
     comments: ASTv1.MustacheCommentStatement[];
     openTag: SourceSpan;
@@ -208,7 +210,7 @@ class Builders {
       path,
       attributes,
       modifiers,
-      params: params.error ? params.error : params.names,
+      params,
       comments,
       children,
       openTag,
@@ -221,17 +223,16 @@ class Builders {
         this.path.original = name;
       },
       get blockParams(): string[] | ASTv1.ErrorNode {
-        return params.error ? params.error : params.names.map((p) => p.name);
+        return error ?? params.map((p) => p.name);
       },
       set blockParams(paramList: string[] | ASTv1.ErrorNode) {
-        params = {
-          names: Array.isArray(paramList)
-            ? paramList.map((name) => {
-                return b.var({ name, loc: SourceSpan.synthetic(name) });
-              })
-            : [],
-          error: Array.isArray(paramList) ? undefined : paramList,
-        };
+        if (Array.isArray(paramList)) {
+          error = undefined;
+          params = paramList.map((name) => b.var({ name, loc: SourceSpan.synthetic(name) }));
+        } else {
+          error = paramList;
+          params = [];
+        }
       },
       get selfClosing() {
         return _selfClosing;
