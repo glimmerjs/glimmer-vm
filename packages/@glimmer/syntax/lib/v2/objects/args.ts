@@ -15,6 +15,7 @@ export class ResolvedName extends node('ResolvedName').fields<{
 
 export class UnresolvedBinding extends node('UnresolvedBinding').fields<{
   name: string;
+  notes?: string[];
 }>() {}
 
 /**

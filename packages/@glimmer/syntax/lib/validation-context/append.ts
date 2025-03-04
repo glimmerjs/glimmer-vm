@@ -12,11 +12,7 @@ import type {
 import { loc } from '../source/span-list';
 import { ArgsContext } from './args';
 import { getCalleeContext } from './content';
-import {
-  isResolvedName,
-  SubExpressionContext,
-  ValueValidationContext,
-} from './validation-context';
+import { isResolvedName, SubExpressionContext, ValueValidationContext } from './validation-context';
 
 export class AppendInvokeContext implements AnyInvokeParentContext {
   static of(node: AnyNode) {
@@ -66,7 +62,11 @@ export class AppendValueContext {
   }
 
   append(value: NameNode): VariableReferenceContext;
-  append(value: AnyNode): ValueValidationContext;
+  append<T extends AnyNode>(
+    value: T
+  ): T extends NameNode
+    ? ValueValidationContext | VariableReferenceContext
+    : ValueValidationContext;
   append(value: AnyNode | ResolvedNode): ValueValidationContext | VariableReferenceContext {
     const valueContext = ValueValidationContext.append(this, loc(value));
     return isResolvedName(value) ? valueContext.resolved(value) : valueContext;

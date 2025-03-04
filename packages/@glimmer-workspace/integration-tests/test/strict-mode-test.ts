@@ -1,6 +1,5 @@
 import { castToBrowser } from '@glimmer/debug-util';
 import { array, concat, fn, get, hash, on } from '@glimmer/runtime';
-import { Validation } from '@glimmer/syntax';
 import {
   defineComponent,
   defineSimpleHelper,
@@ -9,12 +8,10 @@ import {
   highlightError,
   jitSuite,
   RenderTest,
-  syntaxErrorFor,
   test,
   TestHelper,
   trackedObj,
 } from '@glimmer-workspace/integration-tests';
-import { unresolvedErrorFor } from '@glimmer-workspace/test-utils';
 
 class GeneralStrictModeTest extends RenderTest {
   static suiteName = 'strict mode: general properties';
@@ -470,7 +467,14 @@ class StaticStrictModeTest extends RenderTest {
       () => {
         defineComponent({ Foo }, '<Foo @foo={{bar}}/>');
       },
-      highlightError('Attempted to pass `bar` as an argument, but it was not in scope')`
+      highlightError('Attempted to pass `bar` as an argument, but it was not in scope', [
+        [
+          `Try:\n`,
+          `* @foo={{this.bar}} if this was meant to be a property lookup, or`,
+          `* @foo={{(bar)}} if this was meant to invoke the resolved helper, or`,
+          `* @foo={{helper \"bar\"}} if this was meant to pass the resolved helper by value`,
+        ].join('\n'),
+      ])`
         1 | <Foo @foo={{bar}}/>
           |             ===
           |              \=== not in scope

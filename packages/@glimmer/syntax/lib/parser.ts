@@ -23,10 +23,8 @@ export interface StartTag {
   readonly attributes: ASTv1.AttrNode[];
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];
-  readonly params: {
-    names: ASTv1.VarHead[];
-    error: Optional<ASTv1.ErrorNode>;
-  };
+  params: ASTv1.VarHead[];
+  error: Optional<ASTv1.ErrorNode>;
   selfClosing: boolean;
   readonly loc: src.SourceSpan;
 }

@@ -93,10 +93,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       attributes: [],
       modifiers: [],
       comments: [],
-      params: {
-        names: [],
-        error: undefined,
-      },
+      params: [],
+      error: undefined,
       selfClosing: false,
       start: this.source.offsetFor(this.tagOpenLine, this.tagOpenColumn),
     };
@@ -149,7 +147,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       loc: nameLoc,
     });
 
-    let { attributes, modifiers, comments, params, selfClosing, loc } = this.finish(
+    let { attributes, modifiers, comments, params, error, selfClosing, loc } = this.finish(
       this.currentStartTag
     );
 
@@ -160,6 +158,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers,
       comments,
       params,
+      error,
       children: [],
       openTag: loc,
       closeTag: selfClosing ? null : src.SourceSpan.broken(),
@@ -301,7 +300,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     // Just trying to be helpful with `<Hello |foo|>` rather than letting it through as an attribute
     if (name.startsWith('|') && parts.length === 0 && !isQuoted && !isDynamic) {
-      this.currentStartTag.params.error = b.error(
+      this.currentStartTag.error = b.error(
         'Invalid block parameters syntax: block parameters must be preceded by the `as` keyword',
         attrLoc
           .highlight()
@@ -344,7 +343,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       }
 
       const error = after(this.offset());
-      element.params.error = error;
+      element.error = error;
       return error;
     };
 
@@ -456,7 +455,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             },
           };
         } else if (next === '|') {
-          if (element.params.names.length === 0) {
+          if (element.params.length === 0) {
             // Following Handlebars and treat empty block params a syntax error
             const end = this.offset().move(1);
             state = {
@@ -530,7 +529,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             );
           }
 
-          element.params.names.push(b.var({ name: state.name, loc }));
+          element.params.push(b.var({ name: state.name, loc }));
 
           state =
             next === '|'
@@ -619,7 +618,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       next = this.tokenizer.peek();
 
       if (state.state === 'ParseError') {
-        element.params.error = state.error;
+        element.error = state.error;
         return;
       }
 
@@ -692,7 +691,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         } else {
           throw highlightedError(
             {
-              full: this.getCurrentNodeStart().until(this.offset()),
               primary: (head.type === 'MustacheStatement' ? head : a).loc.highlight(
                 'invalid mustache'
               ),
