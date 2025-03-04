@@ -1,9 +1,10 @@
+import { Validation } from '@glimmer/syntax';
 import {
   defineSimpleHelper,
+  highlightError,
   jitSuite,
   preprocess,
   RenderTest,
-  syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
 
@@ -20,16 +21,23 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor(
-        'You attempted to pass a path as argument (`@content={{foo}}`) but foo was not in scope. Try:\n' +
-          '* `@content={{this.foo}}` if this is meant to be a property lookup, or\n' +
-          '* `@content={{(foo)}}` if this is meant to invoke the resolved helper, or\n' +
-          '* `@content={{helper "foo"}}` if this is meant to pass the resolved helper by value',
-        `@content={{foo}}`,
-        'test-module',
-        1,
-        5
-      )
+      highlightError(
+        Validation.resolutionError({
+          attemptedTo: 'pass `foo` as an argument',
+        }),
+        [
+          [
+            `Try:\n`,
+            `* @content={{this.foo}} if this was meant to be a property lookup, or`,
+            `* @content={{(foo)}} if this was meant to invoke the resolved helper, or`,
+            `* @content={{helper "foo"}} if this was meant to pass the resolved helper by value`,
+          ].join('\n'),
+        ]
+      )`
+        1 | <Bar @content={{foo}} />
+          |                 ===
+          |                   \= not in scope
+      `
     );
   }
 

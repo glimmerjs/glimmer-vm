@@ -48,9 +48,7 @@ export function syntaxError(
   const allNotes = [...(options.notes ?? [])];
 
   if (quotedCode || allNotes.length > 0) {
-    const notesString =
-      allNotes.length > 0 ? `${allNotes.map((n) => `NOTE: ${n}`).join('\n\n')}\n\n` : '';
-    message = `${options.error}${quotedCode}${notesString}${where}`;
+    message = `${options.error}${quotedCode}${buildNotes(allNotes)}${where}`;
   } else {
     message = `${options.error} ${where}`;
   }
@@ -64,6 +62,21 @@ export function syntaxError(
   error.code = code;
 
   return error;
+}
+
+function buildNotes(notes: string[]): string {
+  if (notes.length === 0) {
+    return '';
+  }
+
+  return notes.map((n) => buildNote(n)).join('\n\n') + '\n\n';
+}
+
+function buildNote(note: string): string {
+  const [first, ...rest] = note.split('\n');
+  const pad = ' '.repeat('NOTE: '.length);
+
+  return `NOTE: ${first}\n${rest.map((n) => `${pad}${n}\n`).join('')}`;
 }
 
 export function highlightCode(highlighted: Validation.Highlight): string {

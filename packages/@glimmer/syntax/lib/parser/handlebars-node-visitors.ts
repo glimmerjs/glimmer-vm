@@ -376,7 +376,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       const nextChar = content.value.slice(0, 1);
       this.tokenizer.input += nextChar;
       const error = this.pending.mustache(this.pending.content.mustache, nextChar);
-      this.currentStartTag.params.error = error;
+      this.currentStartTag.error = error;
       this.pending = null;
       this.tokenizer.tokenizePart(content.value.slice(1));
     } else {

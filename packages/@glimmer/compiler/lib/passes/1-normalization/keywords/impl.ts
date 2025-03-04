@@ -165,7 +165,7 @@ export class Keywords<K extends KeywordType, Out = never> implements Keyword<K, 
       return null;
     }
 
-    if (isKeyword(node.resolved.name)) {
+    if (node.resolved && isKeyword(node.resolved.name)) {
       let { name } = node.resolved;
 
       let usedType = this._type;

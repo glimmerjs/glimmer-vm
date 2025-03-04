@@ -180,7 +180,10 @@ export default class ValidatorPass {
       case 'Literal':
         return this.Literal(part);
       case 'CurlyResolvedAttrValue':
-        return this.ResolvedName(part.resolved, value.callee(part));
+        return this.ResolvedName(
+          part.resolved,
+          value.value({ value: part.resolved, curly: part }).resolved(part.resolved)
+        );
       case 'mir.CurlyAttrValue':
         return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
       case 'mir.CurlyInvokeAttr': {
@@ -191,7 +194,7 @@ export default class ValidatorPass {
       }
       case 'mir.CurlyInvokeResolvedAttr': {
         const invokeContext = value.invoke(part);
-        return this.ResolvedName(part.resolved, invokeContext.callee(part)).andThen(() =>
+        return this.ResolvedName(part.resolved, invokeContext.callee(part.resolved)).andThen(() =>
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
@@ -443,7 +446,7 @@ export default class ValidatorPass {
 
     const args = this.Args(statement.args, context.args(statement.args));
 
-    if (callee.type === 'ResolvedName') {
+    if (Validation.isResolvedName(callee)) {
       return this.ResolvedName(callee, context.callee(callee)).andThen(() => args);
     } else {
       return this.ExpressionValue(callee, context.callee(callee)).andThen(() => args);
@@ -470,20 +473,23 @@ export default class ValidatorPass {
 
   AppendTrustedHTML(statement: mir.AppendTrustedHTML): Result<null> {
     const context = Validation.appending(statement);
-    if (statement.value.type === 'ResolvedName') {
-      return this.ResolvedName(statement.value, context.append(statement.value));
+    const value = statement.value;
+
+    if (Validation.isResolvedName(value)) {
+      return this.ResolvedName(value, context.append(value));
     } else {
-      return this.ExpressionValue(statement.value, context.append(statement.value));
+      return this.ExpressionValue(value, context.append(value));
     }
   }
 
   AppendValueCautiously(statement: mir.AppendValueCautiously): Result<null> {
     const context = Validation.appending(statement);
+    const value = statement.value;
 
-    if (statement.value.type === 'ResolvedName') {
-      return this.ResolvedName(statement.value, context.append(statement.value));
+    if (Validation.isResolvedName(value)) {
+      return this.ResolvedName(value, context.append(value));
     } else {
-      return this.ExpressionValue(statement.value, context.append(statement.value));
+      return this.ExpressionValue(value, context.append(value));
     }
   }
 
@@ -676,10 +682,12 @@ export default class ValidatorPass {
   }
 
   ResolvedName(
-    _callee: ASTv2.ResolvedName,
+    callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding,
     context: Validation.VariableReferenceContext
   ): Result<null> {
-    if (this.#strict) {
+    if (callee.type === 'UnresolvedBinding') {
+      return this.errorFor(context.addNotes(...(callee.notes ?? [])));
+    } else if (this.#strict) {
       return this.errorFor(context);
     } else {
       return Ok(null);
