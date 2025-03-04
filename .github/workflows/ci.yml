@@ -16,7 +16,8 @@ env:
   TURBO_API: http://127.0.0.1:9080
   TURBO_TOKEN: this-is-not-a-secret
   TURBO_TEAM: myself
-  TURBO_CACHE: false
+  # syntax: https://turbo.build/repo/docs/reference/run#--cache-options
+  TURBO_CACHE: "--local:rw"
 
 jobs:
   install_dependencies:
