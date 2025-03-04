@@ -17,7 +17,7 @@ env:
   TURBO_TOKEN: this-is-not-a-secret
   TURBO_TEAM: myself
   # syntax: https://turbo.build/repo/docs/reference/run#--cache-options
-  TURBO_CACHE: "--local:rw"
+  TURBO_CACHE: "local:rw"
 
 jobs:
   install_dependencies:
