@@ -118,6 +118,7 @@ interface BaseInvokeComponentFields {
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
   modifiers: readonly (ElementModifier | ResolvedElementModifier)[];
+  error?: Optional<ASTv1.ErrorNode>;
 }
 
 interface InvokeComponentFields extends BaseInvokeComponentFields {
@@ -166,6 +167,7 @@ interface SimpleElementOptions extends BaseNodeFields {
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
   modifiers: readonly (ElementModifier | ResolvedElementModifier)[];
+  error?: Optional<ASTv1.ErrorNode>;
 }
 
 /**

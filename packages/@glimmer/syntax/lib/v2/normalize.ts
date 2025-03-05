@@ -58,7 +58,7 @@ export function normalize(
     block.loc(ast.loc),
     ast.body.map((b) => normalizer.normalize(b)),
     block
-  ).assertTemplate(top);
+  ).assertTemplate(top, ast.error);
 
   let locals = top.getUsedTemplateLocals();
 
@@ -692,7 +692,7 @@ class ElementNormalizer {
       comments: comments.map((c) => new StatementNormalizer(this.ctx).MustacheCommentStatement(c)),
     });
 
-    let children = new ElementChildren(el, loc, childNodes, this.ctx);
+    let children = new ElementChildren(el, element.error, loc, childNodes, this.ctx);
 
     let offsets = this.ctx.loc(element.loc);
     let tagOffsets = offsets.sliceStartChars({ chars: tag.length, skipStart: 1 });
@@ -703,6 +703,8 @@ class ElementNormalizer {
           tagOffsets.slice({ skipStart: 1 }).toSlice(tag.slice(1)),
           child.table
         );
+      } else if (element.error) {
+        return element.error;
       } else {
         return children.assertElement(tagOffsets.toSlice(tag), element.blockParams);
       }
@@ -710,6 +712,8 @@ class ElementNormalizer {
 
     if (element.selfClosing) {
       return el.selfClosingComponent(path, loc);
+    } else if (element.error) {
+      return element.error;
     } else {
       if (Array.isArray(element.blockParams)) {
         let blocks = children.assertComponent(tag, child.table, element.blockParams.length > 0);
@@ -1042,12 +1046,17 @@ class Children {
 }
 
 class TemplateChildren extends Children {
-  assertTemplate(table: ProgramSymbolTable): ASTv2.Template {
+  assertTemplate(table: ProgramSymbolTable, error: Optional<ASTv1.ErrorNode>): ASTv2.Template {
     if (isPresentArray(this.namedBlocks)) {
       throw generateSyntaxError(`Unexpected named block at the top-level of a template`, this.loc);
     }
 
-    return this.block.builder.template(table, this.nonBlockChildren, this.block.loc(this.loc));
+    return this.block.builder.template(
+      table,
+      this.nonBlockChildren,
+      this.block.loc(this.loc),
+      error
+    );
   }
 }
 
@@ -1064,6 +1073,7 @@ class BlockChildren extends Children {
 class ElementChildren extends Children {
   constructor(
     private el: BuildElement,
+    private error: Optional<ASTv1.ErrorNode>,
     loc: SourceSpan,
     children: (ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode)[],
     block: BlockContext
@@ -1109,7 +1119,8 @@ class ElementChildren extends Children {
     return this.block.builder.namedBlock(
       name,
       this.block.builder.block(table, this.nonBlockChildren, offsets),
-      this.loc
+      this.loc,
+      { error: this.error }
     );
   }
 

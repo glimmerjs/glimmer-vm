@@ -1,6 +1,7 @@
 import type { Optional } from '@glimmer/interfaces';
 
 import type * as src from './source/api';
+import type * as ASTv1 from './v1/nodes-v1';
 import type { ReportableContext } from './validation-context/validation-context';
 
 import * as Validation from './validation-context/validation-context';
@@ -22,6 +23,10 @@ export function generateSyntaxError(
   return highlightedError(Validation.Highlight.fromSpan(location, { full: options?.full }), {
     error: message,
   });
+}
+
+export function highlightAstError(error: ASTv1.ErrorNode) {
+  return highlightedError(error.highlight, { error: error.message, notes: error.notes });
 }
 
 export function highlightedError(
