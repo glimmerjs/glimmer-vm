@@ -19,8 +19,9 @@ const BEFORE_ATTRIBUTE_NAME = 'beforeAttributeName' as TokenizerState.beforeAttr
 const ATTRIBUTE_VALUE_UNQUOTED = 'attributeValueUnquoted' as TokenizerState.attributeValueUnquoted;
 
 export interface PendingError {
-  mustache(mustache: SourceSpan, nextChar: string): ASTv1.ErrorNode;
-  eof(offset: SourceOffset, next: string): ASTv1.ErrorNode;
+  mustache?: (mustache: SourceSpan, nextChar: string) => ASTv1.ErrorNode;
+  eof?: (offset: SourceOffset) => ASTv1.ErrorNode;
+  attrName?: (attrName: SourceSpan) => ASTv1.ErrorNode;
   content?: {
     mustache: src.SourceSpan;
   };
@@ -40,24 +41,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   abstract override beginAttributeValue(quoted: boolean): void;
   abstract override finishAttributeValue(): void;
 
-  checkPending(
-    ...args:
-      | ['mustache', mustache: SourceSpan, next: SourceOffset, nextChar: string]
-      | ['eof', SourceOffset]
-  ) {
-    if (!this.pending) {
-      return;
-    }
-
-    if (args[0] === 'mustache') {
-      const [, span, nextOffset, nextChar] = args;
-      const result = this.pending.mustache(span, nextOffset, nextChar);
-      this.pending = null;
-      return result;
-    } else {
-      const result = this.pending.eof(args[1], this.tokenizer.peek());
-      this.pending = null;
-      return result;
+  checkPendingEof(offset: SourceOffset) {
+    if (this.pending) {
+      return this.pending.eof(offset);
     }
   }
 
@@ -76,7 +62,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // state when we are "done" parsing. For example, right now, `<foo` parses
     // into `Template { body: [] }` which is obviously incorrect
 
-    const error = this.checkPending('eof', template.loc.getEnd());
+    const error = this.checkPendingEof(template.loc.getEnd());
 
     if (error) {
       node.error = error;
@@ -371,7 +357,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   ContentStatement(content: HBS.ContentStatement): void {
     updateTokenizerLocation(this.tokenizer, content);
 
-    if (this.pending?.content) {
+    if (this.pending?.content && this.pending.mustache) {
       const span = this.source.spanFor(content.loc);
       const nextChar = content.value.slice(0, 1);
       this.tokenizer.input += nextChar;

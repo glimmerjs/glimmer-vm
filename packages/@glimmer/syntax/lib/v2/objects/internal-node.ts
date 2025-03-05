@@ -1,5 +1,8 @@
+import type { Optional } from '@glimmer/interfaces';
+
 import type { SourceSlice } from '../../source/slice';
 import type { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
+import type * as ASTv1 from '../../v1/api';
 import type { ComponentArgs } from './args';
 import type {
   ComponentArg,
@@ -20,6 +23,7 @@ import { node } from './node';
 export class Template extends node().fields<
   {
     table: ProgramSymbolTable;
+    error?: Optional<ASTv1.ErrorNode>;
   } & GlimmerParentNodeOptions
 >() {}
 
@@ -53,6 +57,7 @@ export interface NamedBlockFields extends BaseNodeFields {
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
   modifiers: readonly (ElementModifier | ResolvedElementModifier)[];
+  error?: Optional<ASTv1.ErrorNode>;
 }
 
 /**

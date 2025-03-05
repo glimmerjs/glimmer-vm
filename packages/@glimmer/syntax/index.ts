@@ -29,6 +29,7 @@ export { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './lib/symbol-
 export {
   generateSyntaxError,
   type GlimmerSyntaxError,
+  highlightAstError,
   highlightCode,
   highlightedError,
   quoteReportable,

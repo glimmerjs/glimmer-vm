@@ -141,6 +141,10 @@ export class SourceOffset {
     return span(this.data, this.move(count).data);
   }
 
+  last(count: number): SourceSpan {
+    return span(this.move(-count).data, this.data);
+  }
+
   /**
    * Create a new `SourceSpan` that represents a collapsed range at this source offset. Avoid
    * computing the character offset if it has not already been computed.
