@@ -1,2 +1,2 @@
-node = "lts"
-pnpm = "latest-10"
+node = "22.14.0"
+pnpm = "10.5.2"
