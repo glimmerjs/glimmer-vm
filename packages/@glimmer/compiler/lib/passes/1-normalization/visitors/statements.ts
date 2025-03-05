@@ -80,6 +80,7 @@ export function visitNamedBlock(
       name: named.name,
       body: body.toArray(),
       scope: named.block.scope,
+      error: named.error,
     });
   });
 }

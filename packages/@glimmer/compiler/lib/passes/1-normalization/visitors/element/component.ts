@@ -29,8 +29,12 @@ export class ClassifiedComponent implements Classified {
     );
   }
 
-  toStatement(component: ClassifiedElement, { args, params }: PreparedArgs): Result<mir.Content> {
-    let { element, state } = component;
+  toStatement(
+    component: ClassifiedElement,
+    { args, params }: PreparedArgs
+  ): Result<mir.ResolvedAngleBracketComponent | mir.AngleBracketComponent> {
+    const { element, state } = component;
+    const { error } = this.element;
 
     return this.blocks(state).mapOk((blocks) => {
       if (this.tag.type === 'ResolvedName') {
@@ -40,6 +44,7 @@ export class ClassifiedComponent implements Classified {
           params,
           args,
           blocks,
+          error,
         });
       } else {
         return new mir.AngleBracketComponent({
@@ -48,6 +53,7 @@ export class ClassifiedComponent implements Classified {
           params,
           args,
           blocks,
+          error,
         });
       }
     });

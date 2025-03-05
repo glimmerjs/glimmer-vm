@@ -1,8 +1,9 @@
-import type { PresentArray } from '@glimmer/interfaces';
+import type { Optional, PresentArray } from '@glimmer/interfaces';
 import { assertPresentArray, localAssert } from '@glimmer/debug-util';
 
 import type { SourceSpan } from '../source/span';
 import type { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
+import type * as ASTv1 from '../v1/api';
 
 import { SourceSlice } from '../source/slice';
 import { SpanList } from '../source/span-list';
@@ -19,11 +20,13 @@ export class Builder {
   template(
     symbols: ProgramSymbolTable,
     body: ASTv2.ContentNode[],
-    loc: SourceSpan
+    loc: SourceSpan,
+    error?: ASTv1.ErrorNode
   ): ASTv2.Template {
     return new ASTv2.Template({
       table: symbols,
       body,
+      error,
       loc,
     });
   }
@@ -38,7 +41,12 @@ export class Builder {
     });
   }
 
-  namedBlock(name: SourceSlice, block: ASTv2.Block, loc: SourceSpan): ASTv2.NamedBlock {
+  namedBlock(
+    name: SourceSlice,
+    block: ASTv2.Block,
+    loc: SourceSpan,
+    options?: { error?: Optional<ASTv1.ErrorNode> }
+  ): ASTv2.NamedBlock {
     return new ASTv2.NamedBlock({
       name,
       block,
@@ -46,6 +54,7 @@ export class Builder {
       componentArgs: [],
       modifiers: [],
       loc,
+      error: options?.error,
     });
   }
 

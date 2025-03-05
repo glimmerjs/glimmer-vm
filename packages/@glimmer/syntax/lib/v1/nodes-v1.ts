@@ -1,4 +1,4 @@
-import type { Nullable, PresentArray } from '@glimmer/interfaces';
+import type { Nullable, Optional, PresentArray } from '@glimmer/interfaces';
 
 import type * as src from '../source/api';
 import type * as Validation from '../validation-context/validation-context';
@@ -105,6 +105,7 @@ export interface ElementNode extends BaseNode {
   path: PathExpression;
   selfClosing: boolean;
   attributes: AttrNode[];
+  error?: Optional<ErrorNode>;
   params: VarHead[] | ErrorNode;
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];

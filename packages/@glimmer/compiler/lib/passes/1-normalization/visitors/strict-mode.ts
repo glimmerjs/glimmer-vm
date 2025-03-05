@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { quoteReportable, Validation as Validation } from '@glimmer/syntax';
+import { highlightAstError, quoteReportable, Validation as Validation } from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 
@@ -52,6 +52,9 @@ export default class ValidatorPass {
   }
 
   NamedBlock(block: mir.NamedBlock): Result<null> {
+    if (block.error) {
+      return Err(highlightAstError(block.error));
+    }
     return this.ContentItems(block.body);
   }
 

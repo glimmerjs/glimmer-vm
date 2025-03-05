@@ -112,6 +112,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let tag = this.finish<StartTag | EndTag>(this.currentTag);
 
     if (tag.type === 'StartTag') {
+      const { error } = this.currentStartTag;
+
       this.finishStartTag();
 
       if (tag.name === ':') {
@@ -306,8 +308,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           .highlight()
           .withPrimary(start.until(start.move(name.length)).highlight('missing `as`'))
       );
-      // @todo consume until the end of the block params
-      this.tokenizer.consume();
       return;
     }
 
@@ -323,6 +323,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let attribute = b.attr({ name, value, loc: start.until(tokenizerPos) });
 
     this.currentStartTag.attributes.push(attribute);
+
+    if (this.pending?.attrName) {
+      this.currentStartTag.error = this.pending.attrName(start.next(name.length));
+      this.pending = null;
+    }
   }
 
   private parsePossibleBlockParams(asNode: src.SourceOffset) {
@@ -442,14 +447,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
                 )
               );
             },
-            eof: (loc: src.SourceOffset, next: string) => {
+            eof: (loc: src.SourceOffset) => {
               return ParseError(next, () =>
                 b.error(
-                  `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params`,
+                  `Invalid block parameters syntax: template ended before block params were closed`,
                   as.start
                     .until(loc)
-                    .highlight('unexpected end of template')
-                    .withPrimary(asNode.next(2))
+                    .highlight('block params')
+                    .withPrimary({ loc: loc.last(1), label: 'end of template' })
                 )
               );
             },
@@ -511,10 +516,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
               );
             },
             eof: (loc: src.SourceOffset) => {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params`,
-                as.start.until(loc).highlight('unexpected end of template'),
-                { full: element.start.until(this.offset()) }
+              return ParseError(next, () =>
+                b.error(
+                  `Invalid block parameters syntax: template ended before block params were closed`,
+                  as.start
+                    .until(loc)
+                    .highlight('block params')
+                    .withPrimary({ loc: loc.last(1), label: 'end of template' })
+                )
               );
             },
           };
@@ -522,20 +531,25 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           let loc = state.start.until(this.offset());
 
           if (state.name === 'this' || ID_INVERSE_PATTERN.test(state.name)) {
-            throw generateSyntaxError(
-              `Invalid block parameters syntax: invalid identifier name \`${state.name}\``,
-              loc.highlight('invalid identifier'),
-              { full: element.start.until(this.offset()) }
-            );
+            this.tokenizer.consume();
+            state = {
+              state: 'ParseError',
+              error: b.error(
+                `Invalid block parameters syntax: invalid identifier name \`${state.name}\``,
+                asNode
+                  .until(this.offset())
+                  .highlight('block params')
+                  .withPrimary(loc.highlight('invalid identifier'))
+              ),
+            };
+          } else {
+            element.params.push(b.var({ name: state.name, loc }));
+            state =
+              next === '|'
+                ? { state: 'AfterEndPipe' }
+                : { state: 'BeforeBlockParamName', offset: this.offset() };
+            this.tokenizer.consume();
           }
-
-          element.params.push(b.var({ name: state.name, loc }));
-
-          state =
-            next === '|'
-              ? { state: 'AfterEndPipe' }
-              : { state: 'BeforeBlockParamName', offset: this.offset() };
-          this.tokenizer.consume();
         } else if (next === '>' || next === '/') {
           const here = this.offset();
           const end = here.move(1);
@@ -576,10 +590,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
               );
             },
             eof: (loc: src.SourceOffset) => {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params`,
-                as.start.until(loc).highlight('unexpected end of template'),
-                { full: element.start.until(this.offset()) }
+              return ParseError(next, () =>
+                b.error(
+                  `Template unexpectedly ended before tag was closed`,
+                  loc.last(1).highlight('end of template')
+                )
               );
             },
           };
@@ -587,15 +602,18 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // Don't consume, let the normal tokenizer code handle the next steps
           state = { state: 'Done' };
         } else {
+          state = { state: 'Done' };
           // Slurp up the next "token" for the error span
-          state = {
-            state: 'ParseError',
-            error: b.error(
-              'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after block params',
-              asNode.until(this.offset())
-            ),
+          this.pending = {
+            attrName: (nameSpan) =>
+              b.error(
+                'Invalid attribute after block params',
+                asNode
+                  .until(nameSpan.getEnd())
+                  .highlight('block params')
+                  .withPrimary(nameSpan.highlight('invalid attribute'))
+              ),
           };
-          this.tokenizer.consume();
         }
       },
 

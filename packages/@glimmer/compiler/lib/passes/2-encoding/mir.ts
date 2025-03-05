@@ -1,5 +1,6 @@
 import type { CurriedType, Optional, PresentArray } from '@glimmer/interfaces';
 import type {
+  ASTv1,
   ASTv2,
   BlockSymbolTable,
   ProgramSymbolTable,
@@ -237,6 +238,7 @@ export class ResolvedAngleBracketComponent extends node('ResolvedAngleBracketCom
   params: ElementParameters;
   args: ComponentArguments;
   blocks: NamedBlocks;
+  error?: Optional<ASTv1.ErrorNode>;
 }>() {}
 
 export class AngleBracketComponent extends node('AngleBracketComponent').fields<{
@@ -244,6 +246,7 @@ export class AngleBracketComponent extends node('AngleBracketComponent').fields<
   params: ElementParameters;
   args: ComponentArguments;
   blocks: NamedBlocks;
+  error?: Optional<ASTv1.ErrorNode>;
 }>() {}
 
 export interface AttrKind {
@@ -275,6 +278,7 @@ export class SimpleElement extends node('SimpleElement').fields<{
   params: ElementParameters;
   body: Content[];
   dynamicFeatures: boolean;
+  error?: Optional<ASTv1.ErrorNode>;
 }>() {}
 
 export class ElementParameters extends node('ElementParameters').fields<{
@@ -484,6 +488,7 @@ export class NamedBlock extends node('NamedBlock').fields<{
   scope: BlockSymbolTable;
   name: SourceSlice;
   body: Content[];
+  error?: Optional<ASTv1.ErrorNode>;
 }>() {}
 
 export type BlockCallee = PathExpression | ASTv2.KeywordExpression | ASTv2.VariableReference;
