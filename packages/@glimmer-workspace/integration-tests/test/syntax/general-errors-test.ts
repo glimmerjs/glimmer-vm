@@ -300,8 +300,8 @@ class SyntaxErrors extends RenderTest {
         'Invalid block parameters syntax: block parameters must be preceded by the `as` keyword'
       )`
         1 | <XBar><:baz |x|></:baz></XBar>
-          |       ===
-          |         \=== missing \`as\`
+          |             ===
+          |               \=== missing \`as\`
       `
     );
   }

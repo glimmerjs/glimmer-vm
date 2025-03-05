@@ -692,7 +692,14 @@ class ElementNormalizer {
       comments: comments.map((c) => new StatementNormalizer(this.ctx).MustacheCommentStatement(c)),
     });
 
-    let children = new ElementChildren(el, element.error, loc, childNodes, this.ctx);
+    debugger;
+    let children = new ElementChildren(
+      el,
+      (element.error ?? Array.isArray(element.blockParams)) ? undefined : element.blockParams,
+      loc,
+      childNodes,
+      this.ctx
+    );
 
     let offsets = this.ctx.loc(element.loc);
     let tagOffsets = offsets.sliceStartChars({ chars: tag.length, skipStart: 1 });
