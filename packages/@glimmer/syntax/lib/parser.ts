@@ -1,4 +1,4 @@
-import type { Nullable, Optional } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 import { asPresentArray, expect, getLast, localAssert, unwrap } from '@glimmer/debug-util';
 import { assign } from '@glimmer/util';
 import {
@@ -23,8 +23,7 @@ export interface StartTag {
   readonly attributes: ASTv1.AttrNode[];
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];
-  params: ASTv1.VarHead[];
-  error: Optional<ASTv1.ErrorNode>;
+  readonly params: ASTv1.ParseResult<ASTv1.VarHead>[];
   selfClosing: boolean;
   readonly loc: src.SourceSpan;
 }

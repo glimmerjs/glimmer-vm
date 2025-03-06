@@ -15,13 +15,20 @@ export interface CommonProgram extends BaseNode {
   body: Statement[];
 }
 
+export interface BlockParams extends BaseNode {
+  type: 'BlockParams';
+  names: ParseResults<VarHead>;
+}
+
 export interface Block extends CommonProgram {
   type: 'Block';
-  params: VarHead[];
+  params: BlockParams;
   chained?: boolean;
 
   /**
    * string accessor for params.name
+   *
+   * @deprecated use params instead
    */
   blockParams: string[];
 }
@@ -31,7 +38,7 @@ export type EntityEncodingState = 'transformed' | 'raw';
 export interface Template extends CommonProgram {
   type: 'Template';
   blockParams: string[];
-  error?: ErrorNode;
+  error?: Optional<{ eof: ErrorNode }>;
 }
 
 /**
@@ -105,8 +112,10 @@ export interface ElementNode extends BaseNode {
   path: PathExpression;
   selfClosing: boolean;
   attributes: AttrNode[];
-  error?: Optional<ErrorNode>;
-  params: VarHead[] | ErrorNode;
+  errors?: Optional<{
+    eof?: Optional<ErrorNode>;
+  }>;
+  params: BlockParams;
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
   children: Statement[];
@@ -128,8 +137,11 @@ export interface ElementNode extends BaseNode {
 
   /**
    * string accessor for params.name
+   *
+   * @deprecated use params instead, which has a node with location for each param and propagates
+   * errors properly
    */
-  blockParams: string[] | ErrorNode;
+  blockParams: string[];
 }
 
 export type StatementName =
@@ -309,6 +321,7 @@ export interface ErrorNode extends BaseNode {
 }
 
 export type ParseResult<T> = T | ErrorNode;
+export type ParseResults<T> = (T | ErrorNode)[] | ErrorNode;
 
 export type Nodes = {
   Template: Template;
@@ -333,6 +346,7 @@ export type Nodes = {
   NullLiteral: NullLiteral;
   UndefinedLiteral: UndefinedLiteral;
 
+  BlockParams: BlockParams;
   Hash: Hash;
   HashPair: HashPair;
   Error: ErrorNode;
