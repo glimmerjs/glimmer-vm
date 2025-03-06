@@ -17,12 +17,17 @@ export function highlightError(error: string, notes?: string[]) {
   };
 }
 
-export function assertParts(description: string, actualString: string, expected: HighlightParts) {
-  const actual = highlightToParts`${actualString}`;
-  QUnit.assert.deepEqual(actual, expected, `parts: ${description}`);
+export function assertParts(
+  description: string,
+  actualString: string,
+  expected: Omit<HighlightParts, 'line'>
+) {
+  const actualParts = highlightToParts`${actualString}`;
+  const expectedParts = { ...expected, line: `${expected.lineno}` };
+  QUnit.assert.deepEqual(actualParts, expectedParts, `parts: ${description}`);
   QUnit.assert.equal(
-    highlightCode(highlightParts(actual, { moduleName: 'test-module' })),
-    highlightCode(highlightParts(expected, { moduleName: 'test-module' })),
+    highlightCode(highlightParts(actualParts, { moduleName: 'test-module' })),
+    highlightCode(highlightParts(expectedParts, { moduleName: 'test-module' })),
     `string: ${description}`
   );
 }
@@ -116,7 +121,7 @@ const highlightParts = (
   parts: HighlightParts,
   { moduleName }: { moduleName: string }
 ): Validation.Highlight => {
-  const { source: full, lineno, primary, expanded } = padLines(parts);
+  const { content: full, lineno, primary, expanded } = padLines(parts);
   const source = src.Source.from(full, { meta: { moduleName } });
 
   return Validation.Highlight.fromInfo({
@@ -129,9 +134,9 @@ const highlightParts = (
   });
 };
 
-function padLines({ primary, expanded, ...parts }: HighlightParts) {
+function padLines({ primary, expanded, ...parts }: HighlightParts): HighlightParts {
   if (parts.line === '1') {
-    return { source: parts.content, line: parts.content, lineno: 1, primary, expanded };
+    return { content: parts.content, line: parts.content, lineno: 1, primary, expanded };
   } else {
     const line = parseInt(parts.line, 10);
     let padding = '';
@@ -141,8 +146,9 @@ function padLines({ primary, expanded, ...parts }: HighlightParts) {
     }
 
     return {
-      source: `${padding}${parts.content}`,
-      lineno: line,
+      content: `${padding}${parts.content}`,
+      lineno: parts.lineno,
+      line: parts.line,
       primary: {
         loc: padSpan(primary.loc, padding.length),
         label: primary.label,
@@ -164,9 +170,10 @@ function padSpan(
 
 interface HighlightParts {
   line: string;
+  lineno: number;
   content: string;
   primary: { loc: { start: number; end: number }; label?: Optional<string> };
-  expanded?: { loc: { start: number; end: number }; label?: Optional<string> };
+  expanded?: Optional<{ loc: { start: number; end: number }; label?: Optional<string> }>;
 }
 
 export function highlightToParts(strings: TemplateStringsArray, ...args: string[]): HighlightParts {
@@ -176,7 +183,7 @@ export function highlightToParts(strings: TemplateStringsArray, ...args: string[
   );
   const lines = text.map((s) => s.slice(leading));
 
-  const [firstLine, underlineLine, firstLabelLine, secondLabelLine, ...rest] = lines;
+  const [firstLine, underlineLine, firstLabelLine, secondLabelLine] = lines;
 
   localAssert(
     firstLine && underlineLine,
@@ -200,13 +207,9 @@ export function highlightToParts(strings: TemplateStringsArray, ...args: string[
     primary.label = labels.primary;
   }
 
-  const result: {
-    line: string;
-    content: string;
-    primary: { loc: { start: number; end: number }; label?: Optional<string> };
-    expanded?: { loc: { start: number; end: number }; label?: Optional<string> };
-  } = {
+  const result: HighlightParts = {
     ...first,
+    lineno: parseInt(first.line, 10),
     primary,
   };
 
@@ -223,20 +226,6 @@ export function highlightToParts(strings: TemplateStringsArray, ...args: string[
   }
 
   return result;
-}
-
-function parseNotes(lines: string[]) {
-  const notes: string[] = [];
-  const notesRegex = /^\s*|\s+NOTE:\s+(?<note>.*)\s*$/u;
-  for (const line of lines) {
-    const match = notesRegex.exec(line);
-
-    if (match) {
-      notes.push((match.groups as { note: string }).note);
-    }
-  }
-
-  return notes;
 }
 
 function buildString(strings: TemplateStringsArray, args: string[]) {

@@ -2,7 +2,10 @@ import type { Core, Dict } from '@glimmer/interfaces';
 import { setLocalDebugType, unwrap } from '@glimmer/debug-util';
 import { dict } from '@glimmer/util';
 
+import type { ParseResults, VarHead } from './v1/nodes-v1';
 import type * as ASTv2 from './v2/api';
+
+import { resultsToArray } from './v1/utils';
 
 export interface Upvar {
   readonly name: string;
@@ -14,13 +17,20 @@ interface SymbolTableOptions {
   lexicalScope: (variable: string) => boolean;
 }
 
+type VarName = Pick<VarHead, 'name' | 'type'> & Partial<Pick<VarHead, 'loc'>>;
+type Locals = ParseResults<VarName>;
+
 export abstract class SymbolTable {
   static top(
-    locals: readonly string[],
+    locals: string[],
     keywords: readonly string[],
     options: SymbolTableOptions
   ): ProgramSymbolTable {
-    return new ProgramSymbolTable(locals, keywords, options);
+    return new ProgramSymbolTable(
+      locals.map((name) => ({ type: 'VarHead', name })),
+      keywords,
+      options
+    );
   }
 
   abstract root(): ProgramSymbolTable;
@@ -41,15 +51,15 @@ export abstract class SymbolTable {
   abstract allocateBlock(name: string): number;
   abstract allocate(identifier: string): number;
 
-  child(locals: string[]): BlockSymbolTable {
-    let symbols = locals.map((name) => this.allocate(name));
+  child(locals: Locals): BlockSymbolTable {
+    let symbols = resultsToArray(locals).map((local) => this.allocate(local.name));
     return new BlockSymbolTable(this, locals, symbols);
   }
 }
 
 export class ProgramSymbolTable extends SymbolTable {
   constructor(
-    private templateLocals: readonly string[],
+    private locals: Locals,
     private keywords: readonly string[],
     private options: SymbolTableOptions
   ) {
@@ -57,7 +67,7 @@ export class ProgramSymbolTable extends SymbolTable {
 
     setLocalDebugType('syntax:symbol-table:program', this, {
       debug: () => ({
-        templateLocals: this.templateLocals,
+        locals: this.locals,
         keywords: this.keywords,
         symbols: this.symbols,
         upvars: this.upvars,
@@ -95,8 +105,12 @@ export class ProgramSymbolTable extends SymbolTable {
     return this.usedTemplateLocals;
   }
 
+  get #locals(): VarName[] {
+    return resultsToArray(this.locals);
+  }
+
   has(name: string): boolean {
-    return this.templateLocals.includes(name);
+    return this.#locals.some((local) => local.name === name);
   }
 
   get(name: string): [number, boolean] {
@@ -168,20 +182,27 @@ export class ProgramSymbolTable extends SymbolTable {
 }
 
 export class BlockSymbolTable extends SymbolTable {
+  readonly #symbols: Locals;
+
   constructor(
     private parent: SymbolTable,
-    public symbols: string[],
+    symbols: Locals,
     public slots: number[]
   ) {
     super();
+    this.#symbols = symbols;
   }
 
   root(): ProgramSymbolTable {
     return this.parent.root();
   }
 
+  get #locals(): VarName[] {
+    return resultsToArray(this.#symbols);
+  }
+
   get locals(): string[] {
-    return this.symbols;
+    return this.#locals.map((l) => l.name);
   }
 
   hasLexical(name: string): boolean {
@@ -197,7 +218,7 @@ export class BlockSymbolTable extends SymbolTable {
   }
 
   has(name: string): boolean {
-    return this.symbols.indexOf(name) !== -1 || this.parent.has(name);
+    return this.locals.indexOf(name) !== -1 || this.parent.has(name);
   }
 
   get(name: string): [number, boolean] {
@@ -206,13 +227,13 @@ export class BlockSymbolTable extends SymbolTable {
   }
 
   #get(name: string): number | null {
-    let slot = this.symbols.indexOf(name);
+    let slot = this.locals.indexOf(name);
     return slot === -1 ? null : unwrap(this.slots[slot]);
   }
 
   getLocalsMap(): Dict<number> {
     let dict = this.parent.getLocalsMap();
-    this.symbols.forEach((symbol) => (dict[symbol] = this.get(symbol)[0]));
+    this.locals.forEach((symbol) => (dict[symbol] = this.get(symbol)[0]));
     return dict;
   }
 

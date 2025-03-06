@@ -94,7 +94,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers: [],
       comments: [],
       params: [],
-      error: undefined,
       selfClosing: false,
       start: this.source.offsetFor(this.tagOpenLine, this.tagOpenColumn),
     };
@@ -112,8 +111,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let tag = this.finish<StartTag | EndTag>(this.currentTag);
 
     if (tag.type === 'StartTag') {
-      const { error } = this.currentStartTag;
-
       this.finishStartTag();
 
       if (tag.name === ':') {
@@ -149,7 +146,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       loc: nameLoc,
     });
 
-    let { attributes, modifiers, comments, params, error, selfClosing, loc } = this.finish(
+    let { attributes, modifiers, comments, params, selfClosing, loc } = this.finish(
       this.currentStartTag
     );
 
@@ -160,7 +157,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers,
       comments,
       params,
-      error,
       children: [],
       openTag: loc,
       closeTag: selfClosing ? null : src.SourceSpan.broken(),
@@ -302,11 +298,13 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     // Just trying to be helpful with `<Hello |foo|>` rather than letting it through as an attribute
     if (name.startsWith('|') && parts.length === 0 && !isQuoted && !isDynamic) {
-      this.currentStartTag.error = b.error(
-        'Invalid block parameters syntax: block parameters must be preceded by the `as` keyword',
-        attrLoc
-          .highlight()
-          .withPrimary(start.until(start.move(name.length)).highlight('missing `as`'))
+      this.currentStartTag.params.push(
+        b.error(
+          'Invalid block parameters syntax: block parameters must be preceded by the `as` keyword',
+          attrLoc
+            .highlight()
+            .withPrimary(start.until(start.move(name.length)).highlight('missing `as`'))
+        )
       );
       return;
     }
@@ -325,7 +323,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     this.currentStartTag.attributes.push(attribute);
 
     if (this.pending?.attrName) {
-      this.currentStartTag.error = this.pending.attrName(start.next(name.length));
+      this.currentStartTag.params.push(this.pending.attrName(start.next(name.length)));
       this.pending = null;
     }
   }
@@ -348,7 +346,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       }
 
       const error = after(this.offset());
-      element.error = error;
+      element.params.push(error);
       return error;
     };
 
@@ -390,18 +388,18 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           this.tokenizer.transitionTo(AFTER_ATTRIBUTE_NAME);
           this.tokenizer.consume();
         } else if (next === '|') {
-          const here = this.offset();
           // " as|..."
           // Following Handlebars and require a space between "as" and the pipe
-          state = {
-            state: 'ParseError',
-            error: b.error(
-              `Invalid block parameters syntax: expecting at least one space character between "as" and "|"`,
-              asNode
-                .until(here.move(1))
-                .highlight()
-                .withPrimary(asNode.move(1).until(here.move(1)).highlight('missing space'))
-            ),
+          state = { state: 'Done' };
+          this.pending = {
+            attrName: (attrName) =>
+              b.error(
+                `Invalid block parameters syntax: expecting at least one space character between "as" and "|"`,
+                asNode
+                  .until(attrName.getEnd())
+                  .highlight()
+                  .withPrimary({ loc: attrName, label: 'missing space' })
+              ),
           };
         } else {
           // " as{{...", " async...", " as=...", " as>...", " as/>..."
@@ -617,10 +615,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         }
       },
 
-      ParseError: (next: string) => {
+      ParseError: () => {
         localAssert(state.state === 'ParseError', 'bug in block params parser');
-        const error = state.error;
-        ParseError(next, () => error);
+        element.params.push(state.error);
       },
 
       Done: () => {
@@ -633,12 +630,13 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let next: string;
 
     do {
-      next = this.tokenizer.peek();
-
       if (state.state === 'ParseError') {
-        element.error = state.error;
+        element.params.push(state.error);
+        debugger;
         return;
       }
+
+      next = this.tokenizer.peek();
 
       handlers[state.state](next);
     } while (state.state !== 'Done' && next !== '');

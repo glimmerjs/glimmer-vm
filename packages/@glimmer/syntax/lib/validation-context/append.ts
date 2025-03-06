@@ -11,7 +11,6 @@ import type {
 
 import { loc } from '../source/span-list';
 import { ArgsContext } from './args';
-import { getCalleeContext } from './content';
 import { isResolvedName, SubExpressionContext, ValueValidationContext } from './validation-context';
 
 export class AppendInvokeContext implements AnyInvokeParentContext {
@@ -29,10 +28,12 @@ export class AppendInvokeContext implements AnyInvokeParentContext {
     this.#append = span;
   }
 
-  callee(callee: NameNode): VariableReferenceContext;
-  callee(callee: AnyNode): ValueValidationContext;
   callee(callee: AnyNode) {
-    return getCalleeContext('append', this, callee);
+    return ValueValidationContext.callee('append', this, loc(callee));
+  }
+
+  resolved(callee: NameNode) {
+    return this.callee(callee).resolved(callee);
   }
 
   args(args: ArgsNode) {
@@ -59,6 +60,10 @@ export class AppendValueContext {
 
   subexpression(value: CallNode) {
     return new SubExpressionContext(this, loc(value));
+  }
+
+  resolved(value: NameNode) {
+    return ValueValidationContext.append(this, loc(value)).resolved(value);
   }
 
   append(value: NameNode): VariableReferenceContext;

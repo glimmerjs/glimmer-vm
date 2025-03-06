@@ -28,7 +28,6 @@ export class ClassifiedSimpleElement implements Classified {
 
   toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<mir.Content> {
     const { state, element } = classified;
-    const { error } = this.element;
 
     let body = visitContentList(this.element.body, state);
 
@@ -40,7 +39,6 @@ export class ClassifiedSimpleElement implements Classified {
           params,
           body: body.toArray(),
           dynamicFeatures: this.dynamicFeatures,
-          error,
         })
     );
   }

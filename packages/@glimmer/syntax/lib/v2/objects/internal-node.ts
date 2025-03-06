@@ -23,7 +23,13 @@ import { node } from './node';
 export class Template extends node().fields<
   {
     table: ProgramSymbolTable;
-    error?: Optional<ASTv1.ErrorNode>;
+
+    /**
+     * Optionally, if the template ended abnormally, this field contains an "unexpected EOF" error.
+     */
+    error?: Optional<{
+      eof?: Optional<ASTv1.ErrorNode>;
+    }>;
   } & GlimmerParentNodeOptions
 >() {}
 
@@ -57,7 +63,6 @@ export interface NamedBlockFields extends BaseNodeFields {
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
   modifiers: readonly (ElementModifier | ResolvedElementModifier)[];
-  error?: Optional<ASTv1.ErrorNode>;
 }
 
 /**

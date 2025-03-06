@@ -338,7 +338,7 @@ export class ResolvedModifier extends node('ResolvedModifier').fields<{
   args: Args;
 }>() {}
 export class DynamicModifier extends node('DynamicModifier').fields<{
-  callee: ExpressionValueNode;
+  callee: ExpressionValueNode | ASTv2.UnresolvedBinding;
   args: Args;
 }>() {}
 export class LexicalModifier extends node('LexicalModifier').fields<{

@@ -7,7 +7,6 @@ import type {
   AnyNode,
   AnyValidationContext,
   ArgsNode,
-  InvokeResolvedNode,
   InvokeSyntaxType,
   NameNode,
   ResolvedNode,
@@ -16,7 +15,6 @@ import type {
 
 import { loc } from '../source/span-list';
 import { ArgsContext } from './args';
-import { getCalleeContext } from './content';
 import { ValueValidationContext } from './validation-context';
 
 /**
@@ -49,8 +47,8 @@ export class FullElementParameterValidationContext
     }
   }
 
-  resolved(node: NameNode) {
-    return this.value({ value: node, curly: node }).resolved(node);
+  resolved(node: ResolvedNode) {
+    return this.value({ value: node, curly: node }).resolved(node.resolved);
   }
 
   concat(concat: HasSourceSpan): ConcatContext {
@@ -110,7 +108,7 @@ export class ConcatContext implements AnyValidationContext, AnyAttrLikeContainer
     return new InvokeElementParameterContext(this, loc(curly), this.#parent.type);
   }
 
-  callee(node: ResolvedNode): VariableReferenceContext {
+  resolved(node: ResolvedNode): VariableReferenceContext {
     return ValueValidationContext.concat(this, loc(node.resolved), {
       curly: loc(node),
     }).resolved(node.resolved);
@@ -161,10 +159,12 @@ export class InvokeElementParameterContext implements AnyInvokeParentContext {
     }
   }
 
-  callee(callee: NameNode | InvokeResolvedNode): VariableReferenceContext;
-  callee(callee: AnyNode): ValueValidationContext;
-  callee(callee: AnyNode) {
-    return getCalleeContext(this.what, this, callee);
+  callee(callee: AnyNode): ValueValidationContext {
+    return ValueValidationContext.callee(this.what, this, loc(callee));
+  }
+
+  resolved(callee: NameNode): VariableReferenceContext {
+    return this.callee(callee).resolved(callee);
   }
 
   args(args: ArgsNode) {
