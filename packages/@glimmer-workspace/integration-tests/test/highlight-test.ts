@@ -21,7 +21,7 @@ export class HighlightTest {
           |        =====
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary },
       }
@@ -35,7 +35,7 @@ export class HighlightTest {
           |          ======= inner
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary, label: 'inner' },
       }
@@ -53,7 +53,7 @@ export class HighlightTest {
           |        =====
       `,
       {
-        line: '3',
+        lineno: 3,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary },
       }
@@ -67,7 +67,7 @@ export class HighlightTest {
           |          ======= inner
       `,
       {
-        line: '3',
+        lineno: 3,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary, label: 'inner' },
       }
@@ -87,7 +87,7 @@ export class HighlightTest {
           |       ---------- outer
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary, label: 'inner' },
         expanded: { loc: spans.expanded, label: 'outer' },
@@ -102,7 +102,7 @@ export class HighlightTest {
           |          ======= inner
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary, label: 'inner' },
         expanded: { loc: spans.expanded },
@@ -117,7 +117,7 @@ export class HighlightTest {
           |       ---------- outer
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary },
         expanded: { loc: spans.expanded, label: 'outer' },
@@ -131,7 +131,7 @@ export class HighlightTest {
           |      --=====--
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{hello}}</div>',
         primary: { loc: spans.primary },
         expanded: { loc: spans.expanded },
@@ -152,7 +152,7 @@ export class HighlightTest {
           |        ========= variable
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{x.hello}}</div>',
         primary: { loc: spans.primary, label: 'variable' },
         expanded: { loc: spans.expanded, label: 'path' },
@@ -167,7 +167,7 @@ export class HighlightTest {
           |        ======= variable
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{x.hello}}</div>',
         primary: { loc: spans.primary, label: 'variable' },
         expanded: { loc: spans.expanded },
@@ -182,7 +182,7 @@ export class HighlightTest {
           |           ---------- path
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{x.hello}}</div>',
         primary: { loc: spans.primary },
         expanded: { loc: spans.expanded, label: 'path' },
@@ -196,7 +196,7 @@ export class HighlightTest {
           |        =------
       `,
       {
-        line: '1',
+        lineno: 1,
         content: '<div>{{x.hello}}</div>',
         primary: { loc: spans.primary },
         expanded: { loc: spans.expanded },

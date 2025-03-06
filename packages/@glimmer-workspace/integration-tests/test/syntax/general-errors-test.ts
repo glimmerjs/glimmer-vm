@@ -54,16 +54,32 @@ class SyntaxErrors extends RenderTest {
   }
 
   @test
-  'Block params in HTML syntax - requires a space between as and pipes'() {
+  'Block params in element syntax - missing space between as and pipes still produces invalid block params in simple element error'() {
     this.assert.throws(
       () => {
         preprocess('<x-bar as|foo|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
       highlightError(
-        'Invalid block parameters syntax: expecting at least one space character between "as" and "|"'
+        'Unexpected block params in <x-bar>: simple elements cannot have block params'
       )`
         1 | <x-bar as|foo|>foo</x-bar>
-          |        -==
+          |        =======
+          |          \=== block params
+      `
+    );
+  }
+
+  @test
+  'Block params in component syntax - requires a space between as and pipes'() {
+    this.assert.throws(
+      () => {
+        preprocess('<XBar as|foo|>foo</XBar>', { meta: { moduleName: 'test-module' } });
+      },
+      highlightError(
+        'Invalid block parameters syntax: expecting at least one space character between "as" and "|"'
+      )`
+        1 | <XBar as|foo|>foo</XBar>
+          |       -==
           |          \=== missing space
       `
     );

@@ -29,6 +29,7 @@ import { SymbolTable } from '../symbol-table';
 import { generateSyntaxError } from '../syntax-error';
 import { isLowerCase, isUpperCase } from '../utils';
 import b from '../v1/parser-builders';
+import { getErrorsFromResults, isResultsError } from '../v1/utils';
 import * as ASTv2 from './api';
 import { Builder } from './builders';
 
@@ -285,8 +286,8 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     return this.table.has(name) || this.table.hasLexical(name);
   }
 
-  child(blockParams: string[]): BlockContext<BlockSymbolTable> {
-    return new BlockContext(this.source, this.options, this.table.child(blockParams));
+  child(blockParams: ASTv1.BlockParams): BlockContext<BlockSymbolTable> {
+    return new BlockContext(this.source, this.options, this.table.child(blockParams.names));
   }
 
   customizeComponentName(input: string): string {
@@ -632,8 +633,8 @@ class StatementNormalizer {
     );
   }
 
-  Block({ body, loc, blockParams }: ASTv1.Block): ASTv2.Block {
-    let child = this.block.child(blockParams);
+  Block({ body, loc, params }: ASTv1.Block): ASTv2.Block {
+    let child = this.block.child(params);
     let normalizer = new StatementNormalizer(child);
     return new BlockChildren(
       this.block.loc(loc),
@@ -664,7 +665,7 @@ class ElementNormalizer {
    * - the part before the first `.` is a reference to an in-scope variable binding
    * - it begins with an uppercase character
    */
-  ElementNode(element: ASTv1.ElementNode): ASTv1.ParseResult<ASTv2.ElementNode> {
+  ElementNode(element: ASTv1.ElementNode): ASTv2.ElementNode {
     let { tag, selfClosing, comments } = element;
     let loc = this.ctx.loc(element.loc);
 
@@ -679,7 +680,7 @@ class ElementNormalizer {
     let modifiers = element.modifiers.map((m) => this.modifier(m));
 
     // the element's block params are in scope for the children
-    let child = this.ctx.child(Array.isArray(element.blockParams) ? element.blockParams : []);
+    let child = this.ctx.child(element.params);
     let normalizer = new StatementNormalizer(child);
 
     let childNodes = element.children.map((s) => normalizer.normalize(s));
@@ -692,14 +693,23 @@ class ElementNormalizer {
       comments: comments.map((c) => new StatementNormalizer(this.ctx).MustacheCommentStatement(c)),
     });
 
-    debugger;
-    let children = new ElementChildren(
-      el,
-      (element.error ?? Array.isArray(element.blockParams)) ? undefined : element.blockParams,
-      loc,
-      childNodes,
-      this.ctx
-    );
+    /**
+     * Errors in block params count as block params, since they reflect a user's intent to use block
+     * params. The purpose of this flag is to communicate to the user that block params are not
+     * _allowed_ in the context in question, and that's a better error message than "invalid block
+     * params" when the block params aren't even allowed in the first place.
+     */
+    let children = new ElementChildren(el, loc, childNodes, element.params, this.ctx);
+
+    const params = new BlockParamsNode(element.params);
+
+    for (const error of params.errors) {
+      children.addError(error);
+    }
+
+    if (element.errors?.eof) {
+      children.addError(element.errors.eof);
+    }
 
     let offsets = this.ctx.loc(element.loc);
     let tagOffsets = offsets.sliceStartChars({ chars: tag.length, skipStart: 1 });
@@ -710,24 +720,16 @@ class ElementNormalizer {
           tagOffsets.slice({ skipStart: 1 }).toSlice(tag.slice(1)),
           child.table
         );
-      } else if (element.error) {
-        return element.error;
       } else {
-        return children.assertElement(tagOffsets.toSlice(tag), element.blockParams);
+        return children.assertElement(tagOffsets.toSlice(tag));
       }
     }
 
     if (element.selfClosing) {
       return el.selfClosingComponent(path, loc);
-    } else if (element.error) {
-      return element.error;
     } else {
-      if (Array.isArray(element.blockParams)) {
-        let blocks = children.assertComponent(tag, child.table, element.blockParams.length > 0);
-        return el.componentWithNamedBlocks(path, blocks, loc);
-      } else {
-        return element.blockParams;
-      }
+      let blocks = children.assertComponent(tag, child.table);
+      return el.componentWithNamedBlocks(path, blocks, loc);
     }
   }
 
@@ -912,7 +914,6 @@ class ElementNormalizer {
           ],
         });
 
-        debugger;
         return this.ctx.builder.arg(
           {
             name: nameSlice,
@@ -1017,16 +1018,15 @@ class ElementNormalizer {
   }
 }
 
-type ChildNodes = ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode;
+type SingleChildNode = ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode;
 
 class Children {
   readonly namedBlocks: ASTv2.NamedBlock[];
   readonly hasSemanticContent: boolean;
-  readonly nonBlockChildren: ASTv2.ContentNode[];
 
   constructor(
     readonly loc: SourceSpan,
-    readonly children: ChildNodes[],
+    readonly children: SingleChildNode[],
     readonly block: BlockContext
   ) {
     this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c instanceof ASTv2.NamedBlock);
@@ -1046,14 +1046,28 @@ class Children {
         }
       }).length
     );
-    this.nonBlockChildren = children.filter(
-      (c): c is Exclude<ChildNodes, ASTv2.NamedBlock> => !(c instanceof ASTv2.NamedBlock)
+  }
+
+  get nonBlockChildren(): ASTv2.ContentNode[] {
+    return this.children.filter(
+      (c): c is Exclude<SingleChildNode, ASTv2.NamedBlock> => !(c instanceof ASTv2.NamedBlock)
     );
+  }
+
+  /**
+   * Add an error to the top of the list of children so that it can be turned into a syntax error in
+   * the compiler.
+   */
+  addError(error: ASTv1.ErrorNode): void {
+    this.children.unshift(error);
   }
 }
 
 class TemplateChildren extends Children {
-  assertTemplate(table: ProgramSymbolTable, error: Optional<ASTv1.ErrorNode>): ASTv2.Template {
+  assertTemplate(
+    table: ProgramSymbolTable,
+    error: Optional<{ eof?: ASTv1.ErrorNode }>
+  ): ASTv2.Template {
     if (isPresentArray(this.namedBlocks)) {
       throw generateSyntaxError(`Unexpected named block at the top-level of a template`, this.loc);
     }
@@ -1077,36 +1091,71 @@ class BlockChildren extends Children {
   }
 }
 
+// type BlockParams = ASTv1.ParseResults<ASTv1.VarHead>;
+
+class BlockParamsNode {
+  #params: ASTv1.BlockParams;
+
+  constructor(params: ASTv1.BlockParams) {
+    this.#params = params;
+  }
+
+  get #names(): ASTv1.BlockParams['names'] {
+    return this.#params.names;
+  }
+
+  get loc() {
+    return this.#params.loc;
+  }
+
+  isPresent(): boolean {
+    return !isResultsError(this.#params.names) && this.#params.names.length > 0;
+  }
+
+  get errors() {
+    return getErrorsFromResults(this.#params.names);
+  }
+}
+
 class ElementChildren extends Children {
+  #blockParams: BlockParamsNode;
+
   constructor(
     private el: BuildElement,
-    private error: Optional<ASTv1.ErrorNode>,
     loc: SourceSpan,
     children: (ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode)[],
+    blockParams: ASTv1.BlockParams,
     block: BlockContext
   ) {
     super(loc, children, block);
+    this.#blockParams = new BlockParamsNode(blockParams);
   }
 
   assertNamedBlock(name: SourceSlice, table: BlockSymbolTable): ASTv2.NamedBlock {
     if (this.el.base.selfClosing) {
-      throw generateSyntaxError(
-        `<:${name.chars}/> is not a valid named block: named blocks cannot be self-closing`,
-        this.loc
+      this.addError(
+        b.error(
+          `<:${name.chars}/> is not a valid named block: named blocks cannot be self-closing`,
+          this.loc
+        )
       );
     }
 
     if (isPresentArray(this.namedBlocks)) {
-      throw generateSyntaxError(
-        `Unexpected named block inside <:${name.chars}> named block: named blocks cannot contain nested named blocks`,
-        this.loc
+      this.addError(
+        b.error(
+          `Unexpected named block inside <:${name.chars}> named block: named blocks cannot contain nested named blocks`,
+          this.loc
+        )
       );
     }
 
     if (!isLowerCase(name.chars)) {
-      throw generateSyntaxError(
-        `<:${name.chars}> is not a valid named block, and named blocks must begin with a lowercase letter`,
-        this.loc
+      this.addError(
+        b.error(
+          `<:${name.chars}> is not a valid named block, and named blocks must begin with a lowercase letter`,
+          this.loc
+        )
       );
     }
 
@@ -1126,25 +1175,17 @@ class ElementChildren extends Children {
     return this.block.builder.namedBlock(
       name,
       this.block.builder.block(table, this.nonBlockChildren, offsets),
-      this.loc,
-      { error: this.error }
+      this.loc
     );
   }
 
-  assertElement(
-    name: SourceSlice,
-    blockParams: ASTv1.ElementNode['blockParams']
-  ): ASTv1.ParseResult<ASTv2.SimpleElement> {
-    if (!Array.isArray(blockParams)) {
-      return blockParams;
-    }
-
-    const hasBlockParams = blockParams.length > 0;
-
-    if (hasBlockParams) {
-      return b.error(
-        `Unexpected block params in <${name.chars}>: simple elements cannot have block params`,
-        this.loc
+  assertElement(name: SourceSlice): ASTv2.SimpleElement {
+    if (this.#blockParams.isPresent()) {
+      this.addError(
+        b.error(
+          `Unexpected block params in <${name.chars}>: simple elements cannot have block params`,
+          this.#blockParams.loc.highlight('block params')
+        )
       );
     }
 
@@ -1152,15 +1193,16 @@ class ElementChildren extends Children {
       let names = this.namedBlocks.map((b) => b.name);
 
       if (names.length === 1) {
-        return b.error(
-          `Unexpected named block <:foo> inside <${name.chars}> HTML element`,
-          this.loc
+        this.addError(
+          b.error(`Unexpected named block <:foo> inside <${name.chars}> HTML element`, this.loc)
         );
       } else {
         let printedNames = names.map((n) => `<:${n.chars}>`).join(', ');
-        return b.error(
-          `Unexpected named blocks inside <${name.chars}> HTML element (${printedNames})`,
-          this.loc
+        this.addError(
+          b.error(
+            `Unexpected named blocks inside <${name.chars}> HTML element (${printedNames})`,
+            this.loc
+          )
         );
       }
     }
@@ -1170,8 +1212,7 @@ class ElementChildren extends Children {
 
   assertComponent(
     nameNode: string | ASTv2.UnresolvedBinding,
-    table: BlockSymbolTable,
-    hasBlockParams: boolean
+    table: BlockSymbolTable
   ): PresentArray<ASTv2.NamedBlock> {
     const name = typeof nameNode === 'string' ? nameNode : nameNode.name;
 
@@ -1183,7 +1224,7 @@ class ElementChildren extends Children {
     }
 
     if (isPresentArray(this.namedBlocks)) {
-      if (hasBlockParams) {
+      if (this.#blockParams.isPresent()) {
         throw generateSyntaxError(
           `Unexpected block params list on <${name}> component invocation: when passing named blocks, the invocation tag cannot take block params`,
           this.loc

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type { Nullable, Recast } from '@glimmer/interfaces';
-import type { TokenizerState } from 'simple-html-tokenizer';
+import type { Tokenizer, TokenizerState } from 'simple-html-tokenizer';
 import { getLast, isPresentArray, localAssert, unwrap } from '@glimmer/debug-util';
 
 import type { ParserNodeBuilder, StartTag } from '../parser';
@@ -43,7 +43,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
   checkPendingEof(offset: SourceOffset) {
     if (this.pending) {
-      return this.pending.eof(offset);
+      return this.pending.eof?.(offset);
     }
   }
 
@@ -65,18 +65,22 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     const error = this.checkPendingEof(template.loc.getEnd());
 
     if (error) {
-      node.error = error;
+      node.error = { eof: error };
     }
 
     return template;
   }
 
-  Program(program: HBS.Program, blockParams?: ASTv1.VarHead[]): ASTv1.Block {
+  Program(
+    program: HBS.Program,
+    blockParams?: ASTv1.VarHead[],
+    ifEmpty?: SourceOffset
+  ): ASTv1.Block {
     // The abstract signature doesn't have the blockParams argument, but in
     // practice we can only come from this.BlockStatement() which adds the
     // extra argument for us
     localAssert(
-      Array.isArray(blockParams),
+      Array.isArray(blockParams) && ifEmpty,
       '[BUG] Program in parser unexpectedly called without block params'
     );
 
@@ -89,6 +93,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       body: [],
       params: blockParams,
       chained: program.chained,
+      ifEmpty,
       loc: this.source.spanFor(program.loc),
     });
 
@@ -146,7 +151,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       );
     }
 
-    const { path, params, hash } = acceptCallNodes(this, block);
+    const { path, params, hash, loc: callLoc } = acceptCallNodes(this, block);
     const loc = this.source.spanFor(block.loc);
 
     // Backfill block params loc for the default block
@@ -212,8 +217,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       repairedBlock = repairBlock(this.source, block, loc);
     }
 
-    const program = this.Program(repairedBlock.program, blockParams);
-    const inverse = repairedBlock.inverse ? this.Program(repairedBlock.inverse, []) : null;
+    const program = this.Program(repairedBlock.program, blockParams, callLoc.getEnd());
+    const inverse = repairedBlock.inverse
+      ? this.Program(repairedBlock.inverse, [], callLoc.getEnd())
+      : null;
 
     localAssert(
       path.type !== 'SubExpression',
@@ -358,11 +365,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     updateTokenizerLocation(this.tokenizer, content);
 
     if (this.pending?.content && this.pending.mustache) {
-      const span = this.source.spanFor(content.loc);
       const nextChar = content.value.slice(0, 1);
-      this.tokenizer.input += nextChar;
+      (this.tokenizer as unknown as Omit<Tokenizer, 'input'> & { input: string }).input += nextChar;
       const error = this.pending.mustache(this.pending.content.mustache, nextChar);
-      this.currentStartTag.error = error;
+      this.currentStartTag.params.push(error);
       this.pending = null;
       this.tokenizer.tokenizePart(content.value.slice(1));
     } else {
@@ -648,6 +654,13 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
   tokenizer.column = column;
 }
 
+export interface CallNodes {
+  path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
+  params: ASTv1.Expression[];
+  hash: ASTv1.Hash;
+  loc: SourceSpan;
+}
+
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
   node: {
@@ -663,20 +676,20 @@ function acceptCallNodes(
     params: HBS.Expression[];
     hash?: HBS.Hash;
   }
-): {
-  path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
-  params: ASTv1.Expression[];
-  hash: ASTv1.Hash;
-} {
+): CallNodes {
   let path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
+
+  let start: SourceOffset;
 
   switch (node.path.type) {
     case 'PathExpression':
       path = compiler.PathExpression(node.path);
+      start = path.loc.getStart();
       break;
 
     case 'SubExpression':
       path = compiler.SubExpression(node.path);
+      start = path.loc.getStart();
       break;
 
     case 'StringLiteral':
@@ -719,7 +732,7 @@ function acceptCallNodes(
         loc: compiler.source.spanFor(end).collapse('end'),
       });
 
-  return { path, params, hash };
+  return { path, params, hash, loc: start.until(hash.loc.getEnd()) };
 }
 
 function addElementModifier(

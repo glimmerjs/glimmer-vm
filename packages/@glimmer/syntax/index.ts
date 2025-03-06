@@ -42,6 +42,7 @@ export type { NodeVisitor } from './lib/traversal/visitor';
 export { default as Walker } from './lib/traversal/walker';
 export type * as ASTv1 from './lib/v1/api';
 export { default as builders } from './lib/v1/public-builders';
+export * as utils from './lib/v1/utils';
 export { default as visitorKeys } from './lib/v1/visitor-keys';
 export * as ASTv2 from './lib/v2/api';
 export { normalize } from './lib/v2/normalize';

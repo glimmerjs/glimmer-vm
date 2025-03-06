@@ -10,7 +10,7 @@ import type {
   TemplateIdFn,
 } from '@glimmer/syntax';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import { normalize, src, syntaxError } from '@glimmer/syntax';
+import { highlightAstError, normalize, src } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 import pass0 from './passes/1-normalization/index';
@@ -84,8 +84,9 @@ export function precompileJSON(
   const source = new src.Source(string ?? '', options.meta?.moduleName);
   const [ast, locals] = normalize(source, { lexicalScope: () => false, ...options });
 
-  if (ast.error) {
-    throw syntaxError(ast.error.highlight, { error: ast.error.message, notes: ast.error.notes });
+  if (ast.error?.eof) {
+    const error = ast.error.eof;
+    throw highlightAstError(error);
   }
 
   const block = pass0(source, ast, options.strictMode ?? false).mapOk((pass2In) => {

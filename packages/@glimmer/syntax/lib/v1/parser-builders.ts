@@ -1,11 +1,13 @@
 import type { Nullable, Optional, PresentArray } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
+import type { SourceOffset } from '../source/span';
 import type * as ASTv1 from './api';
 
 import { SourceSpan } from '../source/span';
 import * as Validation from '../validation-context/validation-context';
 import { buildLegacyLiteral, buildLegacyMustache, buildLegacyPath } from './legacy-interop';
+import { isResultsError, resultsToArray } from './utils';
 
 const DEFAULT_STRIP = {
   close: false,
@@ -41,24 +43,39 @@ class Builders {
     body,
     params,
     chained = false,
+    ifEmpty,
     loc,
   }: {
     body: ASTv1.Statement[];
     params: ASTv1.VarHead[];
+    ifEmpty: SourceOffset;
     chained?: Optional<boolean>;
     loc: SourceSpan;
   }): ASTv1.Block {
+    const first = params[0];
+    const last = params.at(-1);
+
+    const blockParamsLoc = first && last ? first.loc.extend(last.loc) : ifEmpty.collapsed();
+
     return {
       type: 'Block',
       body,
-      params,
+      params: {
+        type: 'BlockParams',
+        names: params,
+        loc: blockParamsLoc,
+      },
       get blockParams() {
-        return this.params.map((p) => p.name);
+        return resultsToArray(this.params.names).map((p) => p.name);
       },
       set blockParams(params: string[]) {
-        this.params = params.map((name) => {
-          return b.var({ name, loc: SourceSpan.synthetic(name) });
-        });
+        this.params = {
+          type: 'BlockParams',
+          names: params.map((name) => {
+            return b.var({ name, loc: SourceSpan.synthetic(name) });
+          }),
+          loc: blockParamsLoc,
+        };
       },
       chained,
       loc,
@@ -184,7 +201,6 @@ class Builders {
     attributes,
     modifiers,
     params,
-    error,
     comments,
     children,
     openTag,
@@ -195,8 +211,7 @@ class Builders {
     selfClosing: boolean;
     attributes: ASTv1.AttrNode[];
     modifiers: ASTv1.ElementModifierStatement[];
-    params: ASTv1.VarHead[];
-    error: Optional<ASTv1.ErrorNode>;
+    params: ASTv1.ParseResults<ASTv1.VarHead>;
     children: ASTv1.Statement[];
     comments: ASTv1.MustacheCommentStatement[];
     openTag: SourceSpan;
@@ -205,12 +220,26 @@ class Builders {
   }): ASTv1.ElementNode {
     let _selfClosing = selfClosing;
 
+    let blockParamsLoc: SourceSpan;
+
+    if (isResultsError(params)) {
+      blockParamsLoc = params.loc;
+    } else {
+      const first = params[0];
+      const last = params.at(-1);
+      blockParamsLoc = first && last ? first.loc.extend(last.loc) : path.loc.collapse('end');
+    }
+
     return {
       type: 'ElementNode',
       path,
       attributes,
       modifiers,
-      params,
+      params: {
+        type: 'BlockParams',
+        names: params,
+        loc: blockParamsLoc,
+      },
       comments,
       children,
       openTag,
@@ -222,17 +251,11 @@ class Builders {
       set tag(name: string) {
         this.path.original = name;
       },
-      get blockParams(): string[] | ASTv1.ErrorNode {
-        return error ?? params.map((p) => p.name);
+      get blockParams(): string[] {
+        return resultsToArray(params).map((p) => p.name);
       },
-      set blockParams(paramList: string[] | ASTv1.ErrorNode) {
-        if (Array.isArray(paramList)) {
-          error = undefined;
-          params = paramList.map((name) => b.var({ name, loc: SourceSpan.synthetic(name) }));
-        } else {
-          error = paramList;
-          params = [];
-        }
+      set blockParams(paramList: string[]) {
+        params = paramList.map((name) => b.var({ name, loc: SourceSpan.synthetic(name) }));
       },
       get selfClosing() {
         return _selfClosing;

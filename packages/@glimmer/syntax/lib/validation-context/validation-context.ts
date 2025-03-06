@@ -17,7 +17,7 @@ import { SourceSpan } from '../source/loc/span';
 import { loc } from '../source/span-list';
 import { AppendValueContext } from './append';
 import { ArgsContext, NamedArgContext, PositionalArgsContext } from './args';
-import { AngleBracketContext, getCalleeContext, InvokeBlockValidationContext } from './content';
+import { AngleBracketContext, InvokeBlockValidationContext } from './content';
 
 export type AnyNode = HasSourceSpan & { type: string };
 export type AppendValueNode = AnyNode & { value: AnyNode };
@@ -49,7 +49,7 @@ export function hasResolved(node: AnyNode & Partial<{ resolved: NameNode }>): no
 export interface AnyAttrLikeContainerContext {
   value(options: { value: HasSourceSpan; curly: HasSourceSpan }): ValueValidationContext;
   invoke(curly: HasSourceSpan): InvokeElementParameterContext;
-  callee(node: ResolvedNode): VariableReferenceContext;
+  resolved(node: ResolvedNode): VariableReferenceContext;
 }
 
 export interface AnyValidationContext {
@@ -605,10 +605,13 @@ export function isInvokeSyntax(type: CalleeSyntaxType): type is InvokeSyntaxType
   return typeof type === 'string' || type.type === 'custom' || type.kind === 'invoke';
 }
 
-export interface AnyInvokeParentContext extends AnyValidationContext {
+export interface AnyResolveParentContext extends AnyValidationContext {
+  resolved(callee: NameNode): VariableReferenceContext;
+}
+
+export interface AnyInvokeParentContext extends AnyResolveParentContext {
   readonly type: InvokeSyntaxType;
 
-  callee(callee: NameNode | InvokeResolvedNode): VariableReferenceContext;
   callee(callee: AnyNode): ValueValidationContext;
   args(args: ArgsNode): ArgsContext;
 }
@@ -659,10 +662,12 @@ export class SubExpressionContext implements AnyInvokeParentContext {
     this.#call = call;
   }
 
-  callee(callee: NameNode): VariableReferenceContext;
-  callee(callee: AnyNode): ValueValidationContext;
-  callee(callee: AnyNode) {
-    return getCalleeContext('subexpression', this, callee);
+  resolved(callee: NameNode): VariableReferenceContext {
+    return this.callee(callee).resolved(callee);
+  }
+
+  callee(callee: AnyNode): ValueValidationContext {
+    return ValueValidationContext.callee('subexpression', this, loc(callee));
   }
 
   args(args: ArgsNode) {

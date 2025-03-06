@@ -183,21 +183,25 @@ export default class ValidatorPass {
       case 'Literal':
         return this.Literal(part);
       case 'CurlyResolvedAttrValue':
-        return this.ResolvedName(
-          part.resolved,
-          value.value({ value: part.resolved, curly: part }).resolved(part.resolved)
-        );
+        return this.ResolvedName(part.resolved, value.value({ value: part.resolved, curly: part }));
       case 'mir.CurlyAttrValue':
         return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
       case 'mir.CurlyInvokeAttr': {
         const invokeContext = value.invoke(part);
-        return this.ExpressionValue(part.callee, invokeContext.callee(part)).andThen(() =>
+
+        if (part.callee.type === 'UnresolvedBinding') {
+          return this.errorFor(invokeContext.resolved(part.callee)).andThen(() =>
+            this.Args(part.args, invokeContext.args(part.args))
+          );
+        }
+
+        return this.CalleeExpressionValue(part.callee, invokeContext).andThen(() =>
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
       case 'mir.CurlyInvokeResolvedAttr': {
         const invokeContext = value.invoke(part);
-        return this.ResolvedName(part.resolved, invokeContext.callee(part.resolved)).andThen(() =>
+        return this.ResolvedName(part.resolved, invokeContext).andThen(() =>
           this.Args(part.args, invokeContext.args(part.args))
         );
       }
@@ -225,6 +229,24 @@ export default class ValidatorPass {
         return Ok(null);
       case 'CustomNamedArgument':
         return this.ExpressionValue(expression.value, context.namedArg(expression));
+    }
+  }
+
+  CalleeExpressionValue(
+    expression: mir.ExpressionValueNode | mir.Missing | ASTv2.UnresolvedBinding,
+    context: Validation.AnyInvokeParentContext
+  ) {
+    switch (expression.type) {
+      case 'Literal':
+        return Ok(null);
+      case 'UnresolvedBinding':
+        return this.errorFor(context.resolved(expression));
+      case 'Missing':
+        return Ok(null);
+      case 'PathExpression':
+        return this.PathExpression(expression, context.callee(expression).path());
+      default:
+        return this.CalleeExpression(expression, context.callee(expression));
     }
   }
 
@@ -385,7 +407,7 @@ export default class ValidatorPass {
         return this.AttrStyleArgument(param, content.attr(param));
       case 'ResolvedModifier': {
         const context = content.modifier(param);
-        return this.ResolvedName(param.callee, context.callee(param)).andThen(() =>
+        return this.ResolvedName(param.callee, context).andThen(() =>
           this.Args(param.args, context.args(param.args))
         );
       }
@@ -414,7 +436,7 @@ export default class ValidatorPass {
     expr: mir.ResolvedCallExpression,
     context: Validation.AnyInvokeParentContext
   ): Result<null> {
-    const name = this.ResolvedName(expr.callee, context.callee(expr));
+    const name = this.ResolvedName(expr.callee, context);
 
     if (expr.args.isEmpty()) {
       return name;
@@ -450,7 +472,7 @@ export default class ValidatorPass {
     const args = this.Args(statement.args, context.args(statement.args));
 
     if (Validation.isResolvedName(callee)) {
-      return this.ResolvedName(callee, context.callee(callee)).andThen(() => args);
+      return this.ResolvedName(callee, context).andThen(() => args);
     } else {
       return this.ExpressionValue(callee, context.callee(callee)).andThen(() => args);
     }
@@ -479,7 +501,7 @@ export default class ValidatorPass {
     const value = statement.value;
 
     if (Validation.isResolvedName(value)) {
-      return this.ResolvedName(value, context.append(value));
+      return this.ResolvedName(value, context);
     } else {
       return this.ExpressionValue(value, context.append(value));
     }
@@ -490,7 +512,7 @@ export default class ValidatorPass {
     const value = statement.value;
 
     if (Validation.isResolvedName(value)) {
-      return this.ResolvedName(value, context.append(value));
+      return this.ResolvedName(value, context);
     } else {
       return this.ExpressionValue(value, context.append(value));
     }
@@ -546,7 +568,7 @@ export default class ValidatorPass {
 
     const callee =
       statement.type === 'InvokeResolvedBlockComponent'
-        ? this.ResolvedName(statement.head, context.callee(statement.head))
+        ? this.ResolvedName(statement.head, context)
         : this.CalleeExpression(statement.head, context.callee(statement.head));
 
     return callee
@@ -686,12 +708,12 @@ export default class ValidatorPass {
 
   ResolvedName(
     callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding,
-    context: Validation.VariableReferenceContext
+    context: Validation.AnyResolveParentContext
   ): Result<null> {
     if (callee.type === 'UnresolvedBinding') {
-      return this.errorFor(context.addNotes(...(callee.notes ?? [])));
+      return this.errorFor(context.resolved(callee).addNotes(...(callee.notes ?? [])));
     } else if (this.#strict) {
-      return this.errorFor(context);
+      return this.errorFor(context.resolved(callee));
     } else {
       return Ok(null);
     }

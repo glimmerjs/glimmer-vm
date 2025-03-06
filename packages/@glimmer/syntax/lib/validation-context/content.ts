@@ -8,7 +8,6 @@ import type {
   InvokeKind,
   InvokeParentContext,
   NameNode,
-  VariableReferenceContext,
 } from './validation-context';
 
 import { loc } from '../source/span-list';
@@ -92,10 +91,12 @@ export class InvokeBlockValidationContext implements AnyInvokeParentContext {
     this.#block = span;
   }
 
-  callee(callee: NameNode): VariableReferenceContext;
-  callee(callee: AnyNode): ValueValidationContext;
-  callee(callee: AnyNode) {
-    return getCalleeContext('block', this, callee);
+  resolved(callee: NameNode) {
+    return this.callee(callee).resolved(callee);
+  }
+
+  callee(callee: AnyNode): ValueValidationContext {
+    return ValueValidationContext.callee('block', this, loc(callee));
   }
 
   args(args: ArgsNode) {
@@ -109,6 +110,20 @@ export function getCalleeContext(kind: InvokeKind, context: InvokeParentContext,
   if (isResolvedName(callee)) {
     return ValueValidationContext.callee(kind, context, loc(callee)).resolved(callee);
   } else if (hasCallee(callee)) {
+    return getCalleeContext(kind, context, callee.callee);
+  } else if (hasResolved(callee)) {
+    return getCalleeContext(kind, context, callee.resolved);
+  } else {
+    return ValueValidationContext.callee(kind, context, loc(callee));
+  }
+}
+
+export function getValueCalleeContext(
+  kind: InvokeKind,
+  context: InvokeParentContext,
+  callee: AnyNode
+) {
+  if (hasCallee(callee)) {
     return getCalleeContext(kind, context, callee.callee);
   } else if (hasResolved(callee)) {
     return getCalleeContext(kind, context, callee.resolved);
