@@ -319,8 +319,8 @@ export class BuildElement {
     this.builder = new Builder();
   }
 
-  simple(tag: SourceSlice, body: ASTv2.ContentNode[], loc: SourceSpan): ASTv2.SimpleElement {
-    return new ASTv2.SimpleElement({
+  simple(tag: SourceSlice, body: ASTv2.ContentNode[], loc: SourceSpan): ASTv2.SimpleElementNode {
+    return new ASTv2.SimpleElementNode({
       ...this.base,
       tag,
       body,

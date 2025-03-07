@@ -23,7 +23,7 @@ export class ClassifiedComponent implements Classified {
       (value) =>
         new mir.ComponentArgument({
           loc: attr.loc,
-          key: name,
+          name: name,
           value,
         })
     );

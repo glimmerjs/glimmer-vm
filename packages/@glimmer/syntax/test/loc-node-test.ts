@@ -1,6 +1,5 @@
 import type { AST, src } from '@glimmer/syntax';
-import { localAssert } from '@glimmer/debug-util';
-import { preprocess as parse, utils } from '@glimmer/syntax';
+import { preprocess as parse } from '@glimmer/syntax';
 import { guardArray } from '@glimmer-workspace/test-utils';
 
 QUnit.module('[glimmer-syntax] Parser - Location Info');
@@ -297,8 +296,7 @@ test('block with block params', () => {
   let statement = ast.body[1];
   if (assertNodeType(statement, 'BlockStatement')) {
     let block = statement.program;
-    const names = block.params.names;
-    localAssert(!utils.isResultsError(names), `Expected names to be valid, but got: ${names}`);
+    const names = block.params;
 
     if (assertNodeType(names[0], 'VarHead')) {
       locEqual(names[0], 2, 15, 2, 18, 'bar');
@@ -329,8 +327,7 @@ a
   if (assertNodeType(statement, 'BlockStatement')) {
     let block = statement.program;
 
-    const names = block.params.names;
-    localAssert(!utils.isResultsError(names), `Expected names to be valid, but got: ${names}`);
+    const names = block.params;
 
     if (assertNodeType(names[0], 'VarHead')) {
       locEqual(names[0], 3, 1, 3, 4, 'bar');
@@ -469,8 +466,8 @@ test('elment with block params edge case: block-params like attribute names', ()
 
   let element = ast.body[1];
   if (assertNodeType(element, 'ElementNode')) {
-    const names = element.params.names;
-    localAssert(!utils.isResultsError(names), `Expected names to be valid, but got: ${names}`);
+    const names = element.params;
+
     if (assertNodeType(names[0], 'VarHead')) {
       locEqual(names[0], 2, 30, 2, 33, 'bar');
     }

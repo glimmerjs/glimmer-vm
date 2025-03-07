@@ -22,7 +22,7 @@ export interface BlockParams extends BaseNode {
 
 export interface Block extends CommonProgram {
   type: 'Block';
-  params: BlockParams;
+  params: VarHead[];
   chained?: boolean;
 
   /**
@@ -31,6 +31,8 @@ export interface Block extends CommonProgram {
    * @deprecated use params instead
    */
   blockParams: string[];
+
+  paramsNode: BlockParams;
 }
 
 export type EntityEncodingState = 'transformed' | 'raw';
@@ -115,7 +117,7 @@ export interface ElementNode extends BaseNode {
   errors?: Optional<{
     eof?: Optional<ErrorNode>;
   }>;
-  params: BlockParams;
+  params: VarHead[];
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
   children: Statement[];
@@ -142,6 +144,8 @@ export interface ElementNode extends BaseNode {
    * errors properly
    */
   blockParams: string[];
+
+  paramsNode: BlockParams;
 }
 
 export type StatementName =

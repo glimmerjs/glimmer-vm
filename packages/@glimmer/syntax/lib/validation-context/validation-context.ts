@@ -17,11 +17,15 @@ import { SourceSpan } from '../source/loc/span';
 import { loc } from '../source/span-list';
 import { AppendValueContext } from './append';
 import { ArgsContext, NamedArgContext, PositionalArgsContext } from './args';
-import { AngleBracketContext, InvokeBlockValidationContext } from './content';
+import { AngleBracketContext, InvokeBlockContext } from './content';
 
-export type AnyNode = HasSourceSpan & { type: string };
+export type AnyNode = { loc: SourceSpan; type: string };
 export type AppendValueNode = AnyNode & { value: AnyNode };
-export type ArgsNode = HasSourceSpan & { positional: AnyNode; named: AnyNode };
+export type ArgsNode = {
+  loc: SourceSpan;
+  positional: { loc: SourceSpan };
+  named: { loc: SourceSpan };
+};
 export type NameNode = AnyNode & {
   type: 'ResolvedName' | 'UnresolvedBinding';
   name: string;
@@ -432,6 +436,10 @@ export class ValueValidationContext {
     return new PathValidationContext(this, loc(node), describeValueParent(this.#parent)).head(node);
   }
 
+  unresolved(node: NameNode): VariableReferenceContext {
+    return this.resolved(node);
+  }
+
   custom(node: KeywordNode): InvokeCustomSyntaxContext {
     return InvokeCustomSyntaxContext.expr(this, node);
   }
@@ -623,7 +631,8 @@ export interface AnyAmbiguousParentContext extends AnyValidationContext {
 
 export type InvokeParentContext =
   | InvokeElementParameterContext
-  | InvokeBlockValidationContext
+  | AngleBracketContext
+  | InvokeBlockContext
   | AppendInvokeContext
   | InvokeCustomSyntaxContext
   | SubExpressionContext;
@@ -684,7 +693,7 @@ export type ArgsParentValidationContext =
   | SubExpressionContext
   | AppendInvokeContext
   | InvokeCustomSyntaxContext
-  | InvokeBlockValidationContext;
+  | InvokeBlockContext;
 
 export class KeywordValidationContext {
   readonly context: SourceSpan;
@@ -808,7 +817,7 @@ export type {
 } from './args';
 export type {
   AngleBracketContext,
-  InvokeBlockValidationContext,
+  InvokeBlockContext,
   SomeContentValidationContext,
 } from './content';
 export type {
@@ -845,6 +854,6 @@ export const element = AngleBracketContext.element;
 /**
  * Validate the syntax of a block (i.e. `{{#block}}`)
  */
-export const block = InvokeBlockValidationContext.of;
+export const block = InvokeBlockContext.of;
 
 export const error = CustomErrorContext.for;

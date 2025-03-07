@@ -299,7 +299,7 @@ export function visitComponentArguments(
       (value) =>
         new mir.ComponentArgument({
           loc: arg.loc,
-          key: arg.name,
+          name: arg.name,
           value,
         })
     );
@@ -329,7 +329,7 @@ export function visitCurlyNamedArguments(
       (value) =>
         new mir.CurlyNamedArgument({
           loc: arg.loc,
-          key: arg.name,
+          name: arg.name,
           value,
         })
     );

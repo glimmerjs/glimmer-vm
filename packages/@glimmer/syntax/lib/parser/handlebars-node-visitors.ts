@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type { Nullable, Recast } from '@glimmer/interfaces';
 import type { Tokenizer, TokenizerState } from 'simple-html-tokenizer';
-import { getLast, isPresentArray, localAssert, unwrap } from '@glimmer/debug-util';
+import { exhausted, getLast, isPresentArray, localAssert, unwrap } from '@glimmer/debug-util';
 
 import type { ParserNodeBuilder, StartTag } from '../parser';
 import type * as src from '../source/api';
@@ -679,17 +679,13 @@ function acceptCallNodes(
 ): CallNodes {
   let path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
 
-  let start: SourceOffset;
-
   switch (node.path.type) {
     case 'PathExpression':
       path = compiler.PathExpression(node.path);
-      start = path.loc.getStart();
       break;
 
     case 'SubExpression':
       path = compiler.SubExpression(node.path);
-      start = path.loc.getStart();
       break;
 
     case 'StringLiteral':
@@ -709,16 +705,24 @@ function acceptCallNodes(
       } else {
         value = 'undefined';
       }
-      throw generateSyntaxError(
-        `${node.path.type} "${
+
+      path = b.error(
+        `\`${
           node.path.type === 'StringLiteral' ? node.path.original : value
-        }" cannot be called as a sub-expression, replace (${value}) with ${value}`,
-        compiler.source.highlightFor(node.path, 'invalid sub-expression'),
-        { full: compiler.source.spanFor(node.loc) }
+        }\` cannot be called. Consider replacing \`(${value})\` with \`${value}\` if you meant to use it as a value`,
+        compiler.source
+          .highlightFor(node)
+          .withPrimary(
+            compiler.source.highlightFor(
+              node.path,
+              `${literalDescription(node.path)} is not callable`
+            )
+          )
       );
     }
   }
 
+  const start = path.loc.getStart();
   const params = node.params.map((e) => compiler.acceptNode<HBS.Expression['type']>(e));
 
   // if there is no hash, position it as a collapsed node immediately after the last param (or the
@@ -733,6 +737,23 @@ function acceptCallNodes(
       });
 
   return { path, params, hash, loc: start.until(hash.loc.getEnd()) };
+}
+
+function literalDescription(literal: HBS.Literal) {
+  switch (literal.type) {
+    case 'StringLiteral':
+      return 'string';
+    case 'NumberLiteral':
+      return 'number';
+    case 'BooleanLiteral':
+      return 'boolean';
+    case 'UndefinedLiteral':
+      return 'undefined';
+    case 'NullLiteral':
+      return 'null';
+    default:
+      exhausted(literal);
+  }
 }
 
 function addElementModifier(
