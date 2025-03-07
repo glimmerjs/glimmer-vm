@@ -10,6 +10,7 @@ import type {
   ElementModifier,
   HtmlOrSplatAttr,
   ResolvedElementModifier,
+  SomeElementModifier,
 } from './attr-block';
 import type { DynamicCallee } from './base';
 import type { KeywordExpression, LiteralExpression, PathExpression } from './expr';
@@ -39,7 +40,7 @@ export type ContentNode =
   | InvokeResolvedBlock
   | InvokeAngleBracketComponent
   | InvokeResolvedAngleBracketComponent
-  | SimpleElement
+  | SimpleElementNode
   | GlimmerComment
   | ASTv1.ErrorNode;
 
@@ -113,11 +114,13 @@ export class InvokeResolvedBlock extends node('InvokeResolvedBlock').fields<{
   readonly isResolved = true;
 }
 
+export type InvokeSomeBlock = InvokeBlock | InvokeResolvedBlock;
+
 interface BaseInvokeComponentFields {
   blocks: NamedBlocks;
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
-  modifiers: readonly (ElementModifier | ResolvedElementModifier)[];
+  modifiers: readonly SomeElementModifier[];
   error?: Optional<ASTv1.ErrorNode>;
 }
 
@@ -150,6 +153,10 @@ export class InvokeResolvedAngleBracketComponent extends node(
   }
 }
 
+export type InvokeSomeAngleBracketComponent =
+  | InvokeAngleBracketComponent
+  | InvokeResolvedAngleBracketComponent;
+
 function getComponentArgs(
   componentArgs: readonly ComponentArg[],
   calleeSpan: SourceSpan
@@ -173,7 +180,7 @@ interface SimpleElementOptions extends BaseNodeFields {
  * Corresponds to a simple HTML element. The AST allows component arguments and modifiers to support
  * future extensions.
  */
-export class SimpleElement extends node('SimpleElement').fields<SimpleElementOptions>() {
+export class SimpleElementNode extends node('SimpleElement').fields<SimpleElementOptions>() {
   get args(): ComponentArgs {
     let entries = this.componentArgs.map((a) => a.toComponentArgument());
 
@@ -187,4 +194,4 @@ export type ElementNode =
   | NamedBlock
   | InvokeAngleBracketComponent
   | InvokeResolvedAngleBracketComponent
-  | SimpleElement;
+  | SimpleElementNode;

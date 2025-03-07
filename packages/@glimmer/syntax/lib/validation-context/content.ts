@@ -17,7 +17,6 @@ import {
   hasCallee,
   hasResolved,
   isResolvedName,
-  PathValidationContext,
   ValueValidationContext,
 } from './validation-context';
 
@@ -57,11 +56,8 @@ export class AngleBracketContext implements AnyValidationContext {
     }
   }
 
-  tag<N extends AnyNode>(name: N): PathValidationContext {
-    return new PathValidationContext(this, loc(name), (path) => ({
-      attempted: `invoke \`${path}\` as a component`,
-      describe: 'component name',
-    }));
+  tag<N extends AnyNode>(name: N): ValueValidationContext {
+    return ValueValidationContext.callee('component', this, loc(name));
   }
 
   attr(attr: HasSourceSpan) {
@@ -77,9 +73,9 @@ export class AngleBracketContext implements AnyValidationContext {
   }
 }
 
-export class InvokeBlockValidationContext implements AnyInvokeParentContext {
+export class InvokeBlockContext implements AnyInvokeParentContext {
   static of(this: void, span: AnyNode) {
-    return new InvokeBlockValidationContext(loc(span));
+    return new InvokeBlockContext(loc(span));
   }
 
   readonly type = 'block';
@@ -104,7 +100,7 @@ export class InvokeBlockValidationContext implements AnyInvokeParentContext {
   }
 }
 
-export type SomeContentValidationContext = AngleBracketContext | InvokeBlockValidationContext;
+export type SomeContentValidationContext = AngleBracketContext | InvokeBlockContext;
 
 export function getCalleeContext(kind: InvokeKind, context: InvokeParentContext, callee: AnyNode) {
   if (isResolvedName(callee)) {

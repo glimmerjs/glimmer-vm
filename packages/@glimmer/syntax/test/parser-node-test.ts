@@ -1,6 +1,15 @@
 import type { Dict } from '@glimmer/interfaces';
 import type { ASTv1 } from '@glimmer/syntax';
-import { builders as b, preprocess as parse } from '@glimmer/syntax';
+import { localAssert } from '@glimmer/debug-util';
+import {
+  builders as b,
+  normalize,
+  preprocess as parse,
+  quoteReportable,
+  src,
+  verifyTemplate,
+} from '@glimmer/syntax';
+import { highlightError } from '@glimmer-workspace/integration-tests';
 import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 
 import { astEqual } from './support';
@@ -1048,33 +1057,46 @@ test('undefined literal as path throws error', (assert) => {
   );
 });
 
+function verify(template: string, options: { strict: boolean } = { strict: true }) {
+  const source = new src.Source(template, 'test-module');
+  const [ast] = normalize(source, { lexicalScope: () => false });
+
+  const [first, ...rest] = verifyTemplate(ast, options);
+
+  localAssert(rest.length === 0, 'Expected no additional errors');
+
+  if (first) {
+    throw quoteReportable(first);
+  }
+}
+
 test('null literal as path throws error', (assert) => {
   assert.throws(
     () => {
-      parse('{{(null)}}', { meta: { moduleName: 'test-module' } });
+      verify('{{(null)}}');
     },
-    syntaxErrorFor(
-      `NullLiteral "null" cannot be called as a sub-expression, replace (null) with null`,
-      'null',
-      'test-module',
-      1,
-      3
-    )
+    highlightError(
+      `\`null\` cannot be called. Consider replacing \`(null)\` with \`null\` if you meant to use it as a value`
+    )`
+      1 | {{(null)}}
+        |   -====-
+        |     \== null is not callable
+    `
   );
 });
 
 test('number literal as path throws error', (assert) => {
   assert.throws(
     () => {
-      parse('{{(42)}}', { meta: { moduleName: 'test-module' } });
+      verify('{{(42)}}');
     },
-    syntaxErrorFor(
-      `NumberLiteral "42" cannot be called as a sub-expression, replace (42) with 42`,
-      '42',
-      'test-module',
-      1,
-      3
-    )
+    highlightError(
+      `\`42\` cannot be called. Consider replacing \`(42)\` with \`42\` if you meant to use it as a value`
+    )`
+      1 | {{(42)}}
+        |   -==-
+        |     \== 42 is not callable
+    `
   );
 });
 

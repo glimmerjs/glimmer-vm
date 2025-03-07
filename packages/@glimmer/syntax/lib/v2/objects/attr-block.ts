@@ -64,6 +64,8 @@ export class ResolvedElementModifier extends node('ResolvedElementModifier').fie
   readonly isResolved = true;
 }
 
+export type SomeElementModifier = ElementModifier | ResolvedElementModifier;
+
 export interface AttrNodeOptions {
   name: SourceSlice;
   value: AttrValueNode;

@@ -217,7 +217,7 @@ export class ContentSerializer {
     };
   }
 
-  simpleElement(node: ASTv2.SimpleElement): SerializedSimpleElement {
+  simpleElement(node: ASTv2.SimpleElementNode): SerializedSimpleElement {
     return {
       type: 'SimpleElement',
       loc: node.loc.serialize(),

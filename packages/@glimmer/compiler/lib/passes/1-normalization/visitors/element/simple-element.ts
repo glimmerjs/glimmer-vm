@@ -11,7 +11,7 @@ import { visitContentList } from '../statements';
 export class ClassifiedSimpleElement implements Classified {
   constructor(
     private tag: SourceSlice,
-    private element: ASTv2.SimpleElement,
+    private element: ASTv2.SimpleElementNode,
     readonly dynamicFeatures: boolean
   ) {}
 

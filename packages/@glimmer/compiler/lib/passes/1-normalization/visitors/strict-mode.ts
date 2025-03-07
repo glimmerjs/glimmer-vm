@@ -539,6 +539,7 @@ export default class ValidatorPass {
           return this.errorFor(
             context
               .tag(tag)
+              .path()
               .head(tag)
               .addNotes(
                 `If you wanted to create an element with that name, convert it to lowercase - \`<${tag.name.toLowerCase()}>\``

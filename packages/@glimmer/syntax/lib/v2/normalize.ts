@@ -163,7 +163,16 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
         type: 'unresolved';
         callee: ASTv2.PathExpression | ASTv2.KeywordExpression;
         loc: SourceSpan;
+      }
+    | {
+        type: 'error';
+        callee: ASTv1.ErrorNode;
+        loc: SourceSpan;
       } {
+    if (node.type === 'Error') {
+      return { type: 'error', callee: node, loc: node.loc };
+    }
+
     if (
       node.type === 'PathExpression' &&
       node.head.type === 'VarHead' &&
@@ -330,9 +339,6 @@ class ExpressionNormalizer {
         return this.strictPath(expr);
       case 'SubExpression': {
         // expr.path used to incorrectly have the type ASTv1.Expression
-        if (isLiteral(expr.path)) {
-          assertIllegalLiteral(expr.path, expr.loc);
-        }
 
         const result = this.block.getCallee(expr.path, this);
 
@@ -633,8 +639,8 @@ class StatementNormalizer {
     );
   }
 
-  Block({ body, loc, params }: ASTv1.Block): ASTv2.Block {
-    let child = this.block.child(params);
+  Block({ body, loc, paramsNode }: ASTv1.Block): ASTv2.Block {
+    let child = this.block.child(paramsNode);
     let normalizer = new StatementNormalizer(child);
     return new BlockChildren(
       this.block.loc(loc),
@@ -680,7 +686,7 @@ class ElementNormalizer {
     let modifiers = element.modifiers.map((m) => this.modifier(m));
 
     // the element's block params are in scope for the children
-    let child = this.ctx.child(element.params);
+    let child = this.ctx.child(element.paramsNode);
     let normalizer = new StatementNormalizer(child);
 
     let childNodes = element.children.map((s) => normalizer.normalize(s));
@@ -699,9 +705,9 @@ class ElementNormalizer {
      * _allowed_ in the context in question, and that's a better error message than "invalid block
      * params" when the block params aren't even allowed in the first place.
      */
-    let children = new ElementChildren(el, loc, childNodes, element.params, this.ctx);
+    let children = new ElementChildren(el, loc, childNodes, element.paramsNode, this.ctx);
 
-    const params = new BlockParamsNode(element.params);
+    const params = new BlockParamsNode(element.paramsNode);
 
     for (const error of params.errors) {
       children.addError(error);
@@ -1179,7 +1185,7 @@ class ElementChildren extends Children {
     );
   }
 
-  assertElement(name: SourceSlice): ASTv2.SimpleElement {
+  assertElement(name: SourceSlice): ASTv2.SimpleElementNode {
     if (this.#blockParams.isPresent()) {
       this.addError(
         b.error(
