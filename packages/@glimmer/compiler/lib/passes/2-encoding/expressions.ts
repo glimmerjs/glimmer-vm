@@ -259,12 +259,12 @@ export function encodeComponentBlockArgs(
   }
 }
 
-function encodeNamedArgument({ key, value }: mir.CurlyNamedArgument): HashPair {
-  return [key.chars, encodeExpr(value)];
+function encodeNamedArgument({ name, value }: mir.CurlyNamedArgument): HashPair {
+  return [name.chars, encodeExpr(value)];
 }
 
-function encodeComponentArgument({ key, value }: mir.ComponentArgument): HashPair {
-  return [key.chars, encodeAttrValue(value)];
+function encodeComponentArgument({ name, value }: mir.ComponentArgument): HashPair {
+  return [name.chars, encodeAttrValue(value)];
 }
 
 function This(): WireFormat.Expressions.GetLocalSymbol {

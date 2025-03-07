@@ -60,16 +60,19 @@ class Builders {
     return {
       type: 'Block',
       body,
-      params: {
+      paramsNode: {
         type: 'BlockParams',
         names: params,
         loc: blockParamsLoc,
       },
+      get params() {
+        return resultsToArray(this.paramsNode.names);
+      },
       get blockParams() {
-        return resultsToArray(this.params.names).map((p) => p.name);
+        return this.params.map((p) => p.name);
       },
       set blockParams(params: string[]) {
-        this.params = {
+        this.paramsNode = {
           type: 'BlockParams',
           names: params.map((name) => {
             return b.var({ name, loc: SourceSpan.synthetic(name) });
@@ -235,7 +238,8 @@ class Builders {
       path,
       attributes,
       modifiers,
-      params: {
+      params: resultsToArray(params),
+      paramsNode: {
         type: 'BlockParams',
         names: params,
         loc: blockParamsLoc,

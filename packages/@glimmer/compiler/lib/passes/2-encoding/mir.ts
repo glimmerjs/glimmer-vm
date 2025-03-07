@@ -456,7 +456,7 @@ export type PresentCurlyNamedArguments = CurlyNamedArguments & {
   entries: PresentList<CurlyNamedArgument>;
 };
 export class CurlyNamedArgument extends node('NamedArgument').fields<{
-  key: SourceSlice;
+  name: SourceSlice;
   value: ExpressionValueNode | ASTv2.UnresolvedBinding;
 }>() {}
 
@@ -464,7 +464,7 @@ export type PresentComponentArguments = ComponentArguments & {
   entries: PresentList<ComponentArgument>;
 };
 export class ComponentArgument extends node('ComponentArgument').fields<{
-  key: SourceSlice;
+  name: SourceSlice;
   value: ComponentArgumentValue;
 }>() {}
 

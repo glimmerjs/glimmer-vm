@@ -133,7 +133,7 @@ function visitInvokeBlock(
 }
 
 function visitSimpleElement(
-  element: ASTv2.SimpleElement,
+  element: ASTv2.SimpleElementNode,
   state: NormalizationState
 ): Result<mir.Content> {
   return new ClassifiedElement(

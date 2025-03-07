@@ -11,6 +11,7 @@ import type {
   ResolvedElementModifier,
 } from './attr-block';
 import type { GlimmerParentNodeOptions } from './base';
+import type { SimpleElementNode } from './content';
 import type { BaseNodeFields } from './node';
 
 import { SpanList } from '../../source/span-list';
@@ -40,6 +41,8 @@ export class Template extends node().fields<
 export class Block extends node().fields<
   { scope: BlockSymbolTable } & GlimmerParentNodeOptions
 >() {}
+
+export type ParentNode = Block | Template | SimpleElementNode;
 
 /**
  * Corresponds to a collection of named blocks.

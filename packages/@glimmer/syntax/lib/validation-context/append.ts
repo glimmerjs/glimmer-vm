@@ -66,7 +66,6 @@ export class AppendValueContext {
     return ValueValidationContext.append(this, loc(value)).resolved(value);
   }
 
-  append(value: NameNode): VariableReferenceContext;
   append<T extends AnyNode>(
     value: T
   ): T extends NameNode
