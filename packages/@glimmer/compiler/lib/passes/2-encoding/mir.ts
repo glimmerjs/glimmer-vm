@@ -23,17 +23,17 @@ export class Template extends node('Template').fields<{
 
 export class CustomNamedArgument<T> {
   static from<T>(arg: ASTv2.CurlyArgument, value: T): CustomNamedArgument<T> {
-    return new CustomNamedArgument({ loc: arg.loc, key: arg.name, value });
+    return new CustomNamedArgument({ loc: arg.loc, name: arg.name, value });
   }
 
   readonly type = 'CustomNamedArgument';
   readonly loc: SourceSpan;
-  readonly key: SourceSlice;
+  readonly name: SourceSlice;
   readonly value: T;
 
-  constructor(fields: { loc: SourceSpan; key: SourceSlice; value: T }) {
+  constructor(fields: { loc: SourceSpan; name: SourceSlice; value: T }) {
     this.loc = fields.loc;
-    this.key = fields.key;
+    this.name = fields.name;
     this.value = fields.value;
   }
 }

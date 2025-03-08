@@ -1,6 +1,6 @@
 import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
-import { highlightCode, highlightedError, src, Validation } from '@glimmer/syntax';
+import { GlimmerSyntaxError, highlightCode, src, Validation } from '@glimmer/syntax';
 
 export function highlight(strings: TemplateStringsArray, ...args: string[]) {
   return highlightCode(
@@ -9,11 +9,11 @@ export function highlight(strings: TemplateStringsArray, ...args: string[]) {
 }
 
 export function highlightError(error: string, notes?: string[]) {
-  return (strings: TemplateStringsArray, ...args: string[]) => {
+  return (strings: TemplateStringsArray, ...args: string[]): GlimmerSyntaxError => {
     const highlighted = highlightParts(highlightToParts(strings, ...args), {
       moduleName: 'test-module',
     });
-    return highlightedError(highlighted, { error, notes });
+    return GlimmerSyntaxError.highlight(error, highlighted.addNotes(notes ?? []));
   };
 }
 

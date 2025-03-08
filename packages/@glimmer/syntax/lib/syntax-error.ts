@@ -1,4 +1,4 @@
-import type { Optional } from '@glimmer/interfaces';
+import type { Nullable, Optional } from '@glimmer/interfaces';
 
 import type * as src from './source/api';
 import type * as ASTv1 from './v1/nodes-v1';
@@ -6,41 +6,43 @@ import type { ReportableContext } from './validation-context/validation-context'
 
 import * as Validation from './validation-context/validation-context';
 
-export interface GlimmerSyntaxError extends Error {
-  location: src.SourceSpan | null;
-  code: string | null;
+export class GlimmerSyntaxError extends SyntaxError {
+  static highlight(error: string, highlights: Validation.IntoHighlight) {
+    return new GlimmerSyntaxError(error, Validation.Highlight.from(highlights));
+  }
+
+  static forErrorNode(node: ASTv1.ErrorNode) {
+    return new GlimmerSyntaxError(node.message, node.highlight);
+  }
+
+  readonly location: Nullable<src.SourceSpan>;
+  readonly code: Nullable<string>;
+  #highlight: Validation.Highlight;
+  #message: string;
+  #notes: Optional<string[]>;
+
+  constructor(message: string, highlight: Validation.Highlight) {
+    super(buildMessage(highlight, { error: message }));
+    const loc = highlight.primary.loc;
+    this.location = loc;
+    this.code = loc.asString();
+    this.#highlight = highlight;
+    this.#message = message;
+  }
 }
 
 export function quoteReportable(context: ReportableContext): GlimmerSyntaxError {
-  return highlightedError(context.highlights(), { error: context.error, notes: context.notes });
+  return GlimmerSyntaxError.highlight(context.message, context.highlights());
 }
 
 export function generateSyntaxError(
   message: string,
-  location: Validation.IntoHighlightedSpan,
-  options?: { full?: Optional<src.SourceSpan> }
+  location: Validation.IntoHighlightedSpan
 ): GlimmerSyntaxError {
-  return highlightedError(Validation.Highlight.fromSpan(location, { full: options?.full }), {
-    error: message,
-  });
+  return GlimmerSyntaxError.highlight(message, Validation.Highlight.fromSpan(location));
 }
 
-export function highlightAstError(error: ASTv1.ErrorNode) {
-  return highlightedError(error.highlight, { error: error.message, notes: error.notes });
-}
-
-export function highlightedError(
-  highlights: Validation.IntoHighlight,
-  options: { error: string; notes?: Optional<string[]> }
-): GlimmerSyntaxError {
-  const highlight = Validation.Highlight.from(highlights);
-  return syntaxError(highlight, options);
-}
-
-export function syntaxError(
-  highlight: Validation.Highlight,
-  options: { error: string; notes?: Optional<string[]> }
-): GlimmerSyntaxError {
+function buildMessage(highlight: Validation.Highlight, options: { error: string }) {
   const loc = highlight.full;
   const module = loc.module;
   let { line, column } = highlight.primary.loc.startPosition;
@@ -48,25 +50,20 @@ export function syntaxError(
   const quotedCode = highlightCode(highlight);
   const where = `(error occurred in '${module}' @ line ${line} : column ${column})`;
 
-  let message: string;
-
-  const allNotes = [...(options.notes ?? [])];
+  const allNotes = [...highlight.notes];
 
   if (quotedCode || allNotes.length > 0) {
-    message = `${options.error}${quotedCode}${buildNotes(allNotes)}${where}`;
+    return `${options.error}${quotedCode}${buildNotes(allNotes)}${where}`;
   } else {
-    message = `${options.error} ${where}`;
+    return `${options.error} ${where}`;
   }
+}
 
-  const code = loc.asString();
-
-  let error = new Error(message) as GlimmerSyntaxError;
-
-  error.name = 'SyntaxError';
-  error.location = loc;
-  error.code = code;
-
-  return error;
+/**
+ * @deprecated Use `GlimmerSyntaxError.highlight` instead.
+ */
+export function syntaxError(message: string, highlight: Validation.Highlight): GlimmerSyntaxError {
+  return GlimmerSyntaxError.highlight(message, highlight);
 }
 
 function buildNotes(notes: string[]): string {
@@ -104,110 +101,310 @@ export function highlightCode(highlighted: Validation.Highlight): string {
     .forLine(highlight.startPosition.line, fullContext.startPosition.column)
     .add(codeString.split('\n')[0]);
 
-  const underline = drawUnderline(lines, highlighted);
+  const underline = new Underline(lines, highlighted).draw();
   return `\n\n${code}\n${underline}\n\n`;
 }
 
-function drawUnderline(buffers: LineBuffers, highlighted: Validation.Highlight) {
-  const { primary, expanded, prefix, suffix } = highlighted;
+interface Boxes {
+  T: { bend: string; before: string; after: string };
+  L: { bend: string; before: string; after: string };
+  '|': string;
+  '-': string;
+}
 
-  const full = highlighted.full.fullLines();
+const THIN: Boxes = {
+  T: { bend: '┬', before: '─', after: '─' },
+  L: { bend: '└', before: ' ', after: '─' },
+  '|': '│',
+  '-': '─',
+};
 
-  const lines = [];
+const THICK: Boxes = {
+  T: { bend: '┳', before: '━', after: '━' },
+  L: { bend: '┗', before: ' ', after: '━' },
+  '|': '┃',
+  '-': '━',
+};
 
-  const end = (expanded ?? primary).loc;
+type Label =
+  | {
+      type: Boxes;
+      shape: keyof Boxes;
+      span: src.SourceSpan;
+    }
+  | { type: 'blank'; span: src.SourceSpan }
+  | {
+      type: 'label';
+      label: string;
+    };
 
-  const line1 = buffers.blank(full.startPosition.column);
-  lines.push(line1);
+function thick(shape: keyof Boxes, span: Optional<src.SourceSpan>): Optional<Label> {
+  return span ? { type: THICK, shape, span } : undefined;
+}
 
-  const primaryLabel = primary.label;
-  const expandedLabel = expanded?.label;
+function blank(span: Optional<src.SourceSpan>): Optional<Label> {
+  return span ? { type: 'blank', span } : undefined;
+}
 
-  if (prefix) {
-    line1.until(prefix);
-    if (expandedLabel) line1.add(expanded.size === 1 ? '┬' : `─┬`);
-    line1.until(primary.loc, '─');
+function light(shape: keyof Boxes, span: Optional<src.SourceSpan>): Optional<Label> {
+  return span ? { type: THIN, shape, span } : undefined;
+}
+
+function label(label: string): Label {
+  return { type: 'label', label };
+}
+
+function labels(...labels: Optional<Label>[]): Label[] {
+  return labels.filter((l) => !!l);
+}
+
+class Underline {
+  #buffers: LineBuffers;
+  #highlighted: Validation.Highlight;
+
+  constructor(buffers: LineBuffers, highlighted: Validation.Highlight) {
+    this.#buffers = buffers;
+    this.#highlighted = highlighted;
   }
 
-  line1.until(primary.loc);
+  #prefix(): Optional<'line2' | 'line3'> {
+    const { prefix, primary, expanded } = this.#highlighted;
 
-  if (primaryLabel) {
-    line1.add(primary.size === 1 ? '┳' : `━┳`);
+    if (!prefix) {
+      return;
+    }
+
+    if (primary.label && expanded?.label) {
+      return 'line3';
+    } else if (expanded?.label) {
+      return 'line2';
+    }
   }
 
-  line1.untilEnd(primary.loc, '━');
+  #primary(): Optional<'line2' | 'line3'> {
+    const { prefix, suffix, primary, expanded } = this.#highlighted;
 
-  if (suffix) {
-    if (!prefix && expandedLabel) line1.add(suffix.size <= 2 ? '┬' : `─┬`);
-    line1.untilEnd(suffix, '─');
+    if (!primary.label) {
+      return;
+    }
+
+    if (!prefix && suffix && primary.label && expanded?.label) {
+      return 'line3';
+    } else if (primary.label) {
+      return 'line2';
+    }
   }
 
-  const line2 = buffers.blank(full.startPosition.column);
-  lines.push(line2);
+  #getLabels(): { line1: Label[]; line2?: Label[]; line3?: Label[] } | undefined {
+    const { prefix, suffix, primary, expanded } = this.#highlighted;
 
-  if (prefix && expandedLabel) {
-    line2.until(prefix);
-    if (primaryLabel) {
+    if (!primary.label && !expanded?.label) {
+      return;
+    }
+
+    const hasPrimaryLabel = !!primary.label;
+    const hasExpandedLabel = !!expanded?.label;
+
+    if (hasPrimaryLabel && hasExpandedLabel) {
+      if (prefix) {
+        // If there's a prefix, then the error looks like:
+        //
+        // | prefixprimarysuffix
+        // | ─┬────━┳━━━━━──────
+        // |  │     ┗━━━━━━━━━━━ primary label
+        // |  └───────────────── expanded label
+        return {
+          line1: labels(light('T', prefix), thick('T', primary.loc), light('-', suffix)),
+          line2: labels(
+            light('|', prefix),
+            thick('L', primary.loc),
+            thick('-', suffix),
+            label(primary.label)
+          ),
+          line3: labels(
+            light('L', prefix),
+            light('-', primary.loc),
+            light('-', suffix),
+            label(expanded.label)
+          ),
+        };
+      } else if (suffix) {
+        // Otherwise, the error looks like:
+        //
+        // | primarysuffix
+        // | ━┳━━━━━─┬────
+        // |  ┃      └──── expanded label
+        // |  ┗━━━━━━━━━━━ primary label
+        return {
+          line1: labels(thick('T', primary.loc), light('T', suffix)),
+          line2: labels(thick('|', primary.loc), light('L', suffix), label(expanded.label)),
+          line3: labels(thick('L', primary.loc), thick('-', suffix), label(primary.label)),
+        };
+      }
+    }
+
+    if (hasPrimaryLabel) {
       // If there's a primary label, then the label is on the next line
-      line2.add(prefix.size === 1 ? '│' : ' │');
+      //
+      // | prefixprimarysuffix
+      // | ──────━┳━━━━━──────
+      // |        ┗━━━━━━━━━━━ primary label
+      //
+      // | primarysuffix
+      // | ━┳━━━━━──────
+      // |  ┗━━━━━━━━━━━ primary label
+      //
+      // | prefixprimary
+      // | ──────━┳━━━━━
+      // |        ┗━━━━━ primary label
+      //
+      // | primary
+      // | ━┳━━━━━
+      // |  ┗━━━━━ primary label
+      return {
+        line1: labels(light('-', prefix), thick('T', primary.loc), light('-', suffix)),
+        line2: labels(
+          blank(prefix),
+          thick('L', primary.loc),
+          thick('-', suffix),
+          label(primary.label)
+        ),
+      };
+    }
+  }
+
+  draw() {
+    const highlighted = this.#highlighted;
+    const buffers = this.#buffers;
+    const labels = this.#getLabels();
+
+    if (!labels) {
+      return '';
+    }
+
+    const { line1, line2, line3 } = labels;
+
+    this.#line(line1);
+    this.#line(line2);
+    this.#line(line3);
+
+    return this.#buffers.done();
+  }
+
+  #line(labels: Optional<Label[]>) {
+    if (!labels) {
+      return;
+    }
+
+    const line = this.#buffers.blank(this.#highlighted.full.startPosition.column);
+
+    const first = this.#highlighted.prefix ?? this.#highlighted.primary.loc;
+
+    line.until(first);
+
+    for (const label of labels) {
+      this.#label(line, label);
+    }
+  }
+
+  #label(buffer: LineBuffer, label: Label) {
+    if (label.type === 'blank') {
+      buffer.untilEnd(label.span);
+    } else if (label.type === 'label') {
+      buffer.space().add(label.label);
+    } else if (label.shape === '-') {
+      buffer.untilEnd(label.span, label.type['-']);
     } else {
-      // Otherwise, it's on this line
-      line2.add(prefix.size === 1 ? '└' : ' └');
+      buffer.under(label.span, label.type, label.shape);
+    }
+  }
+
+  draw1() {
+    const highlighted = this.#highlighted;
+    const buffers = this.#buffers;
+    const { primary, expanded, prefix, suffix } = highlighted;
+
+    const full = highlighted.full.fullLines();
+
+    const end = (expanded ?? primary).loc;
+
+    const line1 = buffers.blank(full.startPosition.column);
+
+    const primaryLabel = primary.label;
+    const expandedLabel = expanded?.label;
+
+    line1.underline(prefix, { label: !!expandedLabel, boxes: THIN });
+    line1.until(primary.loc);
+    line1.underline(primary.loc, { label: !!primaryLabel, boxes: THICK });
+    line1.underline(suffix, { label: !!expandedLabel, boxes: THIN });
+
+    const line2 = buffers.blank(full.startPosition.column);
+
+    line2.until(prefix);
+
+    if (prefix && expandedLabel) {
+      if (primaryLabel) {
+        // If there's a primary label, then the label is on the next line
+        line2.add(prefix.size === 1 ? '│' : ' │');
+      } else {
+        // Otherwise, it's on this line
+        line2.add(prefix.size === 1 ? '└' : ' └');
+        line2.untilEnd(end, '─').space().add(expandedLabel);
+      }
+    }
+
+    if (primaryLabel) {
+      line2.until(primary.loc);
+      if (!prefix && expandedLabel) {
+        // In this case, the expanded label is on this line, next to the suffix, so the primary is on
+        // the next line.
+        line2.add(primary.size === 1 ? '┃' : ' ┃');
+      } else {
+        // In this case, the primary label is on this line
+        line2
+          .add(primary.size === 1 ? '┗' : ' ┗')
+          .untilEnd(end, '━')
+          .space()
+          .add(primaryLabel);
+      }
+    }
+
+    if (!prefix && suffix && expandedLabel) {
+      line2.until(suffix);
+      line2.add(suffix.size <= 2 ? '└' : ' └');
       line2.untilEnd(end, '─').space().add(expandedLabel);
     }
-  }
 
-  if (primaryLabel) {
-    line2.until(primary.loc);
-    if (!prefix && expandedLabel) {
-      // In this case, the expanded label is on this line, next to the suffix, so the primary is on
-      // the next line.
-      line2.add(primary.size === 1 ? '┃' : ' ┃');
-    } else {
-      // In this case, the primary label is on this line
-      line2
-        .add(primary.size === 1 ? '┗' : ' ┗')
-        .untilEnd(end, '━')
-        .space()
-        .add(primaryLabel);
+    if (!(primaryLabel && expandedLabel)) {
+      return buffers.done();
     }
-  }
 
-  if (!prefix && suffix && expandedLabel) {
-    line2.until(suffix);
-    line2.add(suffix.size <= 2 ? '└' : ' └');
-    line2.untilEnd(end, '─').space().add(expandedLabel);
-  }
+    const line3 = buffers.blank(full.startPosition.column);
 
-  if (!(primaryLabel && expandedLabel)) {
-    return lines.map((l) => `${l}\n`).join('');
-  }
-
-  const line3 = buffers.blank(full.startPosition.column);
-  lines.push(line3);
-
-  if (prefix && expandedLabel) {
-    line3.until(prefix);
-    line3.add(prefix.size === 1 ? '└' : ' └');
-    line3.untilEnd(end, '─').space().add(expandedLabel);
-  } else if (primaryLabel) {
-    line3.until(primary.loc);
-    if (!prefix && expandedLabel) {
-      // In this case, the expanded label is on this line, next to the suffix, so the primary is on
-      // the next line.
-      line3
-        .add(primary.size === 1 ? '┗' : ' ┗')
-        .untilEnd(end, '━')
-        .space()
-        .add(primaryLabel);
+    if (prefix && expandedLabel) {
+      line3.until(prefix);
+      line3.add(prefix.size === 1 ? '└' : ' └');
+      line3.untilEnd(end, '─').space().add(expandedLabel);
+    } else if (primaryLabel) {
+      line3.until(primary.loc);
+      if (!prefix && expandedLabel) {
+        // In this case, the expanded label is on this line, next to the suffix, so the primary is on
+        // the next line.
+        line3
+          .add(primary.size === 1 ? '┗' : ' ┗')
+          .untilEnd(end, '━')
+          .space()
+          .add(primaryLabel);
+      }
     }
-  }
 
-  return lines.map((l) => `${l}\n`).join('');
+    return buffers.done();
+  }
 }
 
 class LineBuffers {
   #lines: number[];
+  #buffers: LineBuffer[] = [];
 
   constructor(lines: number[]) {
     this.#lines = lines;
@@ -222,7 +419,13 @@ class LineBuffers {
   }
 
   blank(startColumn: number) {
-    return new LineBuffer(`${' '.repeat(this.#width)} | `, startColumn);
+    const buffer = new LineBuffer(`${' '.repeat(this.#width)} | `, startColumn);
+    this.#buffers.push(buffer);
+    return buffer;
+  }
+
+  done() {
+    return this.#buffers.map((l) => `${l}\n`).join('');
   }
 }
 
@@ -239,6 +442,52 @@ class LineBuffer {
   repeat(size: Optional<number>, repeat: string) {
     if (size === undefined) return this;
     return this.add(repeat.repeat(size));
+  }
+
+  under(span: src.SourceSpan, boxes: Boxes, shape: 'T' | 'L' | '|') {
+    this.until(span);
+
+    if (span.size === 0) {
+      this.add(boxes['|']);
+      // don't try to add anything else
+      return this;
+    }
+
+    if (shape === '|') {
+      this.add(boxes['|']);
+      this.untilEnd(span);
+      return this;
+    }
+
+    if (span.size > 1) {
+      this.add(boxes[shape].before);
+    }
+
+    this.add(boxes[shape].bend).untilEnd(span, boxes[shape].after);
+    return this;
+  }
+
+  underline(span: Optional<src.SourceSpan>, { label, boxes }: { label: boolean; boxes: Boxes }) {
+    if (!span) {
+      return this;
+    }
+
+    this.until(span);
+    if (label) {
+      switch (span.size) {
+        case 0:
+          this.add(boxes['|']);
+          // don't try to add anything else
+          return this;
+        case 1:
+          this.add(boxes['T']);
+          break;
+        default:
+          this.add(boxes['-']).add(boxes['T']);
+      }
+    }
+
+    return this.untilEnd(span, '─');
   }
 
   add(string: Optional<string>): this {
