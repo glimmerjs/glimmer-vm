@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { CURRIED_COMPONENT } from '@glimmer/constants';
-import { generateSyntaxError, highlightedError } from '@glimmer/syntax';
+import { generateSyntaxError, GlimmerSyntaxError } from '@glimmer/syntax';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
@@ -95,18 +95,14 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       if (!args.named.isEmpty()) {
         return Err(
-          highlightedError(
-            {
-              full: node.loc,
+          GlimmerSyntaxError.highlight(
+            `{{#if}} cannot receive named parameters, received ${args.named.entries
+              .map((e) => `\`${e.name.chars}\``)
+              .join(', ')}`,
+            args.named.loc
+              .highlight()
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              primary: args.named.entries[0]!.name.loc.highlight('invalid'),
-              expanded: args.named.loc,
-            },
-            {
-              error: `{{#if}} cannot receive named parameters, received ${args.named.entries
-                .map((e) => `\`${e.name.chars}\``)
-                .join(', ')}`,
-            }
+              .withPrimary(args.named.entries[0]!.name.loc.highlight('invalid'))
           )
         );
       }
@@ -115,17 +111,15 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       if (second) {
         return Err(
-          highlightedError(
-            {
-              full: node.loc,
-              primary: second.loc
-                .withEnd(args.positional.loc.getEnd())
-                .highlight(rest.length === 0 ? 'extra argument' : 'extra arguments'),
-              expanded: args.positional.loc.highlight('positional arguments'),
-            },
-            {
-              error: `{{#if}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
-            }
+          GlimmerSyntaxError.highlight(
+            `{{#if}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
+            args.positional.loc
+              .highlight('positional arguments')
+              .withPrimary(
+                second.loc
+                  .withEnd(args.positional.loc.getEnd())
+                  .highlight(rest.length === 0 ? 'extra argument' : 'extra arguments')
+              )
           )
         );
       }

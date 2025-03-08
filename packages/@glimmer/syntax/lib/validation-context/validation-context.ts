@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-private-class-members */
 import type { Optional } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
@@ -15,6 +16,7 @@ import type {
 
 import { SourceSpan } from '../source/loc/span';
 import { loc } from '../source/span-list';
+import { GlimmerSyntaxError } from '../syntax-error';
 import { AppendValueContext } from './append';
 import { ArgsContext, NamedArgContext, PositionalArgsContext } from './args';
 import { AngleBracketContext, InvokeBlockContext } from './content';
@@ -64,9 +66,9 @@ export interface AnyValidationContext {
 }
 
 export interface ReportableContext {
-  readonly error: string;
-  readonly notes: string[];
+  readonly message: string;
   highlights(): Highlight;
+  error(): GlimmerSyntaxError;
 }
 
 export type IntoHighlightedSpan = SourceSpan | { loc: HasSourceSpan; label?: Optional<string> };
@@ -86,12 +88,9 @@ export class Highlight {
     }
   }
 
-  static fromSpan(
-    from: IntoHighlightedSpan,
-    options?: { full?: Optional<HasSourceSpan> }
-  ): Highlight {
+  static fromSpan(from: IntoHighlightedSpan): Highlight {
     const span = HighlightedSpan.from(from);
-    return new Highlight(options?.full ? loc(options.full) : span.loc, span);
+    return new Highlight(span.loc, span);
   }
 
   static fromInfo(from: IntoHighlightInfo): Highlight {
@@ -111,6 +110,7 @@ export class Highlight {
   readonly full: SourceSpan;
   readonly primary: HighlightedSpan;
   readonly expanded: Optional<HighlightedSpan>;
+  readonly notes: string[] = [];
 
   private constructor(
     full: SourceSpan,
@@ -142,6 +142,16 @@ export class Highlight {
         return span;
       }
     }
+  }
+
+  addNote(note: string) {
+    this.notes.push(note);
+    return this;
+  }
+
+  addNotes(notes: string[]) {
+    this.notes.push(...notes);
+    return this;
   }
 }
 
@@ -180,7 +190,7 @@ export class HighlightedSpan {
 
   get size() {
     const size = this.loc.endPosition.column - this.loc.startPosition.column;
-    localAssert(size > 0, `The size of a highlight for an error must be greater than 0`);
+    localAssert(size >= 0, `The size of a highlight for an error must be greater than 0`);
     return size;
   }
 
@@ -219,14 +229,14 @@ export class VariableReferenceContext implements ReportableContext {
       ? { loc: this.#parent.span, label: this.what.describe }
       : undefined;
 
-    return Highlight.fromInfo({ full: this.context, primary, expanded });
+    return Highlight.fromInfo({ full: this.context, primary, expanded }).addNotes(this.#notes);
   }
 
   get what(): FullWhat {
     return this.#parent.what(this.#parent.span.asString());
   }
 
-  get error() {
+  get message() {
     const varName = this.#parent.span.isEqual(this.#span) ? 'it' : `\`${this.#span.asString()}\``;
     return resolutionError({ attemptedTo: this.what.attempted, unresolved: varName });
   }
@@ -239,11 +249,16 @@ export class VariableReferenceContext implements ReportableContext {
     return this.#name;
   }
 
-  get notes() {
-    return this.#notes;
+  error(): GlimmerSyntaxError {
+    return GlimmerSyntaxError.highlight(this.message, this.highlights());
   }
 
-  addNotes(...notes: string[]) {
+  addNote(note: string) {
+    this.#notes.push(note);
+    return this;
+  }
+
+  addNotes(notes: string[]) {
     this.#notes.push(...notes);
     return this;
   }
@@ -475,11 +490,10 @@ export class CustomErrorContext implements ReportableContext {
   }
 
   readonly context: SourceSpan;
-  readonly error: string;
+  readonly message: string;
   readonly problem: string;
   readonly #highlight: Highlight;
   readonly #header: Optional<SourceSpan>;
-  readonly #notes: string[] = [];
 
   constructor(
     error: string,
@@ -489,7 +503,7 @@ export class CustomErrorContext implements ReportableContext {
     header?: SourceSpan
   ) {
     this.context = content;
-    this.error = error;
+    this.message = error;
     this.problem = problem;
     this.#highlight = highlight;
     this.#header = header;
@@ -503,16 +517,21 @@ export class CustomErrorContext implements ReportableContext {
     return this.#highlight;
   }
 
+  error(): GlimmerSyntaxError {
+    return GlimmerSyntaxError.highlight(this.message, this.#highlight);
+  }
+
   highlights(): Highlight {
     return this.#highlight;
   }
 
-  get notes() {
-    return this.#notes;
+  addNote(note: string) {
+    this.#highlight.addNote(note);
+    return this;
   }
 
   addNotes(notes: string[]) {
-    this.#notes.push(...notes);
+    this.#highlight.addNotes(notes);
     return this;
   }
 }

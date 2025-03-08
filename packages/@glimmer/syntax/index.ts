@@ -28,10 +28,8 @@ export {
 export { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './lib/symbol-table';
 export {
   generateSyntaxError,
-  type GlimmerSyntaxError,
-  highlightAstError,
+  GlimmerSyntaxError,
   highlightCode,
-  highlightedError,
   quoteReportable,
   syntaxError,
 } from './lib/syntax-error';

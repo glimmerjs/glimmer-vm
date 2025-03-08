@@ -20,7 +20,7 @@ import type * as HBS from '../v1/handlebars-ast';
 import print from '../generation/print';
 import { voidMap } from '../generation/printer';
 import * as src from '../source/api';
-import { generateSyntaxError, highlightedError } from '../syntax-error';
+import { generateSyntaxError, GlimmerSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
 import Walker from '../traversal/walker';
 import { appendChild } from '../utils';
@@ -289,10 +289,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     const tagLoc = this.source.spanFor({ start: tag.start.toJSON(), end: tokenizerPos.toJSON() });
 
     if (tag.type === 'EndTag') {
-      throw generateSyntaxError(
+      throw GlimmerSyntaxError.highlight(
         `Invalid end tag: closing tag must not have attributes`,
-        attrLoc.highlight('invalid attribute'),
-        { full: tagLoc }
+        attrLoc.highlight('invalid attribute')
       );
     }
 
@@ -477,10 +476,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             this.tokenizer.consume();
           }
         } else if (next === '>' || next === '/') {
-          throw generateSyntaxError(
+          throw GlimmerSyntaxError.highlight(
             `Invalid block parameters syntax: incomplete block params, expecting "|" but the tag was closed prematurely`,
-            as.start.until(this.offset().move(1)).highlight('incomplete block params'),
-            { full: element.start.until(this.offset()) }
+            element.start
+              .until(this.offset())
+              .highlight()
+              .withPrimary(
+                as.start.until(this.offset().move(1)).highlight('incomplete block params')
+              )
           );
         } else {
           // slurp up anything else into the name, validate later
@@ -552,14 +555,12 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           const here = this.offset();
           const end = here.move(1);
 
-          throw highlightedError(
+          throw GlimmerSyntaxError.highlight(
+            `Invalid block parameters syntax: expecting "|" but the tag was closed prematurely`,
             {
               full: element.start.until(end),
               primary: here.until(end).highlight('unexpected closing tag'),
               expanded: as.start.until(end).highlight('block params'),
-            },
-            {
-              error: `Invalid block parameters syntax: expecting "|" but the tag was closed prematurely`,
             }
           );
         } else {
@@ -581,10 +582,12 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           state = { state: 'Done' };
           this.pending = {
             mustache: (loc: src.SourceSpan) => {
-              throw generateSyntaxError(
+              throw GlimmerSyntaxError.highlight(
                 `Invalid block parameters syntax: modifiers cannot follow block params`,
-                loc.highlight('invalid modifier'),
-                { full: element.start.until(this.offset()) }
+                element.start
+                  .until(this.offset())
+                  .highlight()
+                  .withPrimary(loc.highlight('invalid modifier'))
               );
             },
             eof: (loc: src.SourceOffset) => {
@@ -632,7 +635,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     do {
       if (state.state === 'ParseError') {
         element.params.push(state.error);
-        debugger;
         return;
       }
 
@@ -705,19 +707,15 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         if (a === undefined || (a.type === 'TextNode' && a.chars === '/')) {
           return head;
         } else {
-          throw highlightedError(
-            {
-              primary: (head.type === 'MustacheStatement' ? head : a).loc.highlight(
-                'invalid mustache'
-              ),
-              expanded: valueSpan.lastSelectedLine.highlight('missing quotes'),
-            },
-            {
-              error:
-                `An unquoted attribute value must be a string or a mustache, ` +
-                `preceded by whitespace or a '=' character, and ` +
-                `followed by whitespace, a '>' character, or '/>'`,
-            }
+          throw GlimmerSyntaxError.highlight(
+            `An unquoted attribute value must be a string or a mustache, ` +
+              `preceded by whitespace or a '=' character, and ` +
+              `followed by whitespace, a '>' character, or '/>'`,
+            valueSpan.lastSelectedLine
+              .highlight('missing quotes')
+              .withPrimary(
+                (head.type === 'MustacheStatement' ? head : a).loc.highlight('invalid mustache')
+              )
           );
         }
       }

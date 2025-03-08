@@ -1,6 +1,6 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { exhausted, getLast, isPresentArray, mapPresentArray } from '@glimmer/debug-util';
-import { ASTv2, KEYWORDS_TYPES, syntaxError } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, KEYWORDS_TYPES } from '@glimmer/syntax';
 
 import type { AnyOptionalList } from '../../../shared/list';
 import type { NormalizationState } from '../context';
@@ -98,7 +98,7 @@ export function visitExpr(
       return Ok(node);
 
     case 'Error':
-      return Err(syntaxError(node.highlight, { error: node.message }));
+      return Err(GlimmerSyntaxError.forErrorNode(node));
 
     default:
       exhausted(node);

@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { highlightAstError, quoteReportable, Validation as Validation } from '@glimmer/syntax';
+import { GlimmerSyntaxError, Validation as Validation } from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 
@@ -53,7 +53,7 @@ export default class ValidatorPass {
 
   NamedBlock(block: mir.NamedBlock): Result<null> {
     if (block.error) {
-      return Err(highlightAstError(block.error));
+      return Err(GlimmerSyntaxError.forErrorNode(block.error));
     }
     return this.ContentItems(block.body);
   }
@@ -541,7 +541,7 @@ export default class ValidatorPass {
               .tag(tag)
               .path()
               .head(tag)
-              .addNotes(
+              .addNote(
                 `If you wanted to create an element with that name, convert it to lowercase - \`<${tag.name.toLowerCase()}>\``
               )
           );
@@ -549,9 +549,9 @@ export default class ValidatorPass {
           return Ok(null);
         }
       case 'Keyword':
-        return this.errorFor(context.tag(tag).head(tag));
+        return this.errorFor(context.tag(tag).path().head(tag));
       default:
-        return this.PathOrVariableReference(tag, context.tag(tag));
+        return this.PathOrVariableReference(tag, context.tag(tag).path());
     }
   }
 
@@ -712,7 +712,7 @@ export default class ValidatorPass {
     context: Validation.AnyResolveParentContext
   ): Result<null> {
     if (callee.type === 'UnresolvedBinding') {
-      return this.errorFor(context.resolved(callee).addNotes(...(callee.notes ?? [])));
+      return this.errorFor(context.resolved(callee).addNotes(callee.notes ?? []));
     } else if (this.#strict) {
       return this.errorFor(context.resolved(callee));
     } else {
@@ -725,6 +725,6 @@ export default class ValidatorPass {
       return Ok(null);
     }
 
-    return Err(quoteReportable(context));
+    return Err(context.error());
   }
 }

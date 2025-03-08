@@ -5,7 +5,6 @@ import {
   builders as b,
   normalize,
   preprocess as parse,
-  quoteReportable,
   src,
   verifyTemplate,
 } from '@glimmer/syntax';
@@ -1057,6 +1056,24 @@ test('undefined literal as path throws error', (assert) => {
   );
 });
 
+function verifies(
+  template: string,
+  message: string,
+  options?: {
+    strict?: boolean;
+  }
+) {
+  return (raw: TemplateStringsArray, ...args: string[]) => {
+    const error = highlightError(message)(raw, ...args);
+
+    return () => {
+      QUnit.assert.throws(() => {
+        verify(template, { strict: options?.strict ?? true });
+      }, error);
+    };
+  };
+}
+
 function verify(template: string, options: { strict: boolean } = { strict: true }) {
   const source = new src.Source(template, 'test-module');
   const [ast] = normalize(source, { lexicalScope: () => false });
@@ -1066,26 +1083,31 @@ function verify(template: string, options: { strict: boolean } = { strict: true 
   localAssert(rest.length === 0, 'Expected no additional errors');
 
   if (first) {
-    throw quoteReportable(first);
+    throw first.error();
   }
 }
 
-test('null literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      verify('{{(null)}}');
-    },
-    highlightError(
-      `\`null\` cannot be called. Consider replacing \`(null)\` with \`null\` if you meant to use it as a value`
-    )`
-      1 | {{(null)}}
-        |   -====-
-        |     \== null is not callable
-    `
-  );
+test('null literal as path throws error', () => {
+  verifies(
+    '{{(null)}}',
+    '`null` cannot be called. Consider replacing `(null)` with `null` if you meant to use it as a value'
+  )`
+    1 | {{(null)}}
+      |   -====-
+      |     \== null is not callable
+  `();
 });
 
 test('number literal as path throws error', (assert) => {
+  verifies(
+    '{{(42)}}',
+    '`null` cannot be called. Consider replacing `(null)` with `null` if you meant to use it as a value'
+  )`
+    1 | {{(null)}}
+      |   -====-
+      |     \== null is not callable
+  `();
+
   assert.throws(
     () => {
       verify('{{(42)}}');
