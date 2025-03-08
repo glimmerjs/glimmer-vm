@@ -97,9 +97,7 @@ export function highlightCode(highlighted: Validation.Highlight): string {
   );
 
   const lines = new LineBuffers([...fullRange]);
-  const code = lines
-    .forLine(highlight.startPosition.line, fullContext.startPosition.column)
-    .add(codeString.split('\n')[0]);
+  const code = lines.forLine(highlight.startPosition.line).add(codeString.split('\n')[0]);
 
   const underline = new Underline(lines, highlighted).draw();
   return `\n\n${code}\n${underline}\n\n`;
@@ -167,32 +165,10 @@ class Underline {
     this.#highlighted = highlighted;
   }
 
-  #prefix(): Optional<'line2' | 'line3'> {
-    const { prefix, primary, expanded } = this.#highlighted;
+  #start() {
+    const { primary, expanded } = this.#highlighted;
 
-    if (!prefix) {
-      return;
-    }
-
-    if (primary.label && expanded?.label) {
-      return 'line3';
-    } else if (expanded?.label) {
-      return 'line2';
-    }
-  }
-
-  #primary(): Optional<'line2' | 'line3'> {
-    const { prefix, suffix, primary, expanded } = this.#highlighted;
-
-    if (!primary.label) {
-      return;
-    }
-
-    if (!prefix && suffix && primary.label && expanded?.label) {
-      return 'line3';
-    } else if (primary.label) {
-      return 'line2';
-    }
+    return expanded?.loc ?? primary.loc;
   }
 
   #getLabels(): { line1: Label[]; line2?: Label[]; line3?: Label[] } | undefined {
@@ -274,8 +250,6 @@ class Underline {
   }
 
   draw() {
-    const highlighted = this.#highlighted;
-    const buffers = this.#buffers;
     const labels = this.#getLabels();
 
     if (!labels) {
@@ -296,9 +270,9 @@ class Underline {
       return;
     }
 
-    const line = this.#buffers.blank(this.#highlighted.full.startPosition.column);
+    const line = this.#buffers.blank();
 
-    const first = this.#highlighted.prefix ?? this.#highlighted.primary.loc;
+    const first = this.#start();
 
     line.until(first);
 
@@ -312,10 +286,12 @@ class Underline {
       buffer.untilEnd(label.span);
     } else if (label.type === 'label') {
       buffer.space().add(label.label);
-    } else if (label.shape === '-') {
-      buffer.untilEnd(label.span, label.type['-']);
     } else {
-      buffer.under(label.span, label.type, label.shape);
+      if (label.shape === '-') {
+        buffer.untilEnd(label.span, label.type['-']);
+      } else {
+        buffer.under(label.span, label.type, label.shape);
+      }
     }
   }
 
@@ -328,7 +304,7 @@ class Underline {
 
     const end = (expanded ?? primary).loc;
 
-    const line1 = buffers.blank(full.startPosition.column);
+    const line1 = buffers.blank();
 
     const primaryLabel = primary.label;
     const expandedLabel = expanded?.label;
@@ -338,7 +314,7 @@ class Underline {
     line1.underline(primary.loc, { label: !!primaryLabel, boxes: THICK });
     line1.underline(suffix, { label: !!expandedLabel, boxes: THIN });
 
-    const line2 = buffers.blank(full.startPosition.column);
+    const line2 = buffers.blank();
 
     line2.until(prefix);
 
@@ -379,7 +355,7 @@ class Underline {
       return buffers.done();
     }
 
-    const line3 = buffers.blank(full.startPosition.column);
+    const line3 = buffers.blank();
 
     if (prefix && expandedLabel) {
       line3.until(prefix);
@@ -414,12 +390,12 @@ class LineBuffers {
     return Math.max(...this.#lines.map((l) => String(l).length));
   }
 
-  forLine(line: number, startColumn: number) {
-    return new LineBuffer(`${String(line).padStart(this.#width)} | `, startColumn);
+  forLine(line: number) {
+    return new LineBuffer(`${String(line).padStart(this.#width)} | `);
   }
 
-  blank(startColumn: number) {
-    const buffer = new LineBuffer(`${' '.repeat(this.#width)} | `, startColumn);
+  blank() {
+    const buffer = new LineBuffer(`${' '.repeat(this.#width)} | `);
     this.#buffers.push(buffer);
     return buffer;
   }
@@ -432,11 +408,9 @@ class LineBuffers {
 class LineBuffer {
   #offset: number = 0;
   #content: string;
-  #startColumn: number;
 
-  constructor(gutter: string, startColumn: number) {
+  constructor(gutter: string) {
     this.#content = gutter;
-    this.#startColumn = startColumn;
   }
 
   repeat(size: Optional<number>, repeat: string) {
@@ -454,6 +428,9 @@ class LineBuffer {
     }
 
     if (shape === '|') {
+      if (span.size > 1) {
+        this.space();
+      }
       this.add(boxes['|']);
       this.untilEnd(span);
       return this;
@@ -480,10 +457,10 @@ class LineBuffer {
           // don't try to add anything else
           return this;
         case 1:
-          this.add(boxes['T']);
+          this.add(boxes['T'].bend);
           break;
         default:
-          this.add(boxes['-']).add(boxes['T']);
+          this.add(boxes['-']).add(boxes['T'].bend);
       }
     }
 
@@ -508,8 +485,8 @@ class LineBuffer {
   until(span: Optional<src.SourceSpan>, padding: string = ' ') {
     if (!span) return this;
     const offset = span.startPosition.column;
-    this.#content += padding.repeat(offset - this.#offset - this.#startColumn);
-    this.#offset = offset - this.#startColumn;
+    this.#content += padding.repeat(offset - this.#offset);
+    this.#offset = offset;
     return this;
   }
 

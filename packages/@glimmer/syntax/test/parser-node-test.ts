@@ -1103,28 +1103,15 @@ test('null literal as path throws error', () => {
   `();
 });
 
-test('number literal as path throws error', (assert) => {
+test('number literal as path throws error', () => {
   verifies(
     '{{(42)}}',
-    '`null` cannot be called. Consider replacing `(null)` with `null` if you meant to use it as a value'
+    '`42` cannot be called. Consider replacing `(42)` with `42` if you meant to use it as a value'
   )`
-    1 | {{(null)}}
-      |   -====-
-      |     \== null is not callable
+    1 | {{(42)}}
+      |   -==-
+      |     \== number is not callable
   `();
-
-  assert.throws(
-    () => {
-      verify('{{(42)}}');
-    },
-    highlightError(
-      `\`42\` cannot be called. Consider replacing \`(42)\` with \`42\` if you meant to use it as a value`
-    )`
-      1 | {{(42)}}
-        |   -==-
-        |     \== 42 is not callable
-    `
-  );
 });
 
 export function strip(strings: TemplateStringsArray, ...args: string[]) {

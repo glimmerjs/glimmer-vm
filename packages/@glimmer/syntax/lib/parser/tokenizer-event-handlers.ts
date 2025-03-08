@@ -90,6 +90,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       name: '',
       nameStart: null,
       nameEnd: null,
+      paramsStart: null,
+      paramsEnd: null,
       attributes: [],
       modifiers: [],
       comments: [],
@@ -146,9 +148,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       loc: nameLoc,
     });
 
-    let { attributes, modifiers, comments, params, selfClosing, loc } = this.finish(
-      this.currentStartTag
-    );
+    let { attributes, modifiers, comments, params, paramsStart, paramsEnd, selfClosing, loc } =
+      this.finish(this.currentStartTag);
+
+    const paramsLoc =
+      paramsStart && paramsEnd ? paramsStart.until(paramsEnd) : loc.getEnd().move(-1).collapsed();
 
     let element = b.element({
       path,
@@ -157,6 +161,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers,
       comments,
       params,
+      paramsLoc,
       children: [],
       openTag: loc,
       closeTag: selfClosing ? null : src.SourceSpan.broken(),
@@ -244,6 +249,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     // bit of setup overhead for the parsing logic just to immediately bail
     if (this.currentAttr.name === 'as') {
       this.parsePossibleBlockParams(this.currentAttr.start);
+      this.currentStartTag.paramsEnd = this.offset();
     }
   }
 
@@ -305,6 +311,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             .withPrimary(start.until(start.move(name.length)).highlight('missing `as`'))
         )
       );
+      this.currentStartTag.paramsEnd = tokenizerPos;
       return;
     }
 
@@ -323,6 +330,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     if (this.pending?.attrName) {
       this.currentStartTag.params.push(this.pending.attrName(start.next(name.length)));
+      this.currentStartTag.paramsEnd = tokenizerPos;
       this.pending = null;
     }
   }
@@ -376,6 +384,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     const as = this.currentAttr;
 
     let state = { state: 'PossibleAs' } as State;
+    element.paramsStart = as.start;
 
     const handlers = {
       PossibleAs: (next: string) => {
@@ -394,10 +403,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             attrName: (attrName) =>
               b.error(
                 `Invalid block parameters syntax: expecting at least one space character between "as" and "|"`,
-                asNode
-                  .until(attrName.getEnd())
+                attrName
                   .highlight()
-                  .withPrimary({ loc: attrName, label: 'missing space' })
+                  .withPrimary({ loc: asNode.move(1).next(2), label: 'missing space' })
               ),
           };
         } else {
@@ -434,15 +442,15 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           state = { state: 'Done' };
           this.pending = {
             mustache(mustache: src.SourceSpan, next: string) {
-              return ParseError(next, (end) =>
-                b.error(
+              return ParseError(next, (end) => {
+                return b.error(
                   `Invalid block parameters syntax: mustaches cannot be used inside block params`,
                   as.start
                     .until(end)
                     .highlight()
                     .withPrimary(mustache.highlight('invalid mustache'))
-                )
-              );
+                );
+              });
             },
             eof: (loc: src.SourceOffset) => {
               return ParseError(next, () =>
@@ -584,10 +592,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
             mustache: (loc: src.SourceSpan) => {
               throw GlimmerSyntaxError.highlight(
                 `Invalid block parameters syntax: modifiers cannot follow block params`,
-                element.start
-                  .until(this.offset())
-                  .highlight()
-                  .withPrimary(loc.highlight('invalid modifier'))
+                loc.highlight('invalid modifier').expand(element.paramsStart?.until(this.offset()))
               );
             },
             eof: (loc: src.SourceOffset) => {
