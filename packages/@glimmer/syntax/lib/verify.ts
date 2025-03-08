@@ -4,6 +4,7 @@ import type { ErrorNode } from './v1/api';
 import type * as ASTv2 from './v2/api';
 import type { ReportableContext } from './validation-context/validation-context';
 
+import { GlimmerSyntaxError } from './syntax-error';
 import * as Validation from './validation-context/validation-context';
 
 interface VerifyState {
@@ -415,8 +416,8 @@ function verifyCallee(
 
 function toReportable(error: ErrorNode): ReportableContext {
   return {
-    error: error.message,
-    notes: error.notes ?? [],
+    message: error.message,
+    error: () => GlimmerSyntaxError.forErrorNode(error),
     highlights: () => error.highlight,
   };
 }

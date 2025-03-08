@@ -11,7 +11,7 @@ import type * as HBS from '../v1/handlebars-ast';
 
 import { Parser } from '../parser';
 import { NON_EXISTENT_LOCATION } from '../source/location';
-import { generateSyntaxError } from '../syntax-error';
+import { generateSyntaxError, GlimmerSyntaxError } from '../syntax-error';
 import { appendChild, isHBSLiteral, printLiteral } from '../utils';
 import b from '../v1/parser-builders';
 
@@ -120,10 +120,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // Ensure that that the element stack is balanced properly.
     if (node !== poppedNode) {
       if (poppedNode?.type === 'ElementNode') {
-        throw generateSyntaxError(
+        throw GlimmerSyntaxError.highlight(
           `Unclosed element \`${poppedNode.tag}\``,
-          { loc: poppedNode.path, label: 'unclosed tag' },
-          { full: poppedNode.loc }
+          poppedNode.loc.highlight().withPrimary({ loc: poppedNode.path, label: 'unclosed tag' })
         );
       } else {
         // If the stack is not balanced, then it is likely our own bug, because
@@ -146,8 +145,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if (this.tokenizer.state !== 'data' && this.tokenizer.state !== 'beforeData') {
       throw generateSyntaxError(
         'A block may only be used inside an HTML element or another block.',
-        this.source.highlightFor(block.path, 'invalid block'),
-        { full: this.source.spanFor(block.loc) }
+        this.source.highlightFor(block.path, 'invalid block')
       );
     }
 
@@ -264,8 +262,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if ('original' in rawMustache.path && rawMustache.path.original === '...attributes') {
       throw generateSyntaxError(
         'Illegal use of ...attributes',
-        this.source.highlightFor(rawMustache.path, 'invalid'),
-        { full: this.source.spanFor(rawMustache.loc) }
+        this.source.highlightFor(rawMustache.path, 'invalid')
       );
     }
 
@@ -301,8 +298,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       case 'tagName':
         throw generateSyntaxError(
           `Cannot use mustaches in an elements tagname`,
-          this.source.highlightFor(mustache.path, 'invalid mustache'),
-          { full: mustache.loc }
+          this.source.highlightFor(mustache.path, 'invalid mustache')
         );
 
       case 'beforeAttributeName':
@@ -401,13 +397,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         break;
 
       default: {
-        const comment = this.source.spanFor(rawComment.loc);
         throw generateSyntaxError(
           `Using a Handlebars comment when in the \`${tokenizer['state']}\` state is not supported`,
-          this.source.highlightFor(rawComment, 'invalid comment'),
-          {
-            full: this.getCurrentNodeStart().until(comment.getEnd()),
-          }
+          this.source.highlightFor(rawComment, 'invalid comment')
         );
       }
     }
@@ -768,8 +760,7 @@ function addElementModifier(
 
     throw generateSyntaxError(
       `In ${tag}, ${modifier} is not a valid modifier`,
-      loc.getSource().highlightFor(mustache.path, 'invalid literal'),
-      { full: loc }
+      loc.getSource().highlightFor(mustache.path, 'invalid literal')
     );
   }
 

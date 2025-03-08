@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-private-class-members */
 import type { SourceSpan } from '../source/span';
 import type { HasSourceSpan } from '../source/span-list';
 import type {

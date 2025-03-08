@@ -1,6 +1,6 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { generateSyntaxError, syntaxError } from '@glimmer/syntax';
+import { generateSyntaxError, GlimmerSyntaxError } from '@glimmer/syntax';
 
 import type { NormalizationState } from '../context';
 
@@ -62,7 +62,7 @@ function visitContent(
     case 'SimpleElement':
       return visitSimpleElement(node, state);
     case 'Error':
-      return Err(syntaxError(node.highlight, { error: node.message }));
+      return Err(GlimmerSyntaxError.forErrorNode(node));
     default:
       exhausted(node);
   }
