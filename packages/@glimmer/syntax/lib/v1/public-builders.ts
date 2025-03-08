@@ -69,6 +69,7 @@ function buildBlock(
     deprecate(`b.program is deprecated. Use b.blockItself instead.`);
     defaultBlock = b.blockItself({
       params: buildBlockParams(_defaultBlock.blockParams),
+      paramsLoc: _defaultBlock.loc,
       body: _defaultBlock.body,
       loc: _defaultBlock.loc,
     });
@@ -82,6 +83,7 @@ function buildBlock(
 
     elseBlock = b.blockItself({
       params: [],
+      paramsLoc: SourceSpan.NON_EXISTENT,
       body: _elseBlock.body,
       loc: _elseBlock.loc,
     });
@@ -252,7 +254,9 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions = {}): AS
     selfClosing: selfClosing || false,
     attributes: attrs || [],
     params: params ?? [],
-    error: undefined,
+    paramsLoc: params
+      ? SourceSpan.synthetic(`as |${params.map((p) => p.name).join('|')}|`)
+      : SourceSpan.NON_EXISTENT,
     modifiers: modifiers || [],
     comments: comments || [],
     children: children || [],
@@ -419,6 +423,12 @@ function buildBlockItself(
 ): ASTv1.Block {
   return b.blockItself({
     body,
+    paramsLoc:
+      params.length > 0
+        ? SourceSpan.synthetic(
+            `as |${params.map((p) => (typeof p === 'string' ? p : p.name)).join('|')}|`
+          )
+        : SourceSpan.NON_EXISTENT,
     params: buildBlockParams(params),
     chained,
     loc: buildLoc(loc || null),

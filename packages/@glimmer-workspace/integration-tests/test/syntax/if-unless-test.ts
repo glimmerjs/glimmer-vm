@@ -1,4 +1,5 @@
 import {
+  highlightError,
   jitSuite,
   preprocess,
   RenderTest,
@@ -20,13 +21,10 @@ for (const type of types) {
             meta: { moduleName: 'test-module' },
           });
         },
-        syntaxErrorFor(
-          `{{#${type}}} cannot receive named parameters, received condition`,
-          `{{#${type} condition=true}}{{/${type}}}`,
-          'test-module',
-          1,
-          0
-        )
+        highlightError(`{{#${type}}} cannot receive named parameters, received condition`)`
+          1 | {{#${type} condition=true}}{{/${type}}}
+            |            =========
+        `
       );
     }
 
@@ -68,17 +66,14 @@ for (const type of types) {
     '{{${type}}} throws if it received named args'() {
       this.assert.throws(
         () => {
-          preprocess(`{{${type} condition=true}}`, {
+          preprocess(`{{#${type} condition=true}}{{/${type}}}`, {
             meta: { moduleName: 'test-module' },
           });
         },
-        syntaxErrorFor(
-          `(${type}) cannot receive named parameters, received condition`,
-          `{{${type} condition=true}}`,
-          'test-module',
-          1,
-          0
-        )
+        highlightError(`{{#${type}}} cannot receive named parameters, received condition`)`
+          1 | {{#${type} condition=true}}{{/${type}}}
+            | ==
+        `
       );
     }
 
@@ -146,13 +141,10 @@ for (const type of types) {
             meta: { moduleName: 'test-module' },
           });
         },
-        syntaxErrorFor(
-          `(${type}) cannot receive named parameters, received condition`,
-          `(${type} condition=true)`,
-          'test-module',
-          1,
-          6
-        )
+        highlightError(`{{#${type}}} cannot receive named parameters, received condition`)`
+          1 | {{#${type} condition=true}}{{/${type}}}
+            |            =========
+        `
       );
     }
 

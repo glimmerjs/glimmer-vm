@@ -20,6 +20,8 @@ export interface StartTag {
   name: string;
   nameStart: Nullable<src.SourceOffset>;
   nameEnd: Nullable<src.SourceOffset>;
+  paramsStart: Nullable<src.SourceOffset>;
+  paramsEnd: Nullable<src.SourceOffset>;
   readonly attributes: ASTv1.AttrNode[];
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];

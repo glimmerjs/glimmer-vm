@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
-import type { Nullable, Recast } from '@glimmer/interfaces';
+import type { Nullable, Optional, Recast } from '@glimmer/interfaces';
 import type { Tokenizer, TokenizerState } from 'simple-html-tokenizer';
 import { exhausted, getLast, isPresentArray, localAssert, unwrap } from '@glimmer/debug-util';
 
@@ -74,13 +74,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   Program(
     program: HBS.Program,
     blockParams?: ASTv1.VarHead[],
-    ifEmpty?: SourceOffset
+    paramsLoc?: Optional<SourceSpan>
   ): ASTv1.Block {
     // The abstract signature doesn't have the blockParams argument, but in
     // practice we can only come from this.BlockStatement() which adds the
     // extra argument for us
     localAssert(
-      Array.isArray(blockParams) && ifEmpty,
+      Array.isArray(blockParams) && paramsLoc,
       '[BUG] Program in parser unexpectedly called without block params'
     );
 
@@ -92,8 +92,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let node = b.blockItself({
       body: [],
       params: blockParams,
+      paramsLoc,
       chained: program.chained,
-      ifEmpty,
       loc: this.source.spanFor(program.loc),
     });
 
@@ -122,7 +122,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       if (poppedNode?.type === 'ElementNode') {
         throw GlimmerSyntaxError.highlight(
           `Unclosed element \`${poppedNode.tag}\``,
-          poppedNode.loc.highlight().withPrimary({ loc: poppedNode.path, label: 'unclosed tag' })
+          poppedNode.path.loc.highlight('unclosed tag')
         );
       } else {
         // If the stack is not balanced, then it is likely our own bug, because
@@ -155,6 +155,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // Backfill block params loc for the default block
     let blockParams: ASTv1.VarHead[] = [];
     let repairedBlock: HBS.BlockStatement;
+    let blockParamsLoc: SourceSpan | null = null;
 
     if (block.program.blockParams?.length) {
       // Start from right after the hash
@@ -187,21 +188,26 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // fencing our block params, neatly whitespace separated and with
       // legal identifiers only
       const content = span.asString();
-      let skipStart = content.indexOf('|') + 1;
-      const limit = content.indexOf('|', skipStart);
+      const paramsStart = content.indexOf('as |');
+      const paramsEnd = content.indexOf('|', paramsStart + 4);
+      blockParamsLoc = span
+        .getStart()
+        .move(paramsStart)
+        .next(paramsEnd - paramsStart);
+      let skipStart = paramsStart + 4;
 
       for (const name of block.program.blockParams) {
         let nameStart: number;
         let loc: SourceSpan;
 
-        if (skipStart >= limit) {
+        if (skipStart >= paramsEnd) {
           nameStart = -1;
         } else {
           nameStart = content.indexOf(name, skipStart);
         }
 
-        if (nameStart === -1 || nameStart + name.length > limit) {
-          skipStart = limit;
+        if (nameStart === -1 || nameStart + name.length > paramsEnd) {
+          skipStart = paramsEnd;
           loc = this.source.spanFor(NON_EXISTENT_LOCATION);
         } else {
           skipStart = nameStart;
@@ -215,9 +221,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       repairedBlock = repairBlock(this.source, block, loc);
     }
 
-    const program = this.Program(repairedBlock.program, blockParams, callLoc.getEnd());
+    const program = this.Program(
+      repairedBlock.program,
+      blockParams,
+      blockParamsLoc ?? callLoc.collapse('end')
+    );
     const inverse = repairedBlock.inverse
-      ? this.Program(repairedBlock.inverse, [], callLoc.getEnd())
+      ? this.Program(repairedBlock.inverse, [], callLoc.collapse('end'))
       : null;
 
     localAssert(
@@ -365,6 +375,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       (this.tokenizer as unknown as Omit<Tokenizer, 'input'> & { input: string }).input += nextChar;
       const error = this.pending.mustache(this.pending.content.mustache, nextChar);
       this.currentStartTag.params.push(error);
+      this.currentStartTag.paramsEnd = this.offset();
+      debugger;
       this.pending = null;
       this.tokenizer.tokenizePart(content.value.slice(1));
     } else {

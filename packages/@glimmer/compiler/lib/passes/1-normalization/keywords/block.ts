@@ -130,7 +130,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
         return Err(
           generateSyntaxError(
             `{{#if}} requires a condition as its first positional parameter, did not receive any parameters`,
-            node.loc
+            node.keyword.loc.highlight('missing condition')
           )
         );
       }

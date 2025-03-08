@@ -184,6 +184,16 @@ export class HighlightedSpan {
     return Highlight.fromInfo({ ...options, primary, expanded: this });
   }
 
+  expand(span: Optional<IntoHighlightedSpan>) {
+    if (span === undefined) return this;
+
+    const expanded = HighlightedSpan.from(span);
+
+    localAssert(expanded.loc.contains(this.loc), `The expanded highlight must be within the span`);
+
+    return Highlight.fromInfo({ primary: this, expanded });
+  }
+
   asPrimary(options?: { full: HasSourceSpan }) {
     return Highlight.fromInfo({ ...options, primary: this });
   }

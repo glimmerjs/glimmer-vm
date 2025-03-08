@@ -1143,6 +1143,8 @@ class ElementChildren extends Children {
         b.error(
           `<:${name.chars}/> is not a valid named block: named blocks cannot be self-closing`,
           this.loc
+            .highlight()
+            .withPrimary(this.loc.getEnd().last(2).highlight('invalid self-closing tag'))
         )
       );
     }
@@ -1190,7 +1192,7 @@ class ElementChildren extends Children {
       this.addError(
         b.error(
           `Unexpected block params in <${name.chars}>: simple elements cannot have block params`,
-          this.#blockParams.loc.highlight('block params')
+          this.#blockParams.loc.highlight('unexpected block params')
         )
       );
     }
