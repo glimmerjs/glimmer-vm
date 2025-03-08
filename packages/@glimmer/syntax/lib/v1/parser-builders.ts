@@ -42,28 +42,23 @@ class Builders {
   blockItself({
     body,
     params,
+    paramsLoc,
     chained = false,
-    ifEmpty,
     loc,
   }: {
     body: ASTv1.Statement[];
     params: ASTv1.VarHead[];
-    ifEmpty: SourceOffset;
+    paramsLoc: SourceSpan;
     chained?: Optional<boolean>;
     loc: SourceSpan;
   }): ASTv1.Block {
-    const first = params[0];
-    const last = params.at(-1);
-
-    const blockParamsLoc = first && last ? first.loc.extend(last.loc) : ifEmpty.collapsed();
-
     return {
       type: 'Block',
       body,
       paramsNode: {
         type: 'BlockParams',
         names: params,
-        loc: blockParamsLoc,
+        loc: paramsLoc,
       },
       get params() {
         return resultsToArray(this.paramsNode.names);
@@ -77,7 +72,7 @@ class Builders {
           names: params.map((name) => {
             return b.var({ name, loc: SourceSpan.synthetic(name) });
           }),
-          loc: blockParamsLoc,
+          loc: paramsLoc,
         };
       },
       chained,
@@ -204,6 +199,7 @@ class Builders {
     attributes,
     modifiers,
     params,
+    paramsLoc,
     comments,
     children,
     openTag,
@@ -215,6 +211,7 @@ class Builders {
     attributes: ASTv1.AttrNode[];
     modifiers: ASTv1.ElementModifierStatement[];
     params: ASTv1.ParseResults<ASTv1.VarHead>;
+    paramsLoc: SourceSpan;
     children: ASTv1.Statement[];
     comments: ASTv1.MustacheCommentStatement[];
     openTag: SourceSpan;
@@ -222,16 +219,6 @@ class Builders {
     loc: SourceSpan;
   }): ASTv1.ElementNode {
     let _selfClosing = selfClosing;
-
-    let blockParamsLoc: SourceSpan;
-
-    if (isResultsError(params)) {
-      blockParamsLoc = params.loc;
-    } else {
-      const first = params[0];
-      const last = params.at(-1);
-      blockParamsLoc = first && last ? first.loc.extend(last.loc) : path.loc.collapse('end');
-    }
 
     return {
       type: 'ElementNode',
@@ -242,7 +229,7 @@ class Builders {
       paramsNode: {
         type: 'BlockParams',
         names: params,
-        loc: blockParamsLoc,
+        loc: paramsLoc,
       },
       comments,
       children,

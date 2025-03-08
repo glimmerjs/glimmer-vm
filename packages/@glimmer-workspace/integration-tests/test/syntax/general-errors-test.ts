@@ -64,7 +64,7 @@ class SyntaxErrors extends RenderTest {
       )`
         1 | <x-bar as|foo|>foo</x-bar>
           |        =======
-          |          \=== block params
+          |          \=== unexpected block params
       `
     );
   }
@@ -79,7 +79,7 @@ class SyntaxErrors extends RenderTest {
         'Invalid block parameters syntax: expecting at least one space character between "as" and "|"'
       )`
         1 | <XBar as|foo|>foo</XBar>
-          |       -==
+          |       -==----
           |          \=== missing space
       `
     );
@@ -92,11 +92,11 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as ||>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
       highlightError(
-        'Invalid block parameters syntax: empty block params, expecting at least one identifier'
+        'Unexpected block params in <x-bar>: simple elements cannot have block params'
       )`
         1 | <x-bar as ||>foo</x-bar>
-          |        ---==
-          |            \=== empty block params
+          |        =====
+          |            \=== unexpected block params
       `
     );
 
@@ -105,11 +105,24 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as | |>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
       highlightError(
-        'Invalid block parameters syntax: empty block params, expecting at least one identifier'
+        'Unexpected block params in <x-bar>: simple elements cannot have block params'
       )`
         1 | <x-bar as | |>foo</x-bar>
-          |        ---===
-          |             \=== empty block params
+          |        ======
+          |             \=== unexpected block params
+      `
+    );
+
+    this.assert.throws(
+      () => {
+        preprocess('<XBar as | |>foo</XBar>', { meta: { moduleName: 'test-module' } });
+      },
+      highlightError(
+        'Invalid block parameters syntax: empty block params, expecting at least one identifier'
+      )`
+        1 | <XBar as | |>foo</XBar>
+          |       ---===
+          |           \=== empty block params
       `
     );
   }
@@ -121,10 +134,23 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as |{{foo}}|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
       highlightError(
-        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+        'Unexpected block params in <x-bar>: simple elements cannot have block params'
       )`
         1 | <x-bar as |{{foo}}|>foo</x-bar>
-          |        ----=======-
+          |        ============
+          |              \=== unexpected block params
+      `
+    );
+
+    this.assert.throws(
+      () => {
+        preprocess('<XBar as |{{foo}}|>foo</XBar>', { meta: { moduleName: 'test-module' } });
+      },
+      highlightError(
+        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+      )`
+        1 | <XBar as |{{foo}}|>foo</XBar>
+          |       ----=======-
           |              \=== invalid mustache
       `
     );
@@ -134,10 +160,23 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as |foo{{bar}}|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
       highlightError(
-        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+        'Unexpected block params in <x-bar>: simple elements cannot have block params'
       )`
         1 | <x-bar as |foo{{bar}}|>foo</x-bar>
-          |        -------=======-
+          |        ===============
+          |                 \=== unexpected block params
+      `
+    );
+
+    this.assert.throws(
+      () => {
+        preprocess('<XBar as |foo{{bar}}|>foo</XBar>', { meta: { moduleName: 'test-module' } });
+      },
+      highlightError(
+        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+      )`
+        1 | <XBar as |foo{{bar}}|>foo</XBar>
+          |       -------=======-
           |                 \=== invalid mustache
       `
     );
@@ -147,10 +186,23 @@ class SyntaxErrors extends RenderTest {
         preprocess('<x-bar as |foo {{bar}}|>foo</x-bar>', { meta: { moduleName: 'test-module' } });
       },
       highlightError(
-        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+        'Unexpected block params in <x-bar>: simple elements cannot have block params'
       )`
         1 | <x-bar as |foo {{bar}}|>foo</x-bar>
-          |        --------=======-
+          |        ================
+          |                 \=== unexpected block params
+      `
+    );
+
+    this.assert.throws(
+      () => {
+        preprocess('<XBar as |foo {{bar}}|>foo</XBar>', { meta: { moduleName: 'test-module' } });
+      },
+      highlightError(
+        'Invalid block parameters syntax: mustaches cannot be used inside block params'
+      )`
+        1 | <XBar as |foo {{bar}}|>foo</XBar>
+          |       --------=======-
           |                  \=== invalid mustache
       `
     );
@@ -161,7 +213,7 @@ class SyntaxErrors extends RenderTest {
       },
       highlightError('Invalid block parameters syntax: modifiers cannot follow block params')`
         1 | <x-bar as |foo| {{bar}}>foo</x-bar>
-          |                 =======
+          |        ---------=======
           |                    \=== invalid modifier
       `
     );
