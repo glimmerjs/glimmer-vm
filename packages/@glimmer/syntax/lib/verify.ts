@@ -1,5 +1,6 @@
 import { exhausted } from '@glimmer/debug-util';
 
+import type { PrecompileOptionsWithLexicalScope } from './parser/tokenizer-event-handlers';
 import type { ErrorNode } from './v1/api';
 import type * as ASTv2 from './v2/api';
 import type { ReportableContext } from './validation-context/validation-context';
@@ -8,16 +9,16 @@ import { GlimmerSyntaxError } from './syntax-error';
 import * as Validation from './validation-context/validation-context';
 
 interface VerifyState {
-  strict: boolean;
+  options: PrecompileOptionsWithLexicalScope;
   errors: ReportableContext[];
 }
 
 export function verifyTemplate(
   program: ASTv2.Template,
-  { strict }: { strict: boolean }
+  options: PrecompileOptionsWithLexicalScope
 ): ReportableContext[] {
   const state = {
-    strict,
+    options,
     errors: [],
   } as VerifyState;
 
@@ -395,7 +396,7 @@ function verifyResolved(
   value: ASTv2.ResolvedName | ASTv2.UnresolvedBinding,
   context: Validation.VariableReferenceContext
 ) {
-  if (state.strict || value.type === 'UnresolvedBinding') {
+  if (value.type === 'UnresolvedBinding') {
     state.errors.push(context);
   }
 }
@@ -417,7 +418,7 @@ function verifyCallee(
 function toReportable(error: ErrorNode): ReportableContext {
   return {
     message: error.message,
-    error: () => GlimmerSyntaxError.forErrorNode(error),
+    error: (extra?: number) => GlimmerSyntaxError.forErrorNode(error, extra),
     highlights: () => error.highlight,
   };
 }

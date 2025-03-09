@@ -1,14 +1,7 @@
 import type { Dict } from '@glimmer/interfaces';
 import type { ASTv1 } from '@glimmer/syntax';
-import { localAssert } from '@glimmer/debug-util';
-import {
-  builders as b,
-  normalize,
-  preprocess as parse,
-  src,
-  verifyTemplate,
-} from '@glimmer/syntax';
-import { highlightError } from '@glimmer-workspace/integration-tests';
+import { builders as b, preprocess as parse } from '@glimmer/syntax';
+import { verifying } from '@glimmer-workspace/integration-tests';
 import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 
 import { astEqual } from './support';
@@ -1056,57 +1049,26 @@ test('undefined literal as path throws error', (assert) => {
   );
 });
 
-function verifies(
-  template: string,
-  message: string,
-  options?: {
-    strict?: boolean;
-  }
-) {
-  return (raw: TemplateStringsArray, ...args: string[]) => {
-    const error = highlightError(message)(raw, ...args);
-
-    return () => {
-      QUnit.assert.throws(() => {
-        verify(template, { strict: options?.strict ?? true });
-      }, error);
-    };
-  };
-}
-
-function verify(template: string, options: { strict: boolean } = { strict: true }) {
-  const source = new src.Source(template, 'test-module');
-  const [ast] = normalize(source, { lexicalScope: () => false });
-
-  const [first, ...rest] = verifyTemplate(ast, options);
-
-  localAssert(rest.length === 0, 'Expected no additional errors');
-
-  if (first) {
-    throw first.error();
-  }
-}
-
 test('null literal as path throws error', () => {
-  verifies(
+  verifying(
     '{{(null)}}',
     '`null` cannot be called. Consider replacing `(null)` with `null` if you meant to use it as a value'
-  )`
+  ).throws`
     1 | {{(null)}}
       |   -====-
       |     \== null is not callable
-  `();
+  `.errors();
 });
 
 test('number literal as path throws error', () => {
-  verifies(
+  verifying(
     '{{(42)}}',
     '`42` cannot be called. Consider replacing `(42)` with `42` if you meant to use it as a value'
-  )`
+  ).throws`
     1 | {{(42)}}
       |   -==-
       |     \== number is not callable
-  `();
+  `.errors();
 });
 
 export function strip(strings: TemplateStringsArray, ...args: string[]) {

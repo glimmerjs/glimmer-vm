@@ -7,12 +7,12 @@ import type { ReportableContext } from './validation-context/validation-context'
 import * as Validation from './validation-context/validation-context';
 
 export class GlimmerSyntaxError extends SyntaxError {
-  static highlight(error: string, highlights: Validation.IntoHighlight) {
-    return new GlimmerSyntaxError(error, Validation.Highlight.from(highlights));
+  static highlight(error: string, highlights: Validation.IntoHighlight, extra?: number) {
+    return new GlimmerSyntaxError(error, Validation.Highlight.from(highlights), extra);
   }
 
-  static forErrorNode(node: ASTv1.ErrorNode) {
-    return new GlimmerSyntaxError(node.message, node.highlight);
+  static forErrorNode(node: ASTv1.ErrorNode, extra?: number) {
+    return new GlimmerSyntaxError(node.message, node.highlight, extra);
   }
 
   readonly location: Nullable<src.SourceSpan>;
@@ -21,8 +21,8 @@ export class GlimmerSyntaxError extends SyntaxError {
   #message: string;
   #notes: Optional<string[]>;
 
-  constructor(message: string, highlight: Validation.Highlight) {
-    super(buildMessage(highlight, { error: message }));
+  constructor(message: string, highlight: Validation.Highlight, extra?: number) {
+    super(buildMessage(highlight, { error: message, extra }));
     const loc = highlight.primary.loc;
     this.location = loc;
     this.code = loc.asString();
@@ -42,7 +42,10 @@ export function generateSyntaxError(
   return GlimmerSyntaxError.highlight(message, Validation.Highlight.fromSpan(location));
 }
 
-function buildMessage(highlight: Validation.Highlight, options: { error: string }) {
+function buildMessage(
+  highlight: Validation.Highlight,
+  options: { error: string; extra?: Optional<number> }
+) {
   const loc = highlight.full;
   const module = loc.module;
   let { line, column } = highlight.primary.loc.startPosition;
@@ -52,10 +55,12 @@ function buildMessage(highlight: Validation.Highlight, options: { error: string 
 
   const allNotes = [...highlight.notes];
 
+  debugger;
+  const message = options.extra ? `${options.error} (${options.extra} more errors)` : options.error;
   if (quotedCode || allNotes.length > 0) {
-    return `${options.error}${quotedCode}${buildNotes(allNotes)}${where}`;
+    return `${message}${quotedCode}${buildNotes(allNotes)}${where}`;
   } else {
-    return `${options.error} ${where}`;
+    return `${message} ${where}`;
   }
 }
 

@@ -10,9 +10,7 @@
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": false,
-    "editor.rulers": [
-      100
-    ]
+    "editor.rulers": [100]
   },
   "[json][jsonc][markdown][yaml]": {
     "editor.codeActionsOnSave": {
@@ -43,14 +41,8 @@
   "eslint.lintTask.enable": true,
   "eslint.onIgnoredFiles": "warn",
   "eslint.problems.shortenToSingleLine": true,
-  "eslint.runtime": "node",
   "eslint.useFlatConfig": true,
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "json",
-    "jsonc"
-  ],
+  "eslint.validate": ["javascript", "typescript", "json", "jsonc"],
   "eslint.workingDirectories": [
     {
       "mode": "auto"
@@ -120,15 +112,9 @@
     }
   },
   "inline-bookmarks.expert.custom.words.mapping": {
-    "audit": [
-      "@audit(\\s|$)"
-    ],
-    "fixme": [
-      "@fixme(\\s|$)"
-    ],
-    "warn": [
-      "@premerge(\\s|$)"
-    ],
+    "audit": ["@audit(\\s|$)"],
+    "fixme": ["@fixme(\\s|$)"],
+    "warn": ["@premerge(\\s|$)"],
     "bandaid": [
       "@bandaid\\(until:[^)]+\\)(\\s|$)",
       "@bandaid(?=\\{@link [^}]+\\}(\\s|$))",
@@ -156,5 +142,10 @@
   "typescript.updateImportsOnFileMove.enabled": "always",
   "typescript.reportStyleChecksAsWarnings": false,
   "stylelint.packageManager": "pnpm",
-  "npm.packageManager": "pnpm"
+  "npm.packageManager": "pnpm",
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "typescript.inlayHints.parameterNames.enabled": "literals",
+  "typescript.inlayHints.parameterTypes.enabled": true,
+  "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+  "typescript.inlayHints.variableTypes.enabled": true
 }
