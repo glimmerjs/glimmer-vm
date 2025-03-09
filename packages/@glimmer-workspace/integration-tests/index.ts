@@ -19,6 +19,7 @@ export * from './lib/render-test';
 export * from './lib/setup-harness';
 export * from './lib/snapshot';
 export * from './lib/suites';
+export * from './lib/test-helpers/basic';
 export * from './lib/test-helpers/define';
 export * from './lib/test-helpers/errors';
 export * from './lib/test-helpers/module';
