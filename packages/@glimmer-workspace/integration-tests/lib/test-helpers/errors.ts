@@ -1,11 +1,82 @@
 import type { Optional } from '@glimmer/interfaces';
+import type { PrecompileOptionsWithLexicalScope } from '@glimmer/syntax';
 import { localAssert } from '@glimmer/debug-util';
-import { GlimmerSyntaxError, highlightCode, src, Validation } from '@glimmer/syntax';
+import {
+  GlimmerSyntaxError,
+  highlightCode,
+  normalize,
+  src,
+  Validation,
+  verifyTemplate,
+} from '@glimmer/syntax';
 
 export function highlight(strings: TemplateStringsArray, ...args: string[]) {
   return highlightCode(
     highlightParts(highlightToParts(strings, ...args), { moduleName: 'test-module' })
   );
+}
+
+export function verifying(
+  template: string,
+  message: string,
+  options?:
+    | {
+        strict?: boolean;
+      }
+    | {
+        strict: true;
+      }
+) {
+  const throws = (raw: TemplateStringsArray, ...args: string[]) => {
+    const error = highlightError(message)(raw, ...args);
+
+    return {
+      errors: () => {
+        QUnit.assert.throws(() => {
+          verify(template, { strict: options?.strict ?? true });
+        }, error);
+      },
+    };
+  };
+
+  return {
+    throws,
+    isValid: () => {
+      QUnit.config.current.assert.expect(0);
+      // if the verification throws, the test will fail.
+      verify(template, { strict: options?.strict ?? true });
+    },
+  };
+}
+
+type VerifyOptions = {
+  strict?: boolean;
+  lexicalScope?: (name: string) => boolean;
+};
+
+function getOptions(options: VerifyOptions): PrecompileOptionsWithLexicalScope {
+  return {
+    strictMode: options.strict,
+    lexicalScope: options.lexicalScope ?? (() => false),
+  };
+}
+
+function verify(template: string, options: VerifyOptions) {
+  const source = new src.Source(template, 'test-module');
+  const precompileOptions = getOptions(options);
+  const [ast] = normalize(source, precompileOptions);
+
+  const [first, ...rest] = verifyTemplate(ast, precompileOptions);
+
+  if (rest.length > 0) {
+    for (const error of rest) {
+      console.error(error.error(0));
+    }
+  }
+
+  if (first) {
+    throw first.error(rest.length);
+  }
 }
 
 export function highlightError(error: string, notes?: string[]) {

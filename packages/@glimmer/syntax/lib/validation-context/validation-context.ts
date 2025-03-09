@@ -68,7 +68,7 @@ export interface AnyValidationContext {
 export interface ReportableContext {
   readonly message: string;
   highlights(): Highlight;
-  error(): GlimmerSyntaxError;
+  error(extra?: number): GlimmerSyntaxError;
 }
 
 export type IntoHighlightedSpan = SourceSpan | { loc: HasSourceSpan; label?: Optional<string> };
@@ -259,8 +259,8 @@ export class VariableReferenceContext implements ReportableContext {
     return this.#name;
   }
 
-  error(): GlimmerSyntaxError {
-    return GlimmerSyntaxError.highlight(this.message, this.highlights());
+  error(extra?: number): GlimmerSyntaxError {
+    return GlimmerSyntaxError.highlight(this.message, this.highlights(), extra);
   }
 
   addNote(note: string) {
@@ -527,8 +527,8 @@ export class CustomErrorContext implements ReportableContext {
     return this.#highlight;
   }
 
-  error(): GlimmerSyntaxError {
-    return GlimmerSyntaxError.highlight(this.message, this.#highlight);
+  error(extra?: number): GlimmerSyntaxError {
+    return GlimmerSyntaxError.highlight(this.message, this.#highlight, extra);
   }
 
   highlights(): Highlight {

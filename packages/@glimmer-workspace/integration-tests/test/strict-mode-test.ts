@@ -1115,7 +1115,7 @@ class DynamicStrictModeTest extends RenderTest {
   @test
   'Calling a dynamic modifier using if helper'(assert: Assert) {
     // Make sure the destructor gets called
-    assert.expect(14);
+    assert.expect(13);
 
     const world = defineSimpleModifier((element: Element) => {
       element.innerHTML = `Hello, world!`;
@@ -1382,7 +1382,7 @@ class BuiltInsStrictModeTest extends RenderTest {
 
   @test
   'Can use on and fn'(assert: Assert) {
-    assert.expect(3);
+    assert.expect(2);
 
     let handleClick = (value: number) => {
       assert.strictEqual(value, 123, 'handler called with correct value');

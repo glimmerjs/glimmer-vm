@@ -25,10 +25,14 @@ export function test(...args: any[]) {
   return descriptor;
 }
 
-export function testSuite(name: string) {
+export function testSuite(...names: string[]) {
   return (klass: new (...args: any[]) => any) => {
-    klass.suiteName = name;
-    jitSuite(klass);
+    const suiteName = names.pop();
+    for (const name of names) {
+      QUnit.module(name);
+    }
+
+    jitSuite(klass, { suiteName });
     return klass;
   };
 }
