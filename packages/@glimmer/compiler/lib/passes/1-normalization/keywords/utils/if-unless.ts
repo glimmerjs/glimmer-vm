@@ -1,5 +1,5 @@
 import type { ASTv2 } from '@glimmer/syntax';
-import { generateSyntaxError } from '@glimmer/syntax';
+import { generateSyntaxError, GlimmerSyntaxError } from '@glimmer/syntax';
 
 import type { ContentKeywordInfo, ContentKeywordMatch, KeywordDelegate } from '../impl';
 
@@ -22,11 +22,14 @@ function assertIfUnlessInlineKeyword(type: string) {
 
     if (!named.isEmpty()) {
       return Err(
-        generateSyntaxError(
+        GlimmerSyntaxError.highlight(
           `(${type}) cannot receive named parameters, received ${named.entries
             .map((e) => e.name.chars)
             .join(', ')}`,
-          loc
+          named.loc
+            .highlight()
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            .withPrimary(args.named.entries[0]!.name.loc.highlight('invalid'))
         )
       );
     }

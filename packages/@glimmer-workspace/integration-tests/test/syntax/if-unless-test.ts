@@ -1,28 +1,23 @@
-import {
-  BasicSuite,
-  highlightError,
-  PackageSuite,
-  preprocess,
-} from '@glimmer-workspace/integration-tests';
+import { PackageSuite, verifying } from '@glimmer-workspace/integration-tests';
 
 const types = ['if', 'unless'];
 
-const syntax = PackageSuite('@glimmer/syntax');
+const syntax = PackageSuite('@glimmer/compiler');
 
 for (const type of types) {
   syntax([`keyword syntax errors`, type], (module) =>
-    module.test(`{{#${type}}} throws if it received named args`, (assert) => {
-      assert.throws(
-        () => {
-          preprocess(`{{#${type} condition=true}}{{/${type}}}`, {
-            meta: { moduleName: 'test-module' },
-          });
-        },
-        highlightError(`{{#${type}}} cannot receive named parameters, received condition`)`
-          1 | {{#${type} condition=true}}{{/${type}}}
-            |            =========
-        `
-      );
+    module.test(`{{#${type}}} throws if it received named args`, () => {
+      const padd = ' '.repeat(type.length);
+
+      verifying(
+        `{{#${type} condition=true}}{{/${type}}}`,
+        `{{#${type}}} cannot receive named parameters, received \`condition\``,
+        { strict: 'both', using: 'compiler' }
+      ).throws`
+        1 | {{#${type} condition=true}}{{/${type}}}
+          |    ${padd} =========-----
+          |              \=== invalid
+      `.errors();
     })
   );
 }

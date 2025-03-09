@@ -1,5 +1,6 @@
 import type { Optional } from '@glimmer/interfaces';
 import type { PrecompileOptionsWithLexicalScope } from '@glimmer/syntax';
+import { precompile } from '@glimmer/compiler';
 import { localAssert } from '@glimmer/debug-util';
 import {
   GlimmerSyntaxError,
@@ -16,67 +17,185 @@ export function highlight(strings: TemplateStringsArray, ...args: string[]) {
   );
 }
 
-export function verifying(
-  template: string,
-  message: string,
-  options?:
-    | {
-        strict?: boolean;
-      }
-    | {
-        strict: true;
-      }
-) {
+type VerifyingErrorArgs = [template: string, message: string, options?: VerifyOptions];
+type VerifyingValidArgs = [template: string, options?: VerifyOptions];
+
+export function verifying(...args: VerifyingValidArgs): { isValid: () => void };
+export function verifying(...args: VerifyingErrorArgs): {
+  throws: (raw: TemplateStringsArray, ...args: string[]) => { errors: () => void };
+};
+export function verifying(...args: VerifyingValidArgs | VerifyingErrorArgs) {
+  if (args.length === 1 || typeof args[1] !== 'string') {
+    const [template, options] = args as VerifyingValidArgs;
+    QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🟢`);
+    return { isValid: () => verify(template, { expect: 'valid', ...options }) };
+  }
+
+  const [template, message, options] = args;
+
   const throws = (raw: TemplateStringsArray, ...args: string[]) => {
+    QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🔴`);
+
     const error = highlightError(message)(raw, ...args);
 
     return {
       errors: () => {
-        QUnit.assert.throws(() => {
-          verify(template, { strict: options?.strict ?? true });
-        }, error);
+        verify(template, { expect: 'error', error, ...options });
       },
     };
   };
 
-  return {
-    throws,
-    isValid: () => {
-      QUnit.config.current.assert.expect(0);
-      // if the verification throws, the test will fail.
-      verify(template, { strict: options?.strict ?? true });
-    },
-  };
+  return { throws };
 }
 
 type VerifyOptions = {
-  strict?: boolean;
+  strict?: boolean | 'both';
+  using?: 'parser' | 'compiler';
   lexicalScope?: (name: string) => boolean;
 };
 
-function getOptions(options: VerifyOptions): PrecompileOptionsWithLexicalScope {
-  return {
-    strictMode: options.strict,
-    lexicalScope: options.lexicalScope ?? (() => false),
-  };
+function getOptions(options?: VerifyOptions): PrecompileOptionsWithLexicalScope[] {
+  const lexicalScope = options?.lexicalScope ?? (() => false);
+  const meta = { moduleName: 'test-module' };
+  if (options?.strict === 'both') {
+    return [
+      { strictMode: true, lexicalScope, meta },
+      { strictMode: false, lexicalScope, meta },
+    ];
+  } else {
+    return [
+      {
+        strictMode: options?.strict,
+        lexicalScope,
+        meta,
+      },
+    ];
+  }
 }
 
-function verify(template: string, options: VerifyOptions) {
+type ParseResult =
+  | {
+      status: 'error';
+      error: GlimmerSyntaxError;
+      extra: GlimmerSyntaxError[];
+    }
+  | {
+      status: 'failed';
+      error: unknown;
+    }
+  | {
+      status: 'valid';
+    };
+
+function verifyCompile(source: string, options: PrecompileOptionsWithLexicalScope): ParseResult {
+  try {
+    precompile(source, options);
+    return { status: 'valid' };
+  } catch (e) {
+    if (typeof e === 'object' && e && e instanceof GlimmerSyntaxError) {
+      return { status: 'error', error: e, extra: [] };
+    }
+
+    QUnit.assert.throws(
+      () => {
+        throw e;
+      },
+      GlimmerSyntaxError,
+      `expected a Glimmer syntax error, got a different error`
+    );
+    return { status: 'failed', error: e };
+  }
+}
+
+function verifyParse(template: string, options: PrecompileOptionsWithLexicalScope): ParseResult {
   const source = new src.Source(template, 'test-module');
-  const precompileOptions = getOptions(options);
-  const [ast] = normalize(source, precompileOptions);
+  const [ast] = normalize(source, options);
+  const errors = verifyTemplate(ast, options);
 
-  const [first, ...rest] = verifyTemplate(ast, precompileOptions);
+  const [first, ...extra] = errors;
 
-  if (rest.length > 0) {
-    for (const error of rest) {
-      console.error(error.error(0));
+  if (!first) {
+    return { status: 'valid' };
+  }
+
+  return { status: 'error', error: first.error(), extra: extra.map((e) => e.error()) };
+}
+
+function verify(
+  template: string,
+  options: VerifyOptions & ({ expect: 'valid' } | { expect: 'error'; error: GlimmerSyntaxError })
+) {
+  const precompileOptionList = getOptions(options);
+
+  for (const precompileOptions of precompileOptionList) {
+    QUnit.assert.ok(true, `⚪️ verifying ${precompileOptions.strictMode ? 'strict' : 'non-strict'}`);
+    const result =
+      options.using === 'compiler'
+        ? verifyCompile(template, precompileOptions)
+        : verifyParse(template, precompileOptions);
+
+    if (result.status === 'failed') {
+      // failure is already reported
+      return;
+    }
+
+    if (options.expect === 'valid') {
+      if (result.status === 'valid') {
+        pushSuccess(`expected 🟢 no errors`);
+        return;
+      } else {
+        QUnit.assert.equal(
+          '',
+          [result.error, ...result.extra],
+          `expected no errors, got ${result.extra.length + 1}`
+        );
+      }
+      return;
+    }
+
+    // if we expect an error...
+
+    const expectedError = options.error;
+
+    if (result.status === 'valid') {
+      pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
+      return;
+    }
+
+    const { error, extra } = result;
+
+    if (extra.length > 0) {
+      QUnit.assert.equal(
+        '',
+        displayErrors(extra),
+        `expected only one error, got ${extra.length} more`
+      );
+    }
+
+    if (error) {
+      QUnit.assert.equal(error.message, expectedError.message, `expected 🔴`);
+    } else {
+      pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
     }
   }
+}
 
-  if (first) {
-    throw first.error(rest.length);
-  }
+function pushFailure(message: string) {
+  QUnit.assert.pushResult({
+    result: false,
+    message,
+  } as any);
+}
+
+function pushSuccess(message: string) {
+  QUnit.assert.pushResult({
+    result: true,
+    message,
+  } as any);
+}
+
+function displayErrors(errors: GlimmerSyntaxError[]) {
+  return errors.map((e) => e.message).join('\n\n');
 }
 
 export function highlightError(error: string, notes?: string[]) {
