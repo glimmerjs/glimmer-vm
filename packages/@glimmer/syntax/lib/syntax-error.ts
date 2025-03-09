@@ -55,7 +55,6 @@ function buildMessage(
 
   const allNotes = [...highlight.notes];
 
-  debugger;
   const message = options.extra ? `${options.error} (${options.extra} more errors)` : options.error;
   if (quotedCode || allNotes.length > 0) {
     return `${message}${quotedCode}${buildNotes(allNotes)}${where}`;
@@ -179,12 +178,10 @@ class Underline {
   #getLabels(): { line1: Label[]; line2?: Label[]; line3?: Label[] } | undefined {
     const { prefix, suffix, primary, expanded } = this.#highlighted;
 
-    if (!primary.label && !expanded?.label) {
-      return;
-    }
-
     const hasPrimaryLabel = !!primary.label;
     const hasExpandedLabel = !!expanded?.label;
+
+    debugger;
 
     if (hasPrimaryLabel && hasExpandedLabel) {
       if (prefix) {
@@ -252,6 +249,10 @@ class Underline {
         ),
       };
     }
+
+    return {
+      line1: labels(light('-', prefix), thick('-', primary.loc), light('-', suffix)),
+    };
   }
 
   draw() {

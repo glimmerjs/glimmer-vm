@@ -166,11 +166,14 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       if (!args.named.isEmpty()) {
         return Err(
-          generateSyntaxError(
+          GlimmerSyntaxError.highlight(
             `{{#unless}} cannot receive named parameters, received ${args.named.entries
-              .map((e) => e.name.chars)
+              .map((e) => `\`${e.name.chars}\``)
               .join(', ')}`,
-            node.loc
+            args.named.loc
+              .highlight()
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              .withPrimary(args.named.entries[0]!.name.loc.highlight('invalid'))
           )
         );
       }

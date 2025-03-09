@@ -197,9 +197,9 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
         const loc = this.loc(node.head.loc);
         return {
           type: 'resolved',
-          callee: this.strict
-            ? new ASTv2.UnresolvedBinding({ name: node.head.name, loc })
-            : new ASTv2.ResolvedName({ name: node.head.name, symbol, loc }),
+          // Even in strict mode, these names can be keywords, and they're converted
+          // into syntax error only once keywords are processed in @glimmer/compiler.
+          callee: new ASTv2.ResolvedName({ name: node.head.name, symbol, loc }),
           loc: this.loc(node.loc),
         };
       }

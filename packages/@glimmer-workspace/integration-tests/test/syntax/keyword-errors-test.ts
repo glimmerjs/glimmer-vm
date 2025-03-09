@@ -28,18 +28,13 @@ for (const keyword of KEYWORDS) {
     });
 
     module.test('keywords can be shadowed by local variables', () => {
-      verifying(
-        `{{#let this.value as |${keyword}|}}{{some-helper ${keyword}}}{{/let}}`,
-        `Attempted to pass \`${keyword}\` as a positional argument, but it was not in scope`,
-        { strict: false }
-      ).isValid();
-    });
+      verifying(`{{#let this.value as |${keyword}|}}{{some-helper ${keyword}}}{{/let}}`, {
+        strict: 'both',
+      }).isValid();
 
-    module.test('keywords can be shadowed by local variables', () => {
       verifying(
-        `{{#let this.value as |${keyword}|}}{{some-helper ${keyword}}}{{/let}}`,
-        `Attempted to pass \`${keyword}\` as a positional argument, but it was not in scope`,
-        { strict: true }
+        `{{#some-component this.value as |${keyword}|}}{{some-helper ${keyword}}}{{/some-component}}`,
+        { strict: 'both' }
       ).isValid();
     });
   });
