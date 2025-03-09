@@ -607,8 +607,6 @@ export class RenderTest implements IRenderTest {
 
     let result = expect(this.renderResult, 'the test should call render() before rerender()');
 
-    debugger;
-
     try {
       result.env.begin();
       result.rerender();
