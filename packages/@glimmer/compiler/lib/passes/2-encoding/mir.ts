@@ -481,7 +481,7 @@ export class Args extends node('Args').fields<{
 export class Tail extends node('Tail').fields<{ members: PresentArray<SourceSlice> }>() {}
 
 export class NamedBlocks extends node('NamedBlocks').fields<{
-  blocks: OptionalList<NamedBlock>;
+  blocks: OptionalList<NamedBlock | ASTv1.ErrorNode>;
 }>() {}
 
 export class NamedBlock extends node('NamedBlock').fields<{

@@ -1,4 +1,4 @@
-import type { ASTv2 } from '@glimmer/syntax';
+import type { ASTv1, ASTv2 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
 import { generateSyntaxError, GlimmerSyntaxError } from '@glimmer/syntax';
 
@@ -69,9 +69,12 @@ function visitContent(
 }
 
 export function visitNamedBlock(
-  named: ASTv2.NamedBlock,
+  named: ASTv2.NamedBlock | ASTv1.ErrorNode,
   state: NormalizationState
-): Result<mir.NamedBlock> {
+): Result<mir.NamedBlock | ASTv1.ErrorNode> {
+  if (named.type === 'Error') {
+    return Ok(named);
+  }
   let body = state.visitBlock(named.block);
 
   return body.mapOk((body) => {
