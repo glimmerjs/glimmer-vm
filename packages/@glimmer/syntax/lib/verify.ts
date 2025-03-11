@@ -123,6 +123,7 @@ function verifyInvokeComponent(
   context: Validation.AngleBracketContext
 ) {
   verifyAttrs(state, component.attrs, context);
+  verifyNamedBlocks(state, component.blocks);
   verifyComponentArgs(state, component, context);
   verifyModifiers(state, component.modifiers, context);
 }
@@ -133,17 +134,17 @@ function verifyBlockArgs(
   context: Validation.InvokeBlockContext
 ) {
   verifyHandlebarsArgs(state, block.args, context);
-  verifyNamedBlocks(state, block.blocks, context);
+  verifyNamedBlocks(state, block.blocks);
 }
 
-function verifyNamedBlocks(
-  state: VerifyState,
-  blocks: ASTv2.NamedBlocks,
-  _context: Validation.InvokeBlockContext
-) {
-  for (const { block } of blocks.blocks) {
+function verifyNamedBlocks(state: VerifyState, blocks: ASTv2.NamedBlocks) {
+  for (const namedBlock of blocks.blocks) {
     // @todo should we verify attrs, componentArgs, modifiers?
-    verifyParentNode(state, block);
+    if (namedBlock.type === 'Error') {
+      state.errors.push(toReportable(namedBlock));
+    } else {
+      verifyParentNode(state, namedBlock.block);
+    }
   }
 }
 

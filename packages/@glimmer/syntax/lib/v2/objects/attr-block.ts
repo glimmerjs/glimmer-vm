@@ -42,7 +42,7 @@ export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
 /**
  * Corresponds to an argument passed by a component (`@x=<value>`)
  */
-export class ComponentArg extends node().fields<{
+export class ComponentArg extends node('ComponentArg').fields<{
   name: SourceSlice;
   value: AttrValueNode;
 }>() {}

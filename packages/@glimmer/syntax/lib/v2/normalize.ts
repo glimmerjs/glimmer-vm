@@ -724,6 +724,7 @@ class ElementNormalizer {
       if (tag[0] === ':') {
         return children.assertNamedBlock(
           tagOffsets.slice({ skipStart: 1 }).toSlice(tag.slice(1)),
+          tagOffsets,
           child.table
         );
       } else {
@@ -1028,7 +1029,7 @@ type SingleChildNode = ASTv2.ContentNode | ASTv2.NamedBlock | ASTv1.ErrorNode;
 
 class Children {
   readonly namedBlocks: ASTv2.NamedBlock[];
-  readonly hasSemanticContent: boolean;
+  readonly semanticContent: Optional<ASTv2.ContentNode>;
 
   constructor(
     readonly loc: SourceSpan,
@@ -1036,22 +1037,20 @@ class Children {
     readonly block: BlockContext
   ) {
     this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c instanceof ASTv2.NamedBlock);
-    this.hasSemanticContent = Boolean(
-      children.filter((c): c is ASTv2.ContentNode => {
-        if (c instanceof ASTv2.NamedBlock) {
+    this.semanticContent = children.find((c): c is ASTv2.ContentNode => {
+      if (c instanceof ASTv2.NamedBlock) {
+        return false;
+      }
+      switch (c.type) {
+        case 'GlimmerComment':
+        case 'HtmlComment':
           return false;
-        }
-        switch (c.type) {
-          case 'GlimmerComment':
-          case 'HtmlComment':
-            return false;
-          case 'HtmlText':
-            return !/^\s*$/u.test(c.chars);
-          default:
-            return true;
-        }
-      }).length
-    );
+        case 'HtmlText':
+          return !/^\s*$/u.test(c.chars);
+        default:
+          return true;
+      }
+    });
   }
 
   get nonBlockChildren(): ASTv2.ContentNode[] {
@@ -1074,26 +1073,35 @@ class TemplateChildren extends Children {
     table: ProgramSymbolTable,
     error: Optional<{ eof?: ASTv1.ErrorNode }>
   ): ASTv2.Template {
+    const children = [...this.nonBlockChildren];
     if (isPresentArray(this.namedBlocks)) {
-      throw generateSyntaxError(`Unexpected named block at the top-level of a template`, this.loc);
+      const [first] = this.namedBlocks;
+      children.unshift(
+        b.error(
+          `Unexpected named block at the top-level of a template`,
+          first.nameLoc.highlight('unexpected named block')
+        )
+      );
     }
 
-    return this.block.builder.template(
-      table,
-      this.nonBlockChildren,
-      this.block.loc(this.loc),
-      error
-    );
+    return this.block.builder.template(table, children, this.block.loc(this.loc), error);
   }
 }
 
 class BlockChildren extends Children {
   assertBlock(table: BlockSymbolTable): ASTv2.Block {
+    const children = [...this.nonBlockChildren];
     if (isPresentArray(this.namedBlocks)) {
-      throw generateSyntaxError(`Unexpected named block nested in a normal block`, this.loc);
+      const [first] = this.namedBlocks;
+      children.unshift(
+        b.error(
+          `Unexpected named block nested in a normal block`,
+          first.nameLoc.highlight('unexpected named block')
+        )
+      );
     }
 
-    return this.block.builder.block(table, this.nonBlockChildren, this.loc);
+    return this.block.builder.block(table, children, this.loc);
   }
 }
 
@@ -1137,11 +1145,15 @@ class ElementChildren extends Children {
     this.#blockParams = new BlockParamsNode(blockParams);
   }
 
-  assertNamedBlock(name: SourceSlice, table: BlockSymbolTable): ASTv2.NamedBlock {
+  assertNamedBlock(
+    name: SourceSlice,
+    nameLoc: SourceSpan,
+    table: BlockSymbolTable
+  ): ASTv2.NamedBlock {
     if (this.el.base.selfClosing) {
       this.addError(
         b.error(
-          `<:${name.chars}/> is not a valid named block: named blocks cannot be self-closing`,
+          `Named blocks cannot be self-closing`,
           this.loc
             .highlight()
             .withPrimary(this.loc.getEnd().last(2).highlight('invalid self-closing tag'))
@@ -1153,7 +1165,7 @@ class ElementChildren extends Children {
       this.addError(
         b.error(
           `Unexpected named block inside <:${name.chars}> named block: named blocks cannot contain nested named blocks`,
-          this.loc
+          nameLoc.highlight('unexpected named block')
         )
       );
     }
@@ -1161,20 +1173,22 @@ class ElementChildren extends Children {
     if (!isLowerCase(name.chars)) {
       this.addError(
         b.error(
-          `<:${name.chars}> is not a valid named block, and named blocks must begin with a lowercase letter`,
-          this.loc
+          `Named blocks must start with a lowercase letter`,
+          nameLoc.highlight(`${name.chars} begins with ${describeFirstChar(name.chars)}`)
         )
       );
     }
 
-    if (
-      this.el.base.attrs.length > 0 ||
-      this.el.base.componentArgs.length > 0 ||
-      this.el.base.modifiers.length > 0
-    ) {
-      throw generateSyntaxError(
-        `named block <:${name.chars}> cannot have attributes, arguments, or modifiers`,
-        this.loc
+    const base = this.el.base;
+    const invalidArgs = [...base.attrs, ...base.componentArgs, ...base.modifiers];
+    const [first] = invalidArgs;
+
+    if (first) {
+      this.addError(
+        b.error(
+          `Named blocks cannot have ${describeComponentSyntax(first, 'plural')}`,
+          first.loc.highlight(`invalid ${describeComponentSyntax(first, 'singular')}`)
+        )
       );
     }
 
@@ -1198,11 +1212,17 @@ class ElementChildren extends Children {
     }
 
     if (isPresentArray(this.namedBlocks)) {
+      const [first] = this.namedBlocks;
       let names = this.namedBlocks.map((b) => b.name);
 
       if (names.length === 1) {
         this.addError(
-          b.error(`Unexpected named block <:foo> inside <${name.chars}> HTML element`, this.loc)
+          b.error(
+            `Unexpected named block <:foo> inside <${name.chars}> HTML element`,
+            first.name.loc
+              .withStart(first.name.loc.getStart().move(-1))
+              .highlight('unexpected named block')
+          )
         );
       } else {
         let printedNames = names.map((n) => `<:${n.chars}>`).join(', ');
@@ -1221,21 +1241,26 @@ class ElementChildren extends Children {
   assertComponent(
     nameNode: string | ASTv2.UnresolvedBinding,
     table: BlockSymbolTable
-  ): PresentArray<ASTv2.NamedBlock> {
+  ): PresentArray<ASTv2.NamedBlock | ASTv1.ErrorNode> {
     const name = typeof nameNode === 'string' ? nameNode : nameNode.name;
 
-    if (isPresentArray(this.namedBlocks) && this.hasSemanticContent) {
-      throw generateSyntaxError(
-        `Unexpected content inside <${name}> component invocation: when using named blocks, the tag cannot contain other content`,
-        this.loc
-      );
-    }
-
     if (isPresentArray(this.namedBlocks)) {
+      const namedBlocks: PresentArray<ASTv2.NamedBlock | ASTv1.ErrorNode> = [...this.namedBlocks];
+      if (this.semanticContent) {
+        namedBlocks.unshift(
+          b.error(
+            `Unexpected content inside <${name}> component invocation: when using named blocks, the tag cannot contain other content`,
+            this.semanticContent.loc.highlight('unexpected content')
+          )
+        );
+      }
+
       if (this.#blockParams.isPresent()) {
-        throw generateSyntaxError(
-          `Unexpected block params list on <${name}> component invocation: when passing named blocks, the invocation tag cannot take block params`,
-          this.loc
+        namedBlocks.unshift(
+          b.error(
+            `Unexpected block params list on <${name}> component invocation: when passing named blocks, the invocation tag cannot take block params`,
+            this.#blockParams.loc.highlight('unexpected block params')
+          )
         );
       }
 
@@ -1245,9 +1270,11 @@ class ElementChildren extends Children {
         let name = block.name.chars;
 
         if (seenNames.has(name)) {
-          throw generateSyntaxError(
-            `Component had two named blocks with the same name, \`<:${name}>\`. Only one block with a given name may be passed`,
-            this.loc
+          namedBlocks.unshift(
+            b.error(
+              `Component had two named blocks with the same name, \`<:${name}>\`. Only one block with a given name may be passed`,
+              block.nameLoc.highlight('duplicate named block')
+            )
           );
         }
 
@@ -1255,16 +1282,20 @@ class ElementChildren extends Children {
           (name === 'inverse' && seenNames.has('else')) ||
           (name === 'else' && seenNames.has('inverse'))
         ) {
-          throw generateSyntaxError(
-            `Component has both <:else> and <:inverse> block. <:inverse> is an alias for <:else>`,
-            this.loc
+          namedBlocks.unshift(
+            b.error(
+              `Component has both <:else> and <:inverse> block. <:inverse> is an alias for <:else>`,
+              block.nameLoc.highlight(
+                `${name} is the same as ${name === 'else' ? 'inverse' : 'else'}`
+              )
+            )
           );
         }
 
         seenNames.add(name);
       }
 
-      return this.namedBlocks;
+      return namedBlocks;
     } else {
       return [
         this.block.builder.namedBlock(
@@ -1274,6 +1305,35 @@ class ElementChildren extends Children {
         ),
       ];
     }
+  }
+}
+
+function describeFirstChar(name: string): string {
+  if (/^[A-Z]/u.test(name)) {
+    return `a capital letter`;
+  } else if (/^\d/u.test(name)) {
+    return `a number`;
+  } else {
+    return `${name[0]}`;
+  }
+}
+
+function describeComponentSyntax(
+  syntax: ASTv2.AttrNode | ASTv2.SomeElementModifier,
+  type: 'singular' | 'plural'
+): string {
+  switch (syntax.type) {
+    case 'HtmlAttr':
+      return type === 'singular' ? `attribute` : `attributes`;
+    case 'SplatAttr':
+      return type === 'singular' ? `...attributes` : `...attributes`;
+    case 'ComponentArg':
+      return type === 'singular' ? `argument` : `arguments`;
+    case 'ElementModifier':
+    case 'ResolvedElementModifier':
+      return type === 'singular' ? `modifier` : `modifiers`;
+    default:
+      exhausted(syntax);
   }
 }
 

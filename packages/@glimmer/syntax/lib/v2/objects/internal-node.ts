@@ -47,14 +47,20 @@ export type ParentNode = Block | Template | SimpleElementNode;
 /**
  * Corresponds to a collection of named blocks.
  */
-export class NamedBlocks extends node().fields<{ blocks: readonly NamedBlock[] }>() {
+export class NamedBlocks extends node().fields<{
+  blocks: readonly (NamedBlock | ASTv1.ErrorNode)[];
+}>() {
   /**
    * Get the `NamedBlock` for a given name.
    */
   get(name: 'default'): NamedBlock;
   get(name: string): NamedBlock | null;
   get(name: string): NamedBlock | null {
-    return this.blocks.filter((block) => block.name.chars === name)[0] || null;
+    return (
+      this.blocks.filter(
+        (block): block is NamedBlock => block.type === 'NamedBlock' && block.name.chars === name
+      )[0] || null
+    );
   }
 }
 
@@ -72,12 +78,16 @@ export interface NamedBlockFields extends BaseNodeFields {
  * Corresponds to a single named block. This is used for anonymous named blocks (`default` and
  * `else`).
  */
-export class NamedBlock extends node().fields<NamedBlockFields>() {
+export class NamedBlock extends node('NamedBlock').fields<NamedBlockFields>() {
   get args(): ComponentArgs {
     let entries = this.componentArgs.map((a) => a.toComponentArgument());
 
     return EmptyComponentArgs(
       ComponentNamedArguments(SpanList.range(entries, this.name.loc.collapse('end')), entries)
     );
+  }
+
+  get nameLoc() {
+    return this.name.loc.withStart(this.name.loc.getStart().move(-1));
   }
 }
