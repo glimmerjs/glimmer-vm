@@ -50,14 +50,15 @@ export function verifying(...args: VerifyingValidArgs | VerifyingErrorArgs) {
 
 type VerifyOptions = {
   strict?: boolean | 'both';
-  using?: 'parser' | 'compiler';
+  using?: 'parser' | 'compiler' | 'both';
   lexicalScope?: (name: string) => boolean;
 };
 
 function getOptions(options?: VerifyOptions): PrecompileOptionsWithLexicalScope[] {
   const lexicalScope = options?.lexicalScope ?? (() => false);
   const meta = { moduleName: 'test-module' };
-  if (options?.strict === 'both') {
+  const strict = options?.strict ?? 'both';
+  if (strict === 'both') {
     return [
       { strictMode: true, lexicalScope, meta },
       { strictMode: false, lexicalScope, meta },
@@ -65,7 +66,7 @@ function getOptions(options?: VerifyOptions): PrecompileOptionsWithLexicalScope[
   } else {
     return [
       {
-        strictMode: options?.strict,
+        strictMode: strict,
         lexicalScope,
         meta,
       },
@@ -101,7 +102,7 @@ function verifyCompile(source: string, options: PrecompileOptionsWithLexicalScop
         throw e;
       },
       GlimmerSyntaxError,
-      `expected a Glimmer syntax error, got a different error`
+      `expected a forgiving parse, got an error`
     );
     return { status: 'failed', error: e };
   }
@@ -109,16 +110,21 @@ function verifyCompile(source: string, options: PrecompileOptionsWithLexicalScop
 
 function verifyParse(template: string, options: PrecompileOptionsWithLexicalScope): ParseResult {
   const source = new src.Source(template, 'test-module');
-  const [ast] = normalize(source, options);
-  const errors = verifyTemplate(ast, options);
 
-  const [first, ...extra] = errors;
+  try {
+    const [ast] = normalize(source, options);
+    const errors = verifyTemplate(ast, options);
 
-  if (!first) {
-    return { status: 'valid' };
+    const [first, ...extra] = errors;
+
+    if (!first) {
+      return { status: 'valid' };
+    }
+
+    return { status: 'error', error: first.error(), extra: extra.map((e) => e.error()) };
+  } catch (e) {
+    return { status: 'failed', error: e };
   }
-
-  return { status: 'error', error: first.error(), extra: extra.map((e) => e.error()) };
 }
 
 function verify(
@@ -127,55 +133,65 @@ function verify(
 ) {
   const precompileOptionList = getOptions(options);
 
+  const using: ('compiler' | 'parser')[] =
+    options.using === 'both' || options.using === undefined
+      ? ['compiler', 'parser']
+      : [options.using];
+
   for (const precompileOptions of precompileOptionList) {
-    QUnit.assert.ok(true, `⚪️ verifying ${precompileOptions.strictMode ? 'strict' : 'non-strict'}`);
-    const result =
-      options.using === 'compiler'
-        ? verifyCompile(template, precompileOptions)
-        : verifyParse(template, precompileOptions);
+    for (const mode of using) {
+      QUnit.assert.ok(
+        true,
+        `🔎 verifying \`${precompileOptions.strictMode ? 'strict' : 'non-strict'}\` using \`${mode}\``
+      );
+      const result =
+        mode === 'compiler'
+          ? verifyCompile(template, precompileOptions)
+          : verifyParse(template, precompileOptions);
 
-    if (result.status === 'failed') {
-      // failure is already reported
-      return;
-    }
-
-    if (options.expect === 'valid') {
-      if (result.status === 'valid') {
-        pushSuccess(`expected 🟢 no errors`);
+      if (result.status === 'failed') {
+        // failure is already reported
         return;
-      } else {
+      }
+
+      if (options.expect === 'valid') {
+        if (result.status === 'valid') {
+          pushSuccess(`expected 🟢 no errors`);
+          return;
+        } else {
+          QUnit.assert.equal(
+            '',
+            [result.error.message, ...result.extra.map((e) => e.message)].join('\n\n'),
+            `expected no errors, got ${result.extra.length + 1}`
+          );
+        }
+        return;
+      }
+
+      // if we expect an error...
+
+      const expectedError = options.error;
+
+      if (result.status === 'valid') {
+        pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
+        return;
+      }
+
+      const { error, extra } = result;
+
+      if (extra.length > 0) {
         QUnit.assert.equal(
           '',
-          [result.error, ...result.extra],
-          `expected no errors, got ${result.extra.length + 1}`
+          displayErrors(extra),
+          `expected only one error, got ${extra.length} more`
         );
       }
-      return;
-    }
 
-    // if we expect an error...
-
-    const expectedError = options.error;
-
-    if (result.status === 'valid') {
-      pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
-      return;
-    }
-
-    const { error, extra } = result;
-
-    if (extra.length > 0) {
-      QUnit.assert.equal(
-        '',
-        displayErrors(extra),
-        `expected only one error, got ${extra.length} more`
-      );
-    }
-
-    if (error) {
-      QUnit.assert.equal(error.message, expectedError.message, `expected 🔴`);
-    } else {
-      pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
+      if (error) {
+        QUnit.assert.equal(error.message, expectedError.message, `expected 🔴`);
+      } else {
+        pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
+      }
     }
   }
 }

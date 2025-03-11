@@ -17,24 +17,24 @@ for (const keyword of KEYWORDS) {
   syntax(['keyword syntax errors', keyword], (module) => {
     module.test('keyword cannot be used as a value even in non-strict mode', () => {
       verifying(
-        `{{some-helper ${keyword}}}`,
+        `{{someHelper ${keyword}}}`,
         `Attempted to pass \`${keyword}\` as a positional argument, but it was not in scope`,
-        { strict: false }
+        { lexicalScope: (name) => name === 'someHelper' }
       ).throws`
-        1 | {{some-helper ${keyword}}}
-          |               ${'='.repeat(keyword.length)}
-          |     \== not in scope
+        1 | {{someHelper ${keyword}}}
+          |              ${'='.repeat(keyword.length)}
+          |                 \==== not in scope
       `.errors();
     });
 
     module.test('keywords can be shadowed by local variables', () => {
-      verifying(`{{#let this.value as |${keyword}|}}{{some-helper ${keyword}}}{{/let}}`, {
-        strict: 'both',
+      verifying(`{{#let this.value as |${keyword}|}}{{someHelper ${keyword}}}{{/let}}`, {
+        lexicalScope: (name) => name === 'someHelper',
       }).isValid();
 
       verifying(
-        `{{#some-component this.value as |${keyword}|}}{{some-helper ${keyword}}}{{/some-component}}`,
-        { strict: 'both' }
+        `{{#someComponent this.value as |${keyword}|}}{{someHelper ${keyword}}}{{/someComponent}}`,
+        { lexicalScope: (name) => name === 'someHelper' || name === 'someComponent' }
       ).isValid();
     });
   });

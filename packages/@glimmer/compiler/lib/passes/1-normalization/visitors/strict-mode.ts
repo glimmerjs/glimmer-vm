@@ -45,7 +45,12 @@ export default class ValidatorPass {
     let result = Ok(null);
 
     for (let block of blocks.toArray()) {
-      result = result.andThen(() => this.NamedBlock(block));
+      result = result.andThen(() => {
+        if (block.type === 'Error') {
+          return Err(GlimmerSyntaxError.forErrorNode(block));
+        }
+        return this.NamedBlock(block);
+      });
     }
 
     return result;

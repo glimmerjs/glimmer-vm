@@ -251,7 +251,7 @@ export class Builder {
     });
   }
 
-  namedBlocks(blocks: ASTv2.NamedBlock[], loc: SourceSpan): ASTv2.NamedBlocks {
+  namedBlocks(blocks: PresentArray<ASTv2.NamedBlock | ASTv1.ErrorNode>, loc: SourceSpan): ASTv2.NamedBlocks {
     return new ASTv2.NamedBlocks({
       loc,
       blocks,
@@ -394,7 +394,7 @@ export class BuildElement {
 
   componentWithNamedBlocks(
     callee: ASTv2.PathExpression | ASTv2.ResolvedName,
-    blocks: PresentArray<ASTv2.NamedBlock>,
+    blocks: PresentArray<ASTv2.NamedBlock | ASTv1.ErrorNode>,
     loc: SourceSpan
   ): ASTv2.InvokeAngleBracketComponent | ASTv2.InvokeResolvedAngleBracketComponent {
     if (callee.type === 'ResolvedName') {
