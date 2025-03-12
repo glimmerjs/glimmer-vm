@@ -23,7 +23,7 @@ import * as src from '../source/api';
 import { generateSyntaxError, GlimmerSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
 import Walker from '../traversal/walker';
-import { appendChild } from '../utils';
+import { appendChild, appendChildren } from '../utils';
 import b from '../v1/parser-builders';
 import publicBuilder from '../v1/public-builders';
 import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
@@ -56,7 +56,20 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishComment(): void {
-    appendChild(this.currentElement(), b.comment(this.finish(this.currentComment)));
+    this.#append(this.currentComment, (comment) => b.comment(this.finish(comment)));
+  }
+
+  #append<N extends { errors?: ASTv1.AttachedErrors<string> }>(
+    node: N,
+    build: (node: N) => ASTv1.Statement
+  ): void {
+    if (node.errors) {
+      for (const errors of Object.values(node.errors)) {
+        appendChildren(this.currentElement(), ...errors);
+      }
+    } else {
+      appendChild(this.currentElement(), build(node));
+    }
   }
 
   // Data
@@ -74,7 +87,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishData(): void {
-    appendChild(this.currentElement(), b.text(this.finish(this.currentData)));
+    this.#append(this.currentData, (text) => b.text(this.finish(text)));
   }
 
   // Tags - basic
@@ -133,7 +146,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishStartTag(): void {
-    let { name, nameStart, nameEnd } = this.currentStartTag;
+    let { name, nameStart, nameEnd, errors } = this.currentStartTag;
 
     // <> should probably be a syntax error, but s-h-t is currently broken for that case
     localAssert(name !== '', 'tag name cannot be empty');
@@ -165,13 +178,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       children: [],
       openTag: loc,
       closeTag: selfClosing ? null : src.SourceSpan.broken(),
+      errors,
       loc,
     });
     this.elementStack.push(element);
   }
 
   finishEndTag(isVoid: boolean): void {
-    let { start: closeTagStart } = this.currentTag;
+    let { start: closeTagStart, errors } = this.currentTag;
     let tag = this.finish<StartTag | EndTag>(this.currentTag);
 
     let element = this.elementStack.pop() as ASTv1.ParentNode;
@@ -188,6 +202,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     }
 
     element.loc = element.loc.withEnd(this.offset());
+    if (errors && Object.keys(errors).length > 0) {
+      element.errors = { ...element.errors, ...errors };
+    }
 
     appendChild(parent, element);
   }
@@ -292,7 +309,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let tokenizerPos = this.offset();
     let { name, parts, start, isQuoted, isDynamic, valueSpan } = this.currentAttr;
     const attrLoc = start.until(tokenizerPos);
-    const tagLoc = this.source.spanFor({ start: tag.start.toJSON(), end: tokenizerPos.toJSON() });
 
     if (tag.type === 'EndTag') {
       throw GlimmerSyntaxError.highlight(
@@ -652,7 +668,12 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   reportSyntaxError(message: string): void {
-    throw generateSyntaxError(message, this.offset().collapsed().highlight('error'));
+    const error = b.error(message, this.offset().next(1).highlight('invalid character'));
+    if (this.currentNode) {
+      addError(this.currentNode, error);
+    } else {
+      this.error = error;
+    }
   }
 
   assembleConcatenatedValue(
@@ -713,13 +734,13 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           return head;
         } else {
           throw GlimmerSyntaxError.highlight(
-            `An unquoted attribute value must be a string or a mustache, ` +
-              `preceded by whitespace or a '=' character, and ` +
-              `followed by whitespace, a '>' character, or '/>'`,
+            `Invalid dynamic value in an unquoted attribute`,
             valueSpan.lastSelectedLine
               .highlight('missing quotes')
               .withPrimary(
-                (head.type === 'MustacheStatement' ? head : a).loc.highlight('invalid mustache')
+                (head.type === 'MustacheStatement' ? head : a).loc.highlight(
+                  'invalid dynamic value'
+                )
               )
           );
         }
@@ -912,4 +933,10 @@ export function preprocess(
   }
 
   return template;
+}
+
+function addError<T extends { errors?: ASTv1.TokenizerErrors }>(node: T, error: ASTv1.ErrorNode) {
+  node.errors ??= {};
+  const errors = (node.errors.tokenizer ??= []);
+  errors.push(error);
 }

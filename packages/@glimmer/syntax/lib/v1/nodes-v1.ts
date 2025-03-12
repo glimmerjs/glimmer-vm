@@ -102,6 +102,7 @@ export interface ElementModifierStatement extends BaseNode {
 export interface CommentStatement extends BaseNode {
   type: 'CommentStatement';
   value: string;
+  errors?: TokenizerErrors;
 }
 
 export interface MustacheCommentStatement extends BaseNode {
@@ -114,9 +115,7 @@ export interface ElementNode extends BaseNode {
   path: PathExpression;
   selfClosing: boolean;
   attributes: AttrNode[];
-  errors?: Optional<{
-    eof?: Optional<ErrorNode>;
-  }>;
+  errors?: AttachedErrors<'tokenizer' | 'eof'>;
   params: VarHead[];
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
@@ -169,6 +168,7 @@ export type AttrPart = TextNode | MustacheStatement;
 export interface TextNode extends BaseNode {
   type: 'TextNode';
   chars: string;
+  errors?: TokenizerErrors;
 }
 
 export interface ConcatStatement extends BaseNode {
@@ -316,6 +316,12 @@ export interface StripFlags {
   open: boolean;
   close: boolean;
 }
+
+export type AttachedErrors<Name extends string> = Optional<{
+  [N in Name]: ErrorNode[];
+}>;
+
+export type TokenizerErrors = AttachedErrors<'tokenizer'>;
 
 export interface ErrorNode extends BaseNode {
   type: 'Error';

@@ -1,13 +1,12 @@
 import type { Nullable, Optional, PresentArray } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
 
-import type { SourceOffset } from '../source/span';
 import type * as ASTv1 from './api';
 
 import { SourceSpan } from '../source/span';
 import * as Validation from '../validation-context/validation-context';
 import { buildLegacyLiteral, buildLegacyMustache, buildLegacyPath } from './legacy-interop';
-import { isResultsError, resultsToArray } from './utils';
+import { resultsToArray } from './utils';
 
 const DEFAULT_STRIP = {
   close: false,
@@ -216,6 +215,7 @@ class Builders {
     comments: ASTv1.MustacheCommentStatement[];
     openTag: SourceSpan;
     closeTag: Nullable<SourceSpan>;
+    errors?: ASTv1.TokenizerErrors;
     loc: SourceSpan;
   }): ASTv1.ElementNode {
     let _selfClosing = selfClosing;

@@ -270,10 +270,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     const { escaped, loc, strip } = rawMustache;
 
     if ('original' in rawMustache.path && rawMustache.path.original === '...attributes') {
-      throw generateSyntaxError(
-        'Illegal use of ...attributes',
-        this.source.highlightFor(rawMustache.path, 'invalid')
+      appendChild(
+        this.currentElement(),
+        b.error(
+          'Invalid use of ...attributes',
+          this.source.highlightFor(rawMustache.path, `invalid ${this.#getCurlyPosition()}`)
+        )
       );
+
+      // don't return so that we fully process the mustache and continue parsing
     }
 
     if (isHBSLiteral(rawMustache.path)) {
@@ -347,6 +352,69 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return mustache;
   }
 
+  #getPosition() {
+    const state = this.tokenizer.state;
+
+    switch (state) {
+      case 'beforeData':
+      case 'data':
+        return 'in content';
+      case 'beforeAttributeValue':
+        return 'in an attribute';
+      case 'beforeAttributeName':
+      case 'attributeName':
+      case 'afterAttributeName':
+      case 'afterAttributeValueQuoted':
+      case 'attributeValueUnquoted':
+      case 'tagOpen':
+      case 'tagName':
+        return 'in an opening tag';
+      case 'endTagOpen':
+      case 'endTagName':
+        return 'in a closing tag';
+      case 'selfClosingStartTag':
+        return 'in a self-closing tag';
+      case 'attributeValueDoubleQuoted':
+      case 'attributeValueSingleQuoted':
+        return 'in a quoted attribute';
+
+      default:
+        if (state.startsWith('comment')) {
+          return 'in a comment';
+        }
+
+        return `in the ${state} tokenizer state`;
+    }
+  }
+
+  #getCurlyPosition() {
+    const state = this.tokenizer.state;
+    switch (state) {
+      case 'tagOpen':
+      case 'tagName':
+        return 'tag name';
+
+      case 'beforeAttributeName':
+      case 'attributeName':
+      case 'afterAttributeName':
+      case 'afterAttributeValueQuoted':
+        return 'modifier';
+
+      // Attribute values
+      case 'beforeAttributeValue':
+      case 'attributeValueUnquoted':
+        return 'attribute value';
+      case 'attributeValueDoubleQuoted':
+      case 'attributeValueSingleQuoted':
+        return 'attribute value part';
+
+      // TODO: Only append child when the tokenizer state makes
+      // sense to do so, otherwise throw an error.
+      default:
+        return 'content';
+    }
+  }
+
   appendDynamicAttributeValuePart(part: ASTv1.MustacheStatement): void {
     this.finalizeTextPart();
     const attr = this.currentAttr;
@@ -409,8 +477,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
       default: {
         throw generateSyntaxError(
-          `Using a Handlebars comment when in the \`${tokenizer['state']}\` state is not supported`,
-          this.source.highlightFor(rawComment, 'invalid comment')
+          `Invalid comment ${this.#getPosition()}`,
+          this.source.highlightFor(rawComment, `invalid comment`)
         );
       }
     }
@@ -418,32 +486,30 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return comment;
   }
 
-  PartialStatement(partial: HBS.PartialStatement): never {
-    throw generateSyntaxError(
-      `Handlebars partials are not supported`,
-      this.source.highlightFor(partial, 'invalid partial')
+  #invalid(kind: string, node: HBS.Node): void {
+    appendChild(
+      this.currentElement(),
+      b.error(
+        `Handlebars ${kind}s are not supported`,
+        this.source.highlightFor(node, `invalid ${kind}`)
+      )
     );
   }
 
-  PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): never {
-    throw generateSyntaxError(
-      `Handlebars partial blocks are not supported`,
-      this.source.highlightFor(partialBlock, 'invalid partial block')
-    );
+  PartialStatement(partial: HBS.PartialStatement): void {
+    this.#invalid('partial', partial);
   }
 
-  Decorator(decorator: HBS.Decorator): never {
-    throw generateSyntaxError(
-      `Handlebars decorators are not supported`,
-      this.source.highlightFor(decorator, 'invalid decorator')
-    );
+  PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): void {
+    this.#invalid('partial block', partialBlock);
   }
 
-  DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): never {
-    throw generateSyntaxError(
-      `Handlebars decorator blocks are not supported`,
-      this.source.highlightFor(decoratorBlock, 'invalid decorator block')
-    );
+  Decorator(decorator: HBS.Decorator): void {
+    this.#invalid('decorator', decorator);
+  }
+
+  DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): void {
+    this.#invalid('decorator block', decoratorBlock);
   }
 
   SubExpression(sexpr: HBS.SubExpression): ASTv1.SubExpression {

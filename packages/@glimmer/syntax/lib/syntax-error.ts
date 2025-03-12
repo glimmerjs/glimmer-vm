@@ -181,8 +181,6 @@ class Underline {
     const hasPrimaryLabel = !!primary.label;
     const hasExpandedLabel = !!expanded?.label;
 
-    debugger;
-
     if (hasPrimaryLabel && hasExpandedLabel) {
       if (prefix) {
         // If there's a prefix, then the error looks like:
