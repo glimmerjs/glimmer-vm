@@ -751,8 +751,8 @@ class ElementNormalizer {
       children.addError(error);
     }
 
-    if (element.errors?.eof) {
-      children.addError(element.errors.eof);
+    if (element.errors) {
+      children.addErrors(element.errors);
     }
 
     let offsets = this.ctx.loc(element.loc);
@@ -1103,6 +1103,12 @@ class Children {
    */
   addError(error: ASTv1.ErrorNode): void {
     this.children.unshift(error);
+  }
+
+  addErrors(attached: NonNullable<ASTv1.AttachedErrors<string>>): void {
+    for (const errors of Object.values(attached)) {
+      this.children.unshift(...errors);
+    }
   }
 }
 

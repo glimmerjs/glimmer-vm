@@ -28,12 +28,14 @@ export interface StartTag {
   readonly params: ASTv1.ParseResult<ASTv1.VarHead>[];
   selfClosing: boolean;
   readonly loc: src.SourceSpan;
+  errors?: ASTv1.TokenizerErrors;
 }
 
 export interface EndTag {
   readonly type: 'EndTag';
   name: string;
   readonly loc: src.SourceSpan;
+  errors?: ASTv1.TokenizerErrors;
 }
 
 export interface Attribute {

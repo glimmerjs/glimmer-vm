@@ -20,32 +20,49 @@ export function highlight(strings: TemplateStringsArray, ...args: string[]) {
 type VerifyingErrorArgs = [template: string, message: string, options?: VerifyOptions];
 type VerifyingValidArgs = [template: string, options?: VerifyOptions];
 
-export function verifying(...args: VerifyingValidArgs): { isValid: () => void };
-export function verifying(...args: VerifyingErrorArgs): {
-  throws: (raw: TemplateStringsArray, ...args: string[]) => { errors: () => void };
+/**
+ * Pass `throw` to `isValid` or `throws` to throw parse errors so that they can be debugged. Don't
+ * leave debugging options in committed code.
+ */
+type DebuggingOptions = { throw?: boolean };
+type TemplateArgs<T extends unknown[] = unknown[]> = [raw: TemplateStringsArray, ...args: T];
+type IsValidReturn = { isValid: (debugging?: DebuggingOptions) => void };
+type ThrowsReturn = {
+  throws: (...args: TemplateArgs<string[]>) => { errors: (debugging?: DebuggingOptions) => void };
 };
-export function verifying(...args: VerifyingValidArgs | VerifyingErrorArgs) {
+
+export function verifying(...args: VerifyingValidArgs): IsValidReturn;
+export function verifying(...args: VerifyingErrorArgs): ThrowsReturn;
+export function verifying(
+  ...args: VerifyingValidArgs | VerifyingErrorArgs
+): IsValidReturn | ThrowsReturn;
+export function verifying(
+  ...args: VerifyingValidArgs | VerifyingErrorArgs
+): IsValidReturn | ThrowsReturn {
   if (args.length === 1 || typeof args[1] !== 'string') {
     const [template, options] = args as VerifyingValidArgs;
     QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🟢`);
-    return { isValid: () => verify(template, { expect: 'valid', ...options }) };
+    return {
+      isValid: (debugging?: { throw?: boolean }) =>
+        verify(template, { expect: 'valid', ...options }, debugging),
+    } satisfies IsValidReturn;
   }
 
   const [template, message, options] = args;
 
-  const throws = (raw: TemplateStringsArray, ...args: string[]) => {
-    QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🔴`);
+  return {
+    throws: (raw: TemplateStringsArray, ...args: string[]) => {
+      QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🔴`);
 
-    const error = highlightError(message)(raw, ...args);
+      const error = highlightError(message)(raw, ...args);
 
-    return {
-      errors: () => {
-        verify(template, { expect: 'error', error, ...options });
-      },
-    };
-  };
-
-  return { throws };
+      return {
+        errors: (debugging?: DebuggingOptions): void => {
+          verify(template, { expect: 'error', error, ...options }, debugging);
+        },
+      };
+    },
+  } satisfies ThrowsReturn;
 }
 
 type VerifyOptions = {
@@ -88,7 +105,16 @@ type ParseResult =
       status: 'valid';
     };
 
-function verifyCompile(source: string, options: PrecompileOptionsWithLexicalScope): ParseResult {
+function verifyCompile(
+  source: string,
+  options: PrecompileOptionsWithLexicalScope,
+  debugging?: { throw?: boolean }
+): ParseResult {
+  if (debugging?.throw) {
+    precompile(source, options);
+    return { status: 'valid' };
+  }
+
   try {
     precompile(source, options);
     return { status: 'valid' };
@@ -108,8 +134,17 @@ function verifyCompile(source: string, options: PrecompileOptionsWithLexicalScop
   }
 }
 
-function verifyParse(template: string, options: PrecompileOptionsWithLexicalScope): ParseResult {
+function verifyParse(
+  template: string,
+  options: PrecompileOptionsWithLexicalScope,
+  debugging?: { throw?: boolean }
+): ParseResult {
   const source = new src.Source(template, 'test-module');
+
+  if (debugging?.throw) {
+    const [ast] = normalize(source, options);
+    verifyTemplate(ast, options);
+  }
 
   try {
     const [ast] = normalize(source, options);
@@ -129,8 +164,9 @@ function verifyParse(template: string, options: PrecompileOptionsWithLexicalScop
 
 function verify(
   template: string,
-  options: VerifyOptions & ({ expect: 'valid' } | { expect: 'error'; error: GlimmerSyntaxError })
-) {
+  options: VerifyOptions & ({ expect: 'valid' } | { expect: 'error'; error: GlimmerSyntaxError }),
+  debugging?: { throw?: boolean }
+): void {
   const precompileOptionList = getOptions(options);
 
   const using: ('compiler' | 'parser')[] =
@@ -146,8 +182,8 @@ function verify(
       );
       const result =
         mode === 'compiler'
-          ? verifyCompile(template, precompileOptions)
-          : verifyParse(template, precompileOptions);
+          ? verifyCompile(template, precompileOptions, debugging)
+          : verifyParse(template, precompileOptions, debugging);
 
       if (result.status === 'failed') {
         // failure is already reported

@@ -18,11 +18,11 @@ export interface NodeMap {
     input: MustacheStatement;
     output: ASTv1.ParseResult<ASTv1.MustacheStatement> | void;
   };
-  Decorator: { input: Decorator; output: never };
+  Decorator: { input: Decorator; output: void };
   BlockStatement: { input: BlockStatement; output: ASTv1.BlockStatement | void };
-  DecoratorBlock: { input: DecoratorBlock; output: never };
-  PartialStatement: { input: PartialStatement; output: never };
-  PartialBlockStatement: { input: PartialBlockStatement; output: never };
+  DecoratorBlock: { input: DecoratorBlock; output: void };
+  PartialStatement: { input: PartialStatement; output: void };
+  PartialBlockStatement: { input: PartialBlockStatement; output: void };
   ContentStatement: { input: ContentStatement; output: void };
   CommentStatement: { input: CommentStatement; output: ASTv1.MustacheCommentStatement | null };
   SubExpression: { input: SubExpression; output: ASTv1.SubExpression };
