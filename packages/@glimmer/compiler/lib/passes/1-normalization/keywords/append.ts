@@ -1,5 +1,6 @@
 import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/constants';
-import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
+import { localAssert } from '@glimmer/debug-util';
+import { ASTv2, generateSyntaxError, GlimmerSyntaxError, src } from '@glimmer/syntax';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
@@ -31,18 +32,29 @@ export const APPEND_KEYWORDS = keywords('Append')
         });
       } else {
         let target = args.named.get('to');
+        const invalid = args.named.entries.find((arg) => arg.name.chars !== 'to');
 
-        if (args.named.size > 1 || target === null) {
+        if (invalid) {
           return Err(
-            generateSyntaxError(`yield only takes a single named argument: 'to'`, args.named.loc)
+            GlimmerSyntaxError.highlight(
+              `yield only takes a single named argument: 'to'`,
+              invalid.loc.highlight().withPrimary({ loc: invalid.name, label: 'invalid argument' })
+            )
           );
         }
+
+        // If there are named arguments, but no `to`, then the `if (invalid)` branch above will have
+        // happened. If we got here, then we have a `to` argument.
+        localAssert(target !== null, `yield must have a 'to' argument`);
 
         if (ASTv2.isLiteral(target, 'string')) {
           return Ok({ target: target.toSlice(), positional: args.positional });
         } else {
           return Err(
-            generateSyntaxError(`you can only yield to a literal string value`, target.loc)
+            GlimmerSyntaxError.highlight(
+              `You can only yield to a literal string value`,
+              target.loc.highlight('not a string literal')
+            )
           );
         }
       }

@@ -211,35 +211,29 @@ class CompileErrorTests extends RenderTest {
   'Unquoted attribute with expression throws an exception'() {
     this.assert.throws(
       () => preprocess('<img class=foo{{bar}}>', { meta: { moduleName: 'test-module' } }),
-      highlightError(
-        `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`
-      )`
+      highlightError(`Invalid dynamic value in an unquoted attribute`)`
         1 | <img class=foo{{bar}}>
           |            ---=======
-          |                 \==== invalid mustache
+          |                 \==== invalid dynamic value
           |              \------- missing quotes
       `
     );
     this.assert.throws(
       () => preprocess('<img class={{foo}}{{bar}}>', { meta: { moduleName: 'test-module' } }),
-      highlightError(
-        `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`
-      )`
+      highlightError(`Invalid dynamic value in an unquoted attribute`)`
         1 | <img class={{foo}}{{bar}}>
           |            =======-------
           |                 \---- missing quotes
-          |              \======= invalid mustache
+          |              \======= invalid dynamic value
       `
     );
     this.assert.throws(
       () => preprocess('<img \nclass={{foo}}bar>', { meta: { moduleName: 'test-module' } }),
-      highlightError(
-        "An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'"
-      )`
+      highlightError('Invalid dynamic value in an unquoted attribute')`
         2 | class={{foo}}bar>
           |       =======---
           |               \--- missing quotes
-          |          \======== invalid mustache
+          |          \======== invalid dynamic value
       `
     );
     this.assert.throws(
@@ -247,13 +241,11 @@ class CompileErrorTests extends RenderTest {
         preprocess('<div \nclass\n=\n{{foo}}&amp;bar ></div>', {
           meta: { moduleName: 'test-module' },
         }),
-      highlightError(
-        "An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'"
-      )`
+      highlightError('Invalid dynamic value in an unquoted attribute')`
         4 | {{foo}}&amp;bar ></div>
           | =======--------
           |           \---- missing quotes
-          |   \======== invalid mustache
+          |   \======== invalid dynamic value
       `
     );
   }
