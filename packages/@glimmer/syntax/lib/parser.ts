@@ -148,6 +148,18 @@ export abstract class Parser {
     return expect(this.currentAttribute, 'expected attribute');
   }
 
+  ensureStartTag(): void {
+    if (this.currentNode?.type !== 'StartTag') {
+      this.beginStartTag();
+    }
+  }
+
+  ensureEndTag(): void {
+    if (this.currentNode?.type !== 'EndTag') {
+      this.beginEndTag();
+    }
+  }
+
   get currentTag(): ParserNodeBuilder<StartTag> | ParserNodeBuilder<EndTag> {
     let node = this.currentNode;
     localAssert(node && (node.type === 'StartTag' || node.type === 'EndTag'), 'expected tag');

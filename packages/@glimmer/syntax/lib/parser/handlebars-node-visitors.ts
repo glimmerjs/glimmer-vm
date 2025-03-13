@@ -311,10 +311,38 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // Tag helpers
       case 'tagOpen':
       case 'tagName':
-        throw generateSyntaxError(
-          `Cannot use mustaches in an elements tagname`,
-          this.source.highlightFor(mustache.path, 'invalid mustache')
+        this.ensureStartTag();
+        this.appendToTagName('ERROR');
+        appendChild(
+          this.currentElement(),
+          b.error(
+            `Invalid dynamic tag name`,
+            this.source
+              .highlightFor(mustache)
+              .withPrimary({ loc: mustache.path, label: 'dynamic value' })
+          )
         );
+        this.finishTag();
+        this.tokenizer.transitionTo('beforeAttributeName');
+        return;
+
+      case 'endTagOpen':
+      case 'endTagName':
+        this.ensureEndTag();
+        this.appendToTagName('ERROR');
+        appendChild(
+          this.currentElement(),
+          b.error(
+            `Invalid dynamic closing tag name`,
+            this.source
+              .highlightFor(mustache)
+              .withPrimary({ loc: mustache.path, label: 'dynamic value' })
+          )
+        );
+        this.finishTag();
+        this.tokenizer.transitionTo('beforeAttributeName');
+        debugger;
+        return;
 
       case 'beforeAttributeName':
         addElementModifier(this.currentStartTag, mustache);
