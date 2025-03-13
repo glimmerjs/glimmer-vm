@@ -7,8 +7,12 @@ import type { ReportableContext } from './validation-context/validation-context'
 import * as Validation from './validation-context/validation-context';
 
 export class GlimmerSyntaxError extends SyntaxError {
-  static highlight(error: string, highlights: Validation.IntoHighlight, extra?: number) {
-    return new GlimmerSyntaxError(error, Validation.Highlight.from(highlights), extra);
+  static highlight(error: Optional<string>, highlights: Validation.IntoHighlight, extra?: number) {
+    return new GlimmerSyntaxError(
+      error ?? `Syntax Error`,
+      Validation.Highlight.from(highlights),
+      extra
+    );
   }
 
   static forErrorNode(node: ASTv1.ErrorNode, extra?: number) {
