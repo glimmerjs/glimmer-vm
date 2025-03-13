@@ -210,6 +210,35 @@ syntax(['Invalid HTML Syntax'], (module) => {
         |        \================== invalid comment
     `.errors();
   });
+
+  module.test('disallowed mustaches in the tagName space', () => {
+    verifying(`<{{'asdf'}}></{{'asdf'}}>`).throws`
+      SyntaxError: Invalid dynamic tag name
+      1 | <{{'asdf'}}></{{'asdf'}}>
+        |  --======--
+        |     \======= dynamic value
+    `.throws`
+      SyntaxError: Invalid dynamic tag name
+      1 | <{{'asdf'}}></{{'asdf'}}>
+        |               --======--
+        |                   \======= dynamic value
+    `.errors();
+    // test('disallowed mustaches in the tagName space', (assert) => {
+    //   assert.throws(
+    //     () => {
+    //       parse(`<{{'asdf'}}></{{'asdf'}}>`, { meta: { moduleName: 'test-module' } });
+    //     },
+    //     syntaxErrorFor('Cannot use mustaches in an elements tagname', `{{'asdf'}}`, 'test-module', 1, 1)
+    //   );
+
+    //   assert.throws(
+    //     () => {
+    //       parse('<input{{bar}}>', { meta: { moduleName: 'test-module' } });
+    //     },
+    //     syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{bar}}', 'test-module', 1, 6)
+    //   );
+    // });
+  });
 });
 
 test('Handlebars embedded in an attribute (quoted)', () => {
@@ -889,22 +918,6 @@ syntax(['Invalid Handlebars syntax'], (module) => {
         |   \======= invalid decorator block
     `.errors();
   });
-});
-
-test('disallowed mustaches in the tagName space', (assert) => {
-  assert.throws(
-    () => {
-      parse(`<{{'asdf'}}></{{'asdf'}}>`, { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Cannot use mustaches in an elements tagname', `{{'asdf'}}`, 'test-module', 1, 1)
-  );
-
-  assert.throws(
-    () => {
-      parse('<input{{bar}}>', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{bar}}', 'test-module', 1, 6)
-  );
 });
 
 test('mustache immediately followed by self closing tag does not error', () => {

@@ -12,13 +12,15 @@ import {
 } from '@glimmer/syntax';
 
 export function highlight(strings: TemplateStringsArray, ...args: string[]) {
-  return highlightCode(
-    highlightParts(highlightToParts(strings, ...args), { moduleName: 'test-module' })
+  const parts = highlightToParts(strings, ...args);
+  return GlimmerSyntaxError.highlight(
+    parts.message,
+    highlightParts(parts, { moduleName: 'test-module' })
   );
 }
 
 type VerifyingErrorArgs = [template: string, message: string, options?: VerifyOptions];
-type VerifyingValidArgs = [template: string, options?: VerifyOptions];
+type VerifyingArgs = [template: string, options?: VerifyOptions];
 
 /**
  * Pass `throw` to `isValid` or `throws` to throw parse errors so that they can be debugged. Don't
@@ -26,43 +28,70 @@ type VerifyingValidArgs = [template: string, options?: VerifyOptions];
  */
 type DebuggingOptions = { throw?: boolean };
 type TemplateArgs<T extends unknown[] = unknown[]> = [raw: TemplateStringsArray, ...args: T];
-type IsValidReturn = { isValid: (debugging?: DebuggingOptions) => void };
-type ThrowsReturn = {
-  throws: (...args: TemplateArgs<string[]>) => { errors: (debugging?: DebuggingOptions) => void };
+type ThrowsReturnFn = (...args: TemplateArgs<string[]>) => ThrowsFnReturn;
+type ErrorsReturnFn = (debugging?: DebuggingOptions) => void;
+type ThrowsFnReturn = {
+  throws: ThrowsReturnFn;
+  errors: ErrorsReturnFn;
 };
 
-export function verifying(...args: VerifyingValidArgs): IsValidReturn;
+type IsValidReturn = { isValid: (debugging?: DebuggingOptions) => void };
+type ThrowsReturn = { throws: ThrowsReturnFn };
+
+export function verifying(...args: VerifyingArgs): IsValidReturn & ThrowsReturn;
 export function verifying(...args: VerifyingErrorArgs): ThrowsReturn;
 export function verifying(
-  ...args: VerifyingValidArgs | VerifyingErrorArgs
+  ...args: VerifyingArgs | VerifyingErrorArgs
 ): IsValidReturn | ThrowsReturn;
 export function verifying(
-  ...args: VerifyingValidArgs | VerifyingErrorArgs
+  ...args: VerifyingArgs | VerifyingErrorArgs
 ): IsValidReturn | ThrowsReturn {
-  if (args.length === 1 || typeof args[1] !== 'string') {
-    const [template, options] = args as VerifyingValidArgs;
-    QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🟢`);
-    return {
-      isValid: (debugging?: { throw?: boolean }) =>
-        verify(template, { expect: 'valid', ...options }, debugging),
-    } satisfies IsValidReturn;
+  function normalize(): {
+    template: string;
+    message?: Optional<string>;
+    options?: Optional<VerifyOptions>;
+  } {
+    if (args.length === 1) {
+      const [template] = args;
+      return { template };
+    } else if (args.length === 3) {
+      const [template, message, options] = args;
+      return { template, message, options };
+    } else {
+      const [template, options] = args;
+      if (typeof options === 'string') {
+        return { template, message: options };
+      } else {
+        return { template, options };
+      }
+    }
   }
 
-  const [template, message, options] = args;
+  const { template, message, options } = normalize();
+  const expectedErrors: GlimmerSyntaxError[] = [];
+
+  const errors = ((debugging?: DebuggingOptions): void => {
+    QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🔴`);
+    verify(template, { expect: 'error', errors: expectedErrors, ...options }, debugging);
+  }) satisfies ErrorsReturnFn;
+
+  const throws = (raw: TemplateStringsArray, ...args: string[]): ThrowsFnReturn => {
+    const error = highlightError(message)(raw, ...args);
+    expectedErrors.push(error);
+
+    return {
+      throws,
+      errors,
+    };
+  };
 
   return {
-    throws: (raw: TemplateStringsArray, ...args: string[]) => {
-      QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🔴`);
-
-      const error = highlightError(message)(raw, ...args);
-
-      return {
-        errors: (debugging?: DebuggingOptions): void => {
-          verify(template, { expect: 'error', error, ...options }, debugging);
-        },
-      };
+    isValid: (debugging?: { throw?: boolean }) => {
+      QUnit.config.current.assert.ok(true, `🔽 verifying ${template}, expecting 🟢`);
+      return verify(template, { expect: 'valid', ...options }, debugging);
     },
-  } satisfies ThrowsReturn;
+    throws,
+  } satisfies IsValidReturn & ThrowsReturn;
 }
 
 type VerifyOptions = {
@@ -94,8 +123,7 @@ function getOptions(options?: VerifyOptions): PrecompileOptionsWithLexicalScope[
 type ParseResult =
   | {
       status: 'error';
-      error: GlimmerSyntaxError;
-      extra: GlimmerSyntaxError[];
+      errors: GlimmerSyntaxError[];
     }
   | {
       status: 'failed';
@@ -120,7 +148,7 @@ function verifyCompile(
     return { status: 'valid' };
   } catch (e) {
     if (typeof e === 'object' && e && e instanceof GlimmerSyntaxError) {
-      return { status: 'error', error: e, extra: [] };
+      return { status: 'error', errors: [e] };
     }
 
     QUnit.assert.throws(
@@ -150,13 +178,11 @@ function verifyParse(
     const [ast] = normalize(source, options);
     const errors = verifyTemplate(ast, options);
 
-    const [first, ...extra] = errors;
-
-    if (!first) {
+    if (errors.length === 0) {
       return { status: 'valid' };
     }
 
-    return { status: 'error', error: first.error(), extra: extra.map((e) => e.error()) };
+    return { status: 'error', errors: errors.map((e) => e.error()) };
   } catch (e) {
     return { status: 'failed', error: e };
   }
@@ -164,7 +190,8 @@ function verifyParse(
 
 function verify(
   template: string,
-  options: VerifyOptions & ({ expect: 'valid' } | { expect: 'error'; error: GlimmerSyntaxError }),
+  options: VerifyOptions &
+    ({ expect: 'valid' } | { expect: 'error'; errors: GlimmerSyntaxError[] }),
   debugging?: { throw?: boolean }
 ): void {
   const precompileOptionList = getOptions(options);
@@ -197,8 +224,8 @@ function verify(
         } else {
           QUnit.assert.equal(
             '',
-            [result.error.message, ...result.extra.map((e) => e.message)].join('\n\n'),
-            `expected no errors, got ${result.extra.length + 1}`
+            displayErrors(result.errors),
+            `expected no errors, got ${result.errors.length}`
           );
         }
         return;
@@ -206,30 +233,59 @@ function verify(
 
       // if we expect an error...
 
-      const expectedError = options.error;
+      const expectedErrors = options.errors;
 
       if (result.status === 'valid') {
-        pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
+        pushFailure(`expected 🔴 ${errorsLabel(expectedErrors)}, got 🟢 no errors`);
         return;
       }
 
-      const { error, extra } = result;
+      const { errors } = result;
 
-      if (extra.length > 0) {
+      if (errors.length > expectedErrors.length) {
+        QUnit.assert.equal(
+          displayErrors(errors.slice(expectedErrors.length)),
+          '',
+          `expected only ${errorsLabel(expectedErrors)}, got ${errors.length - expectedErrors.length} more`
+        );
+      } else if (expectedErrors.length > errors.length) {
         QUnit.assert.equal(
           '',
-          displayErrors(extra),
-          `expected only one error, got ${extra.length} more`
+          displayErrors(expectedErrors.slice(errors.length)),
+          `expected ${errorsLabel(expectedErrors)}, got ${errors.length}`
         );
       }
 
-      if (error) {
-        QUnit.assert.equal(error.message, expectedError.message, `expected 🔴`);
+      const zipped: { actual: GlimmerSyntaxError; expected: GlimmerSyntaxError; index: number }[] =
+        [];
+
+      for (let i = 0; i < errors.length && i < expectedErrors.length; i++) {
+        const expected = expectedErrors[i]!;
+        const actual = errors[i]!;
+        zipped.push({ expected, actual, index: i });
+      }
+
+      if (errors.length > 0) {
+        for (const { expected, actual, index } of zipped) {
+          QUnit.assert.equal(
+            actual.message,
+            expected.message,
+            `${index}. expected 🔴 at index ${index}`
+          );
+        }
       } else {
         pushFailure(`expected 🔴 syntax error, got 🟢 no errors`);
       }
     }
   }
+}
+
+function errorsLabel(array: unknown[]) {
+  return array.length + ' ' + label({ singular: 'error', plural: 'errors' }, array.length);
+}
+
+function label(label: { singular: string; plural: string }, count: number) {
+  return count === 1 ? label.singular : label.plural;
 }
 
 function pushFailure(message: string) {
@@ -250,12 +306,11 @@ function displayErrors(errors: GlimmerSyntaxError[]) {
   return errors.map((e) => e.message).join('\n\n');
 }
 
-export function highlightError(error: string, notes?: string[]) {
+export function highlightError(error: Optional<string>, notes?: string[]) {
   return (strings: TemplateStringsArray, ...args: string[]): GlimmerSyntaxError => {
-    const highlighted = highlightParts(highlightToParts(strings, ...args), {
-      moduleName: 'test-module',
-    });
-    return GlimmerSyntaxError.highlight(error, highlighted.addNotes(notes ?? []));
+    const parts = highlightToParts(strings, ...args);
+    const highlighted = highlightParts(parts, { moduleName: 'test-module' });
+    return GlimmerSyntaxError.highlight(error ?? parts.message, highlighted.addNotes(notes ?? []));
   };
 }
 
@@ -378,7 +433,7 @@ const highlightParts = (
 
 function padLines({ primary, expanded, ...parts }: HighlightParts): HighlightParts {
   if (parts.line === '1') {
-    return { content: parts.content, line: parts.content, lineno: 1, primary, expanded };
+    return { ...parts, line: parts.content, lineno: 1, primary, expanded };
   } else {
     const line = parseInt(parts.line, 10);
     let padding = '';
@@ -388,9 +443,8 @@ function padLines({ primary, expanded, ...parts }: HighlightParts): HighlightPar
     }
 
     return {
+      ...parts,
       content: `${padding}${parts.content}`,
-      lineno: parts.lineno,
-      line: parts.line,
       primary: {
         loc: padSpan(primary.loc, padding.length),
         label: primary.label,
@@ -411,6 +465,7 @@ function padSpan(
 }
 
 interface HighlightParts {
+  message: Optional<string>;
   line: string;
   lineno: number;
   content: string;
@@ -425,7 +480,8 @@ export function highlightToParts(strings: TemplateStringsArray, ...args: string[
   );
   const lines = text.map((s) => s.slice(leading));
 
-  const [firstLine, underlineLine, firstLabelLine, secondLabelLine] = lines;
+  const [message, remainder] = parseMessage(lines);
+  const [firstLine, underlineLine, firstLabelLine, secondLabelLine] = remainder;
 
   localAssert(
     firstLine && underlineLine,
@@ -450,6 +506,7 @@ export function highlightToParts(strings: TemplateStringsArray, ...args: string[
   }
 
   const result: HighlightParts = {
+    message,
     ...first,
     lineno: parseInt(first.line, 10),
     primary,
@@ -512,6 +569,21 @@ function parseLabel(line: string): { primary: string } | { expanded: string } {
   } else {
     return { primary: label };
   }
+}
+
+function parseMessage(text: string[]): [message: Optional<string>, remainder: string[]] {
+  // Find the first line that doesn't start with spaces followed by `|` or spaces
+  // followed by `\d |`.
+  for (let i = 0; i < text.length; i++) {
+    const line = text[i]!;
+    const match = /^\s*SyntaxError:/u.exec(line);
+    if (match) {
+      const message = line.slice(match[0].length).trim();
+      return [message, text.slice(i + 1)];
+    }
+  }
+
+  return [undefined, text];
 }
 
 function parseFirst(first: string): { line: string; content: string } {
