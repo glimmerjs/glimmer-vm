@@ -2,7 +2,6 @@ import type { Dict } from '@glimmer/interfaces';
 import type { ASTv1 } from '@glimmer/syntax';
 import { builders as b, preprocess as parse } from '@glimmer/syntax';
 import { PackageSuite, verifying } from '@glimmer-workspace/integration-tests';
-import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 
 import { astEqual } from './support';
 
@@ -57,6 +56,64 @@ syntax(['HTML Syntax'], (module) => {
       1 | <img =foo >
         |      =
         |      \===== invalid character
+    `.errors();
+  });
+});
+
+syntax(['Valid Handlebars invalid in Glimmer'], (module) => {
+  module.test('path expression with "dangling dot" throws error', () => {
+    verifying(
+      '{{if foo. bar baz}}',
+      "'.' is not a supported path in Glimmer; check for a path with a trailing '.'"
+    ).throws`
+      1 | {{if foo. bar baz}}
+        |         =
+        |         \===== invalid path
+    `.errors();
+  });
+
+  module.test('string literal as path throws error', () => {
+    verifying('{{("foo-baz")}}').throws`
+      SyntaxError: \`foo-baz\` cannot be called. Consider replacing \`("foo-baz")\` with \`"foo-baz"\` if you meant to use it as a value
+      1 | {{("foo-baz")}}
+        |   -=========-
+        |     \== string is not callable
+    `.errors();
+  });
+
+  module.test('boolean literal as path throws error', () => {
+    verifying('{{(true)}}').throws`
+      SyntaxError: \`true\` cannot be called. Consider replacing \`(true)\` with \`true\` if you meant to use it as a value
+      1 | {{(true)}}
+        |   -====-
+        |     \== boolean is not callable
+    `.errors();
+  });
+
+  module.test('undefined literal as path throws error', () => {
+    verifying('{{(undefined)}}').throws`
+      SyntaxError: \`undefined\` cannot be called. Consider replacing \`(undefined)\` with \`undefined\` if you meant to use it as a value
+      1 | {{(undefined)}}
+        |   -=========-
+        |     \== undefined is not callable
+    `.errors();
+  });
+
+  module.test('null literal as path throws error', () => {
+    verifying('{{(null)}}').throws`
+      SyntaxError: \`null\` cannot be called. Consider replacing \`(null)\` with \`null\` if you meant to use it as a value
+      1 | {{(null)}}
+        |   -====-
+        |     \== null is not callable
+    `.errors();
+  });
+
+  module.test('number literal as path throws error', () => {
+    verifying('{{(42)}}').throws`
+      SyntaxError: \`42\` cannot be called. Consider replacing \`(42)\` with \`42\` if you meant to use it as a value
+      1 | {{(42)}}
+        |   -==-
+        |     \== number is not callable
     `.errors();
   });
 });
@@ -218,26 +275,11 @@ syntax(['Invalid HTML Syntax'], (module) => {
         |  --======--
         |     \======= dynamic value
     `.throws`
-      SyntaxError: Invalid dynamic tag name
+      SyntaxError: Invalid dynamic closing tag name
       1 | <{{'asdf'}}></{{'asdf'}}>
         |               --======--
         |                   \======= dynamic value
     `.errors();
-    // test('disallowed mustaches in the tagName space', (assert) => {
-    //   assert.throws(
-    //     () => {
-    //       parse(`<{{'asdf'}}></{{'asdf'}}>`, { meta: { moduleName: 'test-module' } });
-    //     },
-    //     syntaxErrorFor('Cannot use mustaches in an elements tagname', `{{'asdf'}}`, 'test-module', 1, 1)
-    //   );
-
-    //   assert.throws(
-    //     () => {
-    //       parse('<input{{bar}}>', { meta: { moduleName: 'test-module' } });
-    //     },
-    //     syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{bar}}', 'test-module', 1, 6)
-    //   );
-    // });
   });
 });
 
@@ -951,88 +993,6 @@ test('named blocks', () => {
     ),
   ]);
   astEqual(ast, b.template([el]));
-});
-
-test('path expression with "dangling dot" throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{if foo. bar baz}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      "'.' is not a supported path in Glimmer; check for a path with a trailing '.'",
-      '.',
-      'test-module',
-      1,
-      8
-    )
-  );
-});
-
-test('string literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{("foo-baz")}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `StringLiteral "foo-baz" cannot be called as a sub-expression, replace ("foo-baz") with "foo-baz"`,
-      '"foo-baz"',
-      'test-module',
-      1,
-      3
-    )
-  );
-});
-
-test('boolean literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{(true)}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `BooleanLiteral "true" cannot be called as a sub-expression, replace (true) with true`,
-      'true',
-      'test-module',
-      1,
-      3
-    )
-  );
-});
-
-test('undefined literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{(undefined)}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `UndefinedLiteral "undefined" cannot be called as a sub-expression, replace (undefined) with undefined`,
-      'undefined',
-      'test-module',
-      1,
-      3
-    )
-  );
-});
-
-test('null literal as path throws error', () => {
-  verifying(
-    '{{(null)}}',
-    '`null` cannot be called. Consider replacing `(null)` with `null` if you meant to use it as a value'
-  ).throws`
-    1 | {{(null)}}
-      |   -====-
-      |     \== null is not callable
-  `.errors();
-});
-
-test('number literal as path throws error', () => {
-  verifying(
-    '{{(42)}}',
-    '`42` cannot be called. Consider replacing `(42)` with `42` if you meant to use it as a value'
-  ).throws`
-    1 | {{(42)}}
-      |   -==-
-      |     \== number is not callable
-  `.errors();
 });
 
 export function strip(strings: TemplateStringsArray, ...args: string[]) {

@@ -15,6 +15,7 @@ syntax(['Test Utils: Highlight'], (module) =>
       {
         lineno: 1,
         content: '<div>{{hello}}</div>',
+        message: undefined,
         primary: { loc: spans.primary },
       }
     );
@@ -29,6 +30,7 @@ syntax(['Test Utils: Highlight'], (module) =>
       {
         lineno: 1,
         content: '<div>{{hello}}</div>',
+        message: undefined,
         primary: { loc: spans.primary, label: 'inner' },
       }
     );
