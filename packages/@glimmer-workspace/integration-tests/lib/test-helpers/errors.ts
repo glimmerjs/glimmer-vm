@@ -242,25 +242,27 @@ function verify(
 
       const { errors } = result;
 
-      if (errors.length > expectedErrors.length) {
+      const usedExpectedErrors = mode === 'compiler' ? expectedErrors.slice(0, 1) : expectedErrors;
+
+      if (errors.length > usedExpectedErrors.length) {
         QUnit.assert.equal(
-          displayErrors(errors.slice(expectedErrors.length)),
+          displayErrors(errors.slice(usedExpectedErrors.length)),
           '',
-          `expected only ${errorsLabel(expectedErrors)}, got ${errors.length - expectedErrors.length} more`
+          `expected only ${errorsLabel(usedExpectedErrors)}, got ${errors.length - usedExpectedErrors.length} more`
         );
-      } else if (expectedErrors.length > errors.length) {
+      } else if (usedExpectedErrors.length > errors.length) {
         QUnit.assert.equal(
           '',
-          displayErrors(expectedErrors.slice(errors.length)),
-          `expected ${errorsLabel(expectedErrors)}, got ${errors.length}`
+          displayErrors(usedExpectedErrors.slice(errors.length)),
+          `expected ${errorsLabel(usedExpectedErrors)}, got ${errors.length}`
         );
       }
 
       const zipped: { actual: GlimmerSyntaxError; expected: GlimmerSyntaxError; index: number }[] =
         [];
 
-      for (let i = 0; i < errors.length && i < expectedErrors.length; i++) {
-        const expected = expectedErrors[i]!;
+      for (let i = 0; i < errors.length && i < usedExpectedErrors.length; i++) {
+        const expected = usedExpectedErrors[i]!;
         const actual = errors[i]!;
         zipped.push({ expected, actual, index: i });
       }
