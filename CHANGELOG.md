@@ -1,5 +1,22 @@
 # Changelog
 
+## Release (2025-03-15)
+
+@glimmer/node 0.94.9 (patch)
+@glimmer/runtime 0.94.10 (patch)
+
+#### :house: Internal
+* Other
+  * [#1738](https://github.com/glimmerjs/glimmer-vm/pull/1738) Removing editor.rulers ([@ef4](https://github.com/ef4))
+* `@glimmer-workspace/repo-metadata`
+  * [#1736](https://github.com/glimmerjs/glimmer-vm/pull/1736) pnpm repo:update:metadata ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+* `@glimmer/runtime`
+  * [#1735](https://github.com/glimmerjs/glimmer-vm/pull/1735) Force release ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 2
+- Edward Faulkner ([@ef4](https://github.com/ef4))
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## Release (2025-03-14)
 
 @glimmer/runtime 0.94.9 (patch)

@@ -19,7 +19,16 @@
       "oldVersion": "0.94.8"
     },
     "@glimmer/node": {
-      "oldVersion": "0.94.8"
+      "impact": "patch",
+      "oldVersion": "0.94.8",
+      "newVersion": "0.94.9",
+      "constraints": [
+        {
+          "impact": "patch",
+          "reason": "Has dependency `workspace:*` on @glimmer/runtime"
+        }
+      ],
+      "pkgJSONPath": "./packages/@glimmer/node/package.json"
     },
     "@glimmer/opcode-compiler": {
       "oldVersion": "0.94.8"
@@ -35,12 +44,12 @@
     },
     "@glimmer/runtime": {
       "impact": "patch",
-      "oldVersion": "0.94.8",
-      "newVersion": "0.94.9",
+      "oldVersion": "0.94.9",
+      "newVersion": "0.94.10",
       "constraints": [
         {
           "impact": "patch",
-          "reason": "@NullVoxPopuli said so2"
+          "reason": "Appears in changelog section :house: Internal"
         }
       ],
       "pkgJSONPath": "./packages/@glimmer/runtime/package.json"
@@ -64,5 +73,5 @@
       "oldVersion": "0.94.7"
     }
   },
-  "description": "## Release (2025-03-14)\n\n\n\n#### :bug: Bug Fix\n* `@glimmer-workspace/build-support`\n  * [#1734](https://github.com/glimmerjs/glimmer-vm/pull/1734) Restore {{debugger}} behavior ([@NullVoxPopuli](https://github.com/NullVoxPopuli))\n\n#### :house: Internal\n* `@glimmer-workspace/bin`\n  * [#1732](https://github.com/glimmerjs/glimmer-vm/pull/1732) Fix bench post-install ([@NullVoxPopuli](https://github.com/NullVoxPopuli))\n\n#### Committers: 1\n- [@NullVoxPopuli](https://github.com/NullVoxPopuli)\n"
+  "description": "## Release (2025-03-15)\n\n@glimmer/node 0.94.9 (patch)\n@glimmer/runtime 0.94.10 (patch)\n\n#### :house: Internal\n* Other\n  * [#1738](https://github.com/glimmerjs/glimmer-vm/pull/1738) Removing editor.rulers ([@ef4](https://github.com/ef4))\n* `@glimmer-workspace/repo-metadata`\n  * [#1736](https://github.com/glimmerjs/glimmer-vm/pull/1736) pnpm repo:update:metadata ([@NullVoxPopuli](https://github.com/NullVoxPopuli))\n* `@glimmer/runtime`\n  * [#1735](https://github.com/glimmerjs/glimmer-vm/pull/1735) Force release ([@NullVoxPopuli](https://github.com/NullVoxPopuli))\n\n#### Committers: 2\n- Edward Faulkner ([@ef4](https://github.com/ef4))\n- [@NullVoxPopuli](https://github.com/NullVoxPopuli)\n"
 }
