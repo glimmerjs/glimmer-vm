@@ -1069,7 +1069,7 @@ class Children {
 
   addErrors(attached: NonNullable<ASTv1.AttachedErrors<string>>): void {
     for (const errors of Object.values(attached)) {
-      this.children.unshift(...errors);
+      if (errors) this.children.unshift(...errors);
     }
   }
 }
@@ -1111,17 +1111,11 @@ class BlockChildren extends Children {
   }
 }
 
-// type BlockParams = ASTv1.ParseResults<ASTv1.VarHead>;
-
 class BlockParamsNode {
   #params: ASTv1.BlockParams;
 
   constructor(params: ASTv1.BlockParams) {
     this.#params = params;
-  }
-
-  get #names(): ASTv1.BlockParams['names'] {
-    return this.#params.names;
   }
 
   get loc() {

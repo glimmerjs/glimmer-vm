@@ -188,13 +188,14 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // fencing our block params, neatly whitespace separated and with
       // legal identifiers only
       const content = span.asString();
-      const paramsStart = content.indexOf('as |');
-      const paramsEnd = content.indexOf('|', paramsStart + 4);
+      const paramsStart = /as\s+|\|/u.exec(content);
+      const paramsStartOffset = paramsStart?.index ?? -1;
+      const paramsEnd = content.indexOf('|', paramsStartOffset + 4);
       blockParamsLoc = span
         .getStart()
-        .move(paramsStart)
-        .next(paramsEnd - paramsStart);
-      let skipStart = paramsStart + 4;
+        .move(paramsStartOffset)
+        .next(paramsEnd - paramsStartOffset);
+      let skipStart = paramsStart?.[0].length ?? 0;
 
       for (const name of block.program.blockParams) {
         let nameStart: number;
@@ -323,7 +324,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
           )
         );
         this.finishTag();
-        this.tokenizer.transitionTo('beforeAttributeName');
+        this.tokenizer.transitionTo(BEFORE_ATTRIBUTE_NAME);
         return;
 
       case 'endTagOpen':
@@ -340,8 +341,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
           )
         );
         this.finishTag();
-        this.tokenizer.transitionTo('beforeAttributeName');
-        debugger;
+        this.tokenizer.transitionTo(BEFORE_ATTRIBUTE_NAME);
         return;
 
       case 'beforeAttributeName':
@@ -822,18 +822,17 @@ function acceptCallNodes(
   const start = path.loc.getStart();
   const params = node.params.map((e) => compiler.acceptNode<HBS.Expression['type']>(e));
 
-  // if there is no hash, position it as a collapsed node immediately after the last param (or the
-  // path, if there are also no params)
-  const end = isPresentArray(params) ? getLast(params).loc : path.loc;
+  const paramsEnd = isPresentArray(params) ? getLast(params).loc : path.loc;
+  const end = node.hash ? compiler.source.spanFor(node.hash.loc) : paramsEnd;
 
   const hash = node.hash
     ? compiler.Hash(node.hash)
     : b.hash({
         pairs: [],
-        loc: compiler.source.spanFor(end).collapse('end'),
+        loc: end.collapse('end'),
       });
 
-  return { path, params, hash, loc: start.until(hash.loc.getEnd()) };
+  return { path, params, hash, loc: start.until(end.getEnd()) };
 }
 
 function literalDescription(literal: HBS.Literal) {
