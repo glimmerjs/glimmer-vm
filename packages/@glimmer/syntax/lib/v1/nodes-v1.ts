@@ -318,7 +318,7 @@ export interface StripFlags {
 }
 
 export type AttachedErrors<Name extends string> = Optional<{
-  [N in Name]: ErrorNode[];
+  [N in Name]?: ErrorNode[];
 }>;
 
 export type TokenizerErrors = AttachedErrors<'tokenizer'>;

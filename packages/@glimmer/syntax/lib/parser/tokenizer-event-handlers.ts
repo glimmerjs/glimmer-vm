@@ -65,7 +65,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   ): void {
     if (node.errors) {
       for (const errors of Object.values(node.errors)) {
-        appendChildren(this.currentElement(), ...errors);
+        if (errors) appendChildren(this.currentElement(), ...errors);
       }
     } else {
       appendChild(this.currentElement(), build(node));
