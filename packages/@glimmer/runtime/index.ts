@@ -17,6 +17,11 @@ export {
   templateOnlyComponent,
   TemplateOnlyComponentManager,
 } from './lib/component/template-only';
+export {
+  DynamicTagComponent,
+  DynamicTagComponentManager,
+  DYNAMIC_TAG_COMPONENT_MANAGER,
+} from './lib/component/dynamic-tag';
 export { CurriedValue, curry } from './lib/curried-value';
 export {
   DOMChanges,
@@ -33,6 +38,7 @@ export {
 } from './lib/environment';
 export { array } from './lib/helpers/array';
 export { concat } from './lib/helpers/concat';
+export { element } from './lib/helpers/element';
 export { fn } from './lib/helpers/fn';
 export { get } from './lib/helpers/get';
 export { hash } from './lib/helpers/hash';

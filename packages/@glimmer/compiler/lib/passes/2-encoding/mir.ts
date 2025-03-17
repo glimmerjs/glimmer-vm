@@ -214,6 +214,7 @@ export type Statement =
   | AppendTextNode
   | Component
   | SimpleElement
+  | DynamicElement
   | InvokeBlock
   | AppendComment
   | If

@@ -1,6 +1,8 @@
 import {
   DebuggerSuite,
   EachSuite,
+  ElementHelperTest,
+  ElementHelperStrictModeTest,
   EmberishComponentTests,
   GlimmerishComponents,
   HasBlockParamsHelperSuite,
@@ -18,6 +20,8 @@ import {
 jitComponentSuite(DebuggerSuite);
 jitSuite(EachSuite);
 jitSuite(InElementSuite);
+jitSuite(ElementHelperTest);
+jitSuite(ElementHelperStrictModeTest);
 
 jitComponentSuite(GlimmerishComponents);
 jitComponentSuite(TemplateOnlyComponents);

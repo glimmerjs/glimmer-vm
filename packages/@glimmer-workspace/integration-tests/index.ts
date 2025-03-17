@@ -26,3 +26,4 @@ export * from './lib/test-helpers/test';
 export * from './lib/test-helpers/tracked';
 export * from './lib/test-helpers/tracked-object';
 export { syntaxErrorFor } from '@glimmer-workspace/test-utils';
+export { ElementHelperTest, ElementHelperStrictModeTest } from './test/helpers/element-test';

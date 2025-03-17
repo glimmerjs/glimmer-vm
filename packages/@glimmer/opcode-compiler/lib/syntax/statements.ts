@@ -142,6 +142,29 @@ STATEMENTS.add(SexpOpcodes.OpenElement, (op, [, tag]) => {
   op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));
 });
 
+STATEMENTS.add(SexpOpcodes.DynamicElement, (op, [, tag, params, body]) => {
+  expr(op, tag);
+  op(VM_DOM_OPEN_DYNAMIC_ELEMENT_OP);
+  
+  if (params && params.length > 0) {
+    op(VM_PUT_COMPONENT_OPERATIONS_OP);
+    
+    for (let param of params) {
+      STATEMENTS.compile(op, param);
+    }
+  }
+  
+  op(VM_FLUSH_ELEMENT_OP);
+  
+  if (body && body.length > 0) {
+    for (let statement of body) {
+      STATEMENTS.compile(op, statement);
+    }
+  }
+  
+  op(VM_CLOSE_ELEMENT_OP);
+});
+
 STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, (op, [, tag]) => {
   op(VM_PUT_COMPONENT_OPERATIONS_OP);
   op(VM_OPEN_ELEMENT_OP, inflateTagName(tag));

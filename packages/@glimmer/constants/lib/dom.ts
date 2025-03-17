@@ -1,4 +1,4 @@
-import type { InsertPosition, Namespace, NodeType } from '@glimmer/interfaces';
+import type { InsertPosition, Namespace, NodeType, VmDomCloseElement, VmDomComment, VmDomDynamicAttr, VmDomDynamicModifier, VmDomFlushElement, VmDomModifier, VmDomOpenDynamicElement, VmDomOpenElement, VmDomPopRemoteElement, VmDomPushRemoteElement, VmDomStaticAttr, VmDomText } from '@glimmer/interfaces';
 
 export const RAW_NODE = -1;
 export const ELEMENT_NODE: NodeType.ELEMENT_NODE = 1;
@@ -19,3 +19,18 @@ export const INSERT_BEFORE_BEGIN = 'beforebegin' as InsertPosition.beforebegin;
 export const INSERT_AFTER_BEGIN = 'afterbegin' as InsertPosition.afterbegin;
 export const INSERT_BEFORE_END = 'beforeend' as InsertPosition.beforeend;
 export const INSERT_AFTER_END = 'afterend' as InsertPosition.afterend;
+
+// DOM Opcodes - using different names to avoid conflicts with syscall-ops.ts
+export const VM_DOM_TEXT_OP = 28 satisfies VmDomText;
+export const VM_DOM_COMMENT_OP = 29 satisfies VmDomComment;
+export const VM_DOM_OPEN_ELEMENT_OP = 30 satisfies VmDomOpenElement;
+// Using a different name to avoid conflicts with syscall-ops.ts
+export const VM_DOM_OPEN_DYNAMIC_ELEMENT_OP = 31 satisfies VmDomOpenDynamicElement;
+export const VM_DOM_FLUSH_ELEMENT_OP = 32 satisfies VmDomFlushElement;
+export const VM_DOM_CLOSE_ELEMENT_OP = 33 satisfies VmDomCloseElement;
+export const VM_DOM_STATIC_ATTR_OP = 34 satisfies VmDomStaticAttr;
+export const VM_DOM_DYNAMIC_ATTR_OP = 35 satisfies VmDomDynamicAttr;
+export const VM_DOM_MODIFIER_OP = 36 satisfies VmDomModifier;
+export const VM_DOM_DYNAMIC_MODIFIER_OP = 37 satisfies VmDomDynamicModifier;
+export const VM_DOM_PUSH_REMOTE_ELEMENT_OP = 38 satisfies VmDomPushRemoteElement;
+export const VM_DOM_POP_REMOTE_ELEMENT_OP = 39 satisfies VmDomPopRemoteElement;

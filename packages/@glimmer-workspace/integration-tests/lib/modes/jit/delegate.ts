@@ -27,6 +27,7 @@ import {
   array,
   clientBuilder,
   concat,
+  element,
   fn,
   get,
   hash,
@@ -101,6 +102,7 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry.register('helper', 'array', array);
     this.registry.register('helper', 'get', get);
     this.registry.register('helper', 'concat', concat);
+    this.registry.register('helper', 'element', element);
   }
 
   get context(): EvaluationContext {

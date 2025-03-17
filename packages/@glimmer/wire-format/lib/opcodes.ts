@@ -56,6 +56,7 @@ export const opcodes = {
   Block: 6 satisfies BlockOpcode,
   StrictBlock: 7 satisfies StrictBlockOpcode,
   Component: 8 satisfies ComponentOpcode,
+  DynamicElement: 9 satisfies number,
   OpenElement: 10 satisfies OpenElementOpcode,
   OpenElementWithSplat: 11 satisfies OpenElementWithSplatOpcode,
   FlushElement: 12 satisfies FlushElementOpcode,

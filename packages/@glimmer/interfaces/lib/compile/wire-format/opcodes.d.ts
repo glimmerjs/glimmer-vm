@@ -7,6 +7,7 @@ export type StrictModifierOpcode = 5;
 export type BlockOpcode = 6;
 export type StrictBlockOpcode = 7;
 export type ComponentOpcode = 8;
+export type DynamicElementOpcode = 9;
 
 export type OpenElementOpcode = 10;
 export type OpenElementWithSplatOpcode = 11;

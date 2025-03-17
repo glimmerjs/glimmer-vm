@@ -68,6 +68,19 @@ APPEND_OPCODES.add(VM_OPEN_DYNAMIC_ELEMENT_OP, (vm) => {
   vm.tree().openElement(tagName);
 });
 
+APPEND_OPCODES.add(VM_OPEN_DYNAMIC_ELEMENT_OP, (vm) => {
+  let tagRef = check(vm.stack.pop(), CheckReference);
+  let tagName = valueForRef(tagRef);
+  
+  if (tagName === null || tagName === undefined || tagName === '') {
+    vm.tree().openElement('');
+  } else if (typeof tagName !== 'string') {
+    throw new Error(`The argument passed to the element helper must be a string (you passed \`${tagName}\`)`);
+  } else {
+    vm.tree().openElement(tagName);
+  }
+});
+
 APPEND_OPCODES.add(VM_PUSH_REMOTE_ELEMENT_OP, (vm) => {
   let elementRef = check(vm.stack.pop(), CheckReference);
   let insertBeforeRef = check(vm.stack.pop(), CheckReference);

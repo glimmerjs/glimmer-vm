@@ -18,6 +18,20 @@ export type VmMachineOp =
   | VmMachineReturn
   | VmMachineReturnTo
   | VmMachineSize;
+  
+// DOM Opcodes
+export type VmDomText = 28;
+export type VmDomComment = 29;
+export type VmDomOpenElement = 30;
+export type VmDomOpenDynamicElement = 31;
+export type VmDomFlushElement = 32;
+export type VmDomCloseElement = 33;
+export type VmDomStaticAttr = 34;
+export type VmDomDynamicAttr = 35;
+export type VmDomModifier = 36;
+export type VmDomDynamicModifier = 37;
+export type VmDomPushRemoteElement = 38;
+export type VmDomPopRemoteElement = 39;
 
 export type VmHelper = 16;
 export type VmSetNamedVariables = 17;
