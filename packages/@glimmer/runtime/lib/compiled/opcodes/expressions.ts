@@ -285,7 +285,10 @@ APPEND_OPCODES.add(VM_IF_INLINE_OP, (vm) => {
 
   vm.stack.push(
     createComputeRef(() => {
-      if (toBool(valueForRef(condition))) {
+      // Explicitly consume the condition reference to ensure tracking
+      let conditionValue = valueForRef(condition);
+      
+      if (toBool(conditionValue)) {
         return valueForRef(truthy);
       } else {
         return valueForRef(falsy);
