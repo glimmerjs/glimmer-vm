@@ -287,11 +287,16 @@ APPEND_OPCODES.add(VM_IF_INLINE_OP, (vm) => {
     createComputeRef(() => {
       // Explicitly consume the condition reference to ensure tracking
       let conditionValue = valueForRef(condition);
-      
+
+      // Also explicitly consume truthy and falsy references to ensure proper tracking
+      // when they are component references
+      let truthyValue = valueForRef(truthy);
+      let falsyValue = valueForRef(falsy);
+
       if (toBool(conditionValue)) {
-        return valueForRef(truthy);
+        return truthyValue;
       } else {
-        return valueForRef(falsy);
+        return falsyValue;
       }
     })
   );

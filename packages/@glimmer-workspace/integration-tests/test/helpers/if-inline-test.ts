@@ -1,5 +1,5 @@
 import {
-  GlimmerishComponent,
+  defineComponent,
   jitSuite,
   RenderTest,
   strip,
@@ -14,7 +14,7 @@ class IfInlineTest extends RenderTest {
   'inline if helper updates when tracked property changes'() {
     class Person {
       @tracked isActive = false;
-      
+
       toggle() {
         this.isActive = !this.isActive;
       }
@@ -22,10 +22,7 @@ class IfInlineTest extends RenderTest {
 
     const person = new Person();
 
-    this.render(
-      strip`<div>{{if this.person.isActive "Active" "Inactive"}}</div>`,
-      { person }
-    );
+    this.render(strip`<div>{{if this.person.isActive "Active" "Inactive"}}</div>`, { person });
 
     this.assertHTML('<div>Inactive</div>', 'Initial render shows inactive state');
     this.assertStableRerender();
@@ -43,7 +40,7 @@ class IfInlineTest extends RenderTest {
   'inline if helper with only truthy value updates when tracked property changes'() {
     class Person {
       @tracked isActive = false;
-      
+
       toggle() {
         this.isActive = !this.isActive;
       }
@@ -51,10 +48,7 @@ class IfInlineTest extends RenderTest {
 
     const person = new Person();
 
-    this.render(
-      strip`<div>{{if this.person.isActive "Active"}}</div>`,
-      { person }
-    );
+    this.render(strip`<div>{{if this.person.isActive "Active"}}</div>`, { person });
 
     this.assertHTML('<div></div>', 'Initial render shows empty when false');
     this.assertStableRerender();
@@ -70,36 +64,20 @@ class IfInlineTest extends RenderTest {
 
   @test
   'inline if helper updates when component argument changes'() {
-    let testComponent: TestComponent;
-    
-    class TestComponent extends GlimmerishComponent {
-      @tracked isActive = false;
-      
-      constructor(owner: object, args: Record<string, unknown>) {
-        super(owner, args);
-        testComponent = this;
-      }
-    }
+    const TestComponent = defineComponent({}, '{{if @isActive "Active" "Inactive"}}');
 
-    this.registerComponent(
-      'Glimmer',
-      'TestComponent',
-      '{{if @isActive "Active" "Inactive"}}',
-      TestComponent
-    );
-
-    this.render(
-      strip`<TestComponent @isActive={{this.isActive}} />`,
-      { isActive: false }
-    );
+    this.render('<TestComponent @isActive={{this.isActive}} />', {
+      isActive: false,
+      TestComponent,
+    });
 
     this.assertHTML('Inactive', 'Initial render shows inactive state');
     this.assertStableRerender();
 
-    this.rerender({ isActive: true });
+    this.rerender({ isActive: true, TestComponent });
     this.assertHTML('Active', 'Updates when argument changes to true');
 
-    this.rerender({ isActive: false });
+    this.rerender({ isActive: false, TestComponent });
     this.assertHTML('Inactive', 'Updates when argument changes to false');
   }
 
@@ -107,7 +85,7 @@ class IfInlineTest extends RenderTest {
   'inline if helper with components updates when tracked property changes'() {
     class Person {
       @tracked isActive = false;
-      
+
       toggle() {
         this.isActive = !this.isActive;
       }
@@ -115,64 +93,62 @@ class IfInlineTest extends RenderTest {
 
     const person = new Person();
 
-    class OkComponent extends GlimmerishComponent {}
-    class KoComponent extends GlimmerishComponent {}
+    const Ok = defineComponent({}, '<div>OK Component</div>');
+    const Ko = defineComponent({}, '<div>KO Component</div>');
 
-    this.registerComponent('Glimmer', 'Ok', '<div>OK Component</div>', OkComponent);
-    this.registerComponent('Glimmer', 'Ko', '<div>KO Component</div>', KoComponent);
+    // Create a component with Ok and Ko in scope
+    const TestContainer = defineComponent({ Ok, Ko }, '<div>{{if @isActive Ok Ko}}</div>');
 
-    this.render(
-      strip`<div>{{if this.person.isActive Ok Ko}}</div>`,
-      { person }
-    );
+    this.render('<TestContainer @isActive={{this.person.isActive}} />', { person, TestContainer });
 
     this.assertHTML('<div><div>KO Component</div></div>', 'Initial render shows KO component');
     this.assertStableRerender();
 
     person.toggle();
     this.rerender();
-    this.assertHTML('<div><div>OK Component</div></div>', 'Updates to OK component when tracked property changes to true');
+    this.assertHTML(
+      '<div><div>OK Component</div></div>',
+      'Updates to OK component when tracked property changes to true'
+    );
 
     person.toggle();
     this.rerender();
-    this.assertHTML('<div><div>KO Component</div></div>', 'Updates to KO component when tracked property changes to false');
+    this.assertHTML(
+      '<div><div>KO Component</div></div>',
+      'Updates to KO component when tracked property changes to false'
+    );
   }
 
   @test
   'inline if helper with components updates when component argument changes'() {
-    class OkComponent extends GlimmerishComponent {}
-    class KoComponent extends GlimmerishComponent {}
+    const Ok = defineComponent({}, '<div>OK Component</div>');
+    const Ko = defineComponent({}, '<div>KO Component</div>');
 
-    this.registerComponent('Glimmer', 'Ok', '<div>OK Component</div>', OkComponent);
-    this.registerComponent('Glimmer', 'Ko', '<div>KO Component</div>', KoComponent);
+    const TestComponent = defineComponent({ Ok, Ko }, '{{if @isOk Ok Ko}}');
 
-    this.registerComponent(
-      'Glimmer',
-      'TestComponent',
-      '{{if @isOk Ok Ko}}',
-      class extends GlimmerishComponent {}
-    );
-
-    this.render(
-      strip`<TestComponent @isOk={{this.isOk}} />`,
-      { isOk: false }
-    );
+    this.render('<TestComponent @isOk={{this.isOk}} />', { isOk: false, TestComponent });
 
     this.assertHTML('<div>KO Component</div>', 'Initial render shows KO component');
     this.assertStableRerender();
 
-    this.rerender({ isOk: true });
-    this.assertHTML('<div>OK Component</div>', 'Updates to OK component when argument changes to true');
+    this.rerender({ isOk: true, TestComponent });
+    this.assertHTML(
+      '<div>OK Component</div>',
+      'Updates to OK component when argument changes to true'
+    );
 
-    this.rerender({ isOk: false });
-    this.assertHTML('<div>KO Component</div>', 'Updates to KO component when argument changes to false');
+    this.rerender({ isOk: false, TestComponent });
+    this.assertHTML(
+      '<div>KO Component</div>',
+      'Updates to KO component when argument changes to false'
+    );
   }
 
   @test
   'comparison with block form if helper using components'() {
     class Person {
       @tracked isActive = false;
-      
+
       toggle() {
         this.isActive = !this.isActive;
       }
@@ -180,32 +156,41 @@ class IfInlineTest extends RenderTest {
 
     const person = new Person();
 
-    class OkComponent extends GlimmerishComponent {}
-    class KoComponent extends GlimmerishComponent {}
+    const Ok = defineComponent({}, '<div>OK Component</div>');
+    const Ko = defineComponent({}, '<div>KO Component</div>');
 
-    this.registerComponent('Glimmer', 'Ok', '<div>OK Component</div>', OkComponent);
-    this.registerComponent('Glimmer', 'Ko', '<div>KO Component</div>', KoComponent);
-
-    this.render(
-      strip`
+    // Create a component with Ok and Ko in scope for both inline and block forms
+    const TestContainer = defineComponent(
+      { Ok, Ko },
+      `
         <div>
-          Inline: {{if this.person.isActive Ok Ko}}
-          Block: {{#if this.person.isActive}}<Ok />{{else}}<Ko />{{/if}}
+          Inline: {{if @isActive Ok Ko}}
+          Block: {{#if @isActive}}<Ok />{{else}}<Ko />{{/if}}
         </div>
-      `,
-      { person }
+      `
     );
 
-    this.assertHTML('<div>Inline: <div>KO Component</div> Block: <div>KO Component</div></div>', 'Initial render both show KO component');
+    this.render('<TestContainer @isActive={{this.person.isActive}} />', { person, TestContainer });
+
+    this.assertHTML(
+      '<div>Inline: <div>KO Component</div> Block: <div>KO Component</div></div>',
+      'Initial render both show KO component'
+    );
     this.assertStableRerender();
 
     person.toggle();
     this.rerender();
-    this.assertHTML('<div>Inline: <div>OK Component</div> Block: <div>OK Component</div></div>', 'Both update to OK component when tracked property changes to true');
+    this.assertHTML(
+      '<div>Inline: <div>OK Component</div> Block: <div>OK Component</div></div>',
+      'Both update to OK component when tracked property changes to true'
+    );
 
     person.toggle();
     this.rerender();
-    this.assertHTML('<div>Inline: <div>KO Component</div> Block: <div>KO Component</div></div>', 'Both update to KO component when tracked property changes to false');
+    this.assertHTML(
+      '<div>Inline: <div>KO Component</div> Block: <div>KO Component</div></div>',
+      'Both update to KO component when tracked property changes to false'
+    );
   }
 }
 
