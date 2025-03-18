@@ -37,6 +37,7 @@ export const KEYWORDS_TYPES = {
   modifier: ['Call', 'Modifier'],
   mount: ['Append'],
   mut: ['Call', 'Append'],
+  on: ['Modifier'],
   outlet: ['Append'],
   readonly: ['Call', 'Append'],
   unbound: ['Call', 'Append'],

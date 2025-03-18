@@ -1,5 +1,5 @@
 import { castToBrowser } from '@glimmer/debug-util';
-import { array, concat, fn, get, hash, on } from '@glimmer/runtime';
+import { array, concat, fn, get, hash } from '@glimmer/runtime';
 import {
   defineComponent,
   defineSimpleHelper,
@@ -1344,7 +1344,7 @@ class BuiltInsStrictModeTest extends RenderTest {
     };
 
     let Foo = defineComponent(
-      { on, fn, handleClick },
+      { fn, handleClick },
       '<button {{on "click" (fn handleClick 123)}}>Click</button>'
     );
 
