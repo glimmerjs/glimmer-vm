@@ -1,5 +1,20 @@
 # Changelog
 
+## Release (2025-03-20)
+
+@glimmer/compiler 0.94.11 (patch)
+@glimmer/syntax 0.95.0 (minor)
+
+#### :rocket: Enhancement
+* `@glimmer/syntax`
+  * [#1743](https://github.com/glimmerjs/glimmer-vm/pull/1743) Upgrade handlebars parser ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### :bug: Bug Fix
+* [#1744](https://github.com/glimmerjs/glimmer-vm/pull/1744) Upgrade to pnpm 10.6.5 ([@NullVoxPopuli](https://github.com/NullVoxPopuli))
+
+#### Committers: 1
+- [@NullVoxPopuli](https://github.com/NullVoxPopuli)
+
 ## Release (2025-03-18)
 
 @glimmer/compiler 0.94.10 (patch)
