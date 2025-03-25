@@ -6,7 +6,6 @@ import {
   highlightError,
   jitSuite,
   RenderTest,
-  syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
 

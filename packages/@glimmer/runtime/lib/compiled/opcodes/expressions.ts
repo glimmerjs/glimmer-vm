@@ -40,6 +40,7 @@ import { debugToString, localAssert } from '@glimmer/debug-util';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { debugAssert, toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
+import { isCurriedType, resolveCurriedValue } from "@glimmer/program/lib/util/curried-value";
 import {
   childRefFor,
   createComputeRef,
@@ -51,7 +52,6 @@ import {
 import { assign, isIndexable } from '@glimmer/util';
 import { $v0 } from '@glimmer/vm';
 
-import { isCurriedType, resolveCurriedValue } from '../../../../program/lib/util/curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
 import { reifyPositional } from '../../vm/arguments';

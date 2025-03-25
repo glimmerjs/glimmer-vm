@@ -1,5 +1,4 @@
 import type {
-  AppendDynamicInvokableOpcode,
   AppendHtmlTextOpcode,
   AppendInvokableCautiouslyOpcode,
   AppendResolvedInvokableCautiouslyOpcode,

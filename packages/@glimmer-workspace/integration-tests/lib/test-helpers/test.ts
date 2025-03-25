@@ -1,8 +1,8 @@
 import { keys } from '@glimmer/util';
 
 import type { ComponentTestMeta } from '../test-decorator';
+
 import { jitSuite } from './module';
-import { Count } from '../render-test';
 
 export function test(meta: ComponentTestMeta): MethodDecorator;
 export function test<T>(

@@ -1,7 +1,8 @@
-import { AnyFn } from '@glimmer/interfaces';
-import { keys } from '@glimmer/util';
-import { Count, IBasicTest } from './render-test';
+import type { AnyFn } from '@glimmer/interfaces';
 import { localAssert } from '@glimmer/debug-util';
+import { keys } from '@glimmer/util';
+
+import type { Count, IBasicTest } from './render-test';
 
 export type DeclaredComponentKind = 'glimmer' | 'curly' | 'dynamic' | 'templateOnly';
 
