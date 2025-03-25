@@ -4,6 +4,10 @@
   "private": true,
   "license": "MIT",
   "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glimmerjs/glimmer-vm.git"
+  },
   "author": "Tilde, Inc.",
   "type": "module",
   "exports": null,
@@ -21,7 +25,6 @@
     "lint:fix": "turbo test:lint -- --fix && prettier -w .",
     "lint:format": "prettier -c .",
     "repo:lint:all": "turbo run lint:all",
-    "repo:prepare": "node --disable-warning=ExperimentalWarning --experimental-strip-types ./bin/bench-packages.mts",
     "repo:lint:files": "turbo run //#test:lint",
     "repo:lint:fix": "turbo run test:lint -- --fix && prettier -w .",
     "repo:lint:pub": "turbo run test:publint",
@@ -129,7 +132,7 @@
     "vitest": "^3.0.6",
     "zx": "^8.3.2"
   },
-  "packageManager": "pnpm@10.6.5",
+  "packageManager": "pnpm@10.6.0",
   "changelog": {
     "repo": "glimmerjs/glimmer-vm",
     "labels": {
@@ -143,7 +146,6 @@
   "engines": {
     "node": ">=22.12.0"
   },
-  "packageManager": "pnpm@10.6.0",
   "pnpm": {
     "notes": {
       "override:@glimmer/syntax": "when we run prettier, we want to use our local copy of prettier, not the one it declared in its package.json. This ensures that we don't accidentally break prettier as we make changes to @glimmer/syntax"

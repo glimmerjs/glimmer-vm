@@ -10,10 +10,9 @@ import type {
 import type { Reference } from '@glimmer/reference';
 import { CURRIED_COMPONENT } from '@glimmer/constants';
 import { expect } from '@glimmer/debug-util';
+import { curry, isCurriedType } from "@glimmer/program/lib/util/curried-value";
 import { createComputeRef, valueForRef } from '@glimmer/reference';
 import { isIndexable } from '@glimmer/util';
-
-import { curry, isCurriedType } from '../../../program/lib/util/curried-value';
 
 export default function createCurryRef(
   type: CurriedType,

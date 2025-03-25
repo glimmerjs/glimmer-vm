@@ -7,7 +7,6 @@ import type {
   RenderNode,
 } from '@glimmer/interfaces';
 import { expect } from '@glimmer/debug-util';
-import { isCurriedValue } from '@glimmer/program';
 import { assign, Stack } from '@glimmer/util';
 
 import { reifyArgsDebug } from './vm/arguments';
