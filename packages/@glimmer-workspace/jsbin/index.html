@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Minimal Glimmer Rendering</title>
+    <script type="module">
+      import {
+        runtimeOptions,
+        NewTreeBuilder,
+        renderComponent,
+        renderSync,
+        on,
+      } from "@glimmer/runtime";
+      import { EvaluationContextImpl } from "@glimmer/opcode-compiler";
+      import { artifacts, RuntimeOpImpl } from "@glimmer/program";
+      import { setComponentTemplate } from "@glimmer/manager";
+      import { templateFactory } from "@glimmer/opcode-compiler";
+      import { trackedData } from "@glimmer/validator";
+
+      const scheduledDestructors = [];
+      const scheduledFinalizers = [];
+
+      function flush(queue) {
+        for (const fn of queue) fn();
+        queue.length = 0;
+      }
+
+      function createEnvDelegate(isInteractive) {
+        return {
+          isInteractive: true,
+          enableDebugTooling: false,
+          onTransactionCommit() {
+            flush(scheduledDestructors);
+            flush(scheduledFinalizers);
+          },
+        };
+      }
+
+      class Counter {
+        #data = trackedData({ count: 0 });
+
+        get count() {
+          return this.#data["count"];
+        }
+        increment = () => this.#data["count"]++;
+
+        static {
+          setComponentTemplate(
+            templateFactory({
+              id: null,
+              block:
+                '[[[1,"\\n    "],[10,2],[12],[1,"You have clicked the button "],[1,[30,0,["count"]]],[1," times."],[13],[1,"\\n\\n    "],[11,"button"],[4,[32,0],["click",[30,0,["increment"]]],null],[12],[1,"Click"],[13],[1,"\\n  "]],[],[]]',
+              moduleName: "whatev",
+              scope: () => [on],
+              isStrictMode: true,
+            }),
+            this,
+          );
+        }
+      }
+
+      function render() {
+        const element = document.body;
+        const sharedArtifacts = artifacts();
+        const envDelegate = createEnvDelegate();
+        const components = new Map();
+        const helpers = new Map();
+        const modifiers = new Map();
+
+        const runtime = runtimeOptions({ document }, envDelegate, sharedArtifacts, null);
+
+        const context = new EvaluationContextImpl(
+          sharedArtifacts,
+          (heap) => new RuntimeOpImpl(heap),
+          runtime,
+        );
+
+        const env = context.env;
+        const cursor = { element, nextSibling: null };
+        const treeBuilder = NewTreeBuilder.forInitialRender(env, cursor);
+
+        renderSync(env, renderComponent(context, treeBuilder, {}, Counter, {}));
+      }
+
+      render();
+    </script>
+  </head>
+  <body></body>
+</html>

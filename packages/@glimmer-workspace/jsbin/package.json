@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "@glimmer-workspace/krausest",
+  "type": "module",
+  "scripts": {
+    "start": "vite"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "^5.4.10"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "config": {
+    "tsconfig": "../../tsconfig.json"
+  }
+}
