@@ -12,11 +12,13 @@
         renderSync,
         on,
       } from "@glimmer/runtime";
-      import { EvaluationContextImpl } from "@glimmer/opcode-compiler";
+      import { EvaluationContextImpl, templateFactory } from "@glimmer/opcode-compiler";
       import { artifacts, RuntimeOpImpl } from "@glimmer/program";
-      import { setComponentTemplate } from "@glimmer/manager";
-      import { templateFactory } from "@glimmer/opcode-compiler";
+      import { setComponentTemplate, setInternalComponentManager } from "@glimmer/manager";
+      import { precompile, precompileJSON } from "@glimmer/compiler";
       import { trackedData } from "@glimmer/validator";
+      import { preprocess, getTemplateLocals } from "@glimmer/syntax";
+      import boilerplateComponentManager from "./boilerplate-example-component-manager";
 
       const scheduledDestructors = [];
       const scheduledFinalizers = [];
@@ -46,18 +48,71 @@
         increment = () => this.#data["count"]++;
 
         static {
+          setInternalComponentManager(boilerplateComponentManager, this);
           setComponentTemplate(
-            templateFactory({
-              id: null,
-              block:
-                '[[[1,"\\n    "],[10,2],[12],[1,"You have clicked the button "],[1,[30,0,["count"]]],[1," times."],[13],[1,"\\n\\n    "],[11,"button"],[4,[32,0],["click",[30,0,["increment"]]],null],[12],[1,"Click"],[13],[1,"\\n  "]],[],[]]',
-              moduleName: "whatev",
-              scope: () => [on],
-              isStrictMode: true,
-            }),
+            /* Custom Compile Template because Glimmer Standalone is very unergonomic */
+            compileTemplate(
+              `<p>You have clicked the button {{this.count}} times.</p>
+
+              <button {{on "click" this.increment}}>Click</button>`,
+              { scope: { on } },
+            ),
             this,
           );
         }
+      }
+
+      /**
+       *
+       * Copied from limber/ember-repl
+       *
+       * The reason why we can't use precompile directly is because of this:
+       * https://github.com/glimmerjs/glimmer-vm/blob/master/packages/%40glimmer/compiler/lib/compiler.ts#L132
+       *
+       * Support for dynamically compiling templates in strict mode doesn't seem to be fully their yet.
+       * That JSON.stringify (and the lines after) prevent us from easily setting the scope function,
+       * which means that *everything* is undefined.
+       */
+      function compileTemplate(source, { moduleName, scope = {} }) {
+        const localScope = { ...scope };
+        const locals = getTemplateLocals(source);
+
+        const options = {
+          strictMode: true,
+          moduleName,
+          locals,
+          isProduction: false,
+          meta: { moduleName },
+        };
+
+        // Copied from @glimmer/compiler/lib/compiler#precompile
+        const [block, usedLocals] = precompileJSON(source, options);
+
+        const usedScope = usedLocals.map((key) => {
+          const value = localScope[key];
+
+          if (!value) {
+            throw new Error(
+              `Attempt to use ${key} in compiled hbs, but it was not available in scope. ` +
+                `Available scope includes: ${Object.keys(localScope)}`,
+            );
+          }
+
+          return value;
+        });
+
+        const blockJSON = JSON.stringify(block);
+        const templateJSONObject = {
+          id: moduleName,
+          block: blockJSON,
+          moduleName: moduleName ?? "(dynamically compiled component)",
+          scope: () => usedScope,
+          isStrictMode: true,
+        };
+
+        const factory = templateFactory(templateJSONObject);
+
+        return factory;
       }
 
       function render() {
@@ -68,7 +123,16 @@
         const helpers = new Map();
         const modifiers = new Map();
 
-        const runtime = runtimeOptions({ document }, envDelegate, sharedArtifacts, null);
+        const resolver = {
+          lookupHelper: (name) => helpers.get(name) ?? null,
+          lookupModifier: (name) => modifiers.get(name) ?? null,
+          lookupComponent: (name) => components.get(name) ?? null,
+
+          lookupBuiltInHelper: () => null,
+          lookupBuiltInModifier: () => null,
+        };
+
+        const runtime = runtimeOptions({ document }, envDelegate, sharedArtifacts, resolver);
 
         const context = new EvaluationContextImpl(
           sharedArtifacts,

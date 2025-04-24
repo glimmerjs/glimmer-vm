@@ -741,6 +741,19 @@ importers:
         version: link:../../../@glimmer/wire-format
 
   packages/@glimmer-workspace/jsbin:
+    dependencies:
+      '@glimmer/interfaces':
+        specifier: workspace:*
+        version: link:../../@glimmer/interfaces
+      '@glimmer/manager':
+        specifier: workspace:*
+        version: link:../../@glimmer/manager
+      '@glimmer/reference':
+        specifier: workspace:*
+        version: link:../../@glimmer/reference
+      '@glimmer/runtime':
+        specifier: workspace:*
+        version: link:../../@glimmer/runtime
     devDependencies:
       vite:
         specifier: ^5.4.10

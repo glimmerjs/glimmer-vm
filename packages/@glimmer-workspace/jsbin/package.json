@@ -1,11 +1,16 @@
 {
   "private": true,
-  "name": "@glimmer-workspace/krausest",
+  "name": "@glimmer-workspace/js-bin",
   "type": "module",
   "scripts": {
     "start": "vite"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@glimmer/interfaces": "workspace:*",
+    "@glimmer/manager": "workspace:*",
+    "@glimmer/reference": "workspace:*",
+    "@glimmer/runtime": "workspace:*"
+  },
   "devDependencies": {
     "vite": "^5.4.10"
   },

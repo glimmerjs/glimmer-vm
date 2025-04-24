@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import path from 'node:path';
 const currentPath = import.meta.dirname;
+import virtual from 'vite-plugin-virtual';
 
 const packagesPath = path.resolve(currentPath, '../../../packages');
 const packagePath = (name: string) => {
@@ -17,6 +18,7 @@ export default defineConfig({
       '@glimmer/program': packagePath('@glimmer/program'),
       '@glimmer/validator': packagePath('@glimmer/validator'),
       '@glimmer/runtime': packagePath('@glimmer/runtime'),
+      '@glimmer/syntax': packagePath('@glimmer/syntax'),
     },
   },
 });
