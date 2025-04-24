@@ -45,17 +45,18 @@
         get count() {
           return this.#data["count"];
         }
+
         increment = () => this.#data["count"]++;
 
         static {
           setInternalComponentManager(boilerplateComponentManager, this);
           setComponentTemplate(
             /* Custom Compile Template because Glimmer Standalone is very unergonomic */
-            compileTemplate(
+            createTemplate(
               `<p>You have clicked the button {{this.count}} times.</p>
 
               <button {{on "click" this.increment}}>Click</button>`,
-              { scope: { on } },
+              { on },
             ),
             this,
           );
@@ -64,55 +65,25 @@
 
       /**
        *
-       * Copied from limber/ember-repl
+       * Copied from @glimmer-workspace/integration-tests/lib/compile
        *
-       * The reason why we can't use precompile directly is because of this:
-       * https://github.com/glimmerjs/glimmer-vm/blob/master/packages/%40glimmer/compiler/lib/compiler.ts#L132
-       *
-       * Support for dynamically compiling templates in strict mode doesn't seem to be fully their yet.
-       * That JSON.stringify (and the lines after) prevent us from easily setting the scope function,
-       * which means that *everything* is undefined.
+       * We don't have a good way to do runtime compilation in glimmer.
        */
-      function compileTemplate(source, { moduleName, scope = {} }) {
-        const localScope = { ...scope };
-        const locals = getTemplateLocals(source);
+      function createTemplate(templateSource, scopeValues = {}) {
+        let options = {};
+        options.locals = Object.keys(scopeValues ?? {});
+        let [block, usedLocals] = precompileJSON(templateSource, { strictMode: true, ...options });
+        let reifiedScopeValues = usedLocals.map((key) => scopeValues[key]);
 
-        const options = {
-          strictMode: true,
-          moduleName,
-          locals,
-          isProduction: false,
-          meta: { moduleName },
-        };
-
-        // Copied from @glimmer/compiler/lib/compiler#precompile
-        const [block, usedLocals] = precompileJSON(source, options);
-
-        const usedScope = usedLocals.map((key) => {
-          const value = localScope[key];
-
-          if (!value) {
-            throw new Error(
-              `Attempt to use ${key} in compiled hbs, but it was not available in scope. ` +
-                `Available scope includes: ${Object.keys(localScope)}`,
-            );
-          }
-
-          return value;
-        });
-
-        const blockJSON = JSON.stringify(block);
-        const templateJSONObject = {
-          id: moduleName,
-          block: blockJSON,
-          moduleName: moduleName ?? "(dynamically compiled component)",
-          scope: () => usedScope,
+        let templateBlock = {
+          id: `id-${Date.now()}`,
+          block: JSON.stringify(block),
+          moduleName: options.meta?.moduleName ?? "(unknown template module)",
+          scope: reifiedScopeValues.length > 0 ? () => reifiedScopeValues : null,
           isStrictMode: true,
         };
 
-        const factory = templateFactory(templateJSONObject);
-
-        return factory;
+        return templateFactory(templateBlock);
       }
 
       function render() {
