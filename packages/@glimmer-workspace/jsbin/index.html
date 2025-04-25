@@ -24,58 +24,13 @@
       import { preprocess, getTemplateLocals } from "@glimmer/syntax";
       import setGlobalContext from "@glimmer/global-context";
       import { createConstRef, valueForRef } from "@glimmer/reference";
-      import { EMPTY_ARGS } from "@glimmer/runtime";
-
-      class ArgsProxy {
-        isExtensible() {
-          return false;
-        }
-
-        ownKeys(target) {
-          return Object.keys(target);
-        }
-
-        getOwnPropertyDescriptor(target, p) {
-          let desc;
-          if (typeof p === "string" && p in target) {
-            const value = valueForRef(target[p]);
-            desc = {
-              enumerable: true,
-              configurable: false,
-              writable: false,
-              value,
-            };
-          }
-          return desc;
-        }
-
-        has(target, p) {
-          return typeof p === "string" ? p in target : false;
-        }
-
-        get(target, p) {
-          if (typeof p === "string" && p in target) {
-            return valueForRef(target[p]);
-          }
-
-          return;
-        }
-
-        set() {
-          return false;
-        }
-      }
-
-      function argsProxy(args) {
-        return new Proxy(args.named, new ArgsProxy());
-      }
 
       /**
         This repo has no component managers
       */
       class BasicComponentManager {
         create(_owner, Component, args) {
-          const instance = new Component(argsProxy(args === null ? EMPTY_ARGS : args.capture()));
+          const instance = new Component(args.capture());
           const self = createConstRef(instance, "this");
           return { instance, self };
         }
