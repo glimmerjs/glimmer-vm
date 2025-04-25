@@ -16,9 +16,10 @@
       import { artifacts, RuntimeOpImpl } from "@glimmer/program";
       import { setComponentTemplate, setInternalComponentManager } from "@glimmer/manager";
       import { precompile, precompileJSON } from "@glimmer/compiler";
-      import { trackedData } from "@glimmer/validator";
+      import { dirtyTagFor, tagFor, consumeTag } from "@glimmer/validator";
       import { preprocess, getTemplateLocals } from "@glimmer/syntax";
       import boilerplateComponentManager from "./boilerplate-example-component-manager";
+      import setGlobalContext from "@glimmer/global-context";
 
       const scheduledDestructors = [];
       const scheduledFinalizers = [];
@@ -27,6 +28,100 @@
         for (const fn of queue) fn();
         queue.length = 0;
       }
+
+      let result;
+
+      function registerResult(_result) {
+        result = _result;
+      }
+
+      let revalidateScheduled = false;
+
+      setGlobalContext({
+        scheduleRevalidate() {
+          if (!revalidateScheduled) {
+            Promise.resolve()
+              .then(() => {
+                const { env } = result;
+                env.begin();
+                result.rerender();
+                revalidateScheduled = false;
+                env.commit();
+              })
+              .catch((e) => console.error(e));
+          }
+        },
+
+        getProp(obj, prop) {
+          return obj[prop];
+        },
+
+        setProp(obj, prop, value) {
+          obj[prop] = value;
+        },
+
+        getPath(obj, path) {
+          let parts = path.split(".");
+
+          let current = obj;
+
+          for (let part of parts) {
+            if (
+              typeof current === "function" ||
+              (typeof current === "object" && current !== null)
+            ) {
+              current = current[part];
+            }
+          }
+
+          return current;
+        },
+
+        setPath(obj, path, value) {
+          let parts = path.split(".");
+
+          let current = obj;
+          let pathToSet = parts.pop();
+
+          for (let part of parts) {
+            current = current[part];
+          }
+
+          current[pathToSet] = value;
+        },
+
+        toBool(value) {
+          return Boolean(value);
+        },
+
+        toIterator() {
+          return null;
+        },
+
+        warnIfStyleNotTrusted() {
+          // noop
+        },
+
+        scheduleDestroy(destroyable, destructor) {
+          scheduledDestructors.push(() => destructor(destroyable));
+        },
+
+        scheduleDestroyed(fn) {
+          scheduledFinalizers.push(fn);
+        },
+
+        assert(test, msg) {
+          if (!test) {
+            throw new Error(msg);
+          }
+        },
+
+        deprecate(msg, test) {
+          if (!test) {
+            console.warn(msg);
+          }
+        },
+      });
 
       function createEnvDelegate(isInteractive) {
         return {
@@ -40,13 +135,18 @@
       }
 
       class Counter {
-        #data = trackedData({ count: 0 });
+        _count = 0;
 
         get count() {
-          return this.#data["count"];
+          consumeTag(tagFor(this, "_count"));
+          return this._count;
+        }
+        set count(value) {
+          this._count = value;
+          dirtyTagFor(this, "_count");
         }
 
-        increment = () => this.#data["count"]++;
+        increment = () => this.count++;
 
         static {
           setInternalComponentManager(boilerplateComponentManager, this);
@@ -55,7 +155,7 @@
             createTemplate(
               `<p>You have clicked the button {{this.count}} times.</p>
 
-              <button {{on "click" this.increment}}>Click</button>`,
+                    <button {{on "click" this.increment}}>Click</button>`,
               { on },
             ),
             this,
@@ -115,7 +215,9 @@
         const cursor = { element, nextSibling: null };
         const treeBuilder = NewTreeBuilder.forInitialRender(env, cursor);
 
-        renderSync(env, renderComponent(context, treeBuilder, {}, Counter, {}));
+        const result = renderSync(env, renderComponent(context, treeBuilder, {}, Counter, {}));
+
+        registerResult(result);
       }
 
       render();

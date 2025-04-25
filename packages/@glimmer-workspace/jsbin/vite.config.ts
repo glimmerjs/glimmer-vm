@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import path from 'node:path';
 const currentPath = import.meta.dirname;
-import virtual from 'vite-plugin-virtual';
 
 const packagesPath = path.resolve(currentPath, '../../../packages');
 const packagePath = (name: string) => {
@@ -12,13 +11,26 @@ const packagePath = (name: string) => {
 export default defineConfig({
   resolve: {
     alias: {
-      '@glimmer/opcode-compiler': packagePath('@glimmer/opcode-compiler'),
       '@glimmer/compiler': packagePath('@glimmer/compiler'),
+      '@glimmer/constants': packagePath('@glimmer/constants'),
+      '@glimmer/debug': packagePath('@glimmer/debug'),
+      '@glimmer/debug-util': packagePath('@glimmer/debug-util'),
+      '@glimmer/destroyable': packagePath('@glimmer/destroyable'),
+      '@glimmer/encoder': packagePath('@glimmer/encoder'),
+      '@glimmer/global-context': packagePath('@glimmer/global-context'),
+      '@glimmer/interfaces': packagePath('@glimmer/interfaces'),
       '@glimmer/manager': packagePath('@glimmer/manager'),
+      '@glimmer/node': packagePath('@glimmer/node'),
+      '@glimmer/opcode-compiler': packagePath('@glimmer/opcode-compiler'),
+      '@glimmer/owner': packagePath('@glimmer/owner'),
       '@glimmer/program': packagePath('@glimmer/program'),
-      '@glimmer/validator': packagePath('@glimmer/validator'),
+      '@glimmer/reference': packagePath('@glimmer/reference'),
       '@glimmer/runtime': packagePath('@glimmer/runtime'),
       '@glimmer/syntax': packagePath('@glimmer/syntax'),
+      '@glimmer/validator': packagePath('@glimmer/validator'),
+      '@glimmer/util': packagePath('@glimmer/util'),
+      '@glimmer/vm': packagePath('@glimmer/vm'),
+      '@glimmer/wire-format': packagePath('@glimmer/wire-format'),
     },
   },
 });

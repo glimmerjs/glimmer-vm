@@ -9,7 +9,8 @@
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/manager": "workspace:*",
     "@glimmer/reference": "workspace:*",
-    "@glimmer/runtime": "workspace:*"
+    "@glimmer/runtime": "workspace:*",
+    "@glimmer/global-context": "workspace:*"
   },
   "devDependencies": {
     "vite": "^5.4.10"
