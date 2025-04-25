@@ -76,7 +76,7 @@ export function isGetLexical(
 
 export function isGetContextualFree(
   expr: Expressions.TupleExpression
-): expr is Expressions.GetResolved | Expressions.GetPathContextualFree {
+): expr is Expressions.GetResolved {
   const [opcode] = expr;
   switch (opcode) {
     case Op.ResolveAsComponentCallee:

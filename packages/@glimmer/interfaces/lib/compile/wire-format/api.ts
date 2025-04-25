@@ -194,12 +194,14 @@ export namespace Expressions {
   export type ResolveAsCurlyCallee = [ResolveAsCurlyCalleeOpcode, number];
   export type ResolveAsModifierCallee = [ResolveAsModifierHeadOpcode, number];
   export type ResolveAsComponentCallee = [ResolveAsComponentCalleeOpcode, number];
+  export type ResolveAsHelperCallee = [ResolveAsHelperCalleeOpcode, number];
 
   export type GetUnknownAppend = [ResolveAsCurlyCalleeOpcode, number];
 
   export type GetResolved =
     | ResolveAsCurlyCallee
     | ResolveAsModifierCallee
+    | ResolveAsHelperCallee
     | ResolveAsComponentCallee;
   export type GetResolvedOrKeyword = GetKeyword | GetResolved;
   export type GetVar = GetLocalSymbol | GetLexicalSymbol;
@@ -235,7 +237,8 @@ export namespace Expressions {
     | Undefined
     | IfInline
     | Not
-    | Log;
+    | Log
+    | GetResolved;
 
   export type StaticValue = Value | Undefined;
   export type Expression = TupleExpression | Value;
