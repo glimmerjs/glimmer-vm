@@ -40,7 +40,7 @@ import { debugToString, localAssert } from '@glimmer/debug-util';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { debugAssert, toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
-import { isCurriedType, resolveCurriedValue } from "@glimmer/program/lib/util/curried-value";
+import { isCurriedType, resolveCurriedValue } from '@glimmer/program';
 import {
   childRefFor,
   createComputeRef,
