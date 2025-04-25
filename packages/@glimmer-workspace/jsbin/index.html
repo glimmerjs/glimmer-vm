@@ -96,16 +96,29 @@
 
       let revalidateScheduled = false;
 
+      /**
+       * The Global Context provides some core swappable utilities, feature flag configuration, and some hooks for some of the Render Phases.
+       * This is required to be configured, but could be entirely unneeded in modern code.
+       *
+       *
+       * This feels like it could have been designed to try to allow for different reactivity systems over time.
+       * But we don't need those use cases anymore.
+       * Additionally, we can configure the render phases in scheduleRevalidate
+       * it is *required* to do this, else updates to the DOM do not occur
+       */
       setGlobalContext({
         scheduleRevalidate() {
           if (!revalidateScheduled) {
             Promise.resolve()
               .then(() => {
                 const { env } = result;
+                console.log("env.begin");
                 env.begin();
+                console.log("env.rerender");
                 result.rerender();
                 revalidateScheduled = false;
                 env.commit();
+                console.log("env.commit");
               })
               .catch((e) => console.error(e));
           }
@@ -193,14 +206,23 @@
         };
       }
 
+      /**
+       * With the component manager we've configured, we don't need a super class
+       * but also, we don't interact with any args (this.args doesn't exist).
+       */
       class Counter {
         _count = 0;
 
+        /**
+         * This is a simplified version of @tracked
+         */
         get count() {
+          console.log("read: count");
           consumeTag(tagFor(this, "_count"));
           return this._count;
         }
         set count(value) {
+          console.log("set: count");
           this._count = value;
           dirtyTagFor(this, "_count");
         }
@@ -214,7 +236,7 @@
             createTemplate(
               `<p>You have clicked the button {{this.count}} times.</p>
 
-                    <button {{on "click" this.increment}}>Click</button>`,
+              <button {{on "click" this.increment}}>Click</button>`,
               { on },
             ),
             this,
@@ -245,6 +267,11 @@
         return templateFactory(templateBlock);
       }
 
+      /**
+       * Main entrypoint for the demo.
+       * This configures a whole bunch of legacy features that shouldn't be needed, especially in
+       strict mode.
+       */
       function render() {
         const element = document.body;
         const sharedArtifacts = artifacts();
@@ -274,6 +301,7 @@
         const cursor = { element, nextSibling: null };
         const treeBuilder = NewTreeBuilder.forInitialRender(env, cursor);
 
+        console.log("renderSync");
         const result = renderSync(env, renderComponent(context, treeBuilder, {}, Counter, {}));
 
         registerResult(result);
