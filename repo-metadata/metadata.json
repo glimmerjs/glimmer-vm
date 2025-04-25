@@ -136,6 +136,18 @@
       }
     },
     {
+      "root": "packages/@glimmer-workspace/jsbin",
+      "name": "@glimmer-workspace/js-bin",
+      "type": "module",
+      "private": true,
+      "repo-meta": {
+        "built": false
+      },
+      "entryPoints": {
+        "./package.json": [[["default"], "./package.json"]]
+      }
+    },
+    {
       "root": "packages/@glimmer-workspace/test-utils",
       "name": "@glimmer-workspace/test-utils",
       "version": "0.92.0",

@@ -1,16 +1,17 @@
 {
   "private": true,
   "name": "@glimmer-workspace/js-bin",
+  "version": "0.92.0",
   "type": "module",
   "scripts": {
     "start": "vite"
   },
   "dependencies": {
+    "@glimmer/global-context": "workspace:*",
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/manager": "workspace:*",
     "@glimmer/reference": "workspace:*",
-    "@glimmer/runtime": "workspace:*",
-    "@glimmer/global-context": "workspace:*"
+    "@glimmer/runtime": "workspace:*"
   },
   "devDependencies": {
     "vite": "^5.4.10"
