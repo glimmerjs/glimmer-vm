@@ -18,6 +18,10 @@ export class SourceSlice<Chars extends string = string> {
     });
   }
 
+  static keyword(name: string, loc: src.SourceSpan): SourceSlice {
+    return new SourceSlice({ loc, chars: name });
+  }
+
   readonly chars: Chars;
   readonly loc: src.SourceSpan;
 
@@ -28,6 +32,23 @@ export class SourceSlice<Chars extends string = string> {
 
   getString(): string {
     return this.chars;
+  }
+
+  /**
+   * A source slice is "rewritten" if its location does not match its string representation. This
+   * means that an AST transformation may have changed the string representation of the slice.
+   *
+   * When printing error messages, we want to highlight the original slice in the user's source
+   * code, but we also want to communicate the _semantic_ string to the user because that's what
+   * caused the error.
+   *
+   * For example, if the user typed `{{#portal}}` and an AST transformation rewrote that to
+   * `{{#in-element}}`, and there's an error with the `#in-element` syntax, we need to report the
+   * error to the user by highlighting the `portal` in their source, but we also want to tell the
+   * user that the syntax error was a problem with the expanded `#in-element` syntax.
+   */
+  get isRewrite(): boolean {
+    return this.loc.asString() !== this.chars;
   }
 
   serialize(): SerializedSourceSlice<Chars> {

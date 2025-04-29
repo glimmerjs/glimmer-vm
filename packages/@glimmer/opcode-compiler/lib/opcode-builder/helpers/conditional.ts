@@ -12,15 +12,12 @@ import {
 } from '@glimmer/constants';
 import { unwrap } from '@glimmer/debug-util';
 
-import type { PushStatementOp } from '../../syntax/compilers';
-
-import { HighLevelBuilderOpcodes } from '../opcodes';
-import { labelOperand } from '../operands';
+import type { EncodeOp } from '../encoder';
 
 export type When = (match: number, callback: () => void) => void;
 
 export function SwitchCases(
-  op: PushStatementOp,
+  encode: EncodeOp,
   bootstrap: () => void,
   matcher: (when: When) => void
 ): void {
@@ -37,14 +34,14 @@ export function SwitchCases(
   matcher(when);
 
   // Emit the opcodes for the switch
-  op(VM_ENTER_OP, 1);
+  encode.op(VM_ENTER_OP, 1);
   bootstrap();
-  op(HighLevelBuilderOpcodes.StartLabels);
+  encode.startLabels();
 
   // First, emit the jump opcodes. We don't need a jump for the last
   // opcode, since it bleeds directly into its clause.
   for (let clause of clauses.slice(0, -1)) {
-    op(VM_JUMP_EQ_OP, labelOperand(clause.label), clause.match);
+    encode.op(VM_JUMP_EQ_OP, encode.to(clause.label), clause.match);
   }
 
   // Enumerate the clauses in reverse order. Earlier matches will
@@ -52,20 +49,20 @@ export function SwitchCases(
   for (let i = clauses.length - 1; i >= 0; i--) {
     let clause = unwrap(clauses[i]);
 
-    op(HighLevelBuilderOpcodes.Label, clause.label);
-    op(VM_POP_OP, 1);
+    encode.mark(clause.label);
+    encode.op(VM_POP_OP, 1);
     clause.callback();
 
     // The first match is special: it is placed directly before the END
     // label, so no additional jump is needed at the end of it.
     if (i !== 0) {
-      op(VM_JUMP_OP, labelOperand('END'));
+      encode.op(VM_JUMP_OP, encode.to('END'));
     }
   }
 
-  op(HighLevelBuilderOpcodes.Label, 'END');
-  op(HighLevelBuilderOpcodes.StopLabels);
-  op(VM_EXIT_OP);
+  encode.mark('END');
+  encode.stopLabels();
+  encode.op(VM_EXIT_OP);
 }
 
 /**
@@ -129,16 +126,16 @@ export function SwitchCases(
  * encountered, the program jumps to -1 rather than the END label,
  * and the PopFrame opcode is not needed.
  */
-export function Replayable(op: PushStatementOp, args: () => number, body: () => void): void {
+export function Replayable(encode: EncodeOp, args: () => number, body: () => void): void {
   // Start a new label frame, to give END and RETURN
   // a unique meaning.
 
-  op(HighLevelBuilderOpcodes.StartLabels);
-  op(VM_PUSH_FRAME_OP);
+  encode.startLabels();
+  encode.op(VM_PUSH_FRAME_OP);
 
   // If the body invokes a block, its return will return to
   // END. Otherwise, the return in RETURN will return to END.
-  op(VM_RETURN_TO_OP, labelOperand('ENDINITIAL'));
+  encode.op(VM_RETURN_TO_OP, encode.to('ENDINITIAL'));
 
   // Push the arguments onto the stack. The args() function
   // tells us how many stack elements to retain for re-execution
@@ -155,7 +152,7 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // in an #if), the DOM is cleared and the program is re-executed,
   // restoring `count` elements to the stack and executing the
   // instructions between the enter and exit.
-  op(VM_ENTER_OP, count);
+  encode.op(VM_ENTER_OP, count);
 
   // Evaluate the body of the block. The body of the block may
   // return, which will jump execution to END during initial
@@ -165,21 +162,21 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // All execution paths in the body should run the FINALLY once
   // they are done. It is executed both during initial execution
   // and during updating execution.
-  op(HighLevelBuilderOpcodes.Label, 'FINALLY');
+  encode.mark('FINALLY');
 
   // Finalize the DOM.
-  op(VM_EXIT_OP);
+  encode.op(VM_EXIT_OP);
 
   // In initial execution, this is a noop: it returns to the
   // immediately following opcode. In updating execution, this
   // exits the updating routine.
-  op(VM_RETURN_OP);
+  encode.op(VM_RETURN_OP);
 
   // Cleanup code for the block. Runs on initial execution
   // but not on updating.
-  op(HighLevelBuilderOpcodes.Label, 'ENDINITIAL');
-  op(VM_POP_FRAME_OP);
-  op(HighLevelBuilderOpcodes.StopLabels);
+  encode.mark('ENDINITIAL');
+  encode.op(VM_POP_FRAME_OP);
+  encode.stopLabels();
 }
 
 /**
@@ -198,21 +195,21 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
  * frame deep.
  */
 export function ReplayableIf(
-  op: PushStatementOp,
+  encode: EncodeOp,
   args: () => number,
   ifTrue: () => void,
   ifFalse?: () => void
 ): void {
-  return Replayable(op, args, () => {
+  return Replayable(encode, args, () => {
     // If the conditional is false, jump to the ELSE label.
-    op(VM_JUMP_UNLESS_OP, labelOperand('ELSE'));
+    encode.op(VM_JUMP_UNLESS_OP, encode.to('ELSE'));
     // Otherwise, execute the code associated with the true branch.
     ifTrue();
     // We're done, so return. In the initial execution, this runs
     // the cleanup code. In the updating VM, it exits the updating
     // routine.
-    op(VM_JUMP_OP, labelOperand('FINALLY'));
-    op(HighLevelBuilderOpcodes.Label, 'ELSE');
+    encode.op(VM_JUMP_OP, encode.to('FINALLY'));
+    encode.mark('ELSE');
 
     // If the conditional is false, and code associatied ith the
     // false branch was provided, execute it. If there was no code

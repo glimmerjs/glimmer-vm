@@ -3,10 +3,10 @@ import {
   VM_CHILD_SCOPE_OP,
   VM_COMPILE_BLOCK_OP,
   VM_CONSTANT_OP,
-  VM_DUP_OP,
+  VM_DUP_FP_OP,
   VM_GET_BLOCK_OP,
-  VM_INVOKE_VIRTUAL_OP,
   VM_INVOKE_YIELD_OP,
+  VM_JIT_INVOKE_VIRTUAL_OP,
   VM_POP_FRAME_OP,
   VM_POP_SCOPE_OP,
   VM_PUSH_BLOCK_SCOPE_OP,
@@ -15,12 +15,9 @@ import {
   VM_SET_VARIABLE_OP,
   VM_SPREAD_BLOCK_OP,
 } from '@glimmer/constants';
-import { $fp } from '@glimmer/vm';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { EncodeOp } from '../encoder';
 
-import { blockOperand, symbolTableOperand } from '../operands';
-import { SimpleArgs } from './shared';
 import { PushPrimitive } from './vm';
 
 /**
@@ -29,18 +26,13 @@ import { PushPrimitive } from './vm';
  * @param to the symbol containing the block to yield to
  * @param params optional block parameters to yield to the block
  */
-export function YieldBlock(
-  op: PushStatementOp,
-  to: number,
-  positional: Nullable<WireFormat.Core.Params>
-): void {
-  SimpleArgs(op, positional, null, true);
-  op(VM_GET_BLOCK_OP, to);
-  op(VM_SPREAD_BLOCK_OP);
-  op(VM_COMPILE_BLOCK_OP);
-  op(VM_INVOKE_YIELD_OP);
-  op(VM_POP_SCOPE_OP);
-  op(VM_POP_FRAME_OP);
+export function YieldBlock(encode: EncodeOp, to: number): void {
+  encode.op(VM_GET_BLOCK_OP, to);
+  encode.op(VM_SPREAD_BLOCK_OP);
+  encode.op(VM_COMPILE_BLOCK_OP);
+  encode.op(VM_INVOKE_YIELD_OP);
+  encode.op(VM_POP_SCOPE_OP);
+  encode.op(VM_POP_FRAME_OP);
 }
 
 /**
@@ -50,12 +42,12 @@ export function YieldBlock(
  * @param block An optional Compilable block
  */
 export function PushYieldableBlock(
-  op: PushStatementOp,
+  encode: EncodeOp,
   block: Nullable<WireFormat.SerializedInlineBlock>
 ): void {
-  PushSymbolTable(op, block && block[1]);
-  op(VM_PUSH_BLOCK_SCOPE_OP);
-  PushCompilable(op, block);
+  PushSymbolTable(encode, block && block[1]);
+  encode.op(VM_PUSH_BLOCK_SCOPE_OP);
+  PushCompilable(encode, block);
 }
 
 /**
@@ -63,15 +55,10 @@ export function PushYieldableBlock(
  *
  * @param block a Compilable block
  */
-export function InvokeStaticBlock(
-  op: PushStatementOp,
-  block: WireFormat.SerializedInlineBlock
-): void {
-  op(VM_PUSH_FRAME_OP);
-  PushCompilable(op, block);
-  op(VM_COMPILE_BLOCK_OP);
-  op(VM_INVOKE_VIRTUAL_OP);
-  op(VM_POP_FRAME_OP);
+export function InvokeStaticBlock(encode: EncodeOp, block: WireFormat.SerializedInlineBlock): void {
+  encode.op(VM_PUSH_FRAME_OP);
+  encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));
+  encode.op(VM_POP_FRAME_OP);
 }
 
 /**
@@ -82,7 +69,7 @@ export function InvokeStaticBlock(
  * @param callerCount A number of stack entries to preserve
  */
 export function InvokeStaticBlockWithStack(
-  op: PushStatementOp,
+  encode: EncodeOp,
   block: WireFormat.SerializedInlineBlock,
   callerCount: number
 ): void {
@@ -91,47 +78,69 @@ export function InvokeStaticBlockWithStack(
   let count = Math.min(callerCount, calleeCount);
 
   if (count === 0) {
-    InvokeStaticBlock(op, block);
+    InvokeStaticBlock(encode, block);
     return;
   }
 
-  op(VM_PUSH_FRAME_OP);
+  encode.op(VM_PUSH_FRAME_OP);
 
   if (count) {
-    op(VM_CHILD_SCOPE_OP);
+    encode.op(VM_CHILD_SCOPE_OP);
 
     for (let i = 0; i < count; i++) {
-      op(VM_DUP_OP, $fp, callerCount - i);
-      op(VM_SET_VARIABLE_OP, parameters[i]);
+      encode.op(VM_DUP_FP_OP, callerCount - i);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+      encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
     }
   }
 
-  PushCompilable(op, block);
-  op(VM_COMPILE_BLOCK_OP);
-  op(VM_INVOKE_VIRTUAL_OP);
+  encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));
 
   if (count) {
-    op(VM_POP_SCOPE_OP);
+    encode.op(VM_POP_SCOPE_OP);
   }
 
-  op(VM_POP_FRAME_OP);
+  encode.op(VM_POP_FRAME_OP);
 }
 
-export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | null): void {
+export function InvokeStaticBlockWithPresentStack(
+  encode: EncodeOp,
+  block: WireFormat.SerializedInlineBlock,
+  callerCount: number
+): void {
+  let parameters = block[1];
+  let count = Math.min(callerCount, parameters.length);
+
+  encode.op(VM_PUSH_FRAME_OP);
+  encode.op(VM_CHILD_SCOPE_OP);
+
+  for (let i = 0; i < count; i++) {
+    encode.op(VM_DUP_FP_OP, callerCount - i);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
+    encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
+  }
+
+  encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));
+
+  encode.op(VM_POP_SCOPE_OP);
+  encode.op(VM_POP_FRAME_OP);
+}
+
+export function PushSymbolTable(encode: EncodeOp, parameters: number[] | null): void {
   if (parameters !== null) {
-    op(VM_PUSH_SYMBOL_TABLE_OP, symbolTableOperand({ parameters }));
+    encode.op(VM_PUSH_SYMBOL_TABLE_OP, encode.constant({ parameters }));
   } else {
-    PushPrimitive(op, null);
+    PushPrimitive(encode, null);
   }
 }
 
 export function PushCompilable(
-  op: PushExpressionOp,
+  encode: EncodeOp,
   _block: Nullable<WireFormat.SerializedInlineBlock>
 ): void {
   if (_block === null) {
-    PushPrimitive(op, null);
+    PushPrimitive(encode, null);
   } else {
-    op(VM_CONSTANT_OP, blockOperand(_block));
+    encode.op(VM_CONSTANT_OP, encode.block(_block));
   }
 }

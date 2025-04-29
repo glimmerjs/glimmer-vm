@@ -114,16 +114,20 @@ export function getTemplateLocals(
 
     ElementNode: {
       enter(node) {
-        node.blockParams.forEach((param) => {
-          scopedTokens.push(param);
-        });
+        if (Array.isArray(node.blockParams)) {
+          node.blockParams.forEach((param) => {
+            scopedTokens.push(param);
+          });
+        }
         addTokens(tokensSet, node, scopedTokens, options);
       },
 
       exit({ blockParams }) {
-        blockParams.forEach(() => {
-          scopedTokens.pop();
-        });
+        if (Array.isArray(blockParams)) {
+          blockParams.forEach(() => {
+            scopedTokens.pop();
+          });
+        }
       },
     },
 
