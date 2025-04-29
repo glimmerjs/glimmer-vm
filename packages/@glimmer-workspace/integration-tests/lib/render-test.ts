@@ -11,7 +11,7 @@ import type {
 } from '@glimmer/interfaces';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 import type { NTuple } from '@glimmer-workspace/test-utils';
-import { expect, isPresent, localAssert, unwrap } from '@glimmer/debug-util';
+import { castToBrowser, expect, isPresent, localAssert, unwrap } from '@glimmer/debug-util';
 import { destroy } from '@glimmer/destroyable';
 import { inTransaction } from '@glimmer/runtime';
 import { clearElement, dict } from '@glimmer/util';
@@ -77,6 +77,21 @@ export class RenderTest implements IRenderTest {
         return unwrap(instance);
       },
     };
+  }
+
+  find<E extends HTMLElement>(selector: string): E {
+    if (selector === '') {
+      return castToBrowser(this.element, 'div') as unknown as E;
+    }
+
+    return expect(
+      castToBrowser(this.element, 'div').querySelector(selector) as E,
+      `BUG: expected to find ${selector}`
+    );
+  }
+
+  text(selector = ''): string {
+    return this.find(selector).textContent?.trim() ?? '';
   }
 
   registerPlugin(plugin: ASTPluginBuilder): void {
