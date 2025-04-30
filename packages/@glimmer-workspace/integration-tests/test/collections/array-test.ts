@@ -1,6 +1,7 @@
 import type { Dict, Owner } from '@glimmer/interfaces';
 import { trackedArray } from '@glimmer/validator';
 import {
+  defineComponent,
   GlimmerishComponent as Component,
   jitSuite,
   RenderTest,
@@ -42,8 +43,90 @@ const ARRAY_SETTER_METHODS = [
   'unshift',
 ];
 
+function stripIndent(str: string) {
+  return str.replaceAll(/^\s|\s+$|\s+(?=\s)/gu, '').replaceAll(/\n/gu, '');
+}
+
 class TrackedArrayTest extends RenderTest {
   static suiteName = `trackedArray() (rendering)`;
+
+  @test
+  'options.equals: default equals does not dirty on no-op changes'(assert: Assert) {
+    const obj = trackedArray(['foo', '123']);
+    const step = (index: number) => {
+      assert.step(String(obj[index]));
+      return obj[index];
+    };
+
+    const Foo = defineComponent({ step, obj }, '{{ (step 0) }} {{ (step 1) }}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('foo 123');
+    assert.verifySteps(['foo', '123']);
+
+    obj[0] = 'foo';
+    this.rerender();
+
+    this.assertHTML('foo 123');
+    this.assertStableRerender();
+    assert.verifySteps([]);
+  }
+
+  @test
+  'options.equals: using equals can dirty on every change'(assert: Assert) {
+    const obj = trackedArray(['foo', '123'], { equals: () => false });
+    const step = (index: number) => {
+      assert.step(String(obj[index]));
+      return obj[index];
+    };
+
+    const Foo = defineComponent({ step, obj }, '{{ (step 0) }} {{ (step 1) }}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('foo 123');
+    assert.verifySteps(['foo', '123']);
+
+    obj[0] = 'foo';
+    this.rerender();
+
+    this.assertHTML('foo 123');
+    this.assertStableRerender();
+    assert.verifySteps(['foo']);
+  }
+
+  @test
+  '{{each}} minimally invalidates'(assert: Assert) {
+    let step = (item: number) => {
+      assert.step(String(item));
+      return item;
+    };
+
+    let array = trackedArray(['one', 'two', 'three', 'four']);
+
+    const Foo = defineComponent(
+      { step, array },
+      stripIndent(
+        `{{#each array as |item|}}
+          {{step item}}
+         {{/each}}`
+      )
+    );
+
+    this.renderComponent(Foo);
+    this.assertHTML(' one  two  three  four ');
+    assert.verifySteps(['one', 'two', 'three', 'four']);
+
+    array.push('five');
+    this.rerender();
+    this.assertHTML(' one  two  three  four  five ');
+    assert.verifySteps(['five']);
+
+    array[2] = 'three2';
+    this.assertHTML(' one  two  three2  four  five ');
+    assert.verifySteps(['three2']);
+  }
 
   @test
   'getting and setting an index'() {

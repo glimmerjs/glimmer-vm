@@ -1,11 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Unfortunately, TypeScript's ability to do inference *or* type-checking in a
-// `Proxy`'s body is very limited, so we have to use a number of casts `as any`
-// to make the internal accesses work. The type safety of these is guaranteed at
-// the *call site* instead of within the body: you cannot do `Array.blah` in TS,
-// and it will blow up in JS in exactly the same way, so it is safe to assume
-// that properties within the getter have the correct type in TS.
-
 import { consumeTag } from '../tracking';
 import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
@@ -33,6 +26,18 @@ const ARRAY_GETTER_METHODS = new Set<string | symbol | number>([
   'values',
 ]);
 
+const ARRAY_COLLECTION_SET_METHODS = new Set<string | symbol>([
+  'copyWithin',
+  'fill',
+  'pop',
+  'push',
+  'reverse',
+  'shift',
+  'sort',
+  'splice',
+  'unshift',
+]);
+
 // For these methods, `Array` itself immediately gets the `.length` to return
 // after invoking them.
 const ARRAY_WRITE_THEN_READ_METHODS = new Set<string | symbol>(['fill', 'push', 'unshift']);
@@ -47,7 +52,6 @@ function convertToInt(prop: number | string | symbol): number | null {
   return num % 1 === 0 ? num : null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 class TrackedArray<T = unknown> {
   #options: { equals: (a: T, b: T) => boolean; description: string | undefined };
 
@@ -76,6 +80,7 @@ class TrackedArray<T = unknown> {
 
         if (index !== null) {
           self.#readStorageFor(index);
+          console.log('consuming', index);
           consumeTag(self.#collection);
 
           return target[index];
@@ -122,26 +127,54 @@ class TrackedArray<T = unknown> {
           return fn;
         }
 
+        if (ARRAY_COLLECTION_SET_METHODS.has(prop)) {
+          let fn = boundFns.get(prop);
+
+          if (fn === undefined) {
+            fn = (...args) => {
+              console.log('dirtying collection ', prop, args);
+              self.#dirtyCollection();
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              return (target as any)[prop](...args);
+            };
+
+            boundFns.set(prop, fn);
+          }
+          return fn;
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
         return (target as any)[prop];
       },
 
       set(target, prop, value /*, _receiver */) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
-        let isUnchanged = self.#options.equals((target as any)[prop], value);
-        if (isUnchanged) return true;
+        const index = convertToInt(prop);
+
+        if (prop === 'length') {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+          let isUnchanged = self.#options.equals((target as any)[prop], value);
+          if (isUnchanged) return true;
+          self.#dirtyCollection();
+        }
+
+        if (index !== null) {
+          let alreadyHas = (index ?? Infinity) < target.length;
+          if (alreadyHas) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+            let isUnchanged = self.#options.equals((target as any)[prop], value);
+            if (isUnchanged) return true;
+          }
+
+          console.log('dirtying', index);
+          self.#dirtyStorageFor(index);
+
+          if (!alreadyHas) {
+            self.#dirtyCollection();
+          }
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         (target as any)[prop] = value;
-
-        const index = convertToInt(prop);
-
-        if (index !== null) {
-          self.#dirtyStorageFor(index);
-          self.#dirtyCollection();
-        } else if (prop === 'length') {
-          self.#dirtyCollection();
-        }
 
         return true;
       },
@@ -177,32 +210,25 @@ class TrackedArray<T = unknown> {
 
   #dirtyCollection() {
     DIRTY_TAG(this.#collection);
-    this.#storages.clear();
   }
 }
-
-// This rule is correct in the general case, but it doesn't understand
-// declaration merging, which is how we're using the interface here. This says
-// `TrackedArray` acts just like `Array<T>`, but also has the properties
-// declared via the `class` declaration above -- but without the cost of a
-// subclass, which is much slower that the proxied array behavior. That is: a
-// `TrackedArray` *is* an `Array`, just with a proxy in front of accessors and
-// setters, rather than a subclass of an `Array` which would be de-optimized by
-// the browsers.
-//
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface TrackedArray<T = unknown> extends Array<T> {}
-
-// Ensure instanceof works correctly
-Object.setPrototypeOf(TrackedArray.prototype, Array.prototype);
 
 export function trackedArray<T = unknown>(
   data?: T[],
   options?: { equals?: (a: T, b: T) => boolean; description?: string }
 ): T[] {
-  return new TrackedArray(data ?? [], {
-    equals: options?.equals ?? Object.is,
-    description: options?.description,
-  });
+  const clone = data?.slice() ?? [];
+  const context = {
+    options: {
+      equals: options?.equals ?? Object.is,
+      description: options?.description,
+    },
+    boundFns: new Map<string | symbol, (...args: any[]) => any>(),
+  };
+  const target = [clone, context];
+
+  /**
+   * We have to use a Proxy because there is no other way to intercept array-index access
+   */
+  return new Proxy(target, arrayTrap) as T[];
 }
