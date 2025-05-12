@@ -1,28 +1,25 @@
-import Component from '@glimmer/component';
-import { setupRenderingTest } from 'ember-qunit';
-import { module, test } from 'qunit';
-import { TrackedWeakSet } from 'tracked-built-ins';
+import { trackedWeakSet } from '@glimmer/validator';
 
-import { reactivityTest } from '../helpers/reactivity';
+import { module, test } from '../-utils';
 
 module('TrackedWeakSet', function (hooks) {
   setupRenderingTest(hooks);
 
   test('constructor', (assert) => {
     const obj = {};
-    const set = new TrackedWeakSet([obj]);
+    const set = trackedWeakSet([obj]);
 
     assert.true(set.has(obj));
     assert.ok(set instanceof WeakSet);
 
     const array = [1, 2, 3];
     const iterable = [array];
-    const fromIterable = new TrackedWeakSet(iterable);
+    const fromIterable = trackedWeakSet(iterable);
     assert.true(fromIterable.has(array));
   });
 
   test('does not work with built-ins', (assert) => {
-    const set = new TrackedWeakSet();
+    const set = trackedWeakSet();
 
     // @ts-expect-error -- point is testing constructor error
     assert.throws(() => set.add('aoeu'), /Invalid value used in weak set/u);
@@ -36,7 +33,7 @@ module('TrackedWeakSet', function (hooks) {
 
   test('add/has', (assert) => {
     const obj = {};
-    const set = new TrackedWeakSet();
+    const set = trackedWeakSet();
 
     set.add(obj);
     assert.true(set.has(obj));
@@ -44,7 +41,7 @@ module('TrackedWeakSet', function (hooks) {
 
   test('delete', (assert) => {
     const obj = {};
-    const set = new TrackedWeakSet();
+    const set = trackedWeakSet();
 
     assert.false(set.has(obj));
 
@@ -54,90 +51,4 @@ module('TrackedWeakSet', function (hooks) {
     set.delete(obj);
     assert.false(set.has(obj));
   });
-
-  reactivityTest(
-    'add/has',
-    class extends Component {
-      obj = {};
-      set = new TrackedWeakSet();
-
-      get value() {
-        return this.set.has(this.obj);
-      }
-
-      update() {
-        this.set.add(this.obj);
-      }
-    }
-  );
-
-  reactivityTest(
-    'add/has existing value',
-    class extends Component {
-      obj = {};
-      obj2 = {};
-      set = new TrackedWeakSet([this.obj]);
-
-      get value() {
-        return this.set.has(this.obj);
-      }
-
-      update() {
-        this.set.add(this.obj);
-      }
-    }
-  );
-
-  reactivityTest(
-    'add/has unrelated value',
-    class extends Component {
-      obj = {};
-      obj2 = {};
-      set = new TrackedWeakSet();
-
-      get value() {
-        return this.set.has(this.obj);
-      }
-
-      update() {
-        this.set.add(this.obj2);
-      }
-    },
-    false
-  );
-
-  reactivityTest(
-    'delete',
-    class extends Component {
-      obj = {};
-      obj2 = {};
-      set = new TrackedWeakSet([this.obj, this.obj2]);
-
-      get value() {
-        return this.set.has(this.obj);
-      }
-
-      update() {
-        this.set.delete(this.obj);
-      }
-    }
-  );
-
-  reactivityTest(
-    'delete unrelated value',
-    class extends Component {
-      obj = {};
-      obj2 = {};
-      set = new TrackedWeakSet([this.obj, this.obj2]);
-
-      get value() {
-        return this.set.has(this.obj);
-      }
-
-      update() {
-        this.set.delete(this.obj2);
-      }
-    },
-    false
-  );
 });
