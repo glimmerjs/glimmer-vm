@@ -1,12 +1,12 @@
 import { consumeTag } from '../tracking';
 import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
-class TrackedWeakSet<T extends object = object> implements WeakSet<T> {
+class TrackedWeakSet<T extends WeakKey = object> implements WeakSet<T> {
   #options: { equals: (a: T, b: T) => boolean; description: string | undefined };
   #storages = new WeakMap<T, ReturnType<typeof createUpdatableTag>>();
   #vals: WeakSet<T>;
 
-  #storageFor(key: T): TrackedStorage<null> {
+  #storageFor(key: T): ReturnType<typeof createUpdatableTag> {
     let storage = this.#storages.get(key);
 
     if (storage === undefined) {
@@ -30,7 +30,7 @@ class TrackedWeakSet<T extends object = object> implements WeakSet<T> {
     options: { equals: (a: T, b: T) => boolean; description: string | undefined }
   ) {
     this.#options = options;
-    this.#vals = new WeakSet(values);
+    this.#vals = new WeakSet<T>(values);
   }
 
   has(value: T): boolean {
@@ -85,11 +85,18 @@ class TrackedWeakSet<T extends object = object> implements WeakSet<T> {
 // So instanceof works
 Object.setPrototypeOf(TrackedWeakSet.prototype, WeakSet.prototype);
 
-export function trackedWeakSet<Value = unknown>(
-  data?: WeakSet<Value>,
+/**
+ * NOTE: we cannot pass a WeakSet because WeakSets are not iterable
+ */
+/**
+ * Creates an instanceof WeakSet from an optional list of entries
+ *
+ */
+export function trackedWeakSet<Value extends WeakKey>(
+  data?: Value[],
   options?: { equals?: (a: Value, b: Value) => boolean; description?: string }
 ): WeakSet<Value> {
-  return new TrackedWeakSet(data ?? [], {
+  return new TrackedWeakSet<Value>(data ?? [], {
     equals: options?.equals ?? Object.is,
     description: options?.description,
   });

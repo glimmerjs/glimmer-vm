@@ -1,66 +1,84 @@
-class TrackedWeakMap<K extends object = object, V = unknown> implements WeakMap<K, V> {
-  private storages: WeakMap<K, TrackedStorage<null>> = new WeakMap();
+import { consumeTag } from '../tracking';
+import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
-  private vals: WeakMap<K, V>;
+interface ReactiveOptions<Value> {
+  equals: (a: Value, b: Value) => boolean;
+  description: string | undefined;
+}
 
-  private readStorageFor(key: K): void {
-    const { storages } = this;
-    let storage = storages.get(key);
+class TrackedWeakMap<K extends WeakKey = object, V = unknown> implements WeakMap<K, V> {
+  #options: ReactiveOptions<V>;
+  #storages = new WeakMap<K, ReturnType<typeof createUpdatableTag>>();
+  #vals: WeakMap<K, V>;
+
+  #storageFor(key: K): ReturnType<typeof createUpdatableTag> {
+    let storage = this.#storages.get(key);
 
     if (storage === undefined) {
-      storage = createStorage(null, () => false);
-      storages.set(key, storage);
+      storage = createUpdatableTag();
+      this.#storages.set(key, storage);
     }
 
-    getValue(storage);
+    return storage;
   }
-
-  private dirtyStorageFor(key: K): void {
-    const storage = this.storages.get(key);
+  #dirtyStorageFor(key: K): void {
+    const storage = this.#storages.get(key);
 
     if (storage) {
-      setValue(storage, null);
+      DIRTY_TAG(storage);
     }
   }
 
-  constructor();
-  constructor(iterable: Iterable<readonly [K, V]>);
-  constructor(entries: readonly [K, V][] | null);
-  constructor(existing?: readonly [K, V][] | Iterable<readonly [K, V]> | null) {
+  constructor(iterable: Iterable<readonly [K, V]> | readonly [K, V][] | null, options: ReactiveOptions<V>);
+  constructor(
+    existing?: readonly [K, V][] | Iterable<readonly [K, V]> | null,
+    options: ReactiveOptions<V>
+  ) {
     // TypeScript doesn't correctly resolve the overloads for calling the `Map`
     // constructor for the no-value constructor. This resolves that.
-    this.vals = existing ? new WeakMap(existing) : new WeakMap();
+    this.#vals = existing ? new WeakMap(existing) : new WeakMap();
+    this.#options = options;
   }
 
   get(key: K): V | undefined {
-    this.readStorageFor(key);
+    consumeTag(this.#storageFor(key));
 
-    return this.vals.get(key);
+    return this.#vals.get(key);
   }
 
   has(key: K): boolean {
-    this.readStorageFor(key);
+    consumeTag(this.#storageFor(key));
 
-    return this.vals.has(key);
+    return this.#vals.has(key);
   }
 
   set(key: K, value: V): this {
-    this.dirtyStorageFor(key);
+    let existing = this.#vals.get(key);
 
-    this.vals.set(key, value);
+    if (existing) {
+      let isUnchanged = this.#options.equals(existing, value);
+
+      if (isUnchanged) {
+        return this;
+      }
+    }
+
+    this.#dirtyStorageFor(key);
+
+    this.#vals.set(key, value);
 
     return this;
   }
 
   delete(key: K): boolean {
-    this.dirtyStorageFor(key);
+    this.#dirtyStorageFor(key);
 
-    this.storages.delete(key);
-    return this.vals.delete(key);
+    this.#storages.delete(key);
+    return this.#vals.delete(key);
   }
 
   get [Symbol.toStringTag](): string {
-    return this.vals[Symbol.toStringTag];
+    return this.#vals[Symbol.toStringTag];
   }
 }
 
@@ -69,7 +87,7 @@ Object.setPrototypeOf(TrackedWeakMap.prototype, WeakMap.prototype);
 
 export function trackedWeakMap<Key extends WeakKey, Value = unknown>(
   data?: WeakMap<Key, Value>,
-  options?: { equals?: (a: T, b: T) => boolean; description?: string }
+  options?: { equals?: (a: Value, b: Value) => boolean; description?: string }
 ): WeakMap<Key, Value> {
   return new TrackedWeakMap(data ?? [], {
     equals: options?.equals ?? Object.is,
