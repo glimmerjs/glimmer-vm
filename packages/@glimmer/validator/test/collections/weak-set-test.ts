@@ -2,9 +2,7 @@ import { trackedWeakSet } from '@glimmer/validator';
 
 import { module, test } from '../-utils';
 
-module('TrackedWeakSet', function (hooks) {
-  setupRenderingTest(hooks);
-
+module('@glimmer/validator: trackedWeakSet()', function (hooks) {
   test('constructor', (assert) => {
     const obj = {};
     const set = trackedWeakSet([obj]);

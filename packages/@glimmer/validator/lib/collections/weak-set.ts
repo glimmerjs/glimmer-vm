@@ -1,56 +1,57 @@
+import { consumeTag } from '../tracking';
+import { createUpdatableTag, DIRTY_TAG } from '../validators';
+
 class TrackedWeakSet<T extends object = object> implements WeakSet<T> {
-  private storages: WeakMap<T, TrackedStorage<null>> = new WeakMap();
+  #storages = new WeakMap<T, ReturnType<typeof createUpdatableTag>>();
+  #vals: WeakSet<T>;
 
-  private vals: WeakSet<T>;
-
-  private storageFor(key: T): TrackedStorage<null> {
-    const storages = this.storages;
-    let storage = storages.get(key);
+  #storageFor(key: T): TrackedStorage<null> {
+    let storage = this.#storages.get(key);
 
     if (storage === undefined) {
-      storage = createStorage(null, () => false);
-      storages.set(key, storage);
+      storage = createUpdatableTag();
+      this.#storages.set(key, storage);
     }
 
     return storage;
   }
 
-  private dirtyStorageFor(key: T): void {
-    const storage = this.storages.get(key);
+  #dirtyStorageFor(key: T): void {
+    const storage = this.#storages.get(key);
 
     if (storage) {
-      setValue(storage, null);
+      DIRTY_TAG(storage);
     }
   }
 
   constructor(values?: readonly T[] | null) {
-    this.vals = new WeakSet(values);
+    this.#vals = new WeakSet(values);
   }
 
   has(value: T): boolean {
-    getValue(this.storageFor(value));
+    consumeTag(this.#storageFor(value));
 
-    return this.vals.has(value);
+    return this.#vals.has(value);
   }
 
   add(value: T): this {
     // Add to vals first to get better error message
-    this.vals.add(value);
+    this.#vals.add(value);
 
-    this.dirtyStorageFor(value);
+    this.#dirtyStorageFor(value);
 
     return this;
   }
 
   delete(value: T): boolean {
-    this.dirtyStorageFor(value);
+    this.#dirtyStorageFor(value);
 
-    this.storages.delete(value);
-    return this.vals.delete(value);
+    this.#storages.delete(value);
+    return this.#vals.delete(value);
   }
 
   get [Symbol.toStringTag](): string {
-    return this.vals[Symbol.toStringTag];
+    return this.#vals[Symbol.toStringTag];
   }
 }
 
