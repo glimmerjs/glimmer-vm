@@ -42,6 +42,26 @@ class TrackedWeakSetTest extends RenderTest {
         update() {
           this.set.add(this.obj);
         }
+      },
+      false
+    );
+  }
+
+  @test
+  'add/has existing value (always invalidates)'() {
+    this.assertReactivity(
+      class extends Component {
+        obj = {};
+        obj2 = {};
+        set = trackedWeakSet([this.obj], { equals: () => false });
+
+        get value() {
+          return this.set.has(this.obj);
+        }
+
+        update() {
+          this.set.add(this.obj);
+        }
       }
     );
   }
