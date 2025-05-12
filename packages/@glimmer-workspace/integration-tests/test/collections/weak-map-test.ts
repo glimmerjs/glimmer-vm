@@ -6,13 +6,11 @@ import {
   test,
 } from '@glimmer-workspace/integration-tests';
 
-
 class TrackedWeakMapTest extends RenderTest {
-  suiteName = `trackedWeakMap() (rendering)`;
+  static suiteName = `trackedWeakMap() (rendering)`;
 
   @test
   'get/set'() {
-
     this.assertReactivity(
       class extends Component {
         obj = {};
@@ -26,12 +24,11 @@ class TrackedWeakMapTest extends RenderTest {
           this.map.set(this.obj, 123);
         }
       }
-    )
+    );
   }
 
   @test
   'get/set existing value'() {
-
     this.assertReactivity(
       class extends Component {
         obj = {};
@@ -45,12 +42,48 @@ class TrackedWeakMapTest extends RenderTest {
           this.map.set(this.obj, 123);
         }
       }
-    )
+    );
+  }
+
+  @test
+  'get/set existing value set to the same value'() {
+    this.assertReactivity(
+      class extends Component {
+        obj = {};
+        map = trackedWeakMap([[this.obj, 456]]);
+
+        get value() {
+          return this.map.get(this.obj);
+        }
+
+        update() {
+          this.map.set(this.obj, 456);
+        }
+      },
+      false
+    );
+  }
+
+  @test
+  'get/set existing value set to the same value (always dirtying)'() {
+    this.assertReactivity(
+      class extends Component {
+        obj = {};
+        map = trackedWeakMap([[this.obj, 456]], { equals: () => false });
+
+        get value() {
+          return this.map.get(this.obj);
+        }
+
+        update() {
+          this.map.set(this.obj, 456);
+        }
+      }
+    );
   }
 
   @test
   'get/set unrelated value'() {
-
     this.assertReactivity(
       class extends Component {
         obj = {};
@@ -66,10 +99,10 @@ class TrackedWeakMapTest extends RenderTest {
         }
       },
       false
-    )
+    );
   }
 
-  @test 'has'() {
+  @test has() {
     this.assertReactivity(
       class extends Component {
         obj = {};
@@ -83,10 +116,10 @@ class TrackedWeakMapTest extends RenderTest {
           this.map.set(this.obj, 123);
         }
       }
-    )
+    );
   }
 
-  @test 'delete'() {
+  @test delete() {
     this.assertReactivity(
       class extends Component {
         obj = {};
@@ -100,7 +133,7 @@ class TrackedWeakMapTest extends RenderTest {
           this.map.delete(this.obj);
         }
       }
-    )
+    );
   }
 
   @test 'delete unrelated value'() {
@@ -122,10 +155,8 @@ class TrackedWeakMapTest extends RenderTest {
         }
       },
       false
-    )
+    );
   }
 }
 
-
 jitSuite(TrackedWeakMapTest);
-
