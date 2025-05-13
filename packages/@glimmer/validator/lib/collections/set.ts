@@ -1,152 +1,203 @@
-class TrackedSet<T = unknown> implements Set<T> {
-  private collection = createStorage(null, () => false);
+import type { ReactiveOptions } from './types';
 
-  private storages: Map<T, TrackedStorage<null>> = new Map();
+import { consumeTag } from '../tracking';
+import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
-  private vals: Set<T>;
+class TrackedSet<T extends WeakKey> implements Set<T> {
+  #options: ReactiveOptions<T>;
+  #collection = createUpdatableTag();
+  #storages = new Map<T, ReturnType<typeof createUpdatableTag>>();
+  #vals: Set<T>;
 
-  private storageFor(key: T): TrackedStorage<null> {
-    const storages = this.storages;
+  #storageFor(key: T): ReturnType<typeof createUpdatableTag> {
+    const storages = this.#storages;
     let storage = storages.get(key);
 
     if (storage === undefined) {
-      storage = createStorage(null, () => false);
+      storage = createUpdatableTag();
       storages.set(key, storage);
     }
 
     return storage;
   }
 
-  private dirtyStorageFor(key: T): void {
-    const storage = this.storages.get(key);
+  #dirtyStorageFor(key: T): void {
+    const storage = this.#storages.get(key);
 
     if (storage) {
-      setValue(storage, null);
+      DIRTY_TAG(storage);
     }
   }
 
-  constructor();
-  constructor(values: readonly T[] | null);
-  constructor(iterable: Iterable<T>);
-  constructor(existing?: readonly T[] | Iterable<T> | null) {
-    this.vals = new Set(existing);
+  constructor(existing?: readonly T[] | Iterable<T> | null, options: ReactiveOptions<T>) {
+    this.#vals = new Set(existing);
+    this.#options = options;
   }
 
   // **** KEY GETTERS ****
   has(value: T): boolean {
-    getValue(this.storageFor(value));
+    consumeTag(this.#storageFor(value));
 
-    return this.vals.has(value);
+    return this.#vals.has(value);
   }
 
   // **** ALL GETTERS ****
   entries() {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.entries();
+    return this.#vals.entries();
   }
 
   keys() {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.keys();
+    return this.#vals.keys();
   }
 
   values() {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.values();
+    return this.#vals.values();
   }
 
+  // eslint-disable-next-line
+  // @ts-ignore -- These Set types added in TS 5.5
   union<U>(other: ReadonlySetLike<U>): Set<T | U> {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.union(other);
+    // eslint-disable-next-line
+    // @ts-ignore -- These Set types added in TS 5.5
+    return this.#vals.union(other);
   }
 
+  // eslint-disable-next-line
+  // @ts-ignore -- These Set types added in TS 5.5
   intersection<U>(other: ReadonlySetLike<U>): Set<T & U> {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.intersection(other);
+    // eslint-disable-next-line
+    // @ts-ignore -- These Set types added in TS 5.5
+    return this.#vals.intersection(other);
   }
 
+  // eslint-disable-next-line
+  // @ts-ignore -- These Set types added in TS 5.5
   difference<U>(other: ReadonlySetLike<U>): Set<T> {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.difference(other);
+    // eslint-disable-next-line
+    // @ts-ignore -- These Set types added in TS 5.5
+    return this.#vals.difference(other);
   }
 
+  // eslint-disable-next-line
+  // @ts-ignore -- These Set types added in TS 5.5
   symmetricDifference<U>(other: ReadonlySetLike<U>): Set<T | U> {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.symmetricDifference(other);
+    // eslint-disable-next-line
+    // @ts-ignore -- These Set types added in TS 5.5
+    return this.#vals.symmetricDifference(other);
   }
 
+  // eslint-disable-next-line
+  // @ts-ignore -- These Set types added in TS 5.5
   isSubsetOf(other: ReadonlySetLike<unknown>): boolean {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.isSubsetOf(other);
+    // eslint-disable-next-line
+    // @ts-ignore -- These Set types added in TS 5.5
+    return this.#vals.isSubsetOf(other);
   }
 
+  // eslint-disable-next-line
+  // @ts-ignore -- These Set types added in TS 5.5
   isSupersetOf(other: ReadonlySetLike<unknown>): boolean {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.isSupersetOf(other);
+    // eslint-disable-next-line
+    // @ts-ignore -- These Set types added in TS 5.5
+    return this.#vals.isSupersetOf(other);
   }
 
+  // eslint-disable-next-line
+  // @ts-ignore -- These Set types added in TS 5.5
   isDisjointFrom(other: ReadonlySetLike<unknown>): boolean {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.isDisjointFrom(other);
+    // eslint-disable-next-line
+    // @ts-ignore -- These Set types added in TS 5.5
+    return this.#vals.isDisjointFrom(other);
   }
 
   forEach(fn: (value1: T, value2: T, set: Set<T>) => void): void {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    this.vals.forEach(fn);
+    this.#vals.forEach(fn);
   }
 
   get size(): number {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.size;
+    return this.#vals.size;
   }
 
   [Symbol.iterator]() {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals[Symbol.iterator]();
+    return this.#vals[Symbol.iterator]();
   }
 
   get [Symbol.toStringTag](): string {
-    return this.vals[Symbol.toStringTag];
+    return this.#vals[Symbol.toStringTag];
   }
 
-  // **** KEY SETTERS ****
   add(value: T): this {
-    this.dirtyStorageFor(value);
-    setValue(this.collection, null);
+    /**
+     * In a WeakSet, there is no `.get()`, but if there was,
+     * we could assume it's the same value as what we passed.
+     *
+     * So for a WeakSet, if we try to add something that already exists
+     * we no-op.
+     *
+     * WeakSet already does this internally for us,
+     * but we want the ability for the reactive behavior to reflect the same behavior.
+     *
+     * i.e.: doing weakSet.add(value) should never dirty with the defaults
+     *       if the `value` is already in the weakSet
+     */
+    if (this.#vals.has(value)) {
+      /**
+       * This looks a little silly, where a always will === b,
+       * but see the note above.
+       */
+      let isUnchanged = this.#options.equals(value, value);
+      if (isUnchanged) return this;
+    }
 
-    this.vals.add(value);
+    this.#dirtyStorageFor(value);
+    DIRTY_TAG(this.#collection);
+
+    this.#vals.add(value);
 
     return this;
   }
 
   delete(value: T): boolean {
-    this.dirtyStorageFor(value);
-    setValue(this.collection, null);
+    this.#dirtyStorageFor(value);
+    DIRTY_TAG(this.#collection);
 
-    this.storages.delete(value);
-    return this.vals.delete(value);
+    this.#storages.delete(value);
+    return this.#vals.delete(value);
   }
 
   // **** ALL SETTERS ****
   clear(): void {
-    this.storages.forEach((s) => setValue(s, null));
-    setValue(this.collection, null);
+    this.#storages.forEach((s) => DIRTY_TAG(s));
+    DIRTY_TAG(this.#collection);
 
-    this.storages.clear();
-    this.vals.clear();
+    this.#storages.clear();
+    this.#vals.clear();
   }
 }
 
@@ -154,7 +205,7 @@ class TrackedSet<T = unknown> implements Set<T> {
 Object.setPrototypeOf(TrackedSet.prototype, Set.prototype);
 
 export function trackedSet<Value = unknown>(
-  data?: Set<Value>,
+  data?: Set<Value> | Iterable<Value> | null,
   options?: { equals?: (a: Value, b: Value) => boolean; description?: string }
 ): Set<Value> {
   return new TrackedSet(data ?? [], {

@@ -1,10 +1,7 @@
+import type { ReactiveOptions } from './types';
+
 import { consumeTag } from '../tracking';
 import { createUpdatableTag, DIRTY_TAG } from '../validators';
-
-interface ReactiveOptions<Value> {
-  equals: (a: Value, b: Value) => boolean;
-  description: string | undefined;
-}
 
 class TrackedWeakMap<K extends WeakKey = object, V = unknown> implements WeakMap<K, V> {
   #options: ReactiveOptions<V>;
@@ -29,14 +26,15 @@ class TrackedWeakMap<K extends WeakKey = object, V = unknown> implements WeakMap
     }
   }
 
-  constructor(iterable: Iterable<readonly [K, V]> | readonly [K, V][] | null, options: ReactiveOptions<V>);
   constructor(
-    existing?: readonly [K, V][] | Iterable<readonly [K, V]> | null,
+    existing: [K, V][] | Iterable<readonly [K, V]> | WeakMap<K, V>,
     options: ReactiveOptions<V>
   ) {
-    // TypeScript doesn't correctly resolve the overloads for calling the `Map`
-    // constructor for the no-value constructor. This resolves that.
-    this.#vals = existing ? new WeakMap(existing) : new WeakMap();
+    /**
+     * SAFETY: note that wehn passing in an existing weak map, we can't
+     *         clone it as it is not iterable and not a supported type of structuredClone
+     */
+    this.#vals = existing instanceof WeakMap ? existing : new WeakMap<K, V>(existing);
     this.#options = options;
   }
 
@@ -86,10 +84,10 @@ class TrackedWeakMap<K extends WeakKey = object, V = unknown> implements WeakMap
 Object.setPrototypeOf(TrackedWeakMap.prototype, WeakMap.prototype);
 
 export function trackedWeakMap<Key extends WeakKey, Value = unknown>(
-  data?: WeakMap<Key, Value>,
+  data?: WeakMap<Key, Value> | [Key, Value][] | Iterable<readonly [Key, Value]> | null,
   options?: { equals?: (a: Value, b: Value) => boolean; description?: string }
 ): WeakMap<Key, Value> {
-  return new TrackedWeakMap(data ?? [], {
+  return new TrackedWeakMap<Key, Value>(data ?? [], {
     equals: options?.equals ?? Object.is,
     description: options?.description,
   });

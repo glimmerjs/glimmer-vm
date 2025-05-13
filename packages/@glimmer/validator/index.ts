@@ -9,6 +9,7 @@ if (Reflect.has(globalThis, GLIMMER_VALIDATOR_REGISTRATION)) {
 Reflect.set(globalThis, GLIMMER_VALIDATOR_REGISTRATION, true);
 
 export { trackedArray } from './lib/collections/array';
+export { trackedSet } from './lib/collections/set';
 export { trackedWeakMap } from './lib/collections/weak-map';
 export { trackedWeakSet } from './lib/collections/weak-set';
 export { debug } from './lib/debug';
