@@ -546,7 +546,10 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertEachReactivity(
-    Klass: new (...args: any[]) => { collection: number[]; update: () => void }
+    Klass: new (...args: any[]) => {
+      collection: (string | number)[] | Set<number | string>;
+      update: () => void;
+    }
   ) {
     let instance: TestComponent | undefined;
 

@@ -3,7 +3,7 @@ import type { ReactiveOptions } from './types';
 import { consumeTag } from '../tracking';
 import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
-class TrackedSet<T extends WeakKey> implements Set<T> {
+class TrackedSet<T = unknown> implements Set<T> {
   #options: ReactiveOptions<T>;
   #collection = createUpdatableTag();
   #storages = new Map<T, ReturnType<typeof createUpdatableTag>>();
@@ -29,7 +29,7 @@ class TrackedSet<T extends WeakKey> implements Set<T> {
     }
   }
 
-  constructor(existing?: readonly T[] | Iterable<T> | null, options: ReactiveOptions<T>) {
+  constructor(existing: Iterable<T>, options: ReactiveOptions<T>) {
     this.#vals = new Set(existing);
     this.#options = options;
   }
@@ -205,7 +205,7 @@ class TrackedSet<T extends WeakKey> implements Set<T> {
 Object.setPrototypeOf(TrackedSet.prototype, Set.prototype);
 
 export function trackedSet<Value = unknown>(
-  data?: Set<Value> | Iterable<Value> | null,
+  data?: Set<Value> | Value[] | Iterable<Value> | null,
   options?: { equals?: (a: Value, b: Value) => boolean; description?: string }
 ): Set<Value> {
   return new TrackedSet(data ?? [], {
