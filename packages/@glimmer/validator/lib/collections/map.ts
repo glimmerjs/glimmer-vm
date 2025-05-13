@@ -1,121 +1,151 @@
+import type { ReactiveOptions } from './types';
+
+import { consumeTag } from '../tracking';
+import { createUpdatableTag, DIRTY_TAG } from '../validators';
+
 class TrackedMap<K = unknown, V = unknown> implements Map<K, V> {
-  private collection = createStorage(null, () => false);
+  #options: ReactiveOptions<V>;
+  #collection = createUpdatableTag();
+  #storages = new Map<K, ReturnType<typeof createUpdatableTag>>();
+  #vals: Map<K, V>;
 
-  private storages: Map<K, TrackedStorage<null>> = new Map();
-
-  private vals: Map<K, V>;
-
-  private readStorageFor(key: K): void {
-    const { storages } = this;
+  #storageFor(key: K): ReturnType<typeof createUpdatableTag> {
+    const storages = this.#storages;
     let storage = storages.get(key);
 
     if (storage === undefined) {
-      storage = createStorage(null, () => false);
+      storage = createUpdatableTag();
       storages.set(key, storage);
     }
 
-    getValue(storage);
+    return storage;
   }
-
-  private dirtyStorageFor(key: K): void {
-    const storage = this.storages.get(key);
+  #dirtyStorageFor(key: K): void {
+    const storage = this.#storages.get(key);
 
     if (storage) {
-      setValue(storage, null);
+      DIRTY_TAG(storage);
     }
   }
 
-  constructor();
-  constructor(entries: readonly (readonly [K, V])[] | null);
-  constructor(iterable: Iterable<readonly [K, V]>);
   constructor(
-    existing?: readonly (readonly [K, V])[] | Iterable<readonly [K, V]> | null
+    existing: readonly (readonly [K, V])[] | Iterable<readonly [K, V]> | null | Map<K, V>,
+    options: ReactiveOptions<V>
   ) {
     // TypeScript doesn't correctly resolve the overloads for calling the `Map`
     // constructor for the no-value constructor. This resolves that.
-    this.vals = existing ? new Map(existing) : new Map();
+    this.#vals = existing instanceof Map ? new Map(existing.entries()) : new Map(existing);
+    this.#options = options;
   }
 
-  // **** KEY GETTERS ****
   get(key: K): V | undefined {
-    // entangle the storage for the key
-    this.readStorageFor(key);
+    consumeTag(this.#storageFor(key));
 
-    return this.vals.get(key);
+    return this.#vals.get(key);
   }
 
   has(key: K): boolean {
-    this.readStorageFor(key);
+    consumeTag(this.#storageFor(key));
 
-    return this.vals.has(key);
+    return this.#vals.has(key);
   }
 
   // **** ALL GETTERS ****
   entries() {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.entries();
+    return this.#vals.entries();
   }
 
   keys() {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.keys();
+    return this.#vals.keys();
   }
 
   values() {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.values();
+    return this.#vals.values();
   }
 
   forEach(fn: (value: V, key: K, map: Map<K, V>) => void): void {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    this.vals.forEach(fn);
+    this.#vals.forEach(fn);
   }
 
   get size(): number {
-    getValue(this.collection);
+    consumeTag(this.#collection);
 
-    return this.vals.size;
+    return this.#vals.size;
   }
 
+  /**
+   * When iterating:
+   * - we entangle with the collection (as we iterate over the whole thing
+   * - for each individual item, we entangle with the item as well
+   */
   [Symbol.iterator]() {
-    getValue(this.collection);
+    let keys = this.keys();
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let self = this;
 
-    return this.vals[Symbol.iterator]();
+    return {
+      next() {
+        let next = keys.next();
+        let currentKey = next.value;
+
+        if (next.done) {
+          return { value: [undefined, undefined], done: true };
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return { value: [currentKey, self.get(currentKey!)], done: false };
+      },
+    } as MapIterator<[K, V]>;
   }
 
   get [Symbol.toStringTag](): string {
-    return this.vals[Symbol.toStringTag];
+    return this.#vals[Symbol.toStringTag];
   }
 
-  // **** KEY SETTERS ****
   set(key: K, value: V): this {
-    this.dirtyStorageFor(key);
-    setValue(this.collection, null);
+    let existing = this.#vals.get(key);
 
-    this.vals.set(key, value);
+    if (existing) {
+      let isUnchanged = this.#options.equals(existing, value);
+
+      if (isUnchanged) {
+        return this;
+      }
+    }
+
+    this.#dirtyStorageFor(key);
+
+    if (!existing) {
+      DIRTY_TAG(this.#collection);
+    }
+
+    this.#vals.set(key, value);
 
     return this;
   }
 
   delete(key: K): boolean {
-    this.dirtyStorageFor(key);
-    setValue(this.collection, null);
+    this.#dirtyStorageFor(key);
+    DIRTY_TAG(this.#collection);
 
-    this.storages.delete(key);
-    return this.vals.delete(key);
+    this.#storages.delete(key);
+    return this.#vals.delete(key);
   }
 
-  // **** ALL SETTERS ****
   clear(): void {
-    this.storages.forEach((s) => setValue(s, null));
-    this.storages.clear();
+    this.#storages.forEach((s) => DIRTY_TAG(s));
+    this.#storages.clear();
 
-    setValue(this.collection, null);
-    this.vals.clear();
+    DIRTY_TAG(this.#collection);
+    this.#vals.clear();
   }
 }
 
@@ -123,8 +153,12 @@ class TrackedMap<K = unknown, V = unknown> implements Map<K, V> {
 Object.setPrototypeOf(TrackedMap.prototype, Map.prototype);
 
 export function trackedMap<Key = unknown, Value = unknown>(
-  data?: Map<Key, Value>,
-  options?: { equals?: (a: T, b: T) => boolean; description?: string }
+  data?:
+    | Map<Key, Value>
+    | Iterable<readonly [Key, Value]>
+    | readonly (readonly [Key, Value])[]
+    | null,
+  options?: { equals?: (a: Value, b: Value) => boolean; description?: string }
 ): Map<Key, Value> {
   return new TrackedMap(data ?? [], {
     equals: options?.equals ?? Object.is,
