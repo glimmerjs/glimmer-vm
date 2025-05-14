@@ -100,7 +100,7 @@ module('@glimmer/validator: trackedMap', function () {
   });
 
   test('forEach', (assert) => {
-    const map = trackedMap();
+    const map = trackedMap<number, number>();
     map.set(0, 1);
     map.set(1, 2);
     map.set(2, 3);
@@ -110,7 +110,9 @@ module('@glimmer/validator: trackedMap', function () {
 
     map.forEach((v, k) => {
       count++;
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       values += k;
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       values += v;
     });
 

@@ -304,7 +304,9 @@ module('@glimmer/validator: trackedSet', function () {
 
     set.forEach((v, k) => {
       count++;
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       values += k;
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       values += v;
     });
 
