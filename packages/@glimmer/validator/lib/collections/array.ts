@@ -1,11 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// Unfortunately, TypeScript's ability to do inference *or* type-checking in a
-// `Proxy`'s body is very limited, so we have to use a number of casts `as any`
-// to make the internal accesses work. The type safety of these is guaranteed at
-// the *call site* instead of within the body: you cannot do `Array.blah` in TS,
-// and it will blow up in JS in exactly the same way, so it is safe to assume
-// that properties within the getter have the correct type in TS.
+import type { ReactiveOptions } from './types';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { consumeTag } from '../tracking';
 import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
@@ -45,6 +40,39 @@ const ARRAY_COLLECTION_SET_METHODS = new Set<string | symbol>([
   'unshift',
 ]);
 
+class TrackedArray<V> implements Array {
+  #options: ReactiveOptions<V>;
+  #collection = createUpdatableTag();
+  #storages = new Map<number, ReturnType<typeof createUpdatableTag>>();
+  #vals: Map<number, V>;
+
+  #storageFor(key: number): ReturnType<typeof createUpdatableTag> {
+    const storages = this.#storages;
+    let storage = storages.get(key);
+
+    if (storage === undefined) {
+      storage = createUpdatableTag();
+      storages.set(key, storage);
+    }
+
+    return storage;
+  }
+  #dirtyStorageFor(key: number): void {
+    const storage = this.#storages.get(key);
+
+    if (storage) {
+      DIRTY_TAG(storage);
+    }
+  }
+
+  constructor(existing: V[], options: ReactiveOptions<V>) {
+    // TypeScript doesn't correctly resolve the overloads for calling the `Map`
+    // constructor for the no-value constructor. This resolves that.
+    this.#vals = existing instanceof Map ? new Map(existing.entries()) : new Map(existing);
+    this.#options = options;
+  }
+}
+
 // For these methods, `Array` itself immediately gets the `.length` to return
 // after invoking them.
 const ARRAY_WRITE_THEN_READ_METHODS = new Set<string | symbol>(['fill', 'push', 'unshift']);
@@ -59,8 +87,7 @@ function convertToInt(prop: number | string | symbol): number | null {
   return num % 1 === 0 ? num : null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-class TrackedArray<T = unknown> {
+class OldTrackedArray<T = unknown> {
   #options: { equals: (a: T, b: T) => boolean; description: string | undefined };
 
   constructor(
@@ -239,7 +266,7 @@ export function trackedArray<T = unknown>(
   data?: T[],
   options?: { equals?: (a: T, b: T) => boolean; description?: string }
 ): T[] {
-  return new TrackedArray(data ?? [], {
+  return new OldTrackedArray(data ?? [], {
     equals: options?.equals ?? Object.is,
     description: options?.description,
   });
