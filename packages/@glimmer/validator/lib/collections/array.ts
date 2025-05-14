@@ -33,6 +33,18 @@ const ARRAY_GETTER_METHODS = new Set<string | symbol | number>([
   'values',
 ]);
 
+const ARRAY_COLLECTION_SET_METHODS = new Set<string | symbol>([
+  'copyWithin',
+  'fill',
+  'pop',
+  'push',
+  'reverse',
+  'shift',
+  'sort',
+  'splice',
+  'unshift',
+]);
+
 // For these methods, `Array` itself immediately gets the `.length` to return
 // after invoking them.
 const ARRAY_WRITE_THEN_READ_METHODS = new Set<string | symbol>(['fill', 'push', 'unshift']);
@@ -76,7 +88,7 @@ class TrackedArray<T = unknown> {
 
         if (index !== null) {
           self.#readStorageFor(index);
-          consumeTag(self.#collection);
+          // consumeTag(self.#collection);
 
           return target[index];
         }
@@ -122,6 +134,22 @@ class TrackedArray<T = unknown> {
           return fn;
         }
 
+        if (ARRAY_COLLECTION_SET_METHODS.has(prop)) {
+          let fn = boundFns.get(prop);
+
+          if (fn === undefined) {
+            fn = (...args) => {
+              console.log('dirtying collection ', prop, args);
+              self.#dirtyCollection();
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+              return (target as any)[prop](...args);
+            };
+
+            boundFns.set(prop, fn);
+          }
+          return fn;
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
         return (target as any)[prop];
       },
@@ -145,16 +173,7 @@ class TrackedArray<T = unknown> {
           }
 
           self.#dirtyStorageFor(index);
-          if (alreadyHas) {
-            console.log({
-              prop,
-              value,
-              alreadyHas,
-              index,
-              storage: self.#storages.get(index),
-              arr: [...target],
-            });
-          }
+
           if (!alreadyHas) {
             self.#dirtyCollection();
           }
@@ -197,7 +216,6 @@ class TrackedArray<T = unknown> {
 
   #dirtyCollection() {
     DIRTY_TAG(this.#collection);
-    this.#storages.clear();
   }
 }
 

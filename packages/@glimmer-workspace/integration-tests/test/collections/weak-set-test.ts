@@ -1,5 +1,6 @@
 import { trackedWeakSet } from '@glimmer/validator';
 import {
+  defineComponent,
   GlimmerishComponent as Component,
   jitSuite,
   RenderTest,
@@ -8,6 +9,56 @@ import {
 
 class TrackedWeakSetTest extends RenderTest {
   static suiteName = `trackedWeakSet() (rendering)`;
+
+  @test
+  'options.equals: default equals does not dirty on no-op changes'(assert: Assert) {
+    let key = { foo: '123' };
+    const obj = trackedWeakSet([key]);
+    const step = () => {
+      let str = String(obj.has(key));
+      assert.step(str);
+      return str;
+    };
+
+    const Foo = defineComponent({ step }, '{{(step)}}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('true');
+    assert.verifySteps(['true']);
+
+    obj.add(key);
+    this.rerender();
+
+    this.assertHTML('true');
+    this.assertStableRerender();
+    assert.verifySteps([]);
+  }
+
+  @test
+  'options.equals: using equals can dirty on every change'(assert: Assert) {
+    let key = { foo: '123' };
+    const obj = trackedWeakSet([key], { equals: () => false });
+    const step = () => {
+      let str = String(obj.has(key));
+      assert.step(str);
+      return str;
+    };
+
+    const Foo = defineComponent({ step }, '{{(step)}}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('true');
+    assert.verifySteps(['true']);
+
+    obj.add(key);
+    this.rerender();
+
+    this.assertHTML('true');
+    this.assertStableRerender();
+    assert.verifySteps(['true']);
+  }
 
   @test
   'add/has'() {

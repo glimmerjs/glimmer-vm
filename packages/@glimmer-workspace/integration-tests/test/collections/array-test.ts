@@ -292,7 +292,7 @@ class TrackedArrayTest extends RenderTest {
 
   @test
   'Mutating collection set methods + default equals'() {
-    ['fill' /*, 'pop', 'push', 'sort', 'unshift', 'splice'*/].forEach((method) => {
+    ['fill', 'pop', 'push', 'sort', 'unshift', 'splice'].forEach((method) => {
       this.assertReactivity(
         class extends Component {
           arr = trackedArray(['foo', 'bar']);

@@ -15,7 +15,7 @@ class TrackedSetTest extends RenderTest {
     let key = { foo: '123' };
     const obj = trackedSet([key]);
     const step = () => {
-      let str = [...obj.values()].map((x) => x.foo).join();
+      let str = String(obj.has(key));
       assert.step(str);
       return str;
     };
@@ -24,13 +24,13 @@ class TrackedSetTest extends RenderTest {
 
     this.renderComponent(Foo);
 
-    this.assertHTML('123');
-    assert.verifySteps(['123']);
+    this.assertHTML('true');
+    assert.verifySteps(['true']);
 
     obj.add(key);
     this.rerender();
 
-    this.assertHTML('123');
+    this.assertHTML('true');
     this.assertStableRerender();
     assert.verifySteps([]);
   }
@@ -40,7 +40,7 @@ class TrackedSetTest extends RenderTest {
     let key = { foo: '123' };
     const obj = trackedSet([key], { equals: () => false });
     const step = () => {
-      let str = [...obj.values()].map((x) => x.foo).join();
+      let str = String(obj.has(key));
       assert.step(str);
       return str;
     };
@@ -49,15 +49,15 @@ class TrackedSetTest extends RenderTest {
 
     this.renderComponent(Foo);
 
-    this.assertHTML('123');
-    assert.verifySteps(['123']);
+    this.assertHTML('true');
+    assert.verifySteps(['true']);
 
     obj.add(key);
     this.rerender();
 
-    this.assertHTML('123');
+    this.assertHTML('true');
     this.assertStableRerender();
-    assert.verifySteps([]);
+    assert.verifySteps(['true']);
   }
 
   @test
