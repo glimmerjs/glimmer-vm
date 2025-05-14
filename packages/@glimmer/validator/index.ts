@@ -10,6 +10,7 @@ Reflect.set(globalThis, GLIMMER_VALIDATOR_REGISTRATION, true);
 
 export { trackedArray } from './lib/collections/array';
 export { trackedMap } from './lib/collections/map';
+export { trackedObject } from './lib/collections/object';
 export { trackedSet } from './lib/collections/set';
 export { trackedWeakMap } from './lib/collections/weak-map';
 export { trackedWeakSet } from './lib/collections/weak-set';

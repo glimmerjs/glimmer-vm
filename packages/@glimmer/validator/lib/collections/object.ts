@@ -3,8 +3,8 @@ import type { ReactiveOptions } from './types';
 import { consumeTag } from '../tracking';
 import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
-class TrackedObject<T extends object> {
-  #options: ReactiveOptions<unknown>;
+class TrackedObject<ObjectType extends NonNullable<object>> {
+  #options: ReactiveOptions<ObjectType[keyof ObjectType]>;
   #storages = new Map<PropertyKey, ReturnType<typeof createUpdatableTag>>();
   #collection = createUpdatableTag();
 
@@ -31,14 +31,20 @@ class TrackedObject<T extends object> {
     DIRTY_TAG(this.#collection);
   }
 
-  constructor(obj: T, options: ReactiveOptions<unknown>) {
+  /**
+   * This implementation of trackedObject is far too dynamic for TS to be happy with
+   */
+  constructor(obj: ObjectType, options: ReactiveOptions<ObjectType[keyof ObjectType]>) {
     this.#options = options;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const proto = Object.getPrototypeOf(obj);
     const descs = Object.getOwnPropertyDescriptors(obj);
-    const clone = Object.create(proto);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const clone = Object.create(proto) as ObjectType;
 
     for (const prop in descs) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       Object.defineProperty(clone, prop, descs[prop]!);
     }
 
@@ -49,7 +55,7 @@ class TrackedObject<T extends object> {
       get(target, prop) {
         self.#readStorageFor(prop);
 
-        return target[prop];
+        return target[prop as keyof ObjectType];
       },
 
       has(target, prop) {
@@ -58,20 +64,22 @@ class TrackedObject<T extends object> {
         return prop in target;
       },
 
-      ownKeys(target: T) {
+      ownKeys(target: ObjectType) {
         consumeTag(self.#collection);
 
         return Reflect.ownKeys(target);
       },
 
       set(target, prop, value) {
-        let isUnchanged = self.#options.equals(target[prop], value);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        let isUnchanged = self.#options.equals(target[prop as keyof ObjectType], value);
 
         if (isUnchanged) {
           return true;
         }
 
-        target[prop] = value;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        target[prop as keyof ObjectType] = value;
 
         self.#dirtyStorageFor(prop);
         self.#dirtyCollection();
@@ -81,7 +89,8 @@ class TrackedObject<T extends object> {
 
       deleteProperty(target, prop) {
         if (prop in target) {
-          delete target[prop];
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete target[prop as keyof ObjectType];
           self.#dirtyStorageFor(prop);
           self.#storages.delete(prop);
           self.#dirtyCollection();
@@ -93,7 +102,7 @@ class TrackedObject<T extends object> {
       getPrototypeOf() {
         return TrackedObject.prototype;
       },
-    });
+    }) as TrackedObject<ObjectType>;
   }
 }
 
@@ -104,8 +113,13 @@ export function trackedObject<ObjectType extends object>(
     description?: string;
   }
 ): ObjectType {
-  return new TrackedObject(data ?? [], {
+  return new TrackedObject(data ?? ({} as ObjectType), {
     equals: options?.equals ?? Object.is,
     description: options?.description,
-  });
+    /**
+     * SAFETY: we are trying to mimic the same behavior as a plain object, so if anything about
+     *         the object that is returned behaves differently from a native object in a surprising
+     *         way, we should fix that and make the behavior match native objects.
+     */
+  }) as unknown as ObjectType;
 }
