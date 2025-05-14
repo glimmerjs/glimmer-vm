@@ -127,21 +127,41 @@ class TrackedArray<T = unknown> {
       },
 
       set(target, prop, value /*, _receiver */) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
-        let isUnchanged = self.#options.equals((target as any)[prop], value);
-        if (isUnchanged) return true;
+        const index = convertToInt(prop);
+
+        if (prop === 'length') {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+          let isUnchanged = self.#options.equals((target as any)[prop], value);
+          if (isUnchanged) return true;
+          self.#dirtyCollection();
+        }
+
+        if (index !== null) {
+          let alreadyHas = (index ?? Infinity) < target.length;
+          if (alreadyHas) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+            let isUnchanged = self.#options.equals((target as any)[prop], value);
+            if (isUnchanged) return true;
+          }
+
+          self.#dirtyStorageFor(index);
+          if (alreadyHas) {
+            console.log({
+              prop,
+              value,
+              alreadyHas,
+              index,
+              storage: self.#storages.get(index),
+              arr: [...target],
+            });
+          }
+          if (!alreadyHas) {
+            self.#dirtyCollection();
+          }
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         (target as any)[prop] = value;
-
-        const index = convertToInt(prop);
-
-        if (index !== null) {
-          self.#dirtyStorageFor(index);
-          self.#dirtyCollection();
-        } else if (prop === 'length') {
-          self.#dirtyCollection();
-        }
 
         return true;
       },

@@ -173,10 +173,11 @@ class TrackedSet<T = unknown> implements Set<T> {
        */
       let isUnchanged = this.#options.equals(value, value);
       if (isUnchanged) return this;
+    } else {
+      DIRTY_TAG(this.#collection);
     }
 
     this.#dirtyStorageFor(value);
-    DIRTY_TAG(this.#collection);
 
     this.#vals.add(value);
 

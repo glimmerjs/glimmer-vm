@@ -1,5 +1,6 @@
 import { trackedMap } from '@glimmer/validator';
 import {
+  defineComponent,
   GlimmerishComponent as Component,
   jitSuite,
   RenderTest,
@@ -8,6 +9,52 @@ import {
 
 class TrackedMapTest extends RenderTest {
   static suiteName = `trackedMap() (rendering)`;
+
+  @test
+  'options.equals: default equals does not dirty on no-op changes'(assert: Assert) {
+    const obj = trackedMap([['foo', '123']]);
+    const step = () => {
+      assert.step(obj.get('foo') ?? '');
+      return obj.get('foo');
+    };
+
+    const Foo = defineComponent({ step, obj }, '{{ (step) }}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('123');
+    assert.verifySteps(['123']);
+
+    obj.set('foo', '123');
+    this.rerender();
+
+    this.assertHTML('123');
+    this.assertStableRerender();
+    assert.verifySteps([]);
+  }
+
+  @test
+  'options.equals: using equals can dirty on every change'(assert: Assert) {
+    const obj = trackedMap([['foo', '123']], { equals: () => false });
+    const step = () => {
+      assert.step(obj.get('foo') ?? '');
+      return obj.get('foo');
+    };
+
+    const Foo = defineComponent({ step, obj }, '{{ (step) }}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('123');
+    assert.verifySteps(['123']);
+
+    obj.set('foo', '123');
+    this.rerender();
+
+    this.assertHTML('123');
+    this.assertStableRerender();
+    assert.verifySteps(['123']);
+  }
 
   @test
   'get/set'() {

@@ -28,7 +28,7 @@ class TrackedObjectTest extends RenderTest {
   }
 
   @test
-  'default equals does not dirty on no-op changes'(assert: Assert) {
+  'options.equals: default equals does not dirty on no-op changes'(assert: Assert) {
     const obj = trackedObject({ foo: '123' });
     const step = (x: string) => {
       assert.step(x);
@@ -51,7 +51,7 @@ class TrackedObjectTest extends RenderTest {
   }
 
   @test
-  'using equals can dirty on every change'(assert: Assert) {
+  'options.equals: using equals can dirty on every change'(assert: Assert) {
     const obj = trackedObject({ foo: '123' }, { equals: () => false });
     const step = (x: string) => {
       assert.step(x);
