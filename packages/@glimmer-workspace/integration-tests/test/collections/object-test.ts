@@ -27,6 +27,64 @@ class TrackedObjectTest extends RenderTest {
     this.assertStableRerender();
   }
 
+  @test
+  'default equals does not dirty on no-op changes'(assert: Assert) {
+    const obj = trackedObject({ foo: '123' });
+    const step = (x: string) => {
+      assert.step(x);
+      return x;
+    };
+
+    const Foo = defineComponent({ step, obj }, '{{step obj.foo}}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('123');
+    assert.verifySteps(['123']);
+
+    obj['foo'] = '123';
+    this.rerender();
+
+    this.assertHTML('123');
+    this.assertStableRerender();
+    assert.verifySteps([]);
+  }
+
+  @test
+  'using equals can dirty on every change'(assert: Assert) {
+    const obj = trackedObject({ foo: '123' }, { equals: () => false });
+    const step = (x: string) => {
+      assert.step(x);
+      return x;
+    };
+
+    const Foo = defineComponent({ step, obj }, '{{step obj.foo}}');
+
+    this.renderComponent(Foo);
+
+    this.assertHTML('123');
+    assert.verifySteps(['123']);
+
+    obj['foo'] = '123';
+    this.rerender();
+
+    this.assertHTML('123');
+    this.assertStableRerender();
+    assert.verifySteps(['123']);
+  }
+
+  @test
+  'each: set existing value'() {
+    this.assertEachReactivity(
+      class extends Component {
+        collection = trackedObject({ foo: 123 }, { equals: () => false });
+        update() {
+          this.collection.foo = 789;
+        }
+      }
+    );
+  }
+
   // TODO: glimmer-vm does not implement each-in, so we can't test this just yet
   //   eachInReactivityTest(
   //     '{{each-in}} works with new items',

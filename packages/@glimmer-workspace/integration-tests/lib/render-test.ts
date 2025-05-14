@@ -554,7 +554,11 @@ export class RenderTest implements IRenderTest {
 
   protected assertEachReactivity(
     Klass: new (...args: any[]) => {
-      collection: (string | number)[] | Set<number | string> | Map<unknown, unknown>;
+      collection:
+        | (string | number)[]
+        | Set<number | string>
+        | Map<unknown, unknown>
+        | Record<string, unknown>;
       update: () => void;
     }
   ) {
@@ -596,7 +600,7 @@ export class RenderTest implements IRenderTest {
         return Array.from(instance.collection.entries());
       }
 
-      return Array.from(instance.collection);
+      return Array.from(instance.collection as (string | number)[]);
     }
 
     this.assertEachCompareResults((getEntries() as string[]).map((v, i) => [i, v]));
