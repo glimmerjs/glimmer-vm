@@ -277,6 +277,18 @@ export default class WireFormatDebugger {
         case Op.AppendTrustedResolvedHtml:
           return ['{{{ <append:resolved> }}}', this.formatResolved(opcode[1])];
 
+        case Op.ResolveAsCurlyCallee:
+          return [`{{ <resolve:curly> }}`, this.formatOpcode(opcode[1])];
+
+        case Op.ResolveAsModifierCallee:
+          return [`{{ <resolve:modifier> }}`, this.formatOpcode(opcode[1])];
+
+        case Op.ResolveAsHelperCallee:
+          return [`( <resolve:helper> )`, this.formatOpcode(opcode[1])];
+
+        case Op.ResolveAsComponentCallee:
+          return [`< resolve:component >`, this.formatOpcode(opcode[1])]
+
         default:
           exhausted(opcode);
       }
