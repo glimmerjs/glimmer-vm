@@ -1,13 +1,14 @@
 import type * as ASTv1 from '../v1/api';
+import type { VisitableNode } from '../v1/visitor-keys';
 
-export default class WalkerPath<N extends ASTv1.Node> {
+export default class WalkerPath<N extends VisitableNode> {
   node: N;
-  parent: WalkerPath<ASTv1.Node> | null;
+  parent: WalkerPath<VisitableNode> | null;
   parentKey: string | null;
 
   constructor(
     node: N,
-    parent: WalkerPath<ASTv1.Node> | null = null,
+    parent: WalkerPath<VisitableNode> | null = null,
     parentKey: string | null = null
   ) {
     this.node = node;
@@ -19,7 +20,7 @@ export default class WalkerPath<N extends ASTv1.Node> {
     return this.parent ? this.parent.node : null;
   }
 
-  parents(): Iterable<WalkerPath<ASTv1.Node> | null> {
+  parents(): Iterable<WalkerPath<VisitableNode> | null> {
     return {
       [Symbol.iterator]: () => {
         return new PathParentsIterator(this);
@@ -28,10 +29,10 @@ export default class WalkerPath<N extends ASTv1.Node> {
   }
 }
 
-class PathParentsIterator implements Iterator<WalkerPath<ASTv1.Node> | null> {
-  path: WalkerPath<ASTv1.Node>;
+class PathParentsIterator implements Iterator<WalkerPath<VisitableNode> | null> {
+  path: WalkerPath<VisitableNode>;
 
-  constructor(path: WalkerPath<ASTv1.Node>) {
+  constructor(path: WalkerPath<VisitableNode>) {
     this.path = path;
   }
 

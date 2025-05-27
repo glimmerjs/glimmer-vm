@@ -1,5 +1,4 @@
 import { setLocalDebugType } from '@glimmer/debug-util';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assign } from '@glimmer/util';
 
 import type { SourceSpan } from '../../source/span';
@@ -67,12 +66,6 @@ export function node<T extends string>(name?: T): NodeDefinition | TypedNodeDefi
             assign(this, fields);
 
             setLocalDebugType('syntax:mir:node', this);
-
-            if (LOCAL_DEBUG) {
-              if (Reflect.get(this, 'LOCAL_DEBUG')) {
-                this.LOCAL_DEBUG();
-              }
-            }
           }
         } as TypedNodeConstructor<T, BaseNodeFields & Fields>;
       },
@@ -86,12 +79,6 @@ export function node<T extends string>(name?: T): NodeDefinition | TypedNodeDefi
 
           constructor(fields: BaseNodeFields & Fields) {
             assign(this, fields);
-
-            if (LOCAL_DEBUG) {
-              if (Reflect.get(this, 'LOCAL_DEBUG')) {
-                this.LOCAL_DEBUG();
-              }
-            }
           }
         } as NodeConstructor<BaseNodeFields & Fields>;
       },
