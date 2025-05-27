@@ -80,7 +80,7 @@ export interface NamedBlockFields extends BaseNodeFields {
  */
 export class NamedBlock extends node('NamedBlock').fields<NamedBlockFields>() {
   get args(): ComponentArgs {
-    let entries = this.componentArgs.map((a) => a.toComponentArgument());
+    let entries = this.componentArgs as ComponentArg[]; // cast to non-readonly
 
     return EmptyComponentArgs(
       ComponentNamedArguments(SpanList.range(entries, this.name.loc.collapse('end')), entries)

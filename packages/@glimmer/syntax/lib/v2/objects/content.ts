@@ -161,7 +161,7 @@ function getComponentArgs(
   componentArgs: readonly ComponentArg[],
   calleeSpan: SourceSpan
 ): ComponentArgs {
-  let entries = componentArgs.map((a) => a.toComponentArgument());
+  let entries = componentArgs as ComponentArg[]; // cast to non-readonly
 
   return EmptyComponentArgs(
     ComponentNamedArguments(SpanList.range(entries, calleeSpan.collapse('end')), entries)
@@ -182,7 +182,7 @@ interface SimpleElementOptions extends BaseNodeFields {
  */
 export class SimpleElementNode extends node('SimpleElement').fields<SimpleElementOptions>() {
   get args(): ComponentArgs {
-    let entries = this.componentArgs.map((a) => a.toComponentArgument());
+    let entries = this.componentArgs as ComponentArg[]; // cast to non-readonly
 
     return EmptyComponentArgs(
       ComponentNamedArguments(SpanList.range(entries, this.tag.loc.collapse('end')), entries)
