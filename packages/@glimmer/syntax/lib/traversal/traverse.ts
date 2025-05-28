@@ -1,7 +1,7 @@
 import { deprecate, unwrap } from '@glimmer/debug-util';
 
 import type * as ASTv1 from '../v1/api';
-import type { VisitableNode, VisitorKey, VisitorKeys } from '../v1/visitor-keys';
+import type { VisitableNode, VisitorKey } from '../v1/visitor-keys';
 import type { KeyHandler, KeyTraversal, NodeHandler, NodeTraversal, NodeVisitor } from './visitor';
 
 import visitorKeys from '../v1/visitor-keys';
