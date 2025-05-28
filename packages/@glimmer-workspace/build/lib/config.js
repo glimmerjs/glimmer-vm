@@ -441,7 +441,6 @@ export class Package {
                     target: ts.ScriptTarget.ESNext,
                     strict: true,
                     types: [
-                      '@glimmer-workspace/env',
                       ...(this.#package.devDependencies['@types/node'] ? ['node'] : []),
                     ],
                   },

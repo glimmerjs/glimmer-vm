@@ -76,7 +76,7 @@ import {
   resolveCurriedValue,
 } from '@glimmer/program';
 import { isConstRef, valueForRef } from '@glimmer/reference';
-import { assign, dict, EMPTY_STRING_ARRAY, enumerate } from '@glimmer/util';
+import { assign, dict, EMPTY_STRING_ARRAY, enumerate, isIndexable } from '@glimmer/util';
 import { $s0, $t0, $t1, InternalComponentCapabilities } from '@glimmer/vm';
 
 import type { UpdatingVM } from '../../vm';
@@ -210,6 +210,10 @@ function resolveComponentDefinition(
   }
 
   localAssert(typeof component !== 'string', 'BUG: unexpected string');
+
+  if (!isIndexable(component)) {
+    return null;
+  }
 
   if (isCurriedComponent(component)) {
     return {
