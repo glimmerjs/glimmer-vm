@@ -27,14 +27,12 @@ export class FullElementParameterValidationContext
   implements AnyValidationContext, AnyAttrLikeContainerContext
 {
   #parent: AngleBracketContext;
-  #container: SourceSpan;
   readonly context: SourceSpan;
   readonly type: 'attr' | 'arg';
 
   constructor(parent: AngleBracketContext, container: SourceSpan, type: 'attr' | 'arg') {
     this.context = parent.context;
     this.#parent = parent;
-    this.#container = container;
     this.type = type;
   }
 
@@ -82,12 +80,10 @@ export class ConcatContext implements AnyValidationContext, AnyAttrLikeContainer
   readonly context: SourceSpan;
   readonly type = 'concat';
   #parent: FullElementParameterValidationContext;
-  #span: SourceSpan;
 
   constructor(parent: FullElementParameterValidationContext, span: SourceSpan) {
     this.context = parent.context;
     this.#parent = parent;
-    this.#span = span;
   }
 
   describe(depth: 'shallow' | 'context' | 'full' = 'shallow') {
@@ -124,8 +120,6 @@ export class ConcatContext implements AnyValidationContext, AnyAttrLikeContainer
  * - concatenated curlies ({@linkcode ConcatContext})
  */
 export class InvokeElementParameterContext implements AnyInvokeParentContext {
-  #parent: FullElementParameterValidationContext | AngleBracketContext | ConcatContext;
-  #curly: SourceSpan;
   readonly context: SourceSpan;
   readonly what: 'attr' | 'arg' | 'modifier';
   readonly type: InvokeSyntaxType;
@@ -142,8 +136,6 @@ export class InvokeElementParameterContext implements AnyInvokeParentContext {
     type: 'attr' | 'arg' | 'modifier'
   ) {
     this.context = parent.context;
-    this.#parent = parent;
-    this.#curly = curly;
     this.what = type;
     this.type = type === 'modifier' ? 'modifier' : { type, kind: 'invoke' };
   }

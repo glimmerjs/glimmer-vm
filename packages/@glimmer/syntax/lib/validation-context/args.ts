@@ -19,13 +19,11 @@ export class ArgsContext implements ArgsContainerContext {
   readonly context: SourceSpan;
   #parent: ArgsParentValidationContext;
   #positional: SourceSpan;
-  #named: SourceSpan;
 
-  constructor(parent: ArgsParentValidationContext, positional: SourceSpan, named: SourceSpan) {
+  constructor(parent: ArgsParentValidationContext, positional: SourceSpan, _named: SourceSpan) {
     this.context = parent.context;
     this.#parent = parent;
     this.#positional = positional;
-    this.#named = named;
   }
 
   positionalArgs(): PositionalArgsContext {
@@ -44,12 +42,10 @@ export class ArgsContext implements ArgsContainerContext {
 export class PositionalArgsContext {
   readonly context: SourceSpan;
   #parent: ArgsParentValidationContext;
-  #span: SourceSpan;
 
-  constructor(parent: ArgsParentValidationContext, span: SourceSpan) {
+  constructor(parent: ArgsParentValidationContext, _span: SourceSpan) {
     this.context = parent.context;
     this.#parent = parent;
-    this.#span = span;
   }
 
   value(value: HasSourceSpan) {

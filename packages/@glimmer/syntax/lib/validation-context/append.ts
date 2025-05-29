@@ -21,11 +21,9 @@ export class AppendInvokeContext implements AnyInvokeParentContext {
   readonly type = { type: 'append', kind: 'invoke' } as const;
   readonly context: SourceSpan;
   readonly isInvoke = true;
-  #append: SourceSpan;
 
   constructor(span: SourceSpan) {
     this.context = span;
-    this.#append = span;
   }
 
   callee(callee: AnyNode) {
