@@ -65,9 +65,6 @@ export default function normalize(
     done();
   }
 
-  if (root.error) {
-  }
-
   let body = visitContentList(root.body, state);
 
   if (LOCAL_TRACE_LOGGING) {
