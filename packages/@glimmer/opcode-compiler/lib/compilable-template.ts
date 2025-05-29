@@ -467,7 +467,11 @@ export function compileContent(encode: EncodeOp, content: Content): void {
       for (let i = 0; i < positional.length; i++) {
         encode.op(VM_DUP_FP_OP, positional.length - i);
 
-        encode.op(VM_SET_VARIABLE_OP, parameters[i]!);
+        const parameter = parameters[i];
+        if (parameter === undefined) {
+          throw new Error(`Missing parameter at index ${i} for let statement`);
+        }
+        encode.op(VM_SET_VARIABLE_OP, parameter);
       }
 
       encode.op(VM_JIT_INVOKE_VIRTUAL_OP, encode.block(block));

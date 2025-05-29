@@ -21,17 +21,12 @@ export class GlimmerSyntaxError extends SyntaxError {
 
   readonly location: Nullable<src.SourceSpan>;
   readonly code: Nullable<string>;
-  #highlight: Validation.Highlight;
-  #message: string;
-  #notes: Optional<string[]>;
 
   constructor(message: string, highlight: Validation.Highlight, extra?: number) {
     super(buildMessage(highlight, { error: message, extra }));
     const loc = highlight.primary.loc;
     this.location = loc;
     this.code = loc.asString();
-    this.#highlight = highlight;
-    this.#message = message;
   }
 }
 

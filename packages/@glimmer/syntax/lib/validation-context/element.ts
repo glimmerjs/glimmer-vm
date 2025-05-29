@@ -30,7 +30,7 @@ export class FullElementParameterValidationContext
   readonly context: SourceSpan;
   readonly type: 'attr' | 'arg';
 
-  constructor(parent: AngleBracketContext, container: SourceSpan, type: 'attr' | 'arg') {
+  constructor(parent: AngleBracketContext, _container: SourceSpan, type: 'attr' | 'arg') {
     this.context = parent.context;
     this.#parent = parent;
     this.type = type;
@@ -81,7 +81,7 @@ export class ConcatContext implements AnyValidationContext, AnyAttrLikeContainer
   readonly type = 'concat';
   #parent: FullElementParameterValidationContext;
 
-  constructor(parent: FullElementParameterValidationContext, span: SourceSpan) {
+  constructor(parent: FullElementParameterValidationContext, _span: SourceSpan) {
     this.context = parent.context;
     this.#parent = parent;
   }
@@ -132,7 +132,7 @@ export class InvokeElementParameterContext implements AnyInvokeParentContext {
   );
   constructor(
     parent: FullElementParameterValidationContext | AngleBracketContext | ConcatContext,
-    curly: SourceSpan,
+    _curly: SourceSpan,
     type: 'attr' | 'arg' | 'modifier'
   ) {
     this.context = parent.context;
