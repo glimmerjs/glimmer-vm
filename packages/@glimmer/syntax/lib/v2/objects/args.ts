@@ -68,6 +68,8 @@ type Args<N extends CurlyArgument | ComponentArgument> = BaseArgs<N> & {
 export type CurlyArgs = Args<CurlyArgument>;
 export type ComponentArgs = Args<ComponentArgument>;
 
+export type AnyArgs = CurlyArgs | ComponentArgs;
+
 export function EmptyComponentArgs(
   named: ComponentNamedArguments | SourceSpan
 ): Args<ComponentArgument> {

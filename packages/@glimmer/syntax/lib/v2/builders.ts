@@ -109,13 +109,13 @@ export class Builder {
   // @todo make it possible to return `Result` from @glimmer/syntax and handle {{{}}} in attr value
   // position as a syntax error
   arg(
-    { name, value }: { name: SourceSlice; value: ASTv2.AttrValueNode },
+    { name, value, trusting }: { name: SourceSlice; value: ASTv2.AttrValueNode; trusting: boolean },
     loc: SourceSpan
   ): ASTv2.ComponentArg {
     return new ASTv2.ComponentArg({
       name,
       value,
-
+      trusting,
       loc,
     });
   }
@@ -142,13 +142,13 @@ export class Builder {
     });
   }
 
-  self(loc: SourceSpan): ASTv2.VariableReference {
+  self(loc: SourceSpan): ASTv2.ThisReference {
     return new ASTv2.ThisReference({
       loc,
     });
   }
 
-  at(name: string, symbol: number, loc: SourceSpan): ASTv2.VariableReference {
+  at(name: string, symbol: number, loc: SourceSpan): ASTv2.ArgReference {
     // the `@` should be included so we have a complete source range
     localAssert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
 
@@ -164,7 +164,7 @@ export class Builder {
     symbol: number,
     isLexical: boolean,
     loc: SourceSpan
-  ): ASTv2.VariableReference {
+  ): ASTv2.LocalVarReference | ASTv2.LexicalVarReference {
     localAssert(
       name[0] !== '@',
       `You called builders.var() with '${name}'. Call builders.at('${name}') instead`

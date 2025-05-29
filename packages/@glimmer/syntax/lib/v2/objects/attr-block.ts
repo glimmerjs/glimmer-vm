@@ -45,6 +45,7 @@ export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
 export class ComponentArg extends node('ComponentArg').fields<{
   name: SourceSlice;
   value: AttrValueNode;
+  trusting: boolean;
 }>() {}
 
 /**

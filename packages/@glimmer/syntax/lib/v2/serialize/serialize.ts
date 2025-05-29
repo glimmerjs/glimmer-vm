@@ -127,7 +127,7 @@ export class ExprSerializer {
 const EXPR = new ExprSerializer();
 
 class ArgsSerializer {
-  args(args: ASTv2.Args): SerializedArgs {
+  args(args: ASTv2.AnyArgs): SerializedArgs {
     return {
       loc: args.loc.serialize(),
       positional: this.positional(args.positional),

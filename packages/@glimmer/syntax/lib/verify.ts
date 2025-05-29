@@ -212,6 +212,7 @@ function verifyDynamicCallee(
     case 'This':
     case 'Local':
     case 'Lexical':
+    case 'Resolved':
       break;
     case 'Path':
       verifyPath(state, value, context.path());

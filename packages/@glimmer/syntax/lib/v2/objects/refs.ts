@@ -1,5 +1,6 @@
 import type { SourceSlice } from '../../source/slice';
 import type { AbstractNode } from './node';
+import type { FreeVarResolution } from './resolution';
 
 import { node } from './node';
 
@@ -34,6 +35,21 @@ export class LexicalVarReference extends node('Lexical').fields<{
 }>() {}
 
 /**
+ * Corresponds to `<ident>` at the beginning of an expression, when `<ident>` is *not* in the
+ * current block's scope.
+ *
+ * The `resolution: FreeVarResolution` field describes how to resolve the free variable.
+ *
+ * Note: In strict mode, it must always be a variable that is in a concrete JavaScript scope that
+ * the template will be installed into.
+ */
+export class ResolvedVarReference extends node('Resolved').fields<{
+  name: string;
+  resolution: FreeVarResolution;
+  symbol: number;
+}>() {}
+
+/**
  * Variable references are references to in-scope variables, and they are never candidates for
  * resolution.
  */
@@ -41,10 +57,11 @@ export type VariableReference =
   | ThisReference
   | ArgReference
   | LocalVarReference
-  | LexicalVarReference;
+  | LexicalVarReference
+  | ResolvedVarReference;
 
 export function isVariableReference(node: AbstractNode): node is VariableReference {
   return (
-    node.type === 'This' || node.type === 'Arg' || node.type === 'Local' || node.type === 'Resolved'
+    node.type === 'This' || node.type === 'Arg' || node.type === 'Local' || node.type === 'Lexical' || node.type === 'Resolved'
   );
 }

@@ -963,13 +963,15 @@ class ElementNormalizer {
           {
             name: nameSlice,
             value: new ASTv2.CurlyResolvedAttrValue({ resolved: binding, loc: argValue.loc }),
+            trusting: argValue.trusting,
           },
           offsets
         );
       }
     }
 
-    return this.ctx.builder.arg({ name: nameSlice, value: this.attrValue(argValue).expr }, offsets);
+    const { expr, trusting } = this.attrValue(argValue);
+    return this.ctx.builder.arg({ name: nameSlice, value: expr, trusting }, offsets);
   }
 
   /**
