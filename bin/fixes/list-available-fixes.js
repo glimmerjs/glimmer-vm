@@ -37,7 +37,7 @@ async function listESLintFixes(filePath) {
       console.log('Issues with suggestions:');
       for (const msg of fixableBySuggestions) {
         console.log(`  - Line ${msg.line}:${msg.column} - ${msg.ruleId}: ${msg.message}`);
-        for (const suggestion of msg.suggestions) {
+        for (const suggestion of (msg.suggestions || [])) {
           console.log(`    → ${suggestion.desc}`);
         }
       }

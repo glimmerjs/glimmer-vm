@@ -1,8 +1,11 @@
+#!/usr/bin/env node --experimental-strip-types --disable-warning=ExperimentalWarning
+/* eslint-disable n/hashbang */
 /**
  * Essential CI Checks Script
  *
  * Fast validation checks before pushing. No builds, just lint and syntax validation.
  */
+/* eslint-enable n/hashbang */
 
 import { performance } from 'node:perf_hooks';
 
@@ -72,8 +75,8 @@ class CIChecker {
       this.log(chalk.bold.yellow('🔍 Linting'));
       await this.runCommand('pnpm', ['test:lint'], 'ESLint validation');
 
-      // Skip TypeScript for now due to node_modules inclusion issues
-      // The project uses Turbo for proper incremental TypeScript checking
+      // Note: Full TypeScript checking is done via Turbo in CI
+      // This script focuses on fast pre-push validation
 
     } catch {
       this.log(`\n${chalk.bold.red('💥 Essential Checks FAILED')}`);

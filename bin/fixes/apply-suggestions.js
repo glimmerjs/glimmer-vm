@@ -28,6 +28,6 @@ try {
   
   console.log('Done!');
 } catch (error) {
-  console.error('Error applying suggestions:', error.message);
+  console.error('Error applying suggestions:', error instanceof Error ? error.message : String(error));
   process.exit(1);
 }

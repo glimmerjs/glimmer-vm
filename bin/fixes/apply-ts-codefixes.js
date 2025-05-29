@@ -48,6 +48,10 @@ const languageService = ts.createLanguageService({
   getScriptVersion: () => '1',
   getScriptSnapshot: (name) => name === resolvedFileName ? 
     ts.ScriptSnapshot.fromString(readFileSync(name, 'utf-8')) : undefined,
+  getCurrentDirectory: () => process.cwd(),
+  getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options),
+  readFile: ts.sys.readFile,
+  fileExists: ts.sys.fileExists,
 });
 
 // Get all code fixes
@@ -66,9 +70,9 @@ for (const diagnostic of diagnostics) {
     
     if (fixes.length > 0) {
       console.log(`Found fix for TS${diagnostic.code}: ${diagnostic.messageText}`);
-      console.log(`  Fix: ${fixes[0].description}`);
+      console.log(`  Fix: ${fixes[0]?.description}`);
       
-      allChanges.push(...fixes[0].changes.flatMap(c => c.textChanges));
+      allChanges.push(...(fixes[0]?.changes.flatMap(c => c.textChanges) || []));
     }
   }
 }
