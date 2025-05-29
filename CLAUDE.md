@@ -29,6 +29,14 @@ To run a single test or test module, use the browser test interface with `pnpm s
 - `pnpm repo:update:metadata` - Update package metadata
 - `pnpm repo:update:conventions` - Update conventions across packages
 
+### Automated Code Fixes
+- `node bin/fixes/apply-eslint-suggestions.js <file> [rule]` - Apply ESLint suggestions
+- `node bin/fixes/apply-ts-codefixes.js <file> [error-code]` - Apply TypeScript code fixes
+- `node bin/fixes/apply-suggestions.js <file> [type]` - Apply both ESLint and TS fixes
+- `node bin/fixes/list-available-fixes.js <file>` - Show available fixes
+
+These tools help both humans and LLMs systematically fix linting issues by applying official ESLint suggestions and TypeScript Language Service code fixes, rather than guessing at solutions.
+
 ## Architecture
 
 Glimmer VM is a **compiler-based rendering engine** that compiles Handlebars templates into bytecode for efficient execution and updates.

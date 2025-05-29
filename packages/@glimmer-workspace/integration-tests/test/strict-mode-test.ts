@@ -472,7 +472,7 @@ class StaticStrictModeTest extends RenderTest {
           `Try:\n`,
           `* @foo={{this.bar}} if this was meant to be a property lookup, or`,
           `* @foo={{(bar)}} if this was meant to invoke the resolved helper, or`,
-          `* @foo={{helper \"bar\"}} if this was meant to pass the resolved helper by value`,
+          `* @foo={{helper "bar"}} if this was meant to pass the resolved helper by value`,
         ].join('\n'),
       ])`
         1 | <Foo @foo={{bar}}/>
