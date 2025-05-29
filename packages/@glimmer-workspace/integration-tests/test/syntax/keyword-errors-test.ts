@@ -3,7 +3,6 @@ import { KEYWORDS_TYPES } from '@glimmer/syntax';
 import { PackageSuite, verifying } from '@glimmer-workspace/integration-tests';
 
 type KeywordName = keyof typeof KEYWORDS_TYPES;
-const TYPES: Record<KeywordName, readonly KeywordType[]> = KEYWORDS_TYPES;
 const KEYWORDS = Object.keys(KEYWORDS_TYPES) as KeywordName[];
 
 const syntax = PackageSuite('@glimmer/syntax');

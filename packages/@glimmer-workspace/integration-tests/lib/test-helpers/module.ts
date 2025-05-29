@@ -259,12 +259,6 @@ interface BasicTestFunction {
   (this: IBasicTest, assert: typeof QUnit.assert, count?: Count): void;
 }
 
-interface RenderTestFunction {
-  (this: IRenderTest, assert: typeof QUnit.assert, count?: Count): void;
-  kind?: DeclaredComponentKind;
-  skip?: boolean | DeclaredComponentKind;
-}
-
 function isTestFunction(value: any): value is BasicTestFunction {
   return typeof value === 'function' && value.isTest;
 }
@@ -278,7 +272,7 @@ function isTodoTest(value: any): boolean {
 }
 
 function getTestType(value: any) {
-  if (isSkippedTest(value)) return QUnit.skip;
-  if (isTodoTest(value)) return QUnit.todo;
-  return QUnit.test;
+  if (isSkippedTest(value)) return (...args: any[]) => QUnit.skip(...args);
+  if (isTodoTest(value)) return (...args: any[]) => QUnit.todo(...args);
+  return (...args: any[]) => QUnit.test(...args);
 }
