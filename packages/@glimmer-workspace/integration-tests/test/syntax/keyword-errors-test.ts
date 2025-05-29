@@ -6,11 +6,6 @@ type KeywordName = keyof typeof KEYWORDS_TYPES;
 const TYPES: Record<KeywordName, readonly KeywordType[]> = KEYWORDS_TYPES;
 const KEYWORDS = Object.keys(KEYWORDS_TYPES) as KeywordName[];
 
-const BLOCK_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Block'));
-const APPEND_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Append'));
-const CALL_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Call'));
-const MODIFIER_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Modifier'));
-
 const syntax = PackageSuite('@glimmer/syntax');
 
 for (const keyword of KEYWORDS) {

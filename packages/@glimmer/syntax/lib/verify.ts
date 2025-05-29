@@ -26,7 +26,6 @@ export function verifyTemplate(
     state.errors.push(toReportable(program.error.eof));
   }
 
-  debugger;
   for (const content of program.body) {
     verifyContent(state, content);
   }

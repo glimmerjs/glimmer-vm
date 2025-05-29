@@ -308,8 +308,6 @@ class Underline {
     const buffers = this.#buffers;
     const { primary, expanded, prefix, suffix } = highlighted;
 
-    const full = highlighted.full.fullLines();
-
     const end = (expanded ?? primary).loc;
 
     const line1 = buffers.blank();
