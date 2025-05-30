@@ -7,8 +7,8 @@ import type { Result } from '../../shared/result';
 
 import * as mir from '../2-encoding/mir';
 import { NormalizationState } from './context';
-import { VISIT_STMTS } from './visitors/statements';
-import StrictModeValidationPass from './visitors/strict-mode';
+import { visitContentList } from './visitors/statements';
+import ValidatorPass from './visitors/strict-mode';
 
 /**
  * Normalize the AST from @glimmer/syntax into the HIR. The HIR has special
@@ -65,7 +65,7 @@ export default function normalize(
     done();
   }
 
-  let body = VISIT_STMTS.visitList(root.body, state);
+  let body = visitContentList(root.body, state);
 
   if (LOCAL_TRACE_LOGGING) {
     const logger = DebugLogger.configured();
@@ -89,9 +89,7 @@ export default function normalize(
     (body) => new mir.Template({ loc: root.loc, scope: root.table, body: body.toArray() })
   );
 
-  if (isStrict) {
-    template = template.andThen((template) => StrictModeValidationPass.validate(template));
-  }
+  template = template.andThen((template) => ValidatorPass.validate(template, isStrict));
 
   return template;
 }

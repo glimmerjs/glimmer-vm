@@ -163,10 +163,8 @@ export class SerializeBlockContext {
 
 export function debugValue(item: unknown, options?: ValueRefOptions): Fragment {
   if (isIndexable(item)) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme
-    const classified = getLocalDebugType(item)!;
-
-    return describeValue(classified);
+    const classified = getLocalDebugType(item);
+    if (classified) return describeValue(classified);
   }
 
   return unknownValue(item, options);

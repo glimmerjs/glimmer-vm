@@ -1,8 +1,18 @@
-import type { Expression, Expressions, Statement, Statements } from '@glimmer/interfaces';
+import type { Content, Expressions } from '@glimmer/interfaces';
 
-import { opcodes } from './lib/opcodes';
+import { opcodes as Op } from './lib/opcodes';
 
-export { opcodes as SexpOpcodes } from './lib/opcodes';
+export {
+  BLOCKS_OPCODE,
+  EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_OPCODE,
+  POSITIONAL_ARGS_OPCODE,
+  opcodes as SexpOpcodes,
+} from './lib/opcodes';
 export { resolution as VariableResolutionContext } from './lib/resolution';
 export { WellKnownAttrNames, WellKnownTagNames } from './lib/well-known';
 
@@ -14,36 +24,67 @@ export function is<T>(variant: number): (value: unknown) => value is T {
 }
 
 // Statements
-export const isFlushElement = is<Statements.FlushElement>(opcodes.FlushElement);
+export const isFlushElement = is<Content.FlushElement>(Op.FlushElement);
 
-export function isAttribute(val: Statement): val is Statements.Attribute {
+export function isAttribute(val: Content): val is Content.Attribute {
   return (
-    val[0] === opcodes.StaticAttr ||
-    val[0] === opcodes.DynamicAttr ||
-    val[0] === opcodes.TrustingDynamicAttr ||
-    val[0] === opcodes.ComponentAttr ||
-    val[0] === opcodes.StaticComponentAttr ||
-    val[0] === opcodes.TrustingComponentAttr ||
-    val[0] === opcodes.AttrSplat ||
-    val[0] === opcodes.Modifier
+    val[0] === Op.StaticAttr ||
+    val[0] === Op.DynamicAttr ||
+    val[0] === Op.TrustingDynamicAttr ||
+    val[0] === Op.ComponentAttr ||
+    val[0] === Op.StaticComponentAttr ||
+    val[0] === Op.TrustingComponentAttr ||
+    val[0] === Op.AttrSplat ||
+    val[0] === Op.DynamicModifier ||
+    val[0] === Op.ResolvedModifier
   );
 }
 
-export function isStringLiteral(expr: Expression): expr is Expressions.StringValue {
-  return typeof expr === 'string';
-}
-
-export function getStringFromValue(expr: Expressions.StringValue): string {
-  return expr;
-}
-
-export function isArgument(val: Statement): val is Statements.Argument {
-  return val[0] === opcodes.StaticArg || val[0] === opcodes.DynamicArg;
-}
-
-export function isHelper(expr: Expression): expr is Expressions.Helper {
-  return Array.isArray(expr) && expr[0] === opcodes.Call;
-}
-
 // Expressions
-export const isGet = is<Expressions.GetSymbol>(opcodes.GetSymbol);
+
+export function isGetVar(expr: Expressions.TupleExpression): expr is Expressions.GetVar {
+  return isGet(expr) && expr.length === 2;
+}
+
+export function isGetPath(expr: Expressions.TupleExpression): expr is Expressions.GetPath {
+  return expr[0] === Op.GetPath;
+}
+
+export function isGet(expr: Expressions.TupleExpression): expr is Expressions.Get {
+  const [opcode] = expr;
+
+  return (
+    opcode === Op.GetLocalSymbol ||
+    opcode === Op.GetLexicalSymbol ||
+    isGetFree(expr) ||
+    isGetPath(expr)
+  );
+}
+
+export function isGetFree(
+  expr: Expressions.TupleExpression
+): expr is Expressions.GetResolvedOrKeyword {
+  const [opcode] = expr;
+  return opcode === Op.GetKeyword || isGetContextualFree(expr);
+}
+
+export function isGetLexical(
+  expr: Expressions.TupleExpression
+): expr is Expressions.GetLexicalSymbol | Expressions.GetPathLexicalSymbol {
+  return expr[0] === Op.GetLexicalSymbol;
+}
+
+export function isGetContextualFree(
+  expr: Expressions.TupleExpression
+): expr is Expressions.GetResolved {
+  const [opcode] = expr;
+  switch (opcode) {
+    case Op.ResolveAsComponentCallee:
+    case Op.ResolveAsCurlyCallee:
+    case Op.ResolveAsHelperCallee:
+    case Op.ResolveAsModifierCallee:
+      return true;
+    default:
+      return false;
+  }
+}

@@ -46,7 +46,7 @@
     "AppendSafeHTML",
     "AppendDocumentFragment",
     "AppendNode",
-    "AppendText",
+    "AppendValue",
     "OpenElement",
     "OpenDynamicElement",
     "PushRemoteElement",

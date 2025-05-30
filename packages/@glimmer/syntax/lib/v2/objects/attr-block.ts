@@ -1,8 +1,8 @@
 import type { SourceSlice } from '../../source/slice';
-import type { CallFields } from './base';
-import type { ExpressionNode } from './expr';
+import type { CurlyArgs, ResolvedName, UnresolvedBinding } from './args';
+import type { DynamicCallee } from './base';
+import type { AttrValueNode } from './expr';
 
-import { NamedArgument } from './args';
 import { node } from './node';
 
 /**
@@ -42,25 +42,38 @@ export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
 /**
  * Corresponds to an argument passed by a component (`@x=<value>`)
  */
-export class ComponentArg extends node().fields<AttrNodeOptions>() {
-  /**
-   * Convert the component argument into a named argument node
-   */
-  toNamedArgument(): NamedArgument {
-    return new NamedArgument({
-      name: this.name,
-      value: this.value,
-    });
-  }
-}
+export class ComponentArg extends node('ComponentArg').fields<{
+  name: SourceSlice;
+  value: AttrValueNode;
+  trusting: boolean;
+}>() {}
 
 /**
  * An `ElementModifier` is just a normal call node in modifier position.
  */
-export class ElementModifier extends node('ElementModifier').fields<CallFields>() {}
+export class ElementModifier extends node('ElementModifier').fields<{
+  callee: DynamicCallee;
+  args: CurlyArgs;
+}>() {
+  readonly isResolved = false;
+}
+
+export class ResolvedElementModifier extends node('ResolvedElementModifier').fields<{
+  resolved: ResolvedName | UnresolvedBinding;
+  args: CurlyArgs;
+}>() {
+  readonly isResolved = true;
+}
+
+export type SomeElementModifier = ElementModifier | ResolvedElementModifier;
 
 export interface AttrNodeOptions {
   name: SourceSlice;
-  value: ExpressionNode;
+  value: AttrValueNode;
   trusting: boolean;
+}
+
+export interface ArgNodeOptions {
+  name: SourceSlice;
+  value: AttrValueNode;
 }

@@ -47,7 +47,7 @@ Match the `statement`'s `type`:
 
 1. `PartialStatement` => error (Handlebars `>` syntax is not supported)
 2. `MustacheCommentStatement` => do nothing
-3. `TextNode` => normalize to `hir.AppendTextNode(chars)`
+3. `TextNode` => normalize to `hir.AppendValue(chars)`
 4. `CommentStatement` => normalize to `hir.AppendComment(chars)`
 5. `BlockStatement` =>
    1. if `statement` is a keyword, check syntax and translate it into a `hir.Statement`

@@ -18,3 +18,5 @@ instrumentation.*.json
 **/*.tgz
 tracerbench-results
 .rollup.cache
+.planning/
+.investigation/

@@ -88,5 +88,19 @@ export default config(
     },
     rules: { 'n/no-process-exit': 'error' },
   }),
+  // Allow shebangs in executable scripts and ensure TypeScript parsing
+  {
+    name: 'executable-scripts',
+    files: ['bin/**/*.{js,ts,mjs,mts}'],
+    languageOptions: {
+      parser: tslint.parser,
+      parserOptions: {
+        project: true,
+      },
+    },
+    rules: {
+      'n/hashbang': 'off',
+    },
+  },
   jsons
 );

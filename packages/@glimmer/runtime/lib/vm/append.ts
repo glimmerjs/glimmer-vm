@@ -284,6 +284,8 @@ export class VM {
   }
 
   compile(block: CompilableTemplate): number {
+    if (block.compiled) return unwrapHandle(block.compiled);
+
     let handle = unwrapHandle(block.compile(this.context));
 
     if (LOCAL_DEBUG) {

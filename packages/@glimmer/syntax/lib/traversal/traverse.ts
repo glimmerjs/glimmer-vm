@@ -1,7 +1,7 @@
 import { deprecate, unwrap } from '@glimmer/debug-util';
 
 import type * as ASTv1 from '../v1/api';
-import type { VisitorKey, VisitorKeys } from '../v1/visitor-keys';
+import type { VisitableNode, VisitorKey } from '../v1/visitor-keys';
 import type { KeyHandler, KeyTraversal, NodeHandler, NodeTraversal, NodeVisitor } from './visitor';
 
 import visitorKeys from '../v1/visitor-keys';
@@ -12,13 +12,13 @@ import {
 } from './errors';
 import WalkerPath from './path';
 
-function getEnterFunction<N extends ASTv1.Node>(
+function getEnterFunction<N extends VisitableNode>(
   handler: NodeTraversal<N>
 ): NodeHandler<N> | undefined;
-function getEnterFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
+function getEnterFunction<N extends VisitableNode, K extends VisitorKey<N>>(
   handler: KeyTraversal<N, K>
 ): KeyHandler<N, K> | undefined;
-function getEnterFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
+function getEnterFunction<N extends VisitableNode, K extends VisitorKey<N>>(
   handler: NodeTraversal<N> | KeyTraversal<N, K>
 ): NodeHandler<N> | KeyHandler<N, K> | undefined {
   if (typeof handler === 'function') {
@@ -28,13 +28,13 @@ function getEnterFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
   }
 }
 
-function getExitFunction<N extends ASTv1.Node>(
+function getExitFunction<N extends VisitableNode>(
   handler: NodeTraversal<N>
 ): NodeHandler<N> | undefined;
-function getExitFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
+function getExitFunction<N extends VisitableNode, K extends VisitorKey<N>>(
   handler: KeyTraversal<N, K>
 ): KeyHandler<N, K> | undefined;
-function getExitFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
+function getExitFunction<N extends VisitableNode, K extends VisitorKey<N>>(
   handler: NodeTraversal<N> | KeyTraversal<N, K>
 ): NodeHandler<N> | KeyHandler<N, K> | undefined {
   if (typeof handler === 'function') {
@@ -44,7 +44,7 @@ function getExitFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
   }
 }
 
-function getKeyHandler<N extends ASTv1.Node, K extends VisitorKey<N>>(
+function getKeyHandler<N extends VisitableNode, K extends VisitorKey<N>>(
   handler: NodeTraversal<N>,
   key: K
 ): KeyTraversal<N, K> | KeyTraversal<N, VisitorKey<N>> | undefined {
@@ -58,18 +58,18 @@ function getKeyHandler<N extends ASTv1.Node, K extends VisitorKey<N>>(
   return keyVisitor.All;
 }
 
-function getNodeHandler<N extends ASTv1.Node>(
+function getNodeHandler<N extends VisitableNode>(
   visitor: NodeVisitor,
   nodeType: N['type']
 ): NodeTraversal<N> | undefined;
 function getNodeHandler(
   visitor: NodeVisitor,
   nodeType: 'All'
-): NodeTraversal<ASTv1.Node> | undefined;
-function getNodeHandler<N extends ASTv1.Node>(
+): NodeTraversal<VisitableNode> | undefined;
+function getNodeHandler<N extends VisitableNode>(
   visitor: NodeVisitor,
   nodeType: N['type']
-): NodeTraversal<ASTv1.Node> | undefined {
+): NodeTraversal<VisitableNode> | undefined {
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   if (visitor.Program) {
     if (
@@ -81,21 +81,21 @@ function getNodeHandler<N extends ASTv1.Node>(
       );
 
       // eslint-disable-next-line @typescript-eslint/no-deprecated
-      return visitor.Program as NodeTraversal<ASTv1.Node>;
+      return visitor.Program as NodeTraversal<VisitableNode>;
     }
   }
 
   let handler = visitor[nodeType];
   if (handler !== undefined) {
-    return handler as unknown as NodeTraversal<ASTv1.Node>;
+    return handler as unknown as NodeTraversal<VisitableNode>;
   }
   return visitor.All;
 }
 
-function visitNode<N extends ASTv1.Node>(
+function visitNode<N extends VisitableNode>(
   visitor: NodeVisitor,
   path: WalkerPath<N>
-): ASTv1.Node | ASTv1.Node[] | undefined | null | void {
+): VisitableNode | VisitableNode[] | undefined | null | void {
   let { node, parent, parentKey } = path;
 
   let handler: NodeTraversal<N> | undefined = getNodeHandler(visitor, node.type);
@@ -107,7 +107,7 @@ function visitNode<N extends ASTv1.Node>(
     exit = getExitFunction(handler);
   }
 
-  let result: ASTv1.Node | ASTv1.Node[] | undefined | null | void;
+  let result: VisitableNode | VisitableNode[] | undefined | null | void;
   if (enter !== undefined) {
     result = enter(node, path);
   }
@@ -127,10 +127,9 @@ function visitNode<N extends ASTv1.Node>(
   if (result === undefined) {
     let keys = visitorKeys[node.type];
 
-    for (let i = 0; i < keys.length; i++) {
-      let key = keys[i] as VisitorKeys[N['type']] & keyof N;
+    for (let key of keys) {
       // we know if it has child keys we can widen to a ParentNode
-      visitKey(visitor, handler, path, key);
+      visitKey(visitor, handler, path, key as VisitorKey<N>);
     }
 
     if (exit !== undefined) {
@@ -141,22 +140,22 @@ function visitNode<N extends ASTv1.Node>(
   return result;
 }
 
-function get<N extends ASTv1.Node>(
+function get<N extends VisitableNode>(
   node: N,
-  key: VisitorKeys[N['type']] & keyof N
-): ASTv1.Node | ASTv1.Node[] | undefined {
-  return node[key] as unknown as ASTv1.Node | ASTv1.Node[] | undefined;
+  key: keyof N
+): VisitableNode | VisitableNode[] | undefined {
+  return node[key] as VisitableNode | VisitableNode[] | undefined;
 }
 
-function set<N extends ASTv1.Node, K extends keyof N>(node: N, key: K, value: N[K]): void {
+function set<N extends VisitableNode, K extends keyof N>(node: N, key: K, value: N[K]): void {
   node[key] = value;
 }
 
-function visitKey<N extends ASTv1.Node>(
+function visitKey<N extends VisitableNode>(
   visitor: NodeVisitor,
   handler: NodeTraversal<N> | undefined,
   path: WalkerPath<N>,
-  key: VisitorKeys[N['type']] & keyof N
+  key: VisitorKey<N>
 ) {
   let { node } = path;
 
@@ -165,8 +164,8 @@ function visitKey<N extends ASTv1.Node>(
     return;
   }
 
-  let keyEnter: KeyHandler<N, VisitorKeys[N['type']] & keyof N> | undefined;
-  let keyExit: KeyHandler<N, VisitorKeys[N['type']] & keyof N> | undefined;
+  let keyEnter: KeyHandler<N, VisitorKey<N>> | undefined;
+  let keyExit: KeyHandler<N, VisitorKey<N>> | undefined;
 
   if (handler !== undefined) {
     let keyHandler = getKeyHandler(handler, key);
@@ -207,8 +206,8 @@ function visitKey<N extends ASTv1.Node>(
 
 function visitArray(
   visitor: NodeVisitor,
-  array: ASTv1.Node[],
-  parent: WalkerPath<ASTv1.Node> | null,
+  array: VisitableNode[],
+  parent: WalkerPath<VisitableNode> | null,
   parentKey: string | null
 ) {
   for (let i = 0; i < array.length; i++) {
@@ -221,7 +220,7 @@ function visitArray(
   }
 }
 
-function assignKey<N extends ASTv1.Node, K extends VisitorKey<N>>(
+function assignKey<N extends VisitableNode, K extends VisitorKey<N>>(
   node: N,
   key: K,
   value: ASTv1.Node,
@@ -258,7 +257,7 @@ function spliceArray(array: ASTv1.Node[], index: number, result: ASTv1.Node | AS
   }
 }
 
-export default function traverse(node: ASTv1.Node, visitor: NodeVisitor): void {
+export default function traverse(node: VisitableNode, visitor: NodeVisitor): void {
   let path = new WalkerPath(node);
   visitNode(visitor, path);
 }
