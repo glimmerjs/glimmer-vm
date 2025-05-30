@@ -77,7 +77,6 @@ class CIChecker {
 
       // Note: Full TypeScript checking is done via Turbo in CI
       // This script focuses on fast pre-push validation
-
     } catch {
       this.log(`\n${chalk.bold.red('💥 Essential Checks FAILED')}`);
       this.printSummary();

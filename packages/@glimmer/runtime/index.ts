@@ -68,7 +68,7 @@ export {
   rehydrationBuilder,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/vm/rehydrate-builder';
-export { CurriedValue, curry } from "@glimmer/program";
+export { CurriedValue, curry } from '@glimmer/program';
 
 // Currently we need to re-export these values for @glimmer/component
 // https://github.com/glimmerjs/glimmer.js/issues/319

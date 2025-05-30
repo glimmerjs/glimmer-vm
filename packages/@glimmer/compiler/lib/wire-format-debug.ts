@@ -287,7 +287,7 @@ export default class WireFormatDebugger {
           return [`( <resolve:helper> )`, this.formatOpcode(opcode[1])];
 
         case Op.ResolveAsComponentCallee:
-          return [`< resolve:component >`, this.formatOpcode(opcode[1])]
+          return [`< resolve:component >`, this.formatOpcode(opcode[1])];
 
         default:
           exhausted(opcode);

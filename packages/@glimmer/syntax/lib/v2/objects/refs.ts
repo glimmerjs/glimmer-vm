@@ -62,6 +62,10 @@ export type VariableReference =
 
 export function isVariableReference(node: AbstractNode): node is VariableReference {
   return (
-    node.type === 'This' || node.type === 'Arg' || node.type === 'Local' || node.type === 'Lexical' || node.type === 'Resolved'
+    node.type === 'This' ||
+    node.type === 'Arg' ||
+    node.type === 'Local' ||
+    node.type === 'Lexical' ||
+    node.type === 'Resolved'
   );
 }

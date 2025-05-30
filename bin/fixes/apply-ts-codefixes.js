@@ -4,7 +4,7 @@ import ts from 'typescript';
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 
-const [,, fileName, errorCode] = process.argv;
+const [, , fileName, errorCode] = process.argv;
 
 if (!fileName) {
   console.error('Usage: node apply-ts-codefixes.js <file-path> [error-code]');
@@ -33,8 +33,8 @@ if (!sourceFile) {
 
 const diagnostics = [
   ...program.getSemanticDiagnostics(sourceFile),
-  ...program.getSyntacticDiagnostics(sourceFile)
-].filter(d => !errorCode || d.code === parseInt(errorCode));
+  ...program.getSyntacticDiagnostics(sourceFile),
+].filter((d) => !errorCode || d.code === parseInt(errorCode));
 
 if (!diagnostics.length) {
   console.log('No applicable TypeScript diagnostics found');
@@ -46,8 +46,10 @@ const languageService = ts.createLanguageService({
   getCompilationSettings: () => options,
   getScriptFileNames: () => [resolvedFileName],
   getScriptVersion: () => '1',
-  getScriptSnapshot: (name) => name === resolvedFileName ? 
-    ts.ScriptSnapshot.fromString(readFileSync(name, 'utf-8')) : undefined,
+  getScriptSnapshot: (name) =>
+    name === resolvedFileName
+      ? ts.ScriptSnapshot.fromString(readFileSync(name, 'utf-8'))
+      : undefined,
   getCurrentDirectory: () => process.cwd(),
   getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options),
   readFile: ts.sys.readFile,
@@ -67,12 +69,12 @@ for (const diagnostic of diagnostics) {
       {},
       {}
     );
-    
+
     if (fixes.length > 0) {
       console.log(`Found fix for TS${diagnostic.code}: ${diagnostic.messageText}`);
       console.log(`  Fix: ${fixes[0]?.description}`);
-      
-      allChanges.push(...(fixes[0]?.changes.flatMap(c => c.textChanges) || []));
+
+      allChanges.push(...(fixes[0]?.changes.flatMap((c) => c.textChanges) || []));
     }
   }
 }
@@ -86,10 +88,11 @@ if (!allChanges.length) {
 let content = readFileSync(resolvedFileName, 'utf-8');
 allChanges
   .sort((a, b) => b.span.start - a.span.start)
-  .forEach(change => {
-    content = content.slice(0, change.span.start) + 
-             change.newText + 
-             content.slice(change.span.start + change.span.length);
+  .forEach((change) => {
+    content =
+      content.slice(0, change.span.start) +
+      change.newText +
+      content.slice(change.span.start + change.span.length);
   });
 
 writeFileSync(resolvedFileName, content);

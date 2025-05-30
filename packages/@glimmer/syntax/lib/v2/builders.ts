@@ -251,7 +251,10 @@ export class Builder {
     });
   }
 
-  namedBlocks(blocks: PresentArray<ASTv2.NamedBlock | ASTv1.ErrorNode>, loc: SourceSpan): ASTv2.NamedBlocks {
+  namedBlocks(
+    blocks: PresentArray<ASTv2.NamedBlock | ASTv1.ErrorNode>,
+    loc: SourceSpan
+  ): ASTv2.NamedBlocks {
     return new ASTv2.NamedBlocks({
       loc,
       blocks,
