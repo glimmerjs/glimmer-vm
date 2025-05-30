@@ -39,9 +39,9 @@
     "zx": "^8.3.2"
   },
   "devDependencies": {
-    "@types/node": "^20.9.4",
+    "@types/node": "^22.13.4",
     "eslint": "^9.19.0",
-    "typescript": "*"
+    "typescript": "^5.7.3"
   },
   "engines": {
     "node": ">=20.9.0"

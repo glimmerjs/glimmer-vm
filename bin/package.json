@@ -16,7 +16,7 @@
   "scripts": {},
   "dependencies": {
     "@glimmer-workspace/repo-metadata": "workspace:*",
-    "@pnpm/workspace.find-packages": "^1000.0.10",
+    "@pnpm/workspace.find-packages": "^1000.0.24",
     "@types/glob": "^8.1.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.13.4",
