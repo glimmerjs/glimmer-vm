@@ -152,6 +152,7 @@
     },
     "overrides": {
       "@glimmer/syntax": "workspace:*",
+      "@pnpm/logger": "^1001.0.0",
       "@rollup/pluginutils": "^5.0.2",
       "@types/node": "$@types/node",
       "typescript": "$typescript"
