@@ -201,8 +201,6 @@ function resolveComponentDefinition(
   owner: object,
   constants: ProgramConstants
 ) {
-  // let component = check(valueForRef(ref), CheckOr(CheckCurriedComponentDefinition, CheckString));
-
   if (import.meta.env.DEV && typeof component === 'string') {
     throw new Error(
       `Attempted to resolve a dynamic component with a string definition, \`"${component}"\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
