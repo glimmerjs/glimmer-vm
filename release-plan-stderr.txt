@@ -1,0 +1,8 @@
+Warning: unknown package "@glimmer-workspace/integration-tests"
+# Unlabeled Changes
+
+* `@glimmer-workspace/repo-metadata`
+  * [#1754](https://github.com/glimmerjs/glimmer-vm/pull/1754) Fix floating dependencies CI by replacing meta-updater ([@wycats](https://github.com/wycats))
+
+
+*Cannot plan release until the above changes are labeled*.
