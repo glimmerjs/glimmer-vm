@@ -1,0 +1,314 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Minimal Glimmer Rendering</title>
+    <script type="module">
+      import {
+        runtimeOptions,
+        NewTreeBuilder,
+        renderComponent,
+        renderSync,
+        on,
+      } from "@glimmer/runtime";
+      import { EvaluationContextImpl, templateFactory } from "@glimmer/opcode-compiler";
+      import { artifacts, RuntimeOpImpl } from "@glimmer/program";
+      import {
+        setComponentTemplate,
+        setInternalComponentManager,
+        getComponentTemplate,
+      } from "@glimmer/manager";
+      import { precompile, precompileJSON } from "@glimmer/compiler";
+      import { dirtyTagFor, tagFor, consumeTag } from "@glimmer/validator";
+      import { preprocess, getTemplateLocals } from "@glimmer/syntax";
+      import setGlobalContext from "@glimmer/global-context";
+      import { createConstRef, valueForRef } from "@glimmer/reference";
+
+      /**
+        This repo has no component managers
+      */
+      class BasicComponentManager {
+        create(_owner, Component, args) {
+          const instance = new Component(args.capture());
+          const self = createConstRef(instance, "this");
+          return { instance, self };
+        }
+
+        getDebugName() {
+          return "example";
+        }
+
+        didCreate() {}
+
+        didRenderLayout() {}
+
+        didUpdate() {}
+
+        didUpdateLayout() {}
+
+        getCapabilities() {
+          return {
+            dynamicLayout: false,
+            dynamicTag: false,
+            prepareArgs: false,
+            createArgs: true,
+            attributeHook: false,
+            elementHook: false,
+            dynamicScope: false,
+            createCaller: false,
+            updateHook: false,
+            createInstance: true,
+            wrapped: false,
+            willDestroy: false,
+            hasSubOwner: false,
+          };
+        }
+
+        getSelf(state) {
+          return state.self;
+        }
+
+        getDestroyable(state) {
+          return state.instance;
+        }
+
+        getStaticLayout(definition) {
+          return getComponentTemplate(definition)();
+        }
+      }
+
+      const boilerplateComponentManager = new BasicComponentManager();
+
+      const scheduledDestructors = [];
+      const scheduledFinalizers = [];
+
+      function flush(queue) {
+        for (const fn of queue) fn();
+        queue.length = 0;
+      }
+
+      let result;
+
+      function registerResult(_result) {
+        result = _result;
+      }
+
+      let revalidateScheduled = false;
+
+      /**
+       * The Global Context provides some core swappable utilities, feature flag configuration, and some hooks for some of the Render Phases.
+       * This is required to be configured, but could be entirely unneeded in modern code.
+       *
+       *
+       * This feels like it could have been designed to try to allow for different reactivity systems over time.
+       * But we don't need those use cases anymore.
+       * Additionally, we can configure the render phases in scheduleRevalidate
+       * it is *required* to do this, else updates to the DOM do not occur
+       */
+      setGlobalContext({
+        scheduleRevalidate() {
+          if (!revalidateScheduled) {
+            Promise.resolve()
+              .then(() => {
+                const { env } = result;
+                console.log("env.begin");
+                env.begin();
+                console.log("env.rerender");
+                result.rerender();
+                revalidateScheduled = false;
+                env.commit();
+                console.log("env.commit");
+              })
+              .catch((e) => console.error(e));
+          }
+        },
+
+        getProp(obj, prop) {
+          return obj[prop];
+        },
+
+        setProp(obj, prop, value) {
+          obj[prop] = value;
+        },
+
+        getPath(obj, path) {
+          let parts = path.split(".");
+
+          let current = obj;
+
+          for (let part of parts) {
+            if (
+              typeof current === "function" ||
+              (typeof current === "object" && current !== null)
+            ) {
+              current = current[part];
+            }
+          }
+
+          return current;
+        },
+
+        setPath(obj, path, value) {
+          let parts = path.split(".");
+
+          let current = obj;
+          let pathToSet = parts.pop();
+
+          for (let part of parts) {
+            current = current[part];
+          }
+
+          current[pathToSet] = value;
+        },
+
+        toBool(value) {
+          return Boolean(value);
+        },
+
+        toIterator() {
+          return null;
+        },
+
+        warnIfStyleNotTrusted() {
+          // noop
+        },
+
+        scheduleDestroy(destroyable, destructor) {
+          scheduledDestructors.push(() => destructor(destroyable));
+        },
+
+        scheduleDestroyed(fn) {
+          scheduledFinalizers.push(fn);
+        },
+
+        assert(test, msg) {
+          if (!test) {
+            throw new Error(msg);
+          }
+        },
+
+        deprecate(msg, test) {
+          if (!test) {
+            console.warn(msg);
+          }
+        },
+      });
+
+      function createEnvDelegate(isInteractive) {
+        return {
+          isInteractive: true,
+          enableDebugTooling: false,
+          onTransactionCommit() {
+            flush(scheduledDestructors);
+            flush(scheduledFinalizers);
+          },
+        };
+      }
+
+      /**
+       * With the component manager we've configured, we don't need a super class
+       * but also, we don't interact with any args (this.args doesn't exist).
+       */
+      class Counter {
+        _count = 0;
+
+        /**
+         * This is a simplified version of @tracked
+         */
+        get count() {
+          console.log("read: count");
+          consumeTag(tagFor(this, "_count"));
+          return this._count;
+        }
+        set count(value) {
+          console.log("set: count");
+          this._count = value;
+          dirtyTagFor(this, "_count");
+        }
+
+        increment = () => this.count++;
+
+        static {
+          setInternalComponentManager(boilerplateComponentManager, this);
+          setComponentTemplate(
+            /* Custom Compile Template because Glimmer Standalone is very unergonomic */
+            createTemplate(
+              `<p>You have clicked the button {{this.count}} times.</p>
+
+              <button {{on "click" this.increment}}>Click</button>`,
+              { on },
+            ),
+            this,
+          );
+        }
+      }
+
+      /**
+       *
+       * Copied from @glimmer-workspace/integration-tests/lib/compile
+       *
+       * We don't have a good way to do runtime compilation in glimmer.
+       */
+      function createTemplate(templateSource, scopeValues = {}) {
+        let options = {};
+        options.locals = Object.keys(scopeValues ?? {});
+        let [block, usedLocals] = precompileJSON(templateSource, { strictMode: true, ...options });
+        let reifiedScopeValues = usedLocals.map((key) => scopeValues[key]);
+
+        let templateBlock = {
+          id: `id-${Date.now()}`,
+          block: JSON.stringify(block),
+          moduleName: options.meta?.moduleName ?? "(unknown template module)",
+          scope: reifiedScopeValues.length > 0 ? () => reifiedScopeValues : null,
+          isStrictMode: true,
+        };
+
+        return templateFactory(templateBlock);
+      }
+
+      /**
+       * Main entrypoint for the demo.
+       * This configures a whole bunch of legacy features that shouldn't be needed, especially in
+       strict mode.
+       */
+      function render() {
+        const element = document.body;
+        const sharedArtifacts = artifacts();
+        const envDelegate = createEnvDelegate();
+        const components = new Map();
+        const helpers = new Map();
+        const modifiers = new Map();
+
+        const resolver = {
+          lookupHelper: (name) => helpers.get(name) ?? null,
+          lookupModifier: (name) => modifiers.get(name) ?? null,
+          lookupComponent: (name) => components.get(name) ?? null,
+
+          lookupBuiltInHelper: () => null,
+          lookupBuiltInModifier: () => null,
+        };
+
+        const runtime = runtimeOptions({ document }, envDelegate, sharedArtifacts, resolver);
+
+        const context = new EvaluationContextImpl(
+          sharedArtifacts,
+          (heap) => new RuntimeOpImpl(heap),
+          runtime,
+        );
+
+        const env = context.env;
+        const cursor = { element, nextSibling: null };
+        const treeBuilder = NewTreeBuilder.forInitialRender(env, cursor);
+
+        console.log("renderSync");
+        const result = renderSync(env, renderComponent(context, treeBuilder, {}, Counter, {}));
+
+        registerResult(result);
+      }
+
+      render();
+    </script>
+  </head>
+  <body></body>
+</html>
