@@ -76,11 +76,14 @@ class CIChecker {
       await this.runCommand('pnpm', ['test:lint'], 'ESLint validation');
 
       this.log(chalk.bold.yellow('🔧 Build Verification'));
-      await this.runCommand('node', ['./bin/build-verify.mjs'], 'Checking for forbidden code in builds');
+      await this.runCommand(
+        'node',
+        ['./bin/build-verify.mjs'],
+        'Checking for forbidden code in builds'
+      );
 
       // Note: Full TypeScript checking is done via Turbo in CI
       // This script focuses on fast pre-push validation
-
     } catch {
       this.log(`\n${chalk.bold.red('💥 Essential Checks FAILED')}`);
       this.printSummary();

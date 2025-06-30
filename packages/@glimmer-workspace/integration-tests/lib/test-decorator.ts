@@ -39,7 +39,13 @@ export function test(...args: any[]) {
   }
 
   let [target, name, descriptor] = args;
-  setTestKind({ callee: 'test', target, value: descriptor.value, kind: (...args) => QUnit.test(...args), name });
+  setTestKind({
+    callee: 'test',
+    target,
+    value: descriptor.value,
+    kind: (...args) => QUnit.test(...args),
+    name,
+  });
   return descriptor;
 }
 
@@ -48,12 +54,24 @@ test.skip = <T extends TypedPropertyDescriptor>(
   name: string,
   descriptor: T
 ) => {
-  setTestKind({ callee: 'test.skip', target, value: descriptor.value, kind: (...args) => QUnit.skip(...args), name });
+  setTestKind({
+    callee: 'test.skip',
+    target,
+    value: descriptor.value,
+    kind: (...args) => QUnit.skip(...args),
+    name,
+  });
   return descriptor;
 };
 
 test.todo = (target: IBasicTest, name: string, descriptor: PropertyDescriptor) => {
-  setTestKind({ callee: 'test.todo', target, value: descriptor.value, kind: (...args) => QUnit.todo(...args), name });
+  setTestKind({
+    callee: 'test.todo',
+    target,
+    value: descriptor.value,
+    kind: (...args) => QUnit.todo(...args),
+    name,
+  });
   return descriptor;
 };
 

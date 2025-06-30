@@ -3,7 +3,7 @@
 import { ESLint } from 'eslint';
 import { readFileSync, writeFileSync } from 'fs';
 
-const [,, filePath, ruleFilter] = process.argv;
+const [, , filePath, ruleFilter] = process.argv;
 
 if (!filePath) {
   console.error('Usage: node apply-eslint-suggestions.js <file-path> [rule-id]');
@@ -20,8 +20,8 @@ if (!result || !result.messages.length) {
 
 let content = readFileSync(filePath, 'utf-8');
 const messages = result.messages
-  .filter(m => !ruleFilter || m.ruleId === ruleFilter)
-  .filter(m => m.suggestions?.length)
+  .filter((m) => !ruleFilter || m.ruleId === ruleFilter)
+  .filter((m) => m.suggestions?.length)
   .sort((a, b) => {
     const aFix = a.suggestions?.[0]?.fix;
     const bFix = b.suggestions?.[0]?.fix;
@@ -36,7 +36,7 @@ for (const message of messages) {
   if (!suggestion?.fix) continue;
   const { fix } = suggestion;
   console.log(`Fixing ${message.ruleId} at line ${message.line}`);
-  
+
   content = content.slice(0, fix.range[0]) + fix.text + content.slice(fix.range[1]);
   changesMade++;
 }

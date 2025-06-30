@@ -19,15 +19,18 @@ try {
     execSync(`node apply-eslint-suggestions.js "${filePath}"`, { stdio: 'inherit' });
     console.log();
   }
-  
+
   if (type === 'ts' || type === 'all') {
     console.log('=== Applying TypeScript code fixes ===');
     execSync(`node apply-ts-codefixes.js "${filePath}"`, { stdio: 'inherit' });
     console.log();
   }
-  
+
   console.log('Done!');
 } catch (error) {
-  console.error('Error applying suggestions:', error instanceof Error ? error.message : String(error));
+  console.error(
+    'Error applying suggestions:',
+    error instanceof Error ? error.message : String(error)
+  );
   process.exit(1);
 }

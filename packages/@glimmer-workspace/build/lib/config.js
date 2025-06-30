@@ -464,9 +464,7 @@ export class Package {
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
                     strict: true,
-                    types: [
-                      ...(this.#package.devDependencies['@types/node'] ? ['node'] : []),
-                    ],
+                    types: [...(this.#package.devDependencies['@types/node'] ? ['node'] : [])],
                   },
                 }),
               ],
