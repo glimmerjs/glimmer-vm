@@ -20,10 +20,10 @@ import type * as HBS from '../v1/handlebars-ast';
 import print from '../generation/print';
 import { voidMap } from '../generation/printer';
 import * as src from '../source/api';
-import { generateSyntaxError } from '../syntax-error';
+import { generateSyntaxError, GlimmerSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
 import Walker from '../traversal/walker';
-import { appendChild } from '../utils';
+import { appendChild, appendChildren } from '../utils';
 import b from '../v1/parser-builders';
 import publicBuilder from '../v1/public-builders';
 import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
@@ -56,7 +56,20 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishComment(): void {
-    appendChild(this.currentElement(), b.comment(this.finish(this.currentComment)));
+    this.#append(this.currentComment, (comment) => b.comment(this.finish(comment)));
+  }
+
+  #append<N extends { errors?: ASTv1.AttachedErrors<string> }>(
+    node: N,
+    build: (node: N) => ASTv1.Statement
+  ): void {
+    if (node.errors) {
+      for (const errors of Object.values(node.errors)) {
+        if (errors) appendChildren(this.currentElement(), ...errors);
+      }
+    } else {
+      appendChild(this.currentElement(), build(node));
+    }
   }
 
   // Data
@@ -74,7 +87,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishData(): void {
-    appendChild(this.currentElement(), b.text(this.finish(this.currentData)));
+    this.#append(this.currentData, (text) => b.text(this.finish(text)));
   }
 
   // Tags - basic
@@ -90,6 +103,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       name: '',
       nameStart: null,
       nameEnd: null,
+      paramsStart: null,
+      paramsEnd: null,
       attributes: [],
       modifiers: [],
       comments: [],
@@ -116,10 +131,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       if (tag.name === ':') {
         throw generateSyntaxError(
           'Invalid named block named detected, you may have created a named block without a name, or you may have began your name with a number. Named blocks must have names that are at least one character long, and begin with a lower case letter',
-          this.source.spanFor({
-            start: this.currentTag.start.toJSON(),
-            end: this.offset().toJSON(),
-          })
+          this.currentTag.start.until(this.offset()).highlight('block name')
         );
       }
 
@@ -134,7 +146,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishStartTag(): void {
-    let { name, nameStart, nameEnd } = this.currentStartTag;
+    let { name, nameStart, nameEnd, errors } = this.currentStartTag;
 
     // <> should probably be a syntax error, but s-h-t is currently broken for that case
     localAssert(name !== '', 'tag name cannot be empty');
@@ -149,9 +161,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       loc: nameLoc,
     });
 
-    let { attributes, modifiers, comments, params, selfClosing, loc } = this.finish(
-      this.currentStartTag
-    );
+    let { attributes, modifiers, comments, params, paramsStart, paramsEnd, selfClosing, loc } =
+      this.finish(this.currentStartTag);
+
+    const paramsLoc =
+      paramsStart && paramsEnd ? paramsStart.until(paramsEnd) : loc.getEnd().move(-1).collapsed();
 
     let element = b.element({
       path,
@@ -160,16 +174,18 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers,
       comments,
       params,
+      paramsLoc,
       children: [],
       openTag: loc,
       closeTag: selfClosing ? null : src.SourceSpan.broken(),
+      errors,
       loc,
     });
     this.elementStack.push(element);
   }
 
   finishEndTag(isVoid: boolean): void {
-    let { start: closeTagStart } = this.currentTag;
+    let { start: closeTagStart, errors } = this.currentTag;
     let tag = this.finish<StartTag | EndTag>(this.currentTag);
 
     let element = this.elementStack.pop() as ASTv1.ParentNode;
@@ -186,8 +202,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     }
 
     element.loc = element.loc.withEnd(this.offset());
+    if (errors && Object.keys(errors).length > 0) {
+      element.errors = { ...element.errors, ...errors };
+    }
 
-    appendChild(parent, b.element(element));
+    appendChild(parent, element);
   }
 
   markTagAsSelfClosing(): void {
@@ -198,7 +217,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     } else {
       throw generateSyntaxError(
         `Invalid end tag: closing tag must not be self-closing`,
-        this.source.spanFor({ start: tag.start.toJSON(), end: this.offset().toJSON() })
+        tag.start.until(this.offset()).highlight('closing tag')
       );
     }
   }
@@ -246,7 +265,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     // fine, but this check was added as an optimization, as there is a little
     // bit of setup overhead for the parsing logic just to immediately bail
     if (this.currentAttr.name === 'as') {
-      this.parsePossibleBlockParams();
+      this.parsePossibleBlockParams(this.currentAttr.start);
+      this.currentStartTag.paramsEnd = this.offset();
     }
   }
 
@@ -287,33 +307,51 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     let tag = this.currentTag;
     let tokenizerPos = this.offset();
+    let { name, parts, start, isQuoted, isDynamic, valueSpan } = this.currentAttr;
+    const attrLoc = start.until(tokenizerPos);
 
     if (tag.type === 'EndTag') {
-      throw generateSyntaxError(
+      throw GlimmerSyntaxError.highlight(
         `Invalid end tag: closing tag must not have attributes`,
-        this.source.spanFor({ start: tag.start.toJSON(), end: tokenizerPos.toJSON() })
+        attrLoc.highlight('invalid attribute')
       );
     }
-
-    let { name, parts, start, isQuoted, isDynamic, valueSpan } = this.currentAttr;
 
     // Just trying to be helpful with `<Hello |foo|>` rather than letting it through as an attribute
     if (name.startsWith('|') && parts.length === 0 && !isQuoted && !isDynamic) {
-      throw generateSyntaxError(
-        'Invalid block parameters syntax: block parameters must be preceded by the `as` keyword',
-        start.until(start.move(name.length))
+      this.currentStartTag.params.push(
+        b.error(
+          'Invalid block parameters syntax: block parameters must be preceded by the `as` keyword',
+          attrLoc
+            .highlight()
+            .withPrimary(start.until(start.move(name.length)).highlight('missing `as`'))
+        )
       );
+      this.currentStartTag.paramsEnd = tokenizerPos;
+      return;
     }
 
-    let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, start.until(tokenizerPos));
+    let value = this.assembleAttributeValue(
+      parts,
+      isQuoted,
+      isDynamic,
+      valueSpan.withEnd(tokenizerPos),
+      start.until(tokenizerPos)
+    );
     value.loc = valueSpan.withEnd(tokenizerPos);
 
     let attribute = b.attr({ name, value, loc: start.until(tokenizerPos) });
 
     this.currentStartTag.attributes.push(attribute);
+
+    if (this.pending?.attrName) {
+      this.currentStartTag.params.push(this.pending.attrName(start.next(name.length)));
+      this.currentStartTag.paramsEnd = tokenizerPos;
+      this.pending = null;
+    }
   }
 
-  private parsePossibleBlockParams() {
+  private parsePossibleBlockParams(asNode: src.SourceOffset) {
     // const enums that we can't use directly
     const BEFORE_ATTRIBUTE_NAME = 'beforeAttributeName' as TokenizerState.beforeAttributeName;
     const ATTRIBUTE_NAME = 'attributeName' as TokenizerState.attributeName;
@@ -324,20 +362,30 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     const ID_INVERSE_PATTERN = /[!"#%&'()*+./;<=>@[\\\]^`{|}~]/u;
 
+    const ParseError = (next: string, after: (offset: src.SourceOffset) => ASTv1.ErrorNode) => {
+      if (next !== '' && next !== '/' && next !== '>' && !isSpace(next)) {
+        // Slurp up the next "token" for the error span
+        this.tokenizer.consume();
+      }
+
+      const error = after(this.offset());
+      element.params.push(error);
+      return error;
+    };
+
     type States = {
       PossibleAs: { state: 'PossibleAs' };
       BeforeStartPipe: { state: 'BeforeStartPipe' };
-      BeforeBlockParamName: { state: 'BeforeBlockParamName' };
+      BeforeBlockParamName: { state: 'BeforeBlockParamName'; offset: src.SourceOffset };
       BlockParamName: {
         state: 'BlockParamName';
         name: string;
         start: src.SourceOffset;
       };
       AfterEndPipe: { state: 'AfterEndPipe' };
-      Error: {
-        state: 'Error';
-        message: string;
-        start: src.SourceOffset;
+      ParseError: {
+        state: 'ParseError';
+        error: ASTv1.ErrorNode;
       };
       Done: { state: 'Done' };
     };
@@ -352,6 +400,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     const as = this.currentAttr;
 
     let state = { state: 'PossibleAs' } as State;
+    element.paramsStart = as.start;
 
     const handlers = {
       PossibleAs: (next: string) => {
@@ -365,10 +414,16 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         } else if (next === '|') {
           // " as|..."
           // Following Handlebars and require a space between "as" and the pipe
-          throw generateSyntaxError(
-            `Invalid block parameters syntax: expecting at least one space character between "as" and "|"`,
-            as.start.until(this.offset().move(1))
-          );
+          state = { state: 'Done' };
+          this.pending = {
+            attrName: (attrName) =>
+              b.error(
+                `Invalid block parameters syntax: expecting at least one space character between "as" and "|"`,
+                attrName
+                  .highlight()
+                  .withPrimary({ loc: asNode.move(1).next(2), label: 'missing space' })
+              ),
+          };
         } else {
           // " as{{...", " async...", " as=...", " as>...", " as/>..."
           // Don't consume, let the normal tokenizer code handle the next steps
@@ -382,7 +437,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         if (isSpace(next)) {
           this.tokenizer.consume();
         } else if (next === '|') {
-          state = { state: 'BeforeBlockParamName' };
+          state = { state: 'BeforeBlockParamName', offset: this.offset() };
           this.tokenizer.transitionTo(BEFORE_ATTRIBUTE_NAME);
           this.tokenizer.consume();
         } else {
@@ -401,35 +456,58 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // The HTML tokenizer ran out of characters, so we are either
           // encountering mustache or <EOF>
           state = { state: 'Done' };
-          this.pendingError = {
-            mustache(loc: src.SourceSpan) {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: mustaches cannot be used inside parameters list`,
-                loc
-              );
+          this.pending = {
+            mustache(mustache: src.SourceSpan, next: string) {
+              return ParseError(next, (end) => {
+                return b.error(
+                  `Invalid block parameters syntax: mustaches cannot be used inside block params`,
+                  as.start
+                    .until(end)
+                    .highlight()
+                    .withPrimary(mustache.highlight('invalid mustache'))
+                );
+              });
             },
-            eof(loc: src.SourceOffset) {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list`,
-                as.start.until(loc)
+            eof: (loc: src.SourceOffset) => {
+              return ParseError(next, () =>
+                b.error(
+                  `Invalid block parameters syntax: template ended before block params were closed`,
+                  as.start
+                    .until(loc)
+                    .highlight('block params')
+                    .withPrimary({ loc: loc.last(1), label: 'end of template' })
+                )
               );
             },
           };
         } else if (next === '|') {
           if (element.params.length === 0) {
             // Following Handlebars and treat empty block params a syntax error
-            throw generateSyntaxError(
-              `Invalid block parameters syntax: empty parameters list, expecting at least one identifier`,
-              as.start.until(this.offset().move(1))
-            );
+            const end = this.offset().move(1);
+            state = {
+              state: 'ParseError',
+              error: b.error(
+                `Invalid block parameters syntax: empty block params, expecting at least one identifier`,
+                asNode
+                  .until(end)
+                  .highlight()
+                  .withPrimary(state.offset.until(end).highlight('empty block params'))
+              ),
+            };
+            this.tokenizer.consume();
           } else {
             state = { state: 'AfterEndPipe' };
             this.tokenizer.consume();
           }
         } else if (next === '>' || next === '/') {
-          throw generateSyntaxError(
-            `Invalid block parameters syntax: incomplete parameters list, expecting "|" but the tag was closed prematurely`,
-            as.start.until(this.offset().move(1))
+          throw GlimmerSyntaxError.highlight(
+            `Invalid block parameters syntax: incomplete block params, expecting "|" but the tag was closed prematurely`,
+            element.start
+              .until(this.offset())
+              .highlight()
+              .withPrimary(
+                as.start.until(this.offset().move(1)).highlight('incomplete block params')
+              )
           );
         } else {
           // slurp up anything else into the name, validate later
@@ -450,17 +528,27 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // encountering mustache or <EOF>, HBS side will attach the error
           // to the next span
           state = { state: 'Done' };
-          this.pendingError = {
-            mustache(loc: src.SourceSpan) {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: mustaches cannot be used inside parameters list`,
-                loc
+          this.pending = {
+            mustache: (mustache: src.SourceSpan, next: string) => {
+              return ParseError(next, (end) =>
+                b.error(
+                  `Invalid block parameters syntax: mustaches cannot be used inside block params`,
+                  as.start
+                    .until(end)
+                    .highlight()
+                    .withPrimary(mustache.highlight('invalid mustache'))
+                )
               );
             },
-            eof(loc: src.SourceOffset) {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list`,
-                as.start.until(loc)
+            eof: (loc: src.SourceOffset) => {
+              return ParseError(next, () =>
+                b.error(
+                  `Invalid block parameters syntax: template ended before block params were closed`,
+                  as.start
+                    .until(loc)
+                    .highlight('block params')
+                    .withPrimary({ loc: loc.last(1), label: 'end of template' })
+                )
               );
             },
           };
@@ -468,20 +556,36 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           let loc = state.start.until(this.offset());
 
           if (state.name === 'this' || ID_INVERSE_PATTERN.test(state.name)) {
-            throw generateSyntaxError(
-              `Invalid block parameters syntax: invalid identifier name \`${state.name}\``,
-              loc
-            );
+            this.tokenizer.consume();
+            state = {
+              state: 'ParseError',
+              error: b.error(
+                `Invalid block parameters syntax: invalid identifier name \`${state.name}\``,
+                asNode
+                  .until(this.offset())
+                  .highlight('block params')
+                  .withPrimary(loc.highlight('invalid identifier'))
+              ),
+            };
+          } else {
+            element.params.push(b.var({ name: state.name, loc }));
+            state =
+              next === '|'
+                ? { state: 'AfterEndPipe' }
+                : { state: 'BeforeBlockParamName', offset: this.offset() };
+            this.tokenizer.consume();
           }
-
-          element.params.push(b.var({ name: state.name, loc }));
-
-          state = next === '|' ? { state: 'AfterEndPipe' } : { state: 'BeforeBlockParamName' };
-          this.tokenizer.consume();
         } else if (next === '>' || next === '/') {
-          throw generateSyntaxError(
+          const here = this.offset();
+          const end = here.move(1);
+
+          throw GlimmerSyntaxError.highlight(
             `Invalid block parameters syntax: expecting "|" but the tag was closed prematurely`,
-            as.start.until(this.offset().move(1))
+            {
+              full: element.start.until(end),
+              primary: here.until(end).highlight('unexpected closing tag'),
+              expanded: as.start.until(end).highlight('block params'),
+            }
           );
         } else {
           // slurp up anything else into the name, validate later
@@ -500,17 +604,19 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // encountering mustache or <EOF>, HBS side will attach the error
           // to the next span
           state = { state: 'Done' };
-          this.pendingError = {
-            mustache(loc: src.SourceSpan) {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: modifiers cannot follow parameters list`,
-                loc
+          this.pending = {
+            mustache: (loc: src.SourceSpan) => {
+              throw GlimmerSyntaxError.highlight(
+                `Invalid block parameters syntax: modifiers cannot follow block params`,
+                loc.highlight('invalid modifier').expand(element.paramsStart?.until(this.offset()))
               );
             },
-            eof(loc: src.SourceOffset) {
-              throw generateSyntaxError(
-                `Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list`,
-                as.start.until(loc)
+            eof: (loc: src.SourceOffset) => {
+              return ParseError(next, () =>
+                b.error(
+                  `Template unexpectedly ended before tag was closed`,
+                  loc.last(1).highlight('end of template')
+                )
               );
             },
           };
@@ -518,26 +624,24 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           // Don't consume, let the normal tokenizer code handle the next steps
           state = { state: 'Done' };
         } else {
+          state = { state: 'Done' };
           // Slurp up the next "token" for the error span
-          state = {
-            state: 'Error',
-            message:
-              'Invalid block parameters syntax: expecting the tag to be closed with ">" or "/>" after parameters list',
-            start: this.offset(),
+          this.pending = {
+            attrName: (nameSpan) =>
+              b.error(
+                'Invalid attribute after block params',
+                asNode
+                  .until(nameSpan.getEnd())
+                  .highlight('block params')
+                  .withPrimary(nameSpan.highlight('invalid attribute'))
+              ),
           };
-          this.tokenizer.consume();
         }
       },
 
-      Error: (next: string) => {
-        localAssert(state.state === 'Error', 'bug in block params parser');
-
-        if (next === '' || next === '/' || next === '>' || isSpace(next)) {
-          throw generateSyntaxError(state.message, state.start.until(this.offset()));
-        } else {
-          // Slurp up the next "token" for the error span
-          this.tokenizer.consume();
-        }
+      ParseError: () => {
+        localAssert(state.state === 'ParseError', 'bug in block params parser');
+        element.params.push(state.error);
       },
 
       Done: () => {
@@ -550,7 +654,13 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let next: string;
 
     do {
+      if (state.state === 'ParseError') {
+        element.params.push(state.error);
+        return;
+      }
+
       next = this.tokenizer.peek();
+
       handlers[state.state](next);
     } while (state.state !== 'Done' && next !== '');
 
@@ -558,7 +668,12 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   reportSyntaxError(message: string): void {
-    throw generateSyntaxError(message, this.offset().collapsed());
+    const error = b.error(message, this.offset().next(1).highlight('invalid character'));
+    if (this.currentNode) {
+      addError(this.currentNode, error);
+    } else {
+      this.error = error;
+    }
   }
 
   assembleConcatenatedValue(
@@ -586,14 +701,17 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       // throw an error for those cases.
       throw generateSyntaxError(
         `<${tag.name}> elements do not need end tags. You should remove it`,
-        tag.loc
+        tag.loc.highlight('void element')
       );
     } else if (element.type !== 'ElementNode') {
-      throw generateSyntaxError(`Closing tag </${tag.name}> without an open tag`, tag.loc);
+      throw generateSyntaxError(
+        `Closing tag </${tag.name}> without an open tag`,
+        tag.loc.highlight('closing tag')
+      );
     } else if (element.tag !== tag.name) {
       throw generateSyntaxError(
         `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`,
-        tag.loc
+        tag.loc.highlight('closing tag')
       );
     }
   }
@@ -602,6 +720,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     parts: ASTv1.AttrPart[],
     isQuoted: boolean,
     isDynamic: boolean,
+    valueSpan: src.SourceSpan,
     span: src.SourceSpan
   ): ASTv1.AttrValue {
     if (isDynamic) {
@@ -614,11 +733,15 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         if (a === undefined || (a.type === 'TextNode' && a.chars === '/')) {
           return head;
         } else {
-          throw generateSyntaxError(
-            `An unquoted attribute value must be a string or a mustache, ` +
-              `preceded by whitespace or a '=' character, and ` +
-              `followed by whitespace, a '>' character, or '/>'`,
-            span
+          throw GlimmerSyntaxError.highlight(
+            `Invalid dynamic value in an unquoted attribute`,
+            valueSpan.lastSelectedLine
+              .highlight('missing quotes')
+              .withPrimary(
+                (head.type === 'MustacheStatement' ? head : a).loc.highlight(
+                  'invalid dynamic value'
+                )
+              )
           );
         }
       }
@@ -810,4 +933,10 @@ export function preprocess(
   }
 
   return template;
+}
+
+function addError<T extends { errors?: ASTv1.TokenizerErrors }>(node: T, error: ASTv1.ErrorNode) {
+  node.errors ??= {};
+  const errors = (node.errors.tokenizer ??= []);
+  errors.push(error);
 }

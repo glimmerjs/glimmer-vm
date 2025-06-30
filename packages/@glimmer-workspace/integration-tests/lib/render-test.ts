@@ -32,11 +32,192 @@ import { defineComponent } from './test-helpers/define';
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
 
-export interface IRenderTest {
-  readonly count: Count;
-  testType: ComponentKind;
+export type IBasicTest = {
+  readonly count?: Count;
+  readonly record?: RecordEvents;
   beforeEach?(): void;
   afterEach?(): void;
+};
+
+export interface IRenderTest extends IBasicTest {
+  testType: ComponentKind;
+}
+
+function isSimpleEvent(event: RecordedEvent) {
+  return event.type === 'simple';
+}
+
+function isStringEvent(event: RecordedEvent) {
+  return event.type === 'simple' && !('arg' in event);
+}
+
+interface SimpleEvent {
+  type: 'simple';
+  name: string;
+  arg?: unknown;
+}
+
+type ExpectedEvent =
+  | [name: string, arg?: unknown]
+  | {
+      name: string;
+      equal: unknown;
+    }
+  | {
+      name: string;
+      expected: unknown;
+      actual: unknown;
+    };
+
+function toRecordedEvent(expected: ExpectedEvent): RecordedEvent {
+  if (Array.isArray(expected)) {
+    const event: SimpleEvent = { type: 'simple', name: expected[0] };
+    if (expected.length > 1) {
+      event.arg = expected[1];
+    }
+    return event;
+  } else if ('equal' in expected) {
+    return { type: 'equality', name: expected.name, result: 'equal', value: expected.equal };
+  } else {
+    return {
+      type: 'equality',
+      name: expected.name,
+      result: 'not-equal',
+      expected: expected.expected,
+      actual: expected.actual,
+    };
+  }
+}
+
+type RecordedEvent =
+  | SimpleEvent
+  | {
+      name: string;
+      type: 'equality';
+      result: 'equal';
+      value: unknown;
+    }
+  | {
+      name: string;
+      type: 'equality';
+      result: 'not-equal';
+      expected: unknown;
+      actual: unknown;
+    };
+
+export class RecordEvents {
+  static expectNone(this: void, events: RecordEvents) {
+    events.expectNone('when test is finished');
+  }
+
+  #events: RecordedEvent[] = [];
+
+  equal(name: string, expected: unknown, actual: unknown) {
+    if (Object.is(expected, actual)) {
+      this.#events.push({ name, type: 'simple', arg: 'equal' });
+    } else {
+      this.#events.push({ name, type: 'simple', arg: 'not-equal' });
+    }
+  }
+
+  event(event: string, ...args: [] | [unknown]) {
+    if (args.length === 1) {
+      this.#events.push({ name: event, type: 'simple', arg: args[0] });
+    } else {
+      this.#events.push({ name: event, type: 'simple' });
+    }
+  }
+
+  expectNone(when: string) {
+    if (this.#events.length > 0) {
+      QUnit.assert.pushResult({
+        result: false,
+        actual: this.#events,
+        expected: [],
+        message: `Expected no recorded events (${when})`,
+      });
+    }
+  }
+
+  expect(when: string, ...expected: ExpectedEvent[]) {
+    if (this.#events.length !== expected.length) {
+      QUnit.assert.pushResult({
+        result: false,
+        actual: this.#events,
+        expected,
+        message: `Expected ${expected.length} events (${when})`,
+      });
+      this.#events = [];
+      return;
+    }
+
+    for (let i = 0; i < expected.length; i++) {
+      const expectedEvent = expected[i];
+      const actualEvent = this.#events[i];
+
+      const prefix = `Expected Event #${i + 1} (${when})`;
+
+      this.#equalEvent(actualEvent!, toRecordedEvent(expectedEvent!), prefix);
+    }
+
+    this.#events = [];
+  }
+
+  #equalEvent(actual: RecordedEvent, expected: RecordedEvent, prefix: string) {
+    if (actual.type === 'equality' && expected.type === 'equality') {
+      if (actual.result === 'equal' && expected.result === 'not-equal') {
+        QUnit.assert.pushResult({
+          result: false,
+          actual: { result: 'equal', actual: actual.value },
+          expected: {
+            result: 'not-equal',
+            expected: expected.expected,
+            actual: expected.actual,
+          },
+          message: `${prefix}: Expected inequal`,
+        });
+      } else if (actual.result === 'not-equal' && expected.result === 'equal') {
+        QUnit.assert.pushResult({
+          result: false,
+          actual: { result: 'not-equal', actual: actual.actual, expected: actual.expected },
+          expected: { result: 'equal', value: expected.value },
+          message: `${prefix}: Expected equal values`,
+        });
+      } else if (actual.result === 'equal' && expected.result === 'equal') {
+        this.#equalName(actual, expected, prefix);
+        QUnit.assert.strictEqual(actual.value, expected.value, `${prefix}: same arg`);
+      }
+    } else if (isSimpleEvent(actual) && isSimpleEvent(expected)) {
+      this.#equalSimple(actual, expected, prefix);
+    } else {
+      QUnit.assert.pushResult({
+        result: false,
+        actual: actual,
+        expected: expected,
+        message: `${prefix}: Expected simple event`,
+      });
+    }
+  }
+
+  #equalSimple(actual: SimpleEvent, expected: SimpleEvent, prefix: string) {
+    this.#equalName(actual, expected, prefix);
+    if ((actual.name === expected.name && !isStringEvent(actual)) || !isStringEvent(expected)) {
+      QUnit.assert.strictEqual(
+        actual.arg,
+        expected.arg,
+        `${prefix}: '${actual.name}' expected same arg`
+      );
+    }
+  }
+
+  #equalName(actual: RecordedEvent, expected: RecordedEvent, prefix: string) {
+    const actualName = actual.name;
+    const expectedName = expected.name;
+
+    if ((isStringEvent(actual) && isStringEvent(expected)) || actualName !== expectedName) {
+      QUnit.assert.strictEqual(actualName, expectedName, `${prefix}: expected ${expectedName}`);
+    }
+  }
 }
 
 export class Count {
@@ -50,7 +231,15 @@ export class Count {
   }
 
   assert() {
-    QUnit.assert.deepEqual(this.actual, this.expected, 'TODO');
+    if (Object.keys(this.actual).length === 0 && Object.keys(this.expected).length === 0) {
+      return;
+    }
+
+    QUnit.assert.deepEqual(
+      this.actual,
+      this.expected,
+      `Expected counters: ${Object.keys(this.expected).join(', ')}`
+    );
   }
 }
 
@@ -64,6 +253,7 @@ export class RenderTest implements IRenderTest {
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
   readonly count = new Count();
+  readonly record = new RecordEvents();
 
   constructor(protected delegate: RenderDelegate) {
     this.element = delegate.getInitialElement();

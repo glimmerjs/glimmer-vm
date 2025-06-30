@@ -1,8 +1,8 @@
 import {
+  highlightError,
   jitSuite,
   preprocess,
   RenderTest,
-  syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
 
@@ -13,17 +13,15 @@ class CompileErrorTests extends RenderTest {
   'A helpful error message is provided for unclosed elements'() {
     this.assert.throws(
       () => {
-        preprocess('\n<div class="my-div" \n foo={{bar}}>\n<span>\n</span>\n', {
+        preprocess('\n<div class="my-div"\n foo={{bar}}>\n<span>\n</span>\n', {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor(
-        'Unclosed element `div`',
-        '<div class="my-div" \n foo={{bar}}>',
-        'test-module',
-        2,
-        0
-      )
+      highlightError('Unclosed element `div`')`
+        2 | <div class="my-div"
+          |  ===
+          |   \==== unclosed tag
+      `
     );
 
     this.assert.throws(
@@ -32,7 +30,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor('Unclosed element `span`', '<span>', 'test-module', 3, 0)
+      highlightError('Unclosed element `span`')`
+        3 | <span>
+          |  ====
+          |   \==== unclosed tag
+      `
     );
   }
 
@@ -42,7 +44,11 @@ class CompileErrorTests extends RenderTest {
       () => {
         preprocess('</p>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor('Closing tag </p> without an open tag', '</p>', 'test-module', 1, 0)
+      highlightError('Closing tag </p> without an open tag')`
+        1 | </p>
+          | ====
+          |  \==== closing tag
+      `
     );
 
     this.assert.throws(
@@ -51,7 +57,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor('Closing tag </div> without an open tag', '</div>', 'test-module', 3, 0)
+      highlightError('Closing tag </div> without an open tag')`
+        3 | </div>
+          | ======
+          |  \==== closing tag
+      `
     );
   }
 
@@ -61,39 +71,33 @@ class CompileErrorTests extends RenderTest {
       () => {
         preprocess('<input></input>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        '<input> elements do not need end tags. You should remove it',
-        '</input>',
-        'test-module',
-        1,
-        7
-      )
+      highlightError('<input> elements do not need end tags. You should remove it')`
+        1 | <input></input>
+          |        ========
+          |         \==== void element
+      `
     );
 
     this.assert.throws(
       () => {
         preprocess('<div>\n  <input></input>\n</div>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        '<input> elements do not need end tags. You should remove it',
-        '</input>',
-        'test-module',
-        2,
-        9
-      )
+      highlightError('<input> elements do not need end tags. You should remove it')`
+        2 |   <input></input>
+          |          ========
+          |           \==== void element
+      `
     );
 
     this.assert.throws(
       () => {
         preprocess('\n\n</br>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        '<br> elements do not need end tags. You should remove it',
-        '</br>',
-        'test-module',
-        3,
-        0
-      )
+      highlightError('<br> elements do not need end tags. You should remove it')`
+        3 | </br>
+          | =====
+          |  \==== void element
+      `
     );
   }
 
@@ -103,13 +107,11 @@ class CompileErrorTests extends RenderTest {
       () => {
         preprocess('<div>\nSomething\n\n</div foo="bar">', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Invalid end tag: closing tag must not have attributes',
-        '</div foo="bar"',
-        'test-module',
-        4,
-        0
-      )
+      highlightError('Invalid end tag: closing tag must not have attributes')`
+        4 | </div foo="bar">
+          |       =========
+          |          \==== invalid attribute
+      `
     );
   }
 
@@ -119,13 +121,11 @@ class CompileErrorTests extends RenderTest {
       () => {
         preprocess('<div>\n<p>\nSomething\n\n</div>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Closing tag </div> did not match last open tag <p> (on line 2)',
-        '</div>',
-        'test-module',
-        5,
-        0
-      )
+      highlightError('Closing tag </div> did not match last open tag <p> (on line 2)')`
+        5 | </div>
+          | ======
+          |  \==== closing tag
+      `
     );
   }
 
@@ -137,13 +137,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor(
-        'Closing tag </div> did not match last open tag <p> (on line 2)',
-        '</div>',
-        'test-module',
-        5,
-        0
-      )
+      highlightError('Closing tag </div> did not match last open tag <p> (on line 2)')`
+        5 | </div>
+          | ======
+          |  \==== closing tag
+      `
     );
   }
 
@@ -153,13 +151,11 @@ class CompileErrorTests extends RenderTest {
       () => {
         preprocess('<div>\n<p>\n{{someProp}}\n\n</div>', { meta: { moduleName: 'test-module' } });
       },
-      syntaxErrorFor(
-        'Closing tag </div> did not match last open tag <p> (on line 2)',
-        '</div>',
-        'test-module',
-        5,
-        0
-      )
+      highlightError('Closing tag </div> did not match last open tag <p> (on line 2)')`
+        5 | </div>
+          | ======
+          |  \==== closing tag
+      `
     );
   }
 
@@ -171,13 +167,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor(
-        'Closing tag </div> did not match last open tag <p> (on line 2)',
-        '</div>',
-        'test-module',
-        5,
-        0
-      )
+      highlightError('Closing tag </div> did not match last open tag <p> (on line 2)')`
+        5 | </div>
+          | ======
+          |  \==== closing tag
+      `
     );
   }
 
@@ -189,13 +183,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor(
-        'Closing tag </div> did not match last open tag <p> (on line 2)',
-        '</div>',
-        'test-module',
-        5,
-        0
-      )
+      highlightError('Closing tag </div> did not match last open tag <p> (on line 2)')`
+        5 | </div>{{some-comment}}
+          | ======
+          |  \==== closing tag
+      `
     );
   }
 
@@ -207,13 +199,11 @@ class CompileErrorTests extends RenderTest {
           meta: { moduleName: 'test-module' },
         });
       },
-      syntaxErrorFor(
-        'Closing tag </div> did not match last open tag <p> (on line 2)',
-        '</div>',
-        'test-module',
-        3,
-        16
-      )
+      highlightError('Closing tag </div> did not match last open tag <p> (on line 2)')`
+        3 | {{some-comment}}</div>{{some-comment}}
+          |                 ======
+          |                   \==== closing tag
+      `
     );
   }
 
@@ -221,33 +211,43 @@ class CompileErrorTests extends RenderTest {
   'Unquoted attribute with expression throws an exception'() {
     this.assert.throws(
       () => preprocess('<img class=foo{{bar}}>', { meta: { moduleName: 'test-module' } }),
-      expectedError('class=foo{{bar}}', 1, 5)
+      highlightError(`Invalid dynamic value in an unquoted attribute`)`
+        1 | <img class=foo{{bar}}>
+          |            ---=======
+          |                 \==== invalid dynamic value
+          |              \------- missing quotes
+      `
     );
     this.assert.throws(
       () => preprocess('<img class={{foo}}{{bar}}>', { meta: { moduleName: 'test-module' } }),
-      expectedError('class={{foo}}{{bar}}', 1, 5)
+      highlightError(`Invalid dynamic value in an unquoted attribute`)`
+        1 | <img class={{foo}}{{bar}}>
+          |            =======-------
+          |                 \---- missing quotes
+          |              \======= invalid dynamic value
+      `
     );
     this.assert.throws(
       () => preprocess('<img \nclass={{foo}}bar>', { meta: { moduleName: 'test-module' } }),
-      expectedError('class={{foo}}bar', 2, 0)
+      highlightError('Invalid dynamic value in an unquoted attribute')`
+        2 | class={{foo}}bar>
+          |       =======---
+          |               \--- missing quotes
+          |          \======== invalid dynamic value
+      `
     );
     this.assert.throws(
       () =>
         preprocess('<div \nclass\n=\n{{foo}}&amp;bar ></div>', {
           meta: { moduleName: 'test-module' },
         }),
-      expectedError('class\n=\n{{foo}}&amp;bar', 2, 0)
+      highlightError('Invalid dynamic value in an unquoted attribute')`
+        4 | {{foo}}&amp;bar ></div>
+          | =======--------
+          |           \---- missing quotes
+          |   \======== invalid dynamic value
+      `
     );
-
-    function expectedError(code: string, line: number, column: number) {
-      return syntaxErrorFor(
-        `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`,
-        code,
-        'test-module',
-        line,
-        column
-      );
-    }
   }
 }
 

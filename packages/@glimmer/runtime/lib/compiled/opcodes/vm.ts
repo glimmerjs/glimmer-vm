@@ -11,11 +11,13 @@ import {
   VM_COMPILE_BLOCK_OP,
   VM_CONSTANT_OP,
   VM_CONSTANT_REFERENCE_OP,
-  VM_DUP_OP,
+  VM_DUP_FP_OP,
+  VM_DUP_SP_OP,
   VM_ENTER_OP,
   VM_EXIT_OP,
   VM_FETCH_OP,
   VM_INVOKE_YIELD_OP,
+  VM_JIT_INVOKE_VIRTUAL_OP,
   VM_JUMP_EQ_OP,
   VM_JUMP_IF_OP,
   VM_JUMP_UNLESS_OP,
@@ -25,8 +27,8 @@ import {
   VM_POP_SCOPE_OP,
   VM_PRIMITIVE_OP,
   VM_PRIMITIVE_REFERENCE_OP,
+  VM_PUSH_AND_BIND_DYNAMIC_SCOPE_OP,
   VM_PUSH_BLOCK_SCOPE_OP,
-  VM_PUSH_DYNAMIC_SCOPE_OP,
   VM_PUSH_SYMBOL_TABLE_OP,
   VM_TO_BOOLEAN_OP,
 } from '@glimmer/constants';
@@ -38,7 +40,6 @@ import {
   CheckNullable,
   CheckNumber,
   CheckPrimitive,
-  CheckRegister,
   CheckSyscallRegister,
 } from '@glimmer/debug';
 import { expect, localAssert, unwrap } from '@glimmer/debug-util';
@@ -63,6 +64,7 @@ import {
   validateTag,
   valueForTag,
 } from '@glimmer/validator';
+import { $fp, $sp } from '@glimmer/vm';
 
 import type { UpdatingVM } from '../../vm';
 import type { VM } from '../../vm/append';
@@ -75,7 +77,7 @@ APPEND_OPCODES.add(VM_CHILD_SCOPE_OP, (vm) => vm.pushChildScope());
 
 APPEND_OPCODES.add(VM_POP_SCOPE_OP, (vm) => vm.popScope());
 
-APPEND_OPCODES.add(VM_PUSH_DYNAMIC_SCOPE_OP, (vm) => vm.pushDynamicScope());
+APPEND_OPCODES.add(VM_PUSH_AND_BIND_DYNAMIC_SCOPE_OP, (vm) => vm.pushDynamicScope());
 
 APPEND_OPCODES.add(VM_POP_DYNAMIC_SCOPE_OP, (vm) => vm.popDynamicScope());
 
@@ -120,9 +122,12 @@ APPEND_OPCODES.add(VM_PRIMITIVE_REFERENCE_OP, (vm) => {
   stack.push(ref);
 });
 
-APPEND_OPCODES.add(VM_DUP_OP, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(check(register, CheckRegister)), CheckNumber) - offset;
-  vm.stack.dup(position);
+APPEND_OPCODES.add(VM_DUP_FP_OP, (vm, { op1: offset }) => {
+  vm.stack.dup(vm.fetchValue($fp) - offset);
+});
+
+APPEND_OPCODES.add(VM_DUP_SP_OP, (vm, { op1: offset }) => {
+  vm.stack.dup(vm.fetchValue($sp) - offset);
 });
 
 APPEND_OPCODES.add(VM_POP_OP, (vm, { op1: count }) => {
@@ -138,6 +143,7 @@ APPEND_OPCODES.add(VM_FETCH_OP, (vm, { op1: register }) => {
 });
 
 APPEND_OPCODES.add(VM_BIND_DYNAMIC_SCOPE_OP, (vm, { op1: _names }) => {
+  vm.pushDynamicScope();
   let names = vm.constants.getArray<string>(_names);
   vm.bindDynamicScope(names);
 });
@@ -169,6 +175,11 @@ APPEND_OPCODES.add(VM_COMPILE_BLOCK_OP, (vm: VM) => {
   } else {
     stack.push(null);
   }
+});
+
+APPEND_OPCODES.add(VM_JIT_INVOKE_VIRTUAL_OP, (vm: VM, { op1: _block }) => {
+  let block = vm.compile(vm.constants.getValue(_block));
+  vm.call(block);
 });
 
 APPEND_OPCODES.add(VM_INVOKE_YIELD_OP, (vm) => {

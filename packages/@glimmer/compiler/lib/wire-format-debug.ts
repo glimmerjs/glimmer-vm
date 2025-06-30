@@ -1,6 +1,9 @@
 import type {
   CurriedType,
-  Nullable,
+  HasBlocksFlag,
+  HasNamedArgsFlag,
+  HasPositionalArgsFlag,
+  Optional,
   SerializedInlineBlock,
   SerializedTemplateBlock,
   WireFormat,
@@ -8,17 +11,27 @@ import type {
 import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/constants';
 import { exhausted } from '@glimmer/debug-util';
 import { dict } from '@glimmer/util';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
+import {
+  BLOCKS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_OPCODE,
+  SexpOpcodes as Op,
+} from '@glimmer/wire-format';
 
 import { inflateAttrName, inflateTagName } from './utils';
 
 export default class WireFormatDebugger {
   private upvars: string[];
   private symbols: string[];
+  private lexicalSymbols: string[];
 
-  constructor([_statements, symbols, upvars]: SerializedTemplateBlock) {
+  constructor([_statements, symbols, upvars, lexical = []]: SerializedTemplateBlock) {
     this.upvars = upvars;
     this.symbols = symbols;
+    this.lexicalSymbols = lexical;
   }
 
   format(program: SerializedTemplateBlock): unknown {
@@ -34,19 +47,10 @@ export default class WireFormatDebugger {
   formatOpcode(opcode: WireFormat.Syntax): unknown {
     if (Array.isArray(opcode)) {
       switch (opcode[0]) {
-        case Op.Append:
+        case Op.AppendValueCautiously:
           return ['append', this.formatOpcode(opcode[1])];
-        case Op.TrustingAppend:
+        case Op.AppendTrustedHtml:
           return ['trusting-append', this.formatOpcode(opcode[1])];
-
-        case Op.Block:
-          return [
-            'block',
-            this.formatOpcode(opcode[1]),
-            this.formatParams(opcode[2]),
-            this.formatHash(opcode[3]),
-            this.formatBlocks(opcode[4]),
-          ];
 
         case Op.InElement:
           return [
@@ -124,22 +128,21 @@ export default class WireFormatDebugger {
         case Op.Comment:
           return ['comment', opcode[1]];
 
-        case Op.Modifier:
+        case Op.AppendHtmlText:
+          return ['html-text', opcode[1]];
+
+        case Op.LexicalModifier:
+          return ['{{ <modifier> }}', this.formatLexical(opcode[1]), ...this.formatArgs(opcode[2])];
+
+        case Op.ResolvedModifier:
           return [
-            'modifier',
-            this.formatOpcode(opcode[1]),
-            this.formatParams(opcode[2]),
-            this.formatHash(opcode[3]),
+            '{{ <resolved:modifier> }}',
+            this.formatResolved(opcode[1]),
+            ...this.formatArgs(opcode[2]),
           ];
 
-        case Op.Component:
-          return [
-            'component',
-            this.formatOpcode(opcode[1]),
-            this.formatElementParams(opcode[2]),
-            this.formatHash(opcode[3]),
-            this.formatBlocks(opcode[4]),
-          ];
+        case Op.DynamicModifier:
+          return ['{{ <modifier> }}', this.formatOpcode(opcode[1]), this.formatArgs(opcode[2])];
 
         case Op.HasBlock:
           return ['has-block', this.formatOpcode(opcode[1])];
@@ -152,49 +155,37 @@ export default class WireFormatDebugger {
             'curry',
             this.formatOpcode(opcode[1]),
             this.formatCurryType(opcode[2]),
-            this.formatParams(opcode[3]),
-            this.formatHash(opcode[4]),
+            ...this.formatArgs(opcode[3]),
           ];
 
         case Op.Undefined:
           return ['undefined'];
 
-        case Op.Call:
-          return [
-            'call',
-            this.formatOpcode(opcode[1]),
-            this.formatParams(opcode[2]),
-            this.formatHash(opcode[3]),
-          ];
+        case Op.CallResolved:
+          return ['( <call:resolved> )', this.upvars[opcode[1]], ...this.formatArgs(opcode[2])];
+
+        case Op.CallDynamicValue:
+          return ['( <call> )', this.formatOpcode(opcode[1]), ...this.formatArgs(opcode[2])];
 
         case Op.Concat:
-          return ['concat', this.formatParams(opcode[1] as WireFormat.Core.Params)];
+          return ['concat', ...this.formatParams(opcode[1])];
 
-        case Op.GetStrictKeyword:
+        case Op.GetKeyword:
           return ['get-strict-free', this.upvars[opcode[1]]];
 
-        case Op.GetFreeAsComponentOrHelperHead:
-          return ['GetFreeAsComponentOrHelperHead', this.upvars[opcode[1]], opcode[2]];
+        case Op.GetPath:
+          return ['get-path', this.formatOpcode([opcode[1], opcode[2]]), opcode[3]];
 
-        case Op.GetFreeAsHelperHead:
-          return ['GetFreeAsHelperHead', this.upvars[opcode[1]], opcode[2]];
-
-        case Op.GetFreeAsComponentHead:
-          return ['GetFreeAsComponentHead', this.upvars[opcode[1]], opcode[2]];
-
-        case Op.GetFreeAsModifierHead:
-          return ['GetFreeAsModifierHead', this.upvars[opcode[1]], opcode[2]];
-
-        case Op.GetSymbol: {
+        case Op.GetLocalSymbol: {
           if (opcode[1] === 0) {
-            return ['get-symbol', 'this', opcode[2]];
+            return ['get-symbol', 'this'];
           } else {
-            return ['get-symbol', this.symbols[opcode[1] - 1], opcode[2]];
+            return ['get-symbol', this.symbols[opcode[1] - 1]];
           }
         }
 
         case Op.GetLexicalSymbol: {
-          return ['get-template-symbol', opcode[1], opcode[2]];
+          return ['get-lexical-symbol', opcode[1]];
         }
 
         case Op.If:
@@ -232,14 +223,74 @@ export default class WireFormatDebugger {
         case Op.GetDynamicVar:
           return ['-get-dynamic-vars', this.formatOpcode(opcode[1])];
 
-        case Op.InvokeComponent:
+        case Op.InvokeLexicalComponent:
+          return ['component', this.formatLexical(opcode[1]), this.formatComponentArgs(opcode[2])];
+
+        case Op.InvokeComponentKeyword:
           return [
-            'component',
+            '{{component ...}}',
             this.formatOpcode(opcode[1]),
-            this.formatParams(opcode[2]),
-            this.formatHash(opcode[3]),
-            this.formatBlocks(opcode[4]),
+            this.formatBlockArgs(opcode[2]),
           ];
+
+        case Op.InvokeDynamicBlock: {
+          const [, path, args] = opcode;
+          return ['{{# <block> }}', this.formatOpcode(path), this.formatBlockArgs(args)];
+        }
+
+        case Op.InvokeDynamicComponent:
+        case Op.InvokeResolvedComponent: {
+          const [op, path, args] = opcode;
+          return [
+            op === Op.InvokeResolvedComponent ? '< {component:resolved} >' : '< {component} >',
+            this.formatOpcode(path),
+            this.formatComponentArgs(args),
+          ];
+        }
+
+        case Op.AppendResolvedInvokableCautiously: {
+          const [, callee, args] = opcode;
+          return ['{{ <invoke> }}', this.formatResolved(callee), ...this.formatArgs(args)];
+        }
+
+        case Op.AppendTrustedResolvedInvokable: {
+          const [, callee, args] = opcode;
+          return [
+            '{{{ <invoke:resolved> }}}',
+            this.formatResolved(callee),
+            ...this.formatArgs(args),
+          ];
+        }
+
+        case Op.AppendStatic:
+          return ['append:static', this.formatOpcode(opcode[1])];
+
+        case Op.AppendInvokableCautiously:
+          return ['{{ <invoke> }}', this.formatOpcode(opcode[1]), ...this.formatArgs(opcode[2])];
+
+        case Op.AppendResolvedValueCautiously:
+          return ['{{ <append:resolved> }}', this.formatResolved(opcode[1])];
+
+        case Op.AppendTrustedInvokable:
+          return ['{{{ <invoke> }}}', this.formatOpcode(opcode[1]), ...this.formatArgs(opcode[2])];
+
+        case Op.AppendTrustedResolvedHtml:
+          return ['{{{ <append:resolved> }}}', this.formatResolved(opcode[1])];
+
+        case Op.ResolveAsCurlyCallee:
+          return [`{{ <resolve:curly> }}`, this.formatOpcode(opcode[1])];
+
+        case Op.ResolveAsModifierCallee:
+          return [`{{ <resolve:modifier> }}`, this.formatOpcode(opcode[1])];
+
+        case Op.ResolveAsHelperCallee:
+          return [`( <resolve:helper> )`, this.formatOpcode(opcode[1])];
+
+        case Op.ResolveAsComponentCallee:
+          return [`< resolve:component >`, this.formatOpcode(opcode[1])]
+
+        default:
+          exhausted(opcode);
       }
     } else {
       return opcode;
@@ -259,20 +310,108 @@ export default class WireFormatDebugger {
     }
   }
 
+  private formatLexical(symbol: number) {
+    return `^${this.lexicalSymbols[symbol]}`;
+  }
+
+  private formatResolved(symbol: number) {
+    return this.upvars[symbol];
+  }
+
   private formatElementParams(
-    opcodes: Nullable<WireFormat.ElementParameter[]>
-  ): Nullable<unknown[]> {
-    if (opcodes === null) return null;
+    opcodes: Optional<WireFormat.Core.Splattributes>
+  ): Optional<unknown[]> {
+    if (!opcodes) return;
     return opcodes.map((o) => this.formatOpcode(o));
   }
 
-  private formatParams(opcodes: Nullable<WireFormat.Expression[]>): Nullable<unknown[]> {
-    if (opcodes === null) return null;
+  private formatArgsToArray(args: Optional<WireFormat.Core.CallArgs | WireFormat.Core.BlockArgs>) {
+    const positional = args && hasPositional(args) ? getPositional(args) : undefined;
+    const named = args && hasNamed(args) ? getNamed(args) : undefined;
+
+    if (positional && named) {
+      return [...this.formatParams(positional), this.formatHash(named)];
+    } else if (positional) {
+      return this.formatParams(positional);
+    } else if (named) {
+      return [this.formatHash(named)];
+    } else {
+      return [];
+    }
+  }
+
+  private formatArgs(args: Optional<WireFormat.Core.CallArgs>): unknown[] {
+    if (!args) return [];
+
+    const formatted = [];
+
+    if (hasPositional(args)) {
+      formatted.push(...this.formatParams(getPositional(args)));
+    }
+
+    if (hasNamed(args)) {
+      formatted.push(this.formatHash(getNamed(args)));
+    }
+
+    return formatted;
+  }
+
+  private formatComponentArgs(args: Optional<WireFormat.Core.BlockArgs>) {
+    if (!args) return;
+
+    const formatted: { splattributes?: object; args?: unknown[]; blocks?: object } = {};
+
+    const blocks = hasBlocks(args) ? getBlocks(args) : undefined;
+
+    if (blocks) {
+      const attrs = blocks[0].findIndex((name) => name === 'attrs');
+
+      if (attrs > -1) {
+        const splattributes = blocks[1][attrs] as SerializedInlineBlock;
+        formatted.splattributes = this.formatBlock(splattributes);
+        blocks[0].splice(attrs, 1);
+        blocks[1].splice(attrs, 1);
+      }
+    }
+
+    const argList = this.formatArgsToArray(args);
+
+    if (argList.length > 0) {
+      formatted.args = argList;
+    }
+
+    if (blocks) {
+      formatted.blocks = this.formatBlocks(blocks);
+    }
+
+    return formatted;
+  }
+
+  private formatBlockArgs(args: Optional<WireFormat.Core.BlockArgs>) {
+    if (!args) return;
+
+    const formatted: unknown[] = [];
+
+    formatted.push(...this.formatArgsToArray(args));
+
+    if (hasBlocks(args)) {
+      formatted.push(this.formatBlocks(getBlocks(args)));
+    }
+
+    return formatted;
+  }
+
+  private formatParams(opcodes: WireFormat.Core.Params): unknown[];
+  private formatParams(opcodes: Optional<WireFormat.Core.Params>): Optional<unknown[]>;
+  private formatParams(opcodes: Optional<WireFormat.Core.Params>): Optional<unknown[]> {
+    if (!opcodes) return [];
     return opcodes.map((o) => this.formatOpcode(o));
   }
 
-  private formatHash(hash: WireFormat.Core.Hash): Nullable<object> {
-    if (hash === null) return null;
+  private formatHash(hash: WireFormat.Core.Hash): object;
+  private formatHash(hash: Optional<WireFormat.Core.Hash>): Optional<object>;
+  private formatHash(hash: Optional<WireFormat.Core.Hash>): Optional<object> {
+    if (!hash) return;
 
     return hash[0].reduce((accum, key, index) => {
       accum[key] = this.formatOpcode(hash[1][index]);
@@ -280,8 +419,10 @@ export default class WireFormatDebugger {
     }, dict());
   }
 
-  private formatBlocks(blocks: WireFormat.Core.Blocks): Nullable<object> {
-    if (blocks === null) return null;
+  private formatBlocks(blocks: WireFormat.Core.Blocks): object;
+  private formatBlocks(blocks: Optional<WireFormat.Core.Blocks>): Optional<object>;
+  private formatBlocks(blocks: Optional<WireFormat.Core.Blocks>): Optional<object> {
+    if (!blocks) return;
 
     return blocks[0].reduce((accum, key, index) => {
       accum[key] = this.formatBlock(blocks[1][index] as SerializedInlineBlock);
@@ -290,9 +431,55 @@ export default class WireFormatDebugger {
   }
 
   private formatBlock(block: SerializedInlineBlock): object {
-    return {
-      statements: block[0].map((s) => this.formatOpcode(s)),
-      parameters: block[1],
-    };
+    const [statements, parameters] = block;
+
+    if (parameters.length === 0) {
+      return statements.map((s) => this.formatOpcode(s));
+    } else {
+      return [{ as: parameters }, statements.map((s) => this.formatOpcode(s))];
+    }
   }
 }
+
+const hasPositional = <T extends WireFormat.Core.SomeArgs>(
+  args: T
+): args is T & WireFormat.Core.HasPositionalArgs =>
+  !!(args[0] & (0b100 satisfies HasPositionalArgsFlag));
+
+export const getPositional = (args: WireFormat.Core.HasPositionalArgs): WireFormat.Core.Params =>
+  args[1];
+
+export const hasNamed = <T extends WireFormat.Core.SomeArgs>(
+  args: T
+): args is T & WireFormat.Core.HasNamedArgs => !!(args[0] & (0b010 satisfies HasNamedArgsFlag));
+
+export const getNamed = (args: WireFormat.Core.HasNamedArgs): WireFormat.Core.Hash => {
+  switch (args[0]) {
+    case NAMED_ARGS_OPCODE:
+    case NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[1];
+    case POSITIONAL_AND_NAMED_ARGS_OPCODE:
+    case POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[2];
+    default:
+      exhausted(args);
+  }
+};
+
+export const hasBlocks = <T extends WireFormat.Core.BlockArgs>(
+  args: T
+): args is T & WireFormat.Core.HasBlocks => !!(args[0] & (0b001 satisfies HasBlocksFlag));
+
+export const getBlocks = (args: WireFormat.Core.HasBlocks): WireFormat.Core.Blocks => {
+  switch (args[0]) {
+    case BLOCKS_OPCODE:
+      return args[1];
+    case POSITIONAL_AND_BLOCKS_OPCODE:
+    case NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[2];
+    case POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[3];
+    default:
+      exhausted(args);
+  }
+};

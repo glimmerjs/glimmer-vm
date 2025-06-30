@@ -99,14 +99,14 @@ export function getTemplateLocals(
 
   traverse(ast, {
     Block: {
-      enter({ blockParams }) {
-        blockParams.forEach((param) => {
-          scopedTokens.push(param);
+      enter({ params }) {
+        params.forEach((param) => {
+          scopedTokens.push(param.name);
         });
       },
 
-      exit({ blockParams }) {
-        blockParams.forEach(() => {
+      exit({ params }) {
+        params.forEach(() => {
           scopedTokens.pop();
         });
       },
@@ -114,16 +114,20 @@ export function getTemplateLocals(
 
     ElementNode: {
       enter(node) {
-        node.blockParams.forEach((param) => {
-          scopedTokens.push(param);
-        });
+        if (Array.isArray(node.params)) {
+          node.params.forEach((param) => {
+            scopedTokens.push(param.name);
+          });
+        }
         addTokens(tokensSet, node, scopedTokens, options);
       },
 
-      exit({ blockParams }) {
-        blockParams.forEach(() => {
-          scopedTokens.pop();
-        });
+      exit({ params }) {
+        if (Array.isArray(params)) {
+          params.forEach(() => {
+            scopedTokens.pop();
+          });
+        }
       },
     },
 

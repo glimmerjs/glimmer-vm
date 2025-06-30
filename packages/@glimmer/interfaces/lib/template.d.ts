@@ -74,7 +74,7 @@ export type CompilerBuffer = Array<Operand>;
 export interface ResolvedLayout {
   handle: number;
   capabilities: InternalComponentCapabilities;
-  compilable: Nullable<CompilableProgram>;
+  layout: Nullable<CompilableProgram>;
 }
 
 export type OkHandle = number;
@@ -85,13 +85,30 @@ export interface ErrHandle {
 
 export type HandleResult = OkHandle | ErrHandle;
 
-export interface NamedBlocks {
+export interface AbstractNamedBlocks {
+  readonly hasAny: boolean;
+  readonly names: string[];
   get(name: string): Nullable<SerializedInlineBlock>;
   has(name: string): boolean;
-  with(name: string, block: Nullable<SerializedInlineBlock>): NamedBlocks;
-  hasAny: boolean;
-  names: string[];
+  with(name: string, block: Optional<SerializedInlineBlock>): NamedBlocks;
+  remove(name: string): [Optional<SerializedInlineBlock>, NamedBlocks];
 }
+
+export interface EmptyNamedBlocks extends AbstractNamedBlocks {
+  readonly hasAny: false;
+  readonly names: [];
+  with(name: string, block: Optional<SerializedInlineBlock>): PresentNamedBlocks;
+  remove(name: string): [undefined, EmptyNamedBlocks];
+}
+
+export interface PresentNamedBlocks extends AbstractNamedBlocks {
+  readonly hasAny: true;
+  readonly names: PresentArray<string>;
+  with(name: string, block: Optional<SerializedInlineBlock>): PresentNamedBlocks;
+  remove(name: string): [Optional<SerializedInlineBlock>, NamedBlocks];
+}
+
+export type NamedBlocks = EmptyNamedBlocks | PresentNamedBlocks;
 
 export interface CompilerArtifacts {
   heap: SerializedHeap;
@@ -99,8 +116,9 @@ export interface CompilerArtifacts {
 }
 
 export interface CompilableTemplate<S extends SymbolTable = SymbolTable> {
-  symbolTable: S;
-  meta: BlockMetadata;
+  readonly symbolTable: S;
+  readonly meta: BlockMetadata;
+  readonly compiled: Nullable<HandleResult>;
   compile(context: EvaluationContext): HandleResult;
 }
 

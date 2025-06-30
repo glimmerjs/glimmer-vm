@@ -1,27 +1,23 @@
 import type {
   BlockMetadata,
-  BuilderOp,
   CompilableProgram,
   EvaluationContext,
   HandleResult,
-  HighLevelOp,
   LayoutWithContext,
   Nullable,
   ProgramSymbolTable,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 
-import type { HighLevelStatementOp } from './syntax/compilers';
-
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
-import { encodeOp } from './opcode-builder/encoder';
+import { EncodeOp } from './opcode-builder/encoder';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { meta } from './opcode-builder/helpers/shared';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
-  private compiled: Nullable<number> = null;
+  public compiled: Nullable<HandleResult> = null;
   private attrsBlockNumber: number;
   readonly meta: BlockMetadata;
 
@@ -57,11 +53,9 @@ export class WrappedBuilder implements CompilableProgram {
 
     let { encoder, evaluation } = context;
 
-    function pushOp(...op: BuilderOp | HighLevelOp | HighLevelStatementOp) {
-      encodeOp(encoder, evaluation, m, op as BuilderOp | HighLevelOp);
-    }
+    const encode = new EncodeOp(encoder, evaluation, m);
 
-    WrappedComponent(pushOp, this.layout, this.attrsBlockNumber);
+    WrappedComponent(encode, this.layout, this.attrsBlockNumber);
 
     let handle = context.encoder.commit(m.size);
 
