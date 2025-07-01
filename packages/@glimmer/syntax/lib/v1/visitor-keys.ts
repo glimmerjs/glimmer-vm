@@ -32,6 +32,7 @@ const visitorKeys = {
 type VisitorKeysMap = typeof visitorKeys;
 
 export type VisitorKeys = { [P in keyof VisitorKeysMap]: VisitorKeysMap[P][number] };
-export type VisitorKey<N extends ASTv1.Node> = VisitorKeys[N['type']] & keyof N;
+export type VisitableNode = Extract<ASTv1.Node, { type: keyof VisitorKeys }>;
+export type VisitorKey<N extends VisitableNode> = keyof N & VisitorKeys[N['type']];
 
 export default visitorKeys;

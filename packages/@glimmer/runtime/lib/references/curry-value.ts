@@ -10,10 +10,9 @@ import type {
 import type { Reference } from '@glimmer/reference';
 import { CURRIED_COMPONENT } from '@glimmer/constants';
 import { expect } from '@glimmer/debug-util';
+import { curry, isCurriedType } from '@glimmer/program';
 import { createComputeRef, valueForRef } from '@glimmer/reference';
 import { isIndexable } from '@glimmer/util';
-
-import { curry, isCurriedType } from '../curried-value';
 
 export default function createCurryRef(
   type: CurriedType,
@@ -21,7 +20,7 @@ export default function createCurryRef(
   owner: Owner,
   args: Nullable<CapturedArguments>,
   resolver: Nullable<ClassicResolver>,
-  isStrict: boolean
+  isStringAllowed: boolean
 ) {
   let lastValue: Maybe<Dict> | string, curriedDefinition: object | string | null;
 
@@ -39,9 +38,9 @@ export default function createCurryRef(
       // support string based resolution
 
       if (import.meta.env.DEV) {
-        if (isStrict) {
+        if (!isStringAllowed) {
           throw new Error(
-            `Attempted to resolve a dynamic component with a string definition, \`${value}\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
+            `Attempted to resolve a dynamic component with a string definition, \`"${value}"\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
           );
         }
 

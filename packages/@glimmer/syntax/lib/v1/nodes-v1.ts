@@ -1,6 +1,7 @@
-import type { Nullable, PresentArray } from '@glimmer/interfaces';
+import type { Nullable, Optional, PresentArray } from '@glimmer/interfaces';
 
 import type * as src from '../source/api';
+import type * as Validation from '../validation-context/validation-context';
 
 export interface BaseNode {
   // Every leaf interface that extends BaseNode must specify a type property.
@@ -14,6 +15,11 @@ export interface CommonProgram extends BaseNode {
   body: Statement[];
 }
 
+export interface BlockParams extends BaseNode {
+  type: 'BlockParams';
+  names: ParseResults<VarHead>;
+}
+
 export interface Block extends CommonProgram {
   type: 'Block';
   params: VarHead[];
@@ -21,8 +27,12 @@ export interface Block extends CommonProgram {
 
   /**
    * string accessor for params.name
+   *
+   * @deprecated use params instead
    */
   blockParams: string[];
+
+  paramsNode: BlockParams;
 }
 
 export type EntityEncodingState = 'transformed' | 'raw';
@@ -30,6 +40,7 @@ export type EntityEncodingState = 'transformed' | 'raw';
 export interface Template extends CommonProgram {
   type: 'Template';
   blockParams: string[];
+  error?: Optional<{ eof: ErrorNode }>;
 }
 
 /**
@@ -37,7 +48,7 @@ export interface Template extends CommonProgram {
  */
 export type Program = Template | Block;
 
-export type CallableExpression = SubExpression | PathExpression;
+export type CallableExpression = SubExpression | ParseResult<PathExpression>;
 
 export interface CallParts {
   path: CallableExpression;
@@ -68,7 +79,7 @@ export interface MustacheStatement extends BaseNode {
 
 export interface BlockStatement extends BaseNode {
   type: 'BlockStatement';
-  path: CallableExpression;
+  path: ParseResult<PathExpression>;
   params: Expression[];
   hash: Hash;
   program: Block;
@@ -91,6 +102,7 @@ export interface ElementModifierStatement extends BaseNode {
 export interface CommentStatement extends BaseNode {
   type: 'CommentStatement';
   value: string;
+  errors?: TokenizerErrors;
 }
 
 export interface MustacheCommentStatement extends BaseNode {
@@ -103,6 +115,7 @@ export interface ElementNode extends BaseNode {
   path: PathExpression;
   selfClosing: boolean;
   attributes: AttrNode[];
+  errors?: AttachedErrors<'tokenizer' | 'eof'>;
   params: VarHead[];
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
@@ -125,8 +138,13 @@ export interface ElementNode extends BaseNode {
 
   /**
    * string accessor for params.name
+   *
+   * @deprecated use params instead, which has a node with location for each param and propagates
+   * errors properly
    */
   blockParams: string[];
+
+  paramsNode: BlockParams;
 }
 
 export type StatementName =
@@ -135,7 +153,8 @@ export type StatementName =
   | 'BlockStatement'
   | 'MustacheCommentStatement'
   | 'TextNode'
-  | 'ElementNode';
+  | 'ElementNode'
+  | 'Error';
 
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
@@ -149,6 +168,7 @@ export type AttrPart = TextNode | MustacheStatement;
 export interface TextNode extends BaseNode {
   type: 'TextNode';
   chars: string;
+  errors?: TokenizerErrors;
 }
 
 export interface ConcatStatement extends BaseNode {
@@ -156,7 +176,7 @@ export interface ConcatStatement extends BaseNode {
   parts: PresentArray<TextNode | MustacheStatement>;
 }
 
-export type ExpressionName = 'SubExpression' | 'PathExpression' | LiteralName;
+export type ExpressionName = 'SubExpression' | 'PathExpression' | 'Error' | LiteralName;
 
 export interface SubExpression extends BaseNode {
   type: 'SubExpression';
@@ -282,6 +302,10 @@ export interface Hash extends BaseNode {
   pairs: HashPair[];
 }
 
+export type PresentHash = Hash & {
+  pairs: PresentArray<HashPair>;
+};
+
 export interface HashPair extends BaseNode {
   type: 'HashPair';
   key: string;
@@ -292,6 +316,22 @@ export interface StripFlags {
   open: boolean;
   close: boolean;
 }
+
+export type AttachedErrors<Name extends string> = Optional<{
+  [N in Name]?: ErrorNode[];
+}>;
+
+export type TokenizerErrors = AttachedErrors<'tokenizer'>;
+
+export interface ErrorNode extends BaseNode {
+  type: 'Error';
+  message: string;
+  highlight: Validation.Highlight;
+  notes?: string[];
+}
+
+export type ParseResult<T> = T | ErrorNode;
+export type ParseResults<T> = (T | ErrorNode)[] | ErrorNode;
 
 export type Nodes = {
   Template: Template;
@@ -316,8 +356,10 @@ export type Nodes = {
   NullLiteral: NullLiteral;
   UndefinedLiteral: UndefinedLiteral;
 
+  BlockParams: BlockParams;
   Hash: Hash;
   HashPair: HashPair;
+  Error: ErrorNode;
 };
 
 export type NodeType = keyof Nodes;

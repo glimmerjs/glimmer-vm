@@ -54,15 +54,22 @@ import type {
   ComponentDefinitionState,
   ComponentInstanceState,
 } from './components.js';
-import type { Nullable } from './core.js';
 import type { InternalComponentManager } from './managers.js';
 import type { CompilableProgram, Template } from './template.js';
 
-export interface CompileTimeComponent {
+export interface LateBoundCompileTimeComponent {
   handle: number;
   capabilities: CapabilityMask;
-  compilable: Nullable<CompilableProgram>;
+  layout: null;
 }
+
+export interface EarlyBoundCompileTimeComponent {
+  handle: number;
+  capabilities: CapabilityMask;
+  layout: CompilableProgram;
+}
+
+export type CompileTimeComponent = EarlyBoundCompileTimeComponent | LateBoundCompileTimeComponent;
 
 export interface ResolvedComponentDefinition<
   D = ComponentDefinitionState,

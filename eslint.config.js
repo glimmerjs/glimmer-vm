@@ -110,6 +110,7 @@ export default config(
     },
     rules: {
       'n/no-process-exit': 'off',
+      'n/hashbang': 'off',
     },
   },
   jsons

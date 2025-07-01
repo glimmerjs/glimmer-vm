@@ -17,7 +17,6 @@ export {
   templateOnlyComponent,
   TemplateOnlyComponentManager,
 } from './lib/component/template-only';
-export { CurriedValue, curry } from './lib/curried-value';
 export {
   DOMChanges,
   DOMTreeConstruction,
@@ -69,6 +68,7 @@ export {
   rehydrationBuilder,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/vm/rehydrate-builder';
+export { CurriedValue, curry } from '@glimmer/program';
 
 // Currently we need to re-export these values for @glimmer/component
 // https://github.com/glimmerjs/glimmer.js/issues/319

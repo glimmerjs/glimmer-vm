@@ -96,22 +96,31 @@ export function tsconfig(updates) {
 }
 
 /**
- * @param {PackageInfo} pkg
  * @param {'dev' | 'prod'} env
  * @returns {RollupPlugin}
  */
-export function typescript(pkg, env) {
+export function typescript(env) {
   if (!env) {
     throw new Error('env is required');
   }
 
   return rollupSWC({
     swc: {
+      sourceMaps: false,
+      minify: false,
       jsc: {
         parser: {
           syntax: 'typescript',
+          // decorators: true,
         },
         target: 'es2022',
+        experimental: {
+          disableAllLints: true,
+          // emitIsolatedDts: true,
+        },
+        transform: {
+          // legacyDecorator: true,
+        },
       },
     },
   });
@@ -420,7 +429,7 @@ export class Package {
                     }),
                   ]),
               postcss(),
-              typescript(this.#package, env),
+              typescript(env),
               // Strip debug calls in all builds - they're only for local development
               stripGlimmerDebug(),
             ],
@@ -455,10 +464,7 @@ export class Package {
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
                     strict: true,
-                    types: [
-                      '@glimmer-workspace/env',
-                      ...(this.#package.devDependencies['@types/node'] ? ['node'] : []),
-                    ],
+                    types: [...(this.#package.devDependencies['@types/node'] ? ['node'] : [])],
                   },
                 }),
               ],

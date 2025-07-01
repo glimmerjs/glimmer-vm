@@ -1,13 +1,25 @@
+import type { Optional } from '@glimmer/interfaces';
+
 import type { SourceSlice } from '../../source/slice';
+import type { SourceSpan } from '../../source/span';
 import type { SymbolTable } from '../../symbol-table';
-import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
-import type { CallFields } from './base';
-import type { ExpressionNode } from './expr';
+import type * as ASTv1 from '../../v1/api';
+import type { ComponentArgs, CurlyArgs, ResolvedName, UnresolvedBinding } from './args';
+import type {
+  ComponentArg,
+  ElementModifier,
+  HtmlOrSplatAttr,
+  ResolvedElementModifier,
+  SomeElementModifier,
+} from './attr-block';
+import type { DynamicCallee } from './base';
+import type { KeywordExpression, LiteralExpression, PathExpression } from './expr';
 import type { NamedBlock, NamedBlocks } from './internal-node';
 import type { BaseNodeFields } from './node';
+import type { VariableReference } from './refs';
 
 import { SpanList } from '../../source/span-list';
-import { Args, NamedArguments } from './args';
+import { ComponentNamedArguments, EmptyComponentArgs } from './args';
 import { node } from './node';
 
 /**
@@ -20,47 +32,104 @@ export type ContentNode =
   | HtmlText
   | HtmlComment
   | AppendContent
+  | AppendResolvedContent
+  | AppendStaticContent
+  | AppendResolvedInvokable
+  | AppendInvokable
   | InvokeBlock
-  | InvokeComponent
-  | SimpleElement
-  | GlimmerComment;
+  | InvokeResolvedBlock
+  | InvokeAngleBracketComponent
+  | InvokeResolvedAngleBracketComponent
+  | SimpleElementNode
+  | GlimmerComment
+  | ASTv1.ErrorNode;
 
 export class GlimmerComment extends node('GlimmerComment').fields<{ text: SourceSlice }>() {}
 export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
 export class HtmlComment extends node('HtmlComment').fields<{ text: SourceSlice }>() {}
 
+export class AppendStaticContent extends node('AppendStaticContent').fields<{
+  value: LiteralExpression;
+}>() {}
+
+export class AppendResolvedInvokable extends node('AppendResolvedInvokable').fields<{
+  resolved: ResolvedName | UnresolvedBinding;
+  trusting: boolean;
+  args: CurlyArgs;
+}>() {
+  readonly isResolved = true;
+}
+
+export class AppendInvokable extends node('AppendInvokable').fields<{
+  callee: DynamicCallee;
+  trusting: boolean;
+  args: CurlyArgs;
+}>() {
+  readonly isResolved = false;
+}
+
+export class AppendResolvedContent extends node('AppendResolvedContent').fields<{
+  resolved: ResolvedName | UnresolvedBinding;
+  trusting: boolean;
+}>() {
+  readonly isResolved = true;
+}
+
 export class AppendContent extends node('AppendContent').fields<{
-  value: ExpressionNode;
+  value: DynamicCallee | UnresolvedBinding;
   trusting: boolean;
   table: SymbolTable;
 }>() {
-  get callee(): ExpressionNode {
-    if (this.value.type === 'Call') {
-      return this.value.callee;
-    } else {
-      return this.value;
-    }
+  readonly isResolved = false;
+}
+
+export type BlockCallee =
+  | KeywordExpression
+  | PathExpression
+  | VariableReference
+  | ASTv1.ErrorNode
+  | UnresolvedBinding;
+
+export class InvokeBlock extends node('InvokeBlock').fields<{
+  callee: BlockCallee;
+  args: CurlyArgs;
+  blocks: NamedBlocks;
+}>() {
+  get isResolved(): boolean {
+    return this.callee.type === 'UnresolvedBinding';
   }
 
-  get args(): Args {
-    if (this.value.type === 'Call') {
-      return this.value.args;
-    } else {
-      return Args.empty(this.value.loc.collapse('end'));
+  get resolved(): Optional<ResolvedName | UnresolvedBinding> {
+    if (this.callee.type === 'UnresolvedBinding') {
+      return this.callee;
     }
   }
 }
 
-export class InvokeBlock extends node('InvokeBlock').fields<
-  CallFields & { blocks: NamedBlocks }
->() {}
+export class InvokeResolvedBlock extends node('InvokeResolvedBlock').fields<{
+  resolved: ResolvedName;
+  args: CurlyArgs;
+  blocks: NamedBlocks;
+}>() {
+  readonly isResolved = true;
+}
 
-interface InvokeComponentFields {
-  callee: ExpressionNode;
+export type InvokeSomeBlock = InvokeBlock | InvokeResolvedBlock;
+
+interface BaseInvokeComponentFields {
   blocks: NamedBlocks;
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
-  modifiers: readonly ElementModifier[];
+  modifiers: readonly SomeElementModifier[];
+  error?: Optional<ASTv1.ErrorNode>;
+}
+
+interface InvokeComponentFields extends BaseInvokeComponentFields {
+  callee: PathExpression;
+}
+
+interface InvokeResolvedComponentFields extends BaseInvokeComponentFields {
+  callee: ResolvedName;
 }
 
 /**
@@ -68,17 +137,35 @@ interface InvokeComponentFields {
  * named blocks, `blocks` contains a single named block named `"default"`. When a component
  * invocation is self-closing, `blocks` is empty.
  */
-export class InvokeComponent extends node('InvokeComponent').fields<InvokeComponentFields>() {
-  get args(): Args {
-    let entries = this.componentArgs.map((a) => a.toNamedArgument());
-
-    return Args.named(
-      new NamedArguments({
-        loc: SpanList.range(entries, this.callee.loc.collapse('end')),
-        entries,
-      })
-    );
+export class InvokeAngleBracketComponent extends node(
+  'InvokeAngleBracketComponent'
+).fields<InvokeComponentFields>() {
+  get args(): ComponentArgs {
+    return getComponentArgs(this.componentArgs, this.callee.loc);
   }
+}
+
+export class InvokeResolvedAngleBracketComponent extends node(
+  'InvokeResolvedAngleBracketComponent'
+).fields<InvokeResolvedComponentFields>() {
+  get args(): ComponentArgs {
+    return getComponentArgs(this.componentArgs, this.callee.loc);
+  }
+}
+
+export type InvokeSomeAngleBracketComponent =
+  | InvokeAngleBracketComponent
+  | InvokeResolvedAngleBracketComponent;
+
+function getComponentArgs(
+  componentArgs: readonly ComponentArg[],
+  calleeSpan: SourceSpan
+): ComponentArgs {
+  let entries = componentArgs as ComponentArg[]; // cast to non-readonly
+
+  return EmptyComponentArgs(
+    ComponentNamedArguments(SpanList.range(entries, calleeSpan.collapse('end')), entries)
+  );
 }
 
 interface SimpleElementOptions extends BaseNodeFields {
@@ -86,24 +173,25 @@ interface SimpleElementOptions extends BaseNodeFields {
   body: readonly ContentNode[];
   attrs: readonly HtmlOrSplatAttr[];
   componentArgs: readonly ComponentArg[];
-  modifiers: readonly ElementModifier[];
+  modifiers: readonly (ElementModifier | ResolvedElementModifier)[];
 }
 
 /**
  * Corresponds to a simple HTML element. The AST allows component arguments and modifiers to support
  * future extensions.
  */
-export class SimpleElement extends node('SimpleElement').fields<SimpleElementOptions>() {
-  get args(): Args {
-    let entries = this.componentArgs.map((a) => a.toNamedArgument());
+export class SimpleElementNode extends node('SimpleElement').fields<SimpleElementOptions>() {
+  get args(): ComponentArgs {
+    let entries = this.componentArgs as ComponentArg[]; // cast to non-readonly
 
-    return Args.named(
-      new NamedArguments({
-        loc: SpanList.range(entries, this.tag.loc.collapse('end')),
-        entries,
-      })
+    return EmptyComponentArgs(
+      ComponentNamedArguments(SpanList.range(entries, this.tag.loc.collapse('end')), entries)
     );
   }
 }
 
-export type ElementNode = NamedBlock | InvokeComponent | SimpleElement;
+export type ElementNode =
+  | NamedBlock
+  | InvokeAngleBracketComponent
+  | InvokeResolvedAngleBracketComponent
+  | SimpleElementNode;

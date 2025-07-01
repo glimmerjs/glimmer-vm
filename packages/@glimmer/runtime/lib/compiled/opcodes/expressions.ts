@@ -40,6 +40,7 @@ import { debugToString, localAssert } from '@glimmer/debug-util';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { debugAssert, toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
+import { isCurriedType, resolveCurriedValue } from '@glimmer/program';
 import {
   childRefFor,
   createComputeRef,
@@ -51,7 +52,6 @@ import {
 import { assign, isIndexable } from '@glimmer/util';
 import { $v0 } from '@glimmer/vm';
 
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
 import { reifyPositional } from '../../vm/arguments';
@@ -67,7 +67,7 @@ import {
   CheckUndefinedReference,
 } from './-debug-strip';
 
-APPEND_OPCODES.add(VM_CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
+APPEND_OPCODES.add(VM_CURRY_OP, (vm, { op1: type, op2: _isStringAllowed }) => {
   let stack = vm.stack;
 
   let definition = check(stack.pop(), CheckReference);
@@ -76,23 +76,25 @@ APPEND_OPCODES.add(VM_CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
   let owner = vm.getOwner();
   let resolver = vm.context.resolver;
 
-  let isStrict = false;
+  let isStringAllowed = false;
 
   if (import.meta.env.DEV) {
     // strict check only happens in import.meta.env.DEV builds, no reason to load it otherwise
-    isStrict = vm.constants.getValue<boolean>(decodeHandle(_isStrict));
+    isStringAllowed = vm.constants.getValue<boolean>(decodeHandle(_isStringAllowed));
   }
 
   vm.loadValue(
     $v0,
-    createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
+    createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStringAllowed)
   );
 });
 
 APPEND_OPCODES.add(VM_DYNAMIC_HELPER_OP, (vm) => {
   let stack = vm.stack;
   let ref = check(stack.pop(), CheckReference);
-  let args = check(stack.pop(), CheckArguments).capture();
+  let args = check(stack.pop(), CheckArguments);
+
+  let capturedArgs = args.capture();
 
   let helperRef: Initializable<Reference>;
   let initialOwner = vm.getOwner();
@@ -111,19 +113,21 @@ APPEND_OPCODES.add(VM_DYNAMIC_HELPER_OP, (vm) => {
 
       if (named !== undefined) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        args.named = assign({}, ...named, args.named);
+        capturedArgs.named = assign({}, ...named, capturedArgs.named);
       }
 
       if (positional !== undefined) {
-        args.positional = positional.concat(args.positional) as CapturedPositionalArguments;
+        capturedArgs.positional = positional.concat(
+          capturedArgs.positional
+        ) as CapturedPositionalArguments;
       }
 
-      helperRef = helper(args, owner);
+      helperRef = helper(capturedArgs, owner);
 
       associateDestroyableChild(helperInstanceRef, helperRef);
     } else if (isIndexable(definition)) {
       let helper = resolveHelper(definition, ref);
-      helperRef = helper(args, initialOwner);
+      helperRef = helper(capturedArgs, initialOwner);
 
       if (_hasDestroyableChildren(helperRef)) {
         associateDestroyableChild(helperInstanceRef, helperRef);
@@ -153,7 +157,9 @@ function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helpe
       typeof managerOrHelper === 'function'
         ? managerOrHelper
         : managerOrHelper.getHelper(definition);
-    localAssert(managerOrHelper, 'BUG: expected manager or helper');
+    if (import.meta.env.DEV) {
+      localAssert(managerOrHelper, 'BUG: expected manager or helper');
+    }
   }
 
   debugAssert(
@@ -208,6 +214,7 @@ APPEND_OPCODES.add(VM_ROOT_SCOPE_OP, (vm, { op1: size }) => {
 APPEND_OPCODES.add(VM_GET_PROPERTY_OP, (vm, { op1: _key }) => {
   let key = vm.constants.getValue<string>(_key);
   let expr = check(vm.stack.pop(), CheckReference);
+
   vm.stack.push(childRefFor(expr, key));
 });
 
@@ -236,10 +243,12 @@ APPEND_OPCODES.add(VM_SPREAD_BLOCK_OP, (vm) => {
 });
 
 function isUndefinedReference(input: ScopeBlock | Reference): input is Reference {
-  localAssert(
-    Array.isArray(input) || input === UNDEFINED_REFERENCE,
-    'a reference other than UNDEFINED_REFERENCE is illegal here'
-  );
+  if (import.meta.env.DEV) {
+    localAssert(
+      Array.isArray(input) || input === UNDEFINED_REFERENCE,
+      'a reference other than UNDEFINED_REFERENCE is illegal here'
+    );
+  }
   return input === UNDEFINED_REFERENCE;
 }
 
@@ -256,11 +265,8 @@ APPEND_OPCODES.add(VM_HAS_BLOCK_OP, (vm) => {
 
 APPEND_OPCODES.add(VM_HAS_BLOCK_PARAMS_OP, (vm) => {
   // FIXME(mmun): should only need to push the symbol table
-  let block = vm.stack.pop();
-  let scope = vm.stack.pop();
-
-  check(block, CheckMaybe(CheckOr(CheckHandle, CheckCompilableBlock)));
-  check(scope, CheckMaybe(CheckScope));
+  let _block = check(vm.stack.pop(), CheckMaybe(CheckOr(CheckHandle, CheckCompilableBlock)));
+  let _scope = check(vm.stack.pop(), CheckMaybe(CheckScope));
   let table = check(vm.stack.pop(), CheckMaybe(CheckBlockSymbolTable));
 
   let hasBlockParams = table && table.parameters.length;
@@ -272,7 +278,8 @@ APPEND_OPCODES.add(VM_CONCAT_OP, (vm, { op1: count }) => {
 
   for (let i = count; i > 0; i--) {
     let offset = i - 1;
-    out[offset] = check(vm.stack.pop(), CheckReference);
+    let ref = check(vm.stack.pop(), CheckReference);
+    out[offset] = ref;
   }
 
   vm.stack.push(createConcatRef(out));
@@ -318,7 +325,8 @@ APPEND_OPCODES.add(VM_GET_DYNAMIC_VAR_OP, (vm) => {
 });
 
 APPEND_OPCODES.add(VM_LOG_OP, (vm) => {
-  let { positional } = check(vm.stack.pop(), CheckArguments).capture();
+  let args = check(vm.stack.pop(), CheckArguments);
+  let { positional } = args.capture();
 
   vm.loadValue(
     $v0,
