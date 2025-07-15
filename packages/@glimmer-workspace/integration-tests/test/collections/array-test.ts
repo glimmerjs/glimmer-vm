@@ -43,6 +43,10 @@ const ARRAY_SETTER_METHODS = [
   'unshift',
 ];
 
+function stripIndent(str: string) {
+  return str.replaceAll(/^\s|\s+$|\s+(?=\s)/gu, '').replaceAll(/\n/gu, '');
+}
+
 class TrackedArrayTest extends RenderTest {
   static suiteName = `trackedArray() (rendering)`;
 
@@ -90,6 +94,38 @@ class TrackedArrayTest extends RenderTest {
     this.assertHTML('foo 123');
     this.assertStableRerender();
     assert.verifySteps(['foo']);
+  }
+
+  @test
+  '{{each}} minimally invalidates'(assert: Assert) {
+    let step = (item: number) => {
+      assert.step(String(item));
+      return item;
+    };
+
+    let array = trackedArray(['one', 'two', 'three', 'four']);
+
+    const Foo = defineComponent(
+      { step, array },
+      stripIndent(
+        `{{#each array as |item|}}
+          {{step item}}
+         {{/each}}`
+      )
+    );
+
+    this.renderComponent(Foo);
+    this.assertHTML(' one  two  three  four ');
+    assert.verifySteps(['one', 'two', 'three', 'four']);
+
+    array.push('five');
+    this.rerender();
+    this.assertHTML(' one  two  three  four  five ');
+    assert.verifySteps(['five']);
+
+    array[2] = 'three2';
+    this.assertHTML(' one  two  three2  four  five ');
+    assert.verifySteps(['three2']);
   }
 
   @test
