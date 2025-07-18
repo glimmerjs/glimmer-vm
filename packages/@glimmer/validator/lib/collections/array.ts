@@ -52,7 +52,6 @@ function convertToInt(prop: number | string | symbol): number | null {
   return num % 1 === 0 ? num : null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 class TrackedArray<T = unknown> {
   #options: { equals: (a: T, b: T) => boolean; description: string | undefined };
 
@@ -214,28 +213,22 @@ class TrackedArray<T = unknown> {
   }
 }
 
-// This rule is correct in the general case, but it doesn't understand
-// declaration merging, which is how we're using the interface here. This says
-// `TrackedArray` acts just like `Array<T>`, but also has the properties
-// declared via the `class` declaration above -- but without the cost of a
-// subclass, which is much slower that the proxied array behavior. That is: a
-// `TrackedArray` *is* an `Array`, just with a proxy in front of accessors and
-// setters, rather than a subclass of an `Array` which would be de-optimized by
-// the browsers.
-//
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface TrackedArray<T = unknown> extends Array<T> {}
-
-// Ensure instanceof works correctly
-Object.setPrototypeOf(TrackedArray.prototype, Array.prototype);
-
 export function trackedArray<T = unknown>(
   data?: T[],
   options?: { equals?: (a: T, b: T) => boolean; description?: string }
 ): T[] {
-  return new TrackedArray(data ?? [], {
-    equals: options?.equals ?? Object.is,
-    description: options?.description,
-  });
+  const clone = data?.slice() ?? [];
+  const context = {
+    options: {
+      equals: options?.equals ?? Object.is,
+      description: options?.description,
+    },
+    boundFns: new Map<string | symbol, (...args: any[]) => any>(),
+  };
+  const target = [clone, context];
+
+  /**
+   * We have to use a Proxy because there is no other way to intercept array-index access
+   */
+  return new Proxy(target, arrayTrap) as T[];
 }
