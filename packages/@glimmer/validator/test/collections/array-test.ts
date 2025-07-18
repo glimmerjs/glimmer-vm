@@ -1,4 +1,4 @@
-/* eslint-disable import-x/no-extraneous-dependencies */
+
 
 import { trackedArray } from '@glimmer/validator';
 import { expectTypeOf } from 'expect-type';
@@ -6,6 +6,7 @@ import { expectTypeOf } from 'expect-type';
 import { module, test } from '../-utils';
 
 expectTypeOf<ReturnType<typeof trackedArray>>().toMatchTypeOf<Array<unknown>>();
+expectTypeOf<ReturnType<typeof trackedArray<number>>>().toMatchTypeOf<Array<number>>();
 
 module('@glimmer/validator: trackedArray()', () => {
   test('Can get values on array directly', (assert) => {
