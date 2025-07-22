@@ -4,11 +4,12 @@ import { keys } from '@glimmer/util';
 import type { ComponentKind } from '../components';
 import type RenderDelegate from '../render-delegate';
 import type { RenderDelegateOptions } from '../render-delegate';
-import type { Count, IRenderTest, RenderTest } from '../render-test';
+import type { Count, IBasicTest, IRenderTest, RenderTest } from '../render-test';
 import type { DeclaredComponentKind } from '../test-decorator';
 
 import { JitRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
+import { RecordEvents } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
@@ -65,9 +66,9 @@ export function componentSuite<D extends RenderDelegate>(
 export function suite<D extends RenderDelegate>(
   klass: RenderTestConstructor<D, IRenderTest>,
   Delegate: RenderDelegateConstructor<D>,
-  options: { componentModule?: boolean; env?: EnvironmentDelegate } = {}
+  options: { suiteName?: string; componentModule?: boolean; env?: EnvironmentDelegate } = {}
 ): void {
-  let suiteName = klass.suiteName;
+  let suiteName = options.suiteName ?? klass.suiteName;
 
   if (options.componentModule) {
     if (shouldRunTest<D>(Delegate)) {
@@ -95,15 +96,17 @@ export function suite<D extends RenderDelegate>(
       const test = klass.prototype[prop];
 
       if (isTestFunction(test) && shouldRunTest<D>(Delegate)) {
-        if (isSkippedTest(test)) {
-          QUnit.skip(prop, (assert) => {
+        if (isSkippedTest(test) || isTodoTest(test)) {
+          getTestType(test)(prop, (assert: Assert) => {
             test.call(instance!, assert, instance!.count);
-            instance!.count.assert();
+            instance!.count?.assert();
+            if (instance!.record) RecordEvents.expectNone(instance!.record);
           });
         } else {
           QUnit.test(prop, (assert) => {
             let result = test.call(instance!, assert, instance!.count);
-            instance!.count.assert();
+            instance!.count?.assert();
+            if (instance!.record) RecordEvents.expectNone(instance!.record);
             return result;
           });
         }
@@ -112,7 +115,7 @@ export function suite<D extends RenderDelegate>(
   }
 }
 
-function componentModule<D extends RenderDelegate, T extends IRenderTest>(
+export function componentModule<D extends RenderDelegate, T extends IRenderTest>(
   name: string,
   klass: RenderTestConstructor<D, T>,
   Delegate: RenderDelegateConstructor<D>
@@ -238,7 +241,7 @@ function upperFirst<T extends string>(
 
 const HAS_TYPED_ARRAYS = typeof Uint16Array !== 'undefined';
 
-function shouldRunTest<T extends RenderDelegate>(Delegate: RenderDelegateConstructor<T>) {
+export function shouldRunTest<T extends RenderDelegate>(Delegate: RenderDelegateConstructor<T>) {
   let isEagerDelegate = Delegate['isEager'];
 
   if (HAS_TYPED_ARRAYS) {
@@ -252,16 +255,28 @@ function shouldRunTest<T extends RenderDelegate>(Delegate: RenderDelegateConstru
   return false;
 }
 
-interface TestFunction {
-  (this: IRenderTest, assert: typeof QUnit.assert, count?: Count): void;
-  kind?: DeclaredComponentKind;
-  skip?: boolean | DeclaredComponentKind;
+interface BasicTestFunction {
+  (this: IBasicTest, assert: typeof QUnit.assert, count?: Count): void;
+  isTest?: boolean;
+  skip?: boolean | string;
+  todo?: boolean;
+  kind?: string;
 }
 
-function isTestFunction(value: any): value is TestFunction {
+function isTestFunction(value: any): value is BasicTestFunction {
   return typeof value === 'function' && value.isTest;
 }
 
 function isSkippedTest(value: any): boolean {
   return typeof value === 'function' && value.skip;
+}
+
+function isTodoTest(value: any): boolean {
+  return typeof value === 'function' && value.todo;
+}
+
+function getTestType(value: any) {
+  if (isSkippedTest(value)) return (...args: Parameters<typeof QUnit.skip>) => QUnit.skip(...args);
+  if (isTodoTest(value)) return (...args: Parameters<typeof QUnit.todo>) => QUnit.todo(...args);
+  return (...args: Parameters<typeof QUnit.test>) => QUnit.test(...args);
 }

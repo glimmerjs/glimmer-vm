@@ -28,6 +28,12 @@
       },
       "entryPoints": {
         "./clean.mjs": [[["default"], "./clean.mjs"]],
+        "./fixes/apply-eslint-suggestions.js": [
+          [["default"], "./fixes/apply-eslint-suggestions.js"]
+        ],
+        "./fixes/apply-suggestions.js": [[["default"], "./fixes/apply-suggestions.js"]],
+        "./fixes/apply-ts-codefixes.js": [[["default"], "./fixes/apply-ts-codefixes.js"]],
+        "./fixes/list-available-fixes.js": [[["default"], "./fixes/list-available-fixes.js"]],
         "./opcodes/opcodes.schema.json": [[["default"], "./opcodes/opcodes.schema.json"]],
         "./opcodes.json": [[["default"], "./opcodes.json"]],
         "./package.json": [[["default"], "./package.json"]],

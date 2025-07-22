@@ -1,64 +1,65 @@
 import type { ASTv2 } from '@glimmer/syntax';
-import { generateSyntaxError } from '@glimmer/syntax';
+import { generateSyntaxError, GlimmerSyntaxError } from '@glimmer/syntax';
 
-import type { NormalizationState } from '../../context';
-import type { KeywordDelegate } from '../impl';
+import type { ContentKeywordInfo, ContentKeywordMatch, KeywordDelegate } from '../impl';
 
 import { Err, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
-import { VISIT_EXPRS } from '../../visitors/expressions';
+import { visitExpr } from '../../visitors/expressions';
 
 function assertIfUnlessInlineKeyword(type: string) {
-  return (
-    originalNode: ASTv2.AppendContent | ASTv2.ExpressionNode
-  ): Result<{
-    condition: ASTv2.ExpressionNode;
-    truthy: ASTv2.ExpressionNode;
-    falsy: ASTv2.ExpressionNode | null;
+  return ({
+    args,
+    loc,
+  }: ContentKeywordInfo): Result<{
+    condition: ASTv2.ExpressionValueNode;
+    truthy: ASTv2.ExpressionValueNode;
+    falsy: ASTv2.ExpressionValueNode | null;
   }> => {
     let inverted = type === 'unless';
 
-    let node = originalNode.type === 'AppendContent' ? originalNode.value : originalNode;
-    let named = node.type === 'Call' ? node.args.named : null;
-    let positional = node.type === 'Call' ? node.args.positional : null;
+    const { positional, named } = args;
 
-    if (named && !named.isEmpty()) {
+    if (!named.isEmpty()) {
       return Err(
-        generateSyntaxError(
+        GlimmerSyntaxError.highlight(
           `(${type}) cannot receive named parameters, received ${named.entries
             .map((e) => e.name.chars)
             .join(', ')}`,
-          originalNode.loc
+          named.loc
+            .highlight()
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            .withPrimary(args.named.entries[0]!.name.loc.highlight('invalid'))
         )
       );
     }
 
-    let condition = positional?.nth(0);
-
-    if (!positional || !condition) {
+    if (positional.isEmpty()) {
       return Err(
         generateSyntaxError(
           `When used inline, (${type}) requires at least two parameters 1. the condition that determines the state of the (${type}), and 2. the value to return if the condition is ${
             inverted ? 'false' : 'true'
           }. Did not receive any parameters`,
-          originalNode.loc
+          loc
         )
       );
     }
 
-    let truthy = positional.nth(1);
-    let falsy = positional.nth(2);
+    const condition = positional.nth(0);
+    const truthy = positional.nth(1);
 
-    if (truthy === null) {
+    if (!condition || !truthy) {
       return Err(
         generateSyntaxError(
           `When used inline, (${type}) requires at least two parameters 1. the condition that determines the state of the (${type}), and 2. the value to return if the condition is ${
             inverted ? 'false' : 'true'
           }. Received only one parameter, the condition`,
-          originalNode.loc
+          loc
         )
       );
     }
+
+    const falsy = positional.nth(2);
 
     if (positional.size > 3) {
       return Err(
@@ -68,7 +69,7 @@ function assertIfUnlessInlineKeyword(type: string) {
           }, and 3. the value to return if the condition is ${
             inverted ? 'true' : 'false'
           }. Received ${positional.size} parameters`,
-          originalNode.loc
+          loc
         )
       );
     }
@@ -81,31 +82,29 @@ function translateIfUnlessInlineKeyword(type: string) {
   let inverted = type === 'unless';
 
   return (
-    {
-      node,
-      state,
-    }: { node: ASTv2.AppendContent | ASTv2.ExpressionNode; state: NormalizationState },
+    { node, keyword, state }: ContentKeywordInfo,
     {
       condition,
       truthy,
       falsy,
     }: {
-      condition: ASTv2.ExpressionNode;
-      truthy: ASTv2.ExpressionNode;
-      falsy: ASTv2.ExpressionNode | null;
+      condition: ASTv2.ExpressionValueNode;
+      truthy: ASTv2.ExpressionValueNode;
+      falsy: ASTv2.ExpressionValueNode | null;
     }
-  ): Result<mir.IfInline> => {
-    let conditionResult = VISIT_EXPRS.visit(condition, state);
-    let truthyResult = VISIT_EXPRS.visit(truthy, state);
-    let falsyResult = falsy ? VISIT_EXPRS.visit(falsy, state) : Ok(null);
+  ): Result<mir.IfExpression> => {
+    let conditionResult = visitExpr(condition, state);
+    let truthyResult = visitExpr(truthy, state);
+    let falsyResult = falsy ? visitExpr(falsy, state) : Ok(null);
 
     return Result.all(conditionResult, truthyResult, falsyResult).mapOk(
       ([condition, truthy, falsy]) => {
         if (inverted) {
-          condition = new mir.Not({ value: condition, loc: node.loc });
+          condition = new mir.Not({ keyword, value: condition, loc: node.loc });
         }
 
-        return new mir.IfInline({
+        return new mir.IfExpression({
+          keyword,
           loc: node.loc,
           condition,
           truthy,
@@ -117,13 +116,13 @@ function translateIfUnlessInlineKeyword(type: string) {
 }
 
 export function ifUnlessInlineKeyword(type: string): KeywordDelegate<
-  ASTv2.CallExpression | ASTv2.AppendContent,
+  ContentKeywordMatch,
   {
-    condition: ASTv2.ExpressionNode;
-    truthy: ASTv2.ExpressionNode;
-    falsy: ASTv2.ExpressionNode | null;
+    condition: ASTv2.ExpressionValueNode;
+    truthy: ASTv2.ExpressionValueNode;
+    falsy: ASTv2.ExpressionValueNode | null;
   },
-  mir.IfInline
+  mir.IfExpression
 > {
   return {
     assert: assertIfUnlessInlineKeyword(type),

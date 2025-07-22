@@ -23,7 +23,10 @@ export function createTemplate(
   scopeValues: Record<string, unknown> = {}
 ): TemplateFactory {
   options.locals = options.locals ?? Object.keys(scopeValues ?? {});
-  let [block, usedLocals] = precompileJSON(templateSource, options);
+  let [block, usedLocals] = precompileJSON(templateSource, {
+    meta: { moduleName: 'test-module', ...options.meta },
+    ...options,
+  });
   let reifiedScopeValues = usedLocals.map((key) => scopeValues[key]);
 
   if ('emit' in options && options.emit?.debugSymbols) {

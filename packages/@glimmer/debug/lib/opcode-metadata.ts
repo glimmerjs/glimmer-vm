@@ -21,16 +21,19 @@ import {
   VM_CONCAT_OP,
   VM_CONSTANT_OP,
   VM_CONSTANT_REFERENCE_OP,
+  VM_CONSTRUCT_ARGS_OP,
   VM_CONTENT_TYPE_OP,
   VM_CREATE_COMPONENT_OP,
   VM_CURRY_OP,
   VM_DEBUGGER_OP,
   VM_DID_CREATE_ELEMENT_OP,
   VM_DID_RENDER_LAYOUT_OP,
-  VM_DUP_OP,
+  VM_DUP_FP_OP,
+  VM_DUP_SP_OP,
   VM_DYNAMIC_ATTR_OP,
   VM_DYNAMIC_CONTENT_TYPE_OP,
   VM_DYNAMIC_HELPER_OP,
+  VM_DYNAMIC_MODIFIER_OP,
   VM_ENTER_LIST_OP,
   VM_ENTER_OP,
   VM_EXIT_LIST_OP,
@@ -52,6 +55,7 @@ import {
   VM_INVOKE_VIRTUAL_OP,
   VM_INVOKE_YIELD_OP,
   VM_ITERATE_OP,
+  VM_JIT_INVOKE_VIRTUAL_OP,
   VM_JUMP_EQ_OP,
   VM_JUMP_IF_OP,
   VM_JUMP_OP,
@@ -73,19 +77,21 @@ import {
   VM_PREPARE_ARGS_OP,
   VM_PRIMITIVE_OP,
   VM_PRIMITIVE_REFERENCE_OP,
+  VM_PUSH_AND_BIND_DYNAMIC_SCOPE_OP,
   VM_PUSH_ARGS_OP,
   VM_PUSH_BLOCK_SCOPE_OP,
   VM_PUSH_COMPONENT_DEFINITION_OP,
   VM_PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
-  VM_PUSH_DYNAMIC_SCOPE_OP,
   VM_PUSH_EMPTY_ARGS_OP,
   VM_PUSH_FRAME_OP,
+  VM_PUSH_FRAME_WITH_RESERVED_OP,
   VM_PUSH_REMOTE_ELEMENT_OP,
   VM_PUSH_SYMBOL_TABLE_OP,
   VM_PUT_COMPONENT_OPERATIONS_OP,
   VM_REGISTER_COMPONENT_DESTRUCTOR_OP,
   VM_REIFY_U32_OP,
-  VM_RESOLVE_DYNAMIC_COMPONENT_OP,
+  VM_RESOLVE_COMPONENT_DEFINITION,
+  VM_RESOLVE_COMPONENT_DEFINITION_OR_STRING,
   VM_RETURN_OP,
   VM_RETURN_TO_OP,
   VM_ROOT_SCOPE_OP,
@@ -165,17 +171,17 @@ if (LOCAL_DEBUG) {
     ops: ['offset:instruction/relative'],
   };
 
-  METADATA[VM_HELPER_OP] = {
-    name: 'Helper',
-    mnemonic: 'ncall',
-    stackChange: null,
-    ops: ['helper:handle'],
-  };
-
   METADATA[VM_DYNAMIC_HELPER_OP] = {
     name: 'DynamicHelper',
     mnemonic: 'dynamiccall',
     stackChange: null,
+  };
+
+  METADATA[VM_DYNAMIC_MODIFIER_OP] = {
+    name: 'DynamicModifier',
+    mnemonic: 'dynamicmodifier',
+    stackChange: null,
+    ops: ['helper:handle'],
   };
 
   METADATA[VM_SET_NAMED_VARIABLES_OP] = {
@@ -297,11 +303,17 @@ if (LOCAL_DEBUG) {
     stackChange: 1,
   };
 
-  METADATA[VM_DUP_OP] = {
-    name: 'Dup',
-    mnemonic: 'dup',
+  METADATA[VM_DUP_FP_OP] = {
+    name: 'DupFp',
+    mnemonic: 'dupfp',
     stackChange: 1,
-    ops: ['register:register', 'offset:imm/u32'],
+    ops: ['offset:imm/u32'],
+  };
+
+  METADATA[VM_DUP_SP_OP] = {
+    name: 'DupSp',
+    mnemonic: 'dupsp',
+    stackChange: 1,
   };
 
   METADATA[VM_POP_OP] = {
@@ -468,7 +480,7 @@ if (LOCAL_DEBUG) {
     ops: ['names:const/str[]'],
   };
 
-  METADATA[VM_PUSH_DYNAMIC_SCOPE_OP] = {
+  METADATA[VM_PUSH_AND_BIND_DYNAMIC_SCOPE_OP] = {
     name: 'PushDynamicScope',
     mnemonic: 'dynscopepush',
     stackChange: 0,
@@ -483,6 +495,12 @@ if (LOCAL_DEBUG) {
   METADATA[VM_COMPILE_BLOCK_OP] = {
     name: 'CompileBlock',
     mnemonic: 'cmpblock',
+    stackChange: 0,
+  };
+
+  METADATA[VM_JIT_INVOKE_VIRTUAL_OP] = {
+    name: 'JitInvokeVirtual',
+    mnemonic: 'jit_invoke_virtual',
     stackChange: 0,
   };
 
@@ -610,9 +628,15 @@ if (LOCAL_DEBUG) {
     stackChange: 0,
   };
 
-  METADATA[VM_RESOLVE_DYNAMIC_COMPONENT_OP] = {
+  METADATA[VM_RESOLVE_COMPONENT_DEFINITION] = {
     name: 'ResolveDynamicComponent',
-    mnemonic: 'cdload',
+    mnemonic: 'rescd',
+    stackChange: 0,
+  };
+
+  METADATA[VM_RESOLVE_COMPONENT_DEFINITION_OR_STRING] = {
+    name: 'ResolveDynamicComponent',
+    mnemonic: 'rescds',
     stackChange: 0,
     ops: ['strict?:imm/bool'],
   };
@@ -736,5 +760,24 @@ if (LOCAL_DEBUG) {
     mnemonic: 'debugger',
     stackChange: 0,
     ops: ['symbols:const/any'],
+  };
+
+  METADATA[VM_PUSH_FRAME_WITH_RESERVED_OP] = {
+    name: 'PushFrameWithReserved',
+    mnemonic: 'pushf_reserved',
+    stackChange: 3,
+  };
+
+  METADATA[VM_HELPER_OP] = {
+    name: 'HelperWithReserved',
+    mnemonic: 'helper_reserved',
+    stackChange: -1,
+  };
+
+  METADATA[VM_CONSTRUCT_ARGS_OP] = {
+    name: 'ConstructArgs',
+    mnemonic: 'construct_args',
+    stackChange: null,
+    ops: ['positional:imm/u32', 'named:imm/u32'],
   };
 }

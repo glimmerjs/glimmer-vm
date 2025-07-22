@@ -10,7 +10,7 @@ function traversalEqual(
 ) {
   let actualTraversal: Array<[string, AST.BaseNode]> = [];
 
-  traverse(node, {
+  traverse(node as any, {
     All: {
       enter(node) {
         actualTraversal.push(['enter', node]);
@@ -353,7 +353,7 @@ test('Modifier', (assert) => {
         ]);
 
         assert.deepEqual(
-          Array.from(path.parents()).map((it) => (it as WalkerPath<AST.Node>).node.type),
+          Array.from(path.parents()).map((it) => (it as WalkerPath<any>).node.type),
           ['ElementModifierStatement', 'ElementNode', 'Template']
         );
 
@@ -366,9 +366,7 @@ test('Modifier', (assert) => {
   assert.verifySteps(['PathExpression foo']);
 });
 
-function describeFullPath(
-  path: WalkerPath<AST.Node>
-): Array<{ nodeType: string; key: string | null }> {
+function describeFullPath(path: WalkerPath<any>): Array<{ nodeType: string; key: string | null }> {
   let description = [];
   description.push({ nodeType: path.node.type, key: null });
 

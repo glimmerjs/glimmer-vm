@@ -106,11 +106,21 @@ export function typescript(env) {
 
   return rollupSWC({
     swc: {
+      sourceMaps: false,
+      minify: false,
       jsc: {
         parser: {
           syntax: 'typescript',
+          // decorators: true,
         },
         target: 'es2022',
+        experimental: {
+          disableAllLints: true,
+          // emitIsolatedDts: true,
+        },
+        transform: {
+          // legacyDecorator: true,
+        },
       },
     },
   });
@@ -454,10 +464,7 @@ export class Package {
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
                     strict: true,
-                    types: [
-                      '@glimmer-workspace/env',
-                      ...(this.#package.devDependencies['@types/node'] ? ['node'] : []),
-                    ],
+                    types: [...(this.#package.devDependencies['@types/node'] ? ['node'] : [])],
                   },
                 }),
               ],

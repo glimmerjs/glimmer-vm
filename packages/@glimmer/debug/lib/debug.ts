@@ -18,7 +18,7 @@ import {
 import { exhausted, expect, unreachable } from '@glimmer/debug-util';
 import { LOCAL_DEBUG, LOCAL_SUBTLE_LOGGING, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { enumerate, LOCAL_LOGGER } from '@glimmer/util';
-import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
+import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1 } from '@glimmer/vm';
 
 import type { Primitive, RegisterName } from './dism/dism';
 import type { NormalizedOperand, OperandType, ShorthandOperand } from './dism/operand-types';
@@ -437,8 +437,6 @@ export function decodeRegister(register: number): RegisterName {
       return '$t0';
     case $t1:
       return '$t1';
-    case $v0:
-      return '$v0';
     default:
       return `$bug${register}`;
   }

@@ -1,13 +1,15 @@
 import type { Dict } from '@glimmer/interfaces';
 import type { ASTv1 } from '@glimmer/syntax';
 import { builders as b, preprocess as parse } from '@glimmer/syntax';
-import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
+import { PackageSuite, verifying } from '@glimmer-workspace/integration-tests';
 
 import { astEqual } from './support';
 
 const { test } = QUnit;
 
 QUnit.module('[glimmer-syntax] Parser - AST');
+
+const syntax = PackageSuite('@glimmer/syntax');
 
 test('a simple piece of content', () => {
   let t = 'some content';
@@ -40,24 +42,80 @@ test('elements can have empty attributes', () => {
   astEqual(t, b.template([element('img', ['attrs', ['id', '']])]));
 });
 
-test('disallowed quote in element space is rejected', (assert) => {
-  let t = '<img foo="bar"" >';
-  assert.throws(
-    () => {
-      parse(t, { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('" is not a valid character within attribute names', '', 'test-module', 1, 14)
-  );
+syntax(['HTML Syntax'], (module) => {
+  module.test('disallowed quote in element space is rejected', () => {
+    verifying(`<img foo='bar'' >`, `' is not a valid character within attribute names`).throws`
+      1 | <img foo='bar'' >
+        |               =
+        |               \===== invalid character
+    `.errors();
+  });
+
+  module.test('disallowed equals sign in element space is rejected', () => {
+    verifying(`<img =foo >`, `attribute name cannot start with equals sign`).throws`
+      1 | <img =foo >
+        |      =
+        |      \===== invalid character
+    `.errors();
+  });
 });
 
-test('disallowed equals sign in element space is rejected', (assert) => {
-  let t = '<img =foo >';
-  assert.throws(
-    () => {
-      parse(t, { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('attribute name cannot start with equals sign', '', 'test-module', 1, 5)
-  );
+syntax(['Valid Handlebars invalid in Glimmer'], (module) => {
+  module.test('path expression with "dangling dot" throws error', () => {
+    verifying(
+      '{{if foo. bar baz}}',
+      "'.' is not a supported path in Glimmer; check for a path with a trailing '.'"
+    ).throws`
+      1 | {{if foo. bar baz}}
+        |         =
+        |         \===== invalid path
+    `.errors();
+  });
+
+  module.test('string literal as path throws error', () => {
+    verifying('{{("foo-baz")}}').throws`
+      SyntaxError: \`foo-baz\` cannot be called. Consider replacing \`("foo-baz")\` with \`"foo-baz"\` if you meant to use it as a value
+      1 | {{("foo-baz")}}
+        |   -=========-
+        |     \== string is not callable
+    `.errors();
+  });
+
+  module.test('boolean literal as path throws error', () => {
+    verifying('{{(true)}}').throws`
+      SyntaxError: \`true\` cannot be called. Consider replacing \`(true)\` with \`true\` if you meant to use it as a value
+      1 | {{(true)}}
+        |   -====-
+        |     \== boolean is not callable
+    `.errors();
+  });
+
+  module.test('undefined literal as path throws error', () => {
+    verifying('{{(undefined)}}').throws`
+      SyntaxError: \`undefined\` cannot be called. Consider replacing \`(undefined)\` with \`undefined\` if you meant to use it as a value
+      1 | {{(undefined)}}
+        |   -=========-
+        |     \== undefined is not callable
+    `.errors();
+  });
+
+  module.test('null literal as path throws error', () => {
+    verifying('{{(null)}}').throws`
+      SyntaxError: \`null\` cannot be called. Consider replacing \`(null)\` with \`null\` if you meant to use it as a value
+      1 | {{(null)}}
+        |   -====-
+        |     \== null is not callable
+    `.errors();
+  });
+
+  module.test('number literal as path throws error', () => {
+    verifying('{{(42)}}').throws`
+      SyntaxError: \`42\` cannot be called. Consider replacing \`(42)\` with \`42\` if you meant to use it as a value
+      1 | {{(42)}}
+        |   -==-
+        |     \== number is not callable
+    `.errors();
+  });
 });
 
 test('svg content', () => {
@@ -121,34 +179,108 @@ test('a piece of Handlebars with HTML', () => {
   );
 });
 
-test('attributes are not allowed as values', (assert) => {
-  let t = '{{...attributes}}';
-  assert.throws(
-    () => {
-      parse(t, { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 0)
-  );
-});
+syntax(['Invalid HTML Syntax'], (module) => {
+  module.test('...attributes is not allowed as values', () => {
+    verifying('{{...attributes}}', 'Invalid use of ...attributes').throws`
+      1 | {{...attributes}}
+        |   =============
+        |         \====== invalid content
+    `.errors();
+  });
 
-test('attributes are not allowed as modifiers', (assert) => {
-  let t = '<div {{...attributes}}></div>';
-  assert.throws(
-    () => {
-      parse(t, { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 5)
-  );
-});
+  module.test('...attributes is not allowed as modifiers', () => {
+    verifying('<div {{...attributes}}></div>', 'Invalid use of ...attributes').throws`
+      1 | <div {{...attributes}}></div>
+        |        =============
+        |         \====== invalid modifier
+    `.errors();
+  });
 
-test('attributes are not allowed as attribute values', (assert) => {
-  let t = '<div class={{...attributes}}></div>';
-  assert.throws(
-    () => {
-      parse(t, { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Illegal use of ...attributes', '{{...attributes}}', 'test-module', 1, 11)
-  );
+  module.test('...attributes is not allowed as attribute values', () => {
+    verifying('<div class={{...attributes}}></div>', 'Invalid use of ...attributes').throws`
+      1 | <div class={{...attributes}}></div>
+        |              =============
+        |                \====== invalid attribute value
+    `.errors();
+  });
+
+  module.test('Awkward mustache in unquoted attribute value', () => {
+    verifying('<div class=a{{foo}}></div>', 'Invalid dynamic value in an unquoted attribute')
+      .throws`
+      1 | <div class=a{{foo}}></div>
+        |            -=======
+        |                \====== invalid dynamic value
+        |            \---------- missing quotes
+    `.errors();
+
+    verifying('<div class=a{{foo}}b></div>', 'Invalid dynamic value in an unquoted attribute')
+      .throws`
+    1 | <div class=a{{foo}}b></div>
+      |            -=======-
+      |                \====== invalid dynamic value
+      |            \---------- missing quotes
+  `.errors();
+
+    verifying('<div class={{foo}}b></div>', 'Invalid dynamic value in an unquoted attribute')
+      .throws`
+        1 | <div class={{foo}}b></div>
+          |            =======-
+          |                   \--- missing quotes
+          |                \====== invalid dynamic value
+      `.errors();
+  });
+
+  module.test('a Handlebars comment in invalid element space', () => {
+    verifying(
+      `\nbefore <div \n  a{{! some comment }} data-foo="bar"></div> after`,
+      'Invalid comment in an opening tag'
+    ).throws`
+      3 |   a{{! some comment }} data-foo="bar"></div> after
+        |    ===================
+        |     \================== invalid comment
+    `.errors();
+
+    verifying(
+      `\nbefore <div \n  a={{! some comment }} data-foo="bar"></div> after`,
+      'Invalid comment in an attribute'
+    ).throws`
+      3 |   a={{! some comment }} data-foo="bar"></div> after
+        |     ===================
+        |      \================== invalid comment
+    `.errors();
+
+    verifying(
+      '\nbefore <div \n  a="{{! some comment }}" data-foo="bar"></div> after',
+      'Invalid comment in a quoted attribute'
+    ).throws`
+      3 |   a="{{! some comment }}" data-foo="bar"></div> after
+        |      ===================
+        |        \================== invalid comment
+    `.errors();
+
+    verifying(
+      `\nbefore <div \n  a='{{! some comment }}' data-foo="bar"></div> after`,
+      'Invalid comment in a quoted attribute'
+    ).throws`
+      3 |   a='{{! some comment }}' data-foo="bar"></div> after
+        |      ===================
+        |        \================== invalid comment
+    `.errors();
+  });
+
+  module.test('disallowed mustaches in the tagName space', () => {
+    verifying(`<{{'asdf'}}></{{'asdf'}}>`).throws`
+      SyntaxError: Invalid dynamic tag name
+      1 | <{{'asdf'}}></{{'asdf'}}>
+        |  --======--
+        |     \======= dynamic value
+    `.throws`
+      SyntaxError: Invalid dynamic closing tag name
+      1 | <{{'asdf'}}></{{'asdf'}}>
+        |               --======--
+        |                   \======= dynamic value
+    `.errors();
+  });
 });
 
 test('Handlebars embedded in an attribute (quoted)', () => {
@@ -721,54 +853,6 @@ test('Whitespace control - preserve all whitespace if config is set', () => {
   );
 });
 
-// TODO: Make these throw an error.
-test('Awkward mustache in unquoted attribute value', (assert) => {
-  assert.throws(
-    () => {
-      parse('<div class=a{{foo}}></div>', {
-        meta: { moduleName: 'test-module' },
-      });
-    },
-    syntaxErrorFor(
-      `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`,
-      'class=a{{foo}}',
-      'test-module',
-      1,
-      5
-    )
-  );
-
-  assert.throws(
-    () => {
-      parse('<div class=a{{foo}}b></div>', {
-        meta: { moduleName: 'test-module' },
-      });
-    },
-    syntaxErrorFor(
-      `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`,
-      'class=a{{foo}}b',
-      'test-module',
-      1,
-      5
-    )
-  );
-
-  assert.throws(
-    () => {
-      parse('<div class={{foo}}b></div>', {
-        meta: { moduleName: 'test-module' },
-      });
-    },
-    syntaxErrorFor(
-      `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`,
-      'class={{foo}}b',
-      'test-module',
-      1,
-      5
-    )
-  );
-});
-
 test('an HTML comment', () => {
   let t = 'before <!-- some comment --> after';
   astEqual(t, b.template([b.text('before '), b.comment(' some comment '), b.text(' after')]));
@@ -825,53 +909,6 @@ test('a Handlebars comment after a valueless attribute', () => {
   );
 });
 
-test('a Handlebars comment in invalid element space', (assert) => {
-  assert.throws(
-    () => {
-      parse('\nbefore <div \n  a{{! some comment }} data-foo="bar"></div> after', {
-        meta: { moduleName: 'test-module' },
-      });
-    },
-    syntaxErrorFor(
-      'Using a Handlebars comment when in the `attributeName` state is not supported',
-      '{{! some comment }}',
-      'test-module',
-      3,
-      3
-    )
-  );
-
-  assert.throws(
-    () => {
-      parse('\nbefore <div \n  a={{! some comment }} data-foo="bar"></div> after', {
-        meta: { moduleName: 'test-module' },
-      });
-    },
-    syntaxErrorFor(
-      'Using a Handlebars comment when in the `beforeAttributeValue` state is not supported',
-      '{{! some comment }}',
-      'test-module',
-      3,
-      4
-    )
-  );
-
-  assert.throws(
-    () => {
-      parse('\nbefore <div \n  a="{{! some comment }}" data-foo="bar"></div> after', {
-        meta: { moduleName: 'test-module' },
-      });
-    },
-    syntaxErrorFor(
-      'Using a Handlebars comment when in the `attributeValueDoubleQuoted` state is not supported',
-      '{{! some comment }}',
-      'test-module',
-      3,
-      5
-    )
-  );
-});
-
 test('allow {{null}} to be passed as helper name', () => {
   let ast = parse('{{null}}');
 
@@ -896,68 +933,38 @@ test('allow {{undefined}} to be passed as a param', () => {
   astEqual(ast, b.template([b.mustache(b.path('foo'), [b.undefined()])]));
 });
 
-test('Handlebars partial should error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{> foo}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Handlebars partials are not supported', '{{> foo}}', 'test-module', 1, 0)
-  );
-});
+syntax(['Invalid Handlebars syntax'], (module) => {
+  module.test('Handlebars partial should error', () => {
+    verifying(`{{> foo}}`, `Handlebars partials are not supported`).throws`
+      1 | {{> foo}}
+        | =========
+        |   \====== invalid partial
+    `.errors();
+  });
 
-test('Handlebars partial block should error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{#> foo}}{{/foo}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      'Handlebars partial blocks are not supported',
-      '{{#> foo}}{{/foo}}',
-      'test-module',
-      1,
-      0
-    )
-  );
-});
+  module.test('Handlebars partial blocks should error', () => {
+    verifying('{{#> foo}}{{/foo}}', 'Handlebars partial blocks are not supported').throws`
+      1 | {{#> foo}}{{/foo}}
+        | ==================
+        |   \======= invalid partial block
+    `.errors();
+  });
 
-test('Handlebars decorator should error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{* foo}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Handlebars decorators are not supported', '{{* foo}}', 'test-module', 1, 0)
-  );
-});
+  module.test('Handlebars decorators should error', () => {
+    verifying('{{* foo}}', 'Handlebars decorators are not supported').throws`
+      1 | {{* foo}}
+        | =========
+        |   \====== invalid decorator
+    `.errors();
+  });
 
-test('Handlebars decorator block should error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{#* foo}}{{/foo}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      'Handlebars decorator blocks are not supported',
-      '{{#* foo}}{{/foo}}',
-      'test-module',
-      1,
-      0
-    )
-  );
-});
-
-test('disallowed mustaches in the tagName space', (assert) => {
-  assert.throws(
-    () => {
-      parse('<{{"asdf"}}></{{"asdf"}}>', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{"asdf"}}', 'test-module', 1, 1)
-  );
-
-  assert.throws(
-    () => {
-      parse('<input{{bar}}>', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor('Cannot use mustaches in an elements tagname', '{{bar}}', 'test-module', 1, 6)
-  );
+  module.test('Handlebars decorator blocks should error', () => {
+    verifying('{{#* foo}}{{/foo}}', 'Handlebars decorator blocks are not supported').throws`
+      1 | {{#* foo}}{{/foo}}
+        | ==================
+        |   \======= invalid decorator block
+    `.errors();
+  });
 });
 
 test('mustache immediately followed by self closing tag does not error', () => {
@@ -991,96 +998,6 @@ test('named blocks', () => {
     ),
   ]);
   astEqual(ast, b.template([el]));
-});
-
-test('path expression with "dangling dot" throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{if foo. bar baz}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      "'.' is not a supported path in Glimmer; check for a path with a trailing '.'",
-      '.',
-      'test-module',
-      1,
-      8
-    )
-  );
-});
-
-test('string literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{("foo-baz")}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `StringLiteral "foo-baz" cannot be called as a sub-expression, replace ("foo-baz") with "foo-baz"`,
-      '"foo-baz"',
-      'test-module',
-      1,
-      3
-    )
-  );
-});
-
-test('boolean literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{(true)}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `BooleanLiteral "true" cannot be called as a sub-expression, replace (true) with true`,
-      'true',
-      'test-module',
-      1,
-      3
-    )
-  );
-});
-
-test('undefined literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{(undefined)}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `UndefinedLiteral "undefined" cannot be called as a sub-expression, replace (undefined) with undefined`,
-      'undefined',
-      'test-module',
-      1,
-      3
-    )
-  );
-});
-
-test('null literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{(null)}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `NullLiteral "null" cannot be called as a sub-expression, replace (null) with null`,
-      'null',
-      'test-module',
-      1,
-      3
-    )
-  );
-});
-
-test('number literal as path throws error', (assert) => {
-  assert.throws(
-    () => {
-      parse('{{(42)}}', { meta: { moduleName: 'test-module' } });
-    },
-    syntaxErrorFor(
-      `NumberLiteral "42" cannot be called as a sub-expression, replace (42) with 42`,
-      '42',
-      'test-module',
-      1,
-      3
-    )
-  );
 });
 
 export function strip(strings: TemplateStringsArray, ...args: string[]) {

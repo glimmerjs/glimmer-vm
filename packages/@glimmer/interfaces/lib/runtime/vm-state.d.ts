@@ -7,7 +7,6 @@ export type SyscallRegisters = [
   $s1: unknown,
   $t0: unknown,
   $t1: unknown,
-  $v0: unknown,
 ];
 
 /**
@@ -39,14 +38,11 @@ export type $t0 = 6;
 declare const $t0: $t0;
 export type $t1 = 7;
 declare const $t1: $t1;
-// $8 or $v0 (return value)
-export type $v0 = 8;
-declare const $v0: $v0;
 
 export type MachineRegister = $pc | $ra | $fp | $sp;
 
 export type SavedRegister = $s0 | $s1;
 export type TemporaryRegister = $t0 | $t1;
 
-export type Register = MachineRegister | SavedRegister | TemporaryRegister | $v0;
-export type SyscallRegister = SavedRegister | TemporaryRegister | $v0;
+export type Register = MachineRegister | SavedRegister | TemporaryRegister;
+export type SyscallRegister = SavedRegister | TemporaryRegister;

@@ -125,7 +125,7 @@ export class VM {
     return this.lowlevel.fetchRegister($pc);
   }
 
-  #registers: SyscallRegisters = [null, null, null, null, null, null, null, null, null];
+  #registers: SyscallRegisters = [null, null, null, null, null, null, null, null];
 
   /**
    * Fetch a value from a syscall register onto the stack.
@@ -284,6 +284,8 @@ export class VM {
   }
 
   compile(block: CompilableTemplate): number {
+    if (block.compiled) return unwrapHandle(block.compiled);
+
     let handle = unwrapHandle(block.compile(this.context));
 
     if (LOCAL_DEBUG) {

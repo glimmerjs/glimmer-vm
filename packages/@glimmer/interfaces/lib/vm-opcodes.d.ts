@@ -7,7 +7,9 @@ export type VmMachineInvokeStatic = 3;
 export type VmMachineJump = 4;
 export type VmMachineReturn = 5;
 export type VmMachineReturnTo = 6;
-export type VmMachineSize = 7;
+export type VmMachineCallSub = 7;
+export type VmMachineReturnSub = 8;
+export type VmMachineSize = 8;
 
 export type VmMachineOp =
   | VmMachinePushFrame
@@ -17,9 +19,9 @@ export type VmMachineOp =
   | VmMachineJump
   | VmMachineReturn
   | VmMachineReturnTo
-  | VmMachineSize;
+  | VmMachineCallSub
+  | VmMachineReturnSub;
 
-export type VmHelper = 16;
 export type VmSetNamedVariables = 17;
 export type VmSetBlocks = 18;
 export type VmSetVariable = 19;
@@ -36,7 +38,8 @@ export type VmConstantReference = 29;
 export type VmPrimitive = 30;
 export type VmPrimitiveReference = 31;
 export type VmReifyU32 = 32;
-export type VmDup = 33;
+export type VmDupFp = 33;
+export type VmDupSp = 113;
 export type VmPop = 34;
 export type VmLoad = 35;
 export type VmFetch = 36;
@@ -61,10 +64,11 @@ export type VmFlushElement = 54;
 export type VmCloseElement = 55;
 export type VmPopRemoteElement = 56;
 export type VmModifier = 57;
-export type VmBindDynamicScope = 58;
+export type VmPushAndBindDynamicScope = 58;
 export type VmPushDynamicScope = 59;
 export type VmPopDynamicScope = 60;
 export type VmCompileBlock = 61;
+export type VmJitInvokeVirtual = 200;
 export type VmPushBlockScope = 62;
 export type VmPushSymbolTable = 63;
 export type VmInvokeYield = 64;
@@ -83,25 +87,29 @@ export type VmContentType = 76;
 export type VmCurry = 77;
 export type VmPushComponentDefinition = 78;
 export type VmPushDynamicComponentInstance = 79;
-export type VmResolveDynamicComponent = 80;
-export type VmResolveCurriedComponent = 81;
+export type VmResolveComponentDefinitionOrString = 80;
+export type VmResolveComponentDefinition = 81;
 export type VmPushArgs = 82;
 export type VmPushEmptyArgs = 83;
 export type VmPopArgs = 84;
 export type VmPrepareArgs = 85;
 export type VmCaptureArgs = 86;
+export type VmConstructArgs = 114;
 export type VmCreateComponent = 87;
 export type VmRegisterComponentDestructor = 88;
 export type VmPutComponentOperations = 89;
 export type VmGetComponentSelf = 90;
 export type VmGetComponentTagName = 91;
 export type VmGetComponentLayout = 92;
+export type VmHelperFrame = 93;
 export type VmPopulateLayout = 95;
 export type VmInvokeComponentLayout = 96;
 export type VmBeginComponentTransaction = 97;
 export type VmCommitComponentTransaction = 98;
 export type VmDidCreateElement = 99;
 export type VmDidRenderLayout = 100;
+export type VmHelper = 101; // Helper that writes return value for frame pop
+export type VmPushFrameWithReserved = 102;
 export type VmDebugger = 103;
 export type VmStaticComponentAttr = 105;
 export type VmDynamicContentType = 106;
@@ -111,7 +119,8 @@ export type VmIfInline = 109;
 export type VmNot = 110;
 export type VmGetDynamicVar = 111;
 export type VmLog = 112;
-export type VmSize = 113;
+export type VmPushHelper = 115;
+export type VmSize = 116;
 
 export type VmOp =
   | VmHelper
@@ -131,7 +140,8 @@ export type VmOp =
   | VmPrimitive
   | VmPrimitiveReference
   | VmReifyU32
-  | VmDup
+  | VmDupFp
+  | VmDupSp
   | VmPop
   | VmLoad
   | VmFetch
@@ -156,10 +166,11 @@ export type VmOp =
   | VmCloseElement
   | VmPopRemoteElement
   | VmModifier
-  | VmBindDynamicScope
+  | VmPushAndBindDynamicScope
   | VmPushDynamicScope
   | VmPopDynamicScope
   | VmCompileBlock
+  | VmJitInvokeVirtual
   | VmPushBlockScope
   | VmPushSymbolTable
   | VmInvokeYield
@@ -178,13 +189,14 @@ export type VmOp =
   | VmCurry
   | VmPushComponentDefinition
   | VmPushDynamicComponentInstance
-  | VmResolveDynamicComponent
-  | VmResolveCurriedComponent
+  | VmResolveComponentDefinitionOrString
+  | VmResolveComponentDefinition
   | VmPushArgs
   | VmPushEmptyArgs
   | VmPopArgs
   | VmPrepareArgs
   | VmCaptureArgs
+  | VmConstructArgs
   | VmCreateComponent
   | VmRegisterComponentDestructor
   | VmPutComponentOperations
@@ -198,7 +210,7 @@ export type VmOp =
   | VmDidCreateElement
   | VmDidRenderLayout
   | VmDebugger
-  | VmSize
+  | VmPushFrameWithReserved
   | VmStaticComponentAttr
   | VmDynamicContentType
   | VmDynamicHelper
@@ -206,6 +218,9 @@ export type VmOp =
   | VmIfInline
   | VmNot
   | VmGetDynamicVar
-  | VmLog;
+  | VmPushHelper
+  | VmLog
+  | VmHelperFrame
+  | VmSize;
 
 export type SomeVmOp = VmOp | VmMachineOp;

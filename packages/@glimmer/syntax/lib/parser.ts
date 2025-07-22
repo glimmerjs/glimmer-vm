@@ -20,18 +20,22 @@ export interface StartTag {
   name: string;
   nameStart: Nullable<src.SourceOffset>;
   nameEnd: Nullable<src.SourceOffset>;
+  paramsStart: Nullable<src.SourceOffset>;
+  paramsEnd: Nullable<src.SourceOffset>;
   readonly attributes: ASTv1.AttrNode[];
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];
-  readonly params: ASTv1.VarHead[];
+  readonly params: ASTv1.ParseResult<ASTv1.VarHead>[];
   selfClosing: boolean;
   readonly loc: src.SourceSpan;
+  errors?: ASTv1.TokenizerErrors;
 }
 
 export interface EndTag {
   readonly type: 'EndTag';
   name: string;
   readonly loc: src.SourceSpan;
+  errors?: ASTv1.TokenizerErrors;
 }
 
 export interface Attribute {
@@ -48,6 +52,7 @@ export abstract class Parser {
   protected elementStack: ASTv1.ParentNode[] = [];
   private lines: string[];
   readonly source: src.Source;
+  public error: ASTv1.ErrorNode | null = null;
   public currentAttribute: Nullable<Attribute> = null;
   public currentNode: Nullable<
     Readonly<
@@ -67,6 +72,18 @@ export abstract class Parser {
     this.source = source;
     this.lines = source.source.split(/\r\n?|\n/u);
     this.tokenizer = new EventedTokenizer(this, entityParser, mode);
+  }
+
+  getCurrentNodeStart(): src.SourceOffset {
+    if (this.currentAttribute) {
+      return this.currentAttribute.start;
+    }
+
+    if (this.currentNode) {
+      return this.currentNode.start;
+    }
+
+    return this.source.start;
   }
 
   offset(): src.SourceOffset {
@@ -129,6 +146,18 @@ export abstract class Parser {
 
   get currentAttr(): Attribute {
     return expect(this.currentAttribute, 'expected attribute');
+  }
+
+  ensureStartTag(): void {
+    if (this.currentNode?.type !== 'StartTag') {
+      this.beginStartTag();
+    }
+  }
+
+  ensureEndTag(): void {
+    if (this.currentNode?.type !== 'EndTag') {
+      this.beginEndTag();
+    }
   }
 
   get currentTag(): ParserNodeBuilder<StartTag> | ParserNodeBuilder<EndTag> {

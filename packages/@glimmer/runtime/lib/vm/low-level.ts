@@ -1,24 +1,32 @@
 import type { EvaluationContext, Nullable, RuntimeOp } from '@glimmer/interfaces';
 import type { MachineRegister } from '@glimmer/vm';
 import {
+  VM_CALL_SUB_OP,
   VM_INVOKE_STATIC_OP,
   VM_INVOKE_VIRTUAL_OP,
   VM_JUMP_OP,
   VM_POP_FRAME_OP,
   VM_PUSH_FRAME_OP,
   VM_RETURN_OP,
+  VM_RETURN_SUB_OP,
   VM_RETURN_TO_OP,
 } from '@glimmer/constants';
 import { localAssert } from '@glimmer/debug-util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { $fp, $pc, $ra, $sp } from '@glimmer/vm';
+import { $fp, $pc, $ra, $sp, $t0 } from '@glimmer/vm';
 
 import type { DebugState } from '../opcodes';
 import type { VM } from './append';
 
 import { APPEND_OPCODES } from '../opcodes';
 
-export type LowLevelRegisters = [$pc: number, $ra: number, $sp: number, $fp: number];
+export type LowLevelRegisters = [
+  $pc: number,
+  $ra: number,
+  $sp: number,
+  $fp: number,
+  ...(number | null)[],
+];
 
 export function initializeRegisters(): LowLevelRegisters {
   return [0, -1, 0, 0];
@@ -41,6 +49,7 @@ export interface VmStack {
 
   push(value: unknown): void;
   get(position: number): number;
+  set(value: unknown, offset: number, base: number): void;
   pop<T>(): T;
 
   snapshot?(): unknown[];
@@ -84,6 +93,17 @@ export class LowLevelVM {
     this.stack.push(this.registers[$ra]);
     this.stack.push(this.registers[$fp]);
     this.registers[$fp] = this.registers[$sp] - 1;
+  }
+
+  // Push frame with reserved slot for return value
+  pushFrameWithReserved() {
+    this.stack.push(null); // Reserved slot for return value
+    this.pushFrame();
+  }
+
+  // Set return value in reserved slot
+  setReturnValue(value: unknown) {
+    this.stack.set(value, -1, this.registers[$fp]);
   }
 
   // Restore $ra, $sp and $fp
@@ -188,6 +208,13 @@ export class LowLevelVM {
         return void vm.return();
       case VM_RETURN_TO_OP:
         return void this.returnTo(opcode.op1);
+      case VM_CALL_SUB_OP:
+        // Save current $ra to $t0 and jump to subroutine
+        this.registers[$t0] = this.registers[$pc];
+        return void this.setPc(this.context.program.heap.getaddr(opcode.op1));
+      case VM_RETURN_SUB_OP:
+        // Return to address saved in $t0
+        return void this.setPc(this.registers[$t0] as number);
     }
   }
 

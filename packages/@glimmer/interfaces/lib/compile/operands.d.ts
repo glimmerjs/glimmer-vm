@@ -80,15 +80,7 @@ export type HighLevelBuilderOperand =
   | SymbolTableOperand
   | LayoutOperand;
 
-export type SingleBuilderOperand =
-  | HighLevelBuilderOperand
-  | number
-  | string
-  | boolean
-  | undefined
-  | null
-  | number[]
-  | string[];
+export type SingleBuilderOperand = number | string | boolean | undefined | null;
 
 export type Operand = number;
 

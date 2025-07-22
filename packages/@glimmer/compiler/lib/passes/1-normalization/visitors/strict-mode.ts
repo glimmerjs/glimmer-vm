@@ -1,21 +1,13 @@
-import type { HasSourceSpan } from '@glimmer/syntax';
-import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/constants';
-import { generateSyntaxError, loc } from '@glimmer/syntax';
+import type { ASTv2 } from '@glimmer/syntax';
+import { exhausted } from '@glimmer/debug-util';
+import { GlimmerSyntaxError, Validation as Validation } from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
-import type * as mir from '../../2-encoding/mir';
-import type { ResolutionType } from './constants';
 
 import { Err, Ok } from '../../../shared/result';
-import {
-  COMPONENT_OR_HELPER_RESOLUTION,
-  COMPONENT_RESOLUTION,
-  HELPER_RESOLUTION,
-  MODIFIER_RESOLUTION,
-  VALUE_RESOLUTION,
-} from './constants';
+import * as mir from '../../2-encoding/mir';
 
-export default class StrictModeValidationPass {
+export default class ValidatorPass {
   // This is done at the end of all the keyword normalizations
   // At this point any free variables that isn't a valid keyword
   // in its context should be considered a syntax error. We
@@ -23,17 +15,23 @@ export default class StrictModeValidationPass {
   // earlier passes, but this aims to produce a better syntax
   // error as we don't always have the right loc-context to do
   // so in the other spots.
-  static validate(template: mir.Template): Result<mir.Template> {
-    return new this(template).validate();
+  static validate(template: mir.Template, strict: boolean): Result<mir.Template> {
+    return new this(template, strict).validate();
   }
 
-  private constructor(private template: mir.Template) {}
+  #strict: boolean;
+  private template: mir.Template;
+
+  private constructor(template: mir.Template, strict: boolean) {
+    this.#strict = strict;
+    this.template = template;
+  }
 
   validate(): Result<mir.Template> {
-    return this.Statements(this.template.body).mapOk(() => this.template);
+    return this.ContentItems(this.template.body).mapOk(() => this.template);
   }
 
-  Statements(statements: mir.Statement[]): Result<null> {
+  ContentItems(statements: mir.Content[]): Result<null> {
     let result = Ok(null);
 
     for (let statement of statements) {
@@ -47,17 +45,25 @@ export default class StrictModeValidationPass {
     let result = Ok(null);
 
     for (let block of blocks.toArray()) {
-      result = result.andThen(() => this.NamedBlock(block));
+      result = result.andThen(() => {
+        if (block.type === 'Error') {
+          return Err(GlimmerSyntaxError.forErrorNode(block));
+        }
+        return this.NamedBlock(block);
+      });
     }
 
     return result;
   }
 
   NamedBlock(block: mir.NamedBlock): Result<null> {
-    return this.Statements(block.body);
+    if (block.error) {
+      return Err(GlimmerSyntaxError.forErrorNode(block.error));
+    }
+    return this.ContentItems(block.body);
   }
 
-  Statement(statement: mir.Statement): Result<null> {
+  Statement(statement: mir.Content): Result<null> {
     switch (statement.type) {
       case 'InElement':
         return this.InElement(statement);
@@ -71,23 +77,31 @@ export default class StrictModeValidationPass {
       case 'AppendTrustedHTML':
         return this.AppendTrustedHTML(statement);
 
-      case 'AppendTextNode':
-        return this.AppendTextNode(statement);
+      case 'AppendValueCautiously':
+        return this.AppendValueCautiously(statement);
 
-      case 'Component':
-        return this.Component(statement);
+      case 'AppendInvokableCautiously':
+      case 'AppendTrustingInvokable':
+        return this.AppendInvokable(statement);
+
+      case 'ResolvedAngleBracketComponent':
+      case 'AngleBracketComponent':
+        return this.AngleBracketComponent(statement);
 
       case 'SimpleElement':
         return this.SimpleElement(statement);
 
-      case 'InvokeBlock':
+      case 'InvokeBlockComponent':
+      case 'InvokeResolvedBlockComponent':
         return this.InvokeBlock(statement);
 
-      case 'AppendComment':
+      case 'AppendHtmlComment':
+      case 'AppendHtmlText':
+      case 'AppendStaticContent':
         return Ok(null);
 
-      case 'If':
-        return this.If(statement);
+      case 'IfContent':
+        return this.IfContent(statement);
 
       case 'Each':
         return this.Each(statement);
@@ -98,184 +112,483 @@ export default class StrictModeValidationPass {
       case 'WithDynamicVars':
         return this.WithDynamicVars(statement);
 
-      case 'InvokeComponent':
-        return this.InvokeComponent(statement);
+      case 'InvokeComponentKeyword':
+        return this.InvokeComponentKeyword(statement);
+
+      case 'InvokeResolvedComponentKeyword':
+        return this.InvokeResolvedComponentKeyword(statement);
+
+      default:
+        exhausted(statement);
     }
   }
 
-  Expressions(expressions: mir.ExpressionNode[]): Result<null> {
+  Expressions(
+    expressions: (mir.ExpressionValueNode | ASTv2.UnresolvedBinding)[],
+    context: Validation.PositionalArgsContext
+  ): Result<null> {
     let result = Ok(null);
 
     for (let expression of expressions) {
-      result = result.andThen(() => this.Expression(expression));
+      result = result.andThen(() => this.ExpressionValue(expression, context.value(expression)));
     }
 
     return result;
   }
 
-  Expression(
-    expression: mir.ExpressionNode,
-    span: HasSourceSpan = expression,
-    resolution?: ResolutionType
+  CalleeExpression(
+    expression: mir.CalleeExpression,
+    context: Validation.ValueValidationContext
   ): Result<null> {
+    if (mir.isVariableReference(expression)) {
+      return this.VariableReference(expression);
+    }
+
+    if (mir.isCustomExpr(expression)) {
+      return this.CustomExpression(expression, context);
+    }
+
     switch (expression.type) {
-      case 'Literal':
       case 'Keyword':
-      case 'Missing':
-      case 'This':
-      case 'Arg':
-      case 'Local':
-      case 'HasBlock':
-      case 'HasBlockParams':
-      case 'GetDynamicVar':
-        return Ok(null);
+        return this.KeywordExpression(expression);
+
+      case 'ResolvedCallExpression': {
+        return this.ResolvedCallExpression(expression, context.subexpression(expression));
+      }
 
       case 'PathExpression':
-        return this.Expression(expression.head, span, resolution);
-
-      case 'Free':
-        return this.errorFor(expression.name, span, resolution);
-
-      case 'InterpolateExpression':
-        return this.InterpolateExpression(expression, span, resolution);
+        return this.PathExpression(expression, context.path());
 
       case 'CallExpression':
-        return this.CallExpression(expression, span, resolution ?? HELPER_RESOLUTION);
+        return this.CallExpression(expression, context.subexpression(expression));
+
+      default:
+        exhausted(expression);
+    }
+  }
+
+  AttrStyleArgument(
+    expression: { value: mir.AttrStyleValue },
+    context: Validation.FullElementParameterValidationContext
+  ) {
+    const value = expression.value;
+    switch (value.type) {
+      case 'InterpolateExpression':
+        return this.InterpolateExpression(value, context.concat(value));
+      default:
+        return this.AttrStyleValue(value, context);
+    }
+  }
+
+  CoreAttrStyleValue(
+    part: mir.CoreAttrStyleInterpolatePart,
+    value: Validation.AnyAttrLikeContainerContext
+  ) {
+    switch (part.type) {
+      case 'Literal':
+        return this.Literal(part);
+      case 'CurlyResolvedAttrValue':
+        return this.ResolvedName(part.resolved, value.value({ value: part.resolved, curly: part }));
+      case 'mir.CurlyAttrValue':
+        return this.ExpressionValue(part.value, value.value({ curly: part, value: part.value }));
+      case 'mir.CurlyInvokeAttr': {
+        const invokeContext = value.invoke(part);
+
+        if (part.callee.type === 'UnresolvedBinding') {
+          return this.errorFor(invokeContext.resolved(part.callee)).andThen(() =>
+            this.Args(part.args, invokeContext.args(part.args))
+          );
+        }
+
+        return this.CalleeExpressionValue(part.callee, invokeContext).andThen(() =>
+          this.Args(part.args, invokeContext.args(part.args))
+        );
+      }
+      case 'mir.CurlyInvokeResolvedAttr': {
+        const invokeContext = value.invoke(part);
+        return this.ResolvedName(part.resolved, invokeContext).andThen(() =>
+          this.Args(part.args, invokeContext.args(part.args))
+        );
+      }
+    }
+  }
+
+  AttrStyleValue(
+    part: mir.AttrStyleInterpolatePart,
+    value: Validation.AnyAttrLikeContainerContext
+  ) {
+    switch (part.type) {
+      case 'mir.CustomInterpolationPart':
+        return this.CustomExpression(part.value, value.value({ curly: part, value: part.value }));
+      default:
+        return this.CoreAttrStyleValue(part, value);
+    }
+  }
+
+  CustomNamedArgument(
+    expression: mir.CustomNamedArgument<mir.ExpressionValueNode> | mir.Missing,
+    context: Validation.InvokeCustomSyntaxContext
+  ) {
+    switch (expression.type) {
+      case 'Missing':
+        return Ok(null);
+      case 'CustomNamedArgument':
+        return this.ExpressionValue(expression.value, context.namedArg(expression));
+    }
+  }
+
+  CalleeExpressionValue(
+    expression: mir.ExpressionValueNode | mir.Missing | ASTv2.UnresolvedBinding,
+    context: Validation.AnyInvokeParentContext
+  ) {
+    switch (expression.type) {
+      case 'Literal':
+        return Ok(null);
+      case 'UnresolvedBinding':
+        return this.errorFor(context.resolved(expression));
+      case 'Missing':
+        return Ok(null);
+      case 'PathExpression':
+        return this.PathExpression(expression, context.callee(expression).path());
+      default:
+        return this.CalleeExpression(expression, context.callee(expression));
+    }
+  }
+
+  ExpressionValue(
+    expression: mir.ExpressionValueNode | mir.Missing | ASTv2.UnresolvedBinding,
+    context: Validation.ValueValidationContext
+  ) {
+    switch (expression.type) {
+      case 'Literal':
+        return Ok(null);
+      case 'UnresolvedBinding':
+        return this.errorFor(context.resolved(expression));
+      case 'Missing':
+        return Ok(null);
+      case 'PathExpression':
+        return this.PathExpression(expression, context.path());
+      default:
+        return this.CalleeExpression(expression, context);
+    }
+  }
+
+  PathOrVariableReference(
+    expression: mir.PathExpression | ASTv2.VariableReference,
+    context: Validation.PathValidationContext
+  ): Result<null> {
+    if (expression.type === 'PathExpression') {
+      return this.PathExpression(expression, context);
+    } else {
+      return this.VariableReference(expression);
+    }
+  }
+
+  PathExpression(
+    expression: mir.PathExpression,
+    context: Validation.PathValidationContext
+  ): Result<null> {
+    if (expression.head.type === 'UnresolvedBinding') {
+      return this.errorFor(context.head(expression.head));
+    } else {
+      return this.VariableReference(expression.head);
+    }
+  }
+
+  CustomExpression(
+    expression: mir.CustomExpression,
+    valueContext: Validation.ValueValidationContext
+  ): Result<null> {
+    const context = valueContext.custom(expression);
+    switch (expression.type) {
+      case 'GetDynamicVar':
+        return this.GetDynamicVar(expression, context);
 
       case 'Not':
-        return this.Expression(expression.value, span, resolution);
+        return this.Not(expression, context);
 
-      case 'IfInline':
-        return this.IfInline(expression);
+      case 'IfExpression':
+        return this.IfExpression(expression, context);
 
       case 'Curry':
-        return this.Curry(expression);
+        return this.Curry(expression, context);
 
       case 'Log':
-        return this.Log(expression);
+        return this.Log(expression, context);
+
+      case 'HasBlock':
+        return this.HasBlock(expression);
+
+      case 'HasBlockParams':
+        return this.HasBlockParams(expression);
+
+      default:
+        exhausted(expression);
     }
   }
 
-  Args(args: mir.Args): Result<null> {
-    return this.Positional(args.positional).andThen(() => this.NamedArguments(args.named));
+  GetDynamicVar(
+    expression: mir.GetDynamicVar,
+    context: Validation.InvokeCustomSyntaxContext
+  ): Result<null> {
+    return this.ExpressionValue(expression.name, context.positional('name', expression));
   }
 
-  Positional(positional: mir.Positional, span?: HasSourceSpan): Result<null> {
-    let result = Ok(null);
+  Not(expression: mir.Not, context: Validation.InvokeCustomSyntaxContext): Result<null> {
+    return this.ExpressionValue(expression.value, context.positional('value', expression.value));
+  }
+
+  HasBlock(_expression: mir.HasBlock): Result<null> {
+    return Ok(null);
+  }
+
+  HasBlockParams(_expression: mir.HasBlockParams): Result<null> {
+    return Ok(null);
+  }
+
+  Args(args: mir.Args, context: Validation.ArgsContainerContext): Result<null> {
+    return this.Positional(args.positional, context.positionalArgs(args.positional)).andThen(() =>
+      this.NamedArguments(args.named, context)
+    );
+  }
+
+  Positional(positional: mir.Positional, context: Validation.PositionalArgsContext): Result<null> {
     let expressions = positional.list.toArray();
-
-    // For cases like {{yield foo}}, when there is only a single argument, it
-    // makes for a slightly better error to report that entire span. However,
-    // when there are more than one, we need to be specific.
-    if (expressions.length === 1) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- @fixme PresentArray
-      result = this.Expression(expressions[0]!, span);
-    } else {
-      result = this.Expressions(expressions);
-    }
-
-    return result;
+    return this.Expressions(expressions, context);
   }
 
-  NamedArguments({ entries }: mir.NamedArguments): Result<null> {
+  ComponentArguments(
+    { entries }: mir.ComponentArguments,
+    context: Validation.AngleBracketContext
+  ): Result<null> {
     let result = Ok(null);
 
     for (let arg of entries.toArray()) {
-      result = result.andThen(() => this.NamedArgument(arg));
+      result = result.andThen(() => this.AttrStyleArgument(arg, context.arg(arg)));
     }
 
     return result;
   }
 
-  NamedArgument(arg: mir.NamedArgument): Result<null> {
-    if (arg.value.type === 'CallExpression') {
-      return this.Expression(arg.value, arg, HELPER_RESOLUTION);
-    } else {
-      return this.Expression(arg.value, arg);
+  NamedArguments(
+    { entries }: mir.CurlyNamedArguments,
+    context: Validation.ArgsContainerContext
+  ): Result<null> {
+    let result = Ok(null);
+
+    for (let arg of entries.toArray()) {
+      result = result.andThen(() => this.NamedArgument(arg, context));
     }
+
+    return result;
   }
 
-  ElementParameters({ body }: mir.ElementParameters): Result<null> {
+  NamedArgument(
+    arg: mir.CurlyNamedArgument,
+    context: Validation.ArgsContainerContext
+  ): Result<null> {
+    return this.ExpressionValue(arg.value, context.namedArg(arg));
+  }
+
+  ElementParameters(
+    { body }: mir.ElementParameters,
+    context: Validation.AngleBracketContext
+  ): Result<null> {
     let result = Ok(null);
 
     for (let param of body.toArray()) {
-      result = result.andThen(() => this.ElementParameter(param));
+      result = result.andThen(() => this.ElementParameter(param, context));
     }
 
     return result;
   }
 
-  ElementParameter(param: mir.ElementParameter): Result<null> {
+  ElementParameter(
+    param: mir.ElementParameter,
+    content: Validation.AngleBracketContext
+  ): Result<null> {
     switch (param.type) {
-      case 'StaticAttr':
-        return Ok(null);
       case 'DynamicAttr':
-        return this.DynamicAttr(param);
-      case 'Modifier':
-        return this.Modifier(param);
+        return this.AttrStyleArgument(param, content.attr(param));
+      case 'ResolvedModifier': {
+        const context = content.modifier(param);
+        return this.ResolvedName(param.callee, context).andThen(() =>
+          this.Args(param.args, context.args(param.args))
+        );
+      }
+      // The callee in lexical and dynamic modifiers is known to not be a potentially resolvable
+      // expression, so we can don't need to checking it.
+      case 'LexicalModifier':
+      case 'DynamicModifier': {
+        const context = content.modifier(param);
+        return this.ExpressionValue(param.callee, context.callee(param.callee)).andThen(() =>
+          this.Args(param.args, context.args(param.args))
+        );
+      }
+      // there is no way for any of these constructs to fail, since they contain no expressions
+      // that could possibly be resolvable.
+      case 'StaticAttr':
       case 'SplatAttr':
         return Ok(null);
     }
   }
 
-  DynamicAttr(attr: mir.DynamicAttr): Result<null> {
-    if (attr.value.type === 'CallExpression') {
-      return this.Expression(attr.value, attr, HELPER_RESOLUTION);
+  KeywordExpression(_expr: ASTv2.KeywordExpression): Result<null> {
+    return Ok(null);
+  }
+
+  ResolvedCallExpression(
+    expr: mir.ResolvedCallExpression,
+    context: Validation.AnyInvokeParentContext
+  ): Result<null> {
+    const name = this.ResolvedName(expr.callee, context);
+
+    if (expr.args.isEmpty()) {
+      return name;
     } else {
-      return this.Expression(attr.value, attr);
+      return name.andThen(() => this.Args(expr.args, context.args(expr.args)));
     }
   }
 
-  Modifier(modifier: mir.Modifier): Result<null> {
-    return this.Expression(modifier.callee, modifier, MODIFIER_RESOLUTION).andThen(() =>
-      this.Args(modifier.args)
-    );
+  Literal(_literal: ASTv2.LiteralExpression): Result<null> {
+    return Ok(null);
+  }
+
+  MaybeResolvedVariableReference(
+    ref: ASTv2.VariableReference | ASTv2.UnresolvedBinding,
+    context: Validation.PathValidationContext
+  ): Result<null> {
+    if (ref.type === 'UnresolvedBinding') {
+      return this.errorFor(context.head(ref));
+    }
+    return Ok(null);
+  }
+
+  VariableReference(_ref: ASTv2.VariableReference): Result<null> {
+    return Ok(null);
+  }
+
+  AppendInvokable(
+    statement: mir.AppendInvokableCautiously | mir.AppendTrustingInvokable
+  ): Result<null> {
+    const context = Validation.appending(statement).invoke();
+    const callee = statement.callee;
+
+    const args = this.Args(statement.args, context.args(statement.args));
+
+    if (Validation.isResolvedName(callee)) {
+      return this.ResolvedName(callee, context).andThen(() => args);
+    } else {
+      return this.ExpressionValue(callee, context.callee(callee)).andThen(() => args);
+    }
   }
 
   InElement(inElement: mir.InElement): Result<null> {
-    return (
-      this.Expression(inElement.destination)
-        // Unfortunately we lost the `insertBefore=` part of the span
-        .andThen(() => this.Expression(inElement.insertBefore))
-        .andThen(() => this.NamedBlock(inElement.block))
-    );
+    const context = Validation.custom(inElement);
+
+    return this.ExpressionValue(
+      inElement.destination,
+      context.positional('destination', inElement.destination)
+    )
+      .andThen(() => this.CustomNamedArgument(inElement.insertBefore, context))
+      .andThen(() => this.NamedBlock(inElement.block));
   }
 
   Yield(statement: mir.Yield): Result<null> {
-    return this.Positional(statement.positional, statement);
+    return this.Positional(
+      statement.positional,
+      Validation.InvokeCustomSyntaxContext.keyword(statement).positionalArgs(statement.positional)
+    );
   }
 
   AppendTrustedHTML(statement: mir.AppendTrustedHTML): Result<null> {
-    return this.Expression(statement.html, statement);
-  }
+    const context = Validation.appending(statement);
+    const value = statement.value;
 
-  AppendTextNode(statement: mir.AppendTextNode): Result<null> {
-    if (statement.text.type === 'CallExpression') {
-      return this.Expression(statement.text, statement, COMPONENT_OR_HELPER_RESOLUTION);
+    if (Validation.isResolvedName(value)) {
+      return this.ResolvedName(value, context);
     } else {
-      return this.Expression(statement.text, statement);
+      return this.ExpressionValue(value, context.append(value));
     }
   }
 
-  Component(statement: mir.Component): Result<null> {
-    return this.Expression(statement.tag, statement, COMPONENT_RESOLUTION)
-      .andThen(() => this.ElementParameters(statement.params))
-      .andThen(() => this.NamedArguments(statement.args))
+  AppendValueCautiously(statement: mir.AppendValueCautiously): Result<null> {
+    const context = Validation.appending(statement);
+    const value = statement.value;
+
+    if (Validation.isResolvedName(value)) {
+      return this.ResolvedName(value, context);
+    } else {
+      return this.ExpressionValue(value, context.append(value));
+    }
+  }
+
+  AngleBracketComponent(
+    statement: mir.AngleBracketComponent | mir.ResolvedAngleBracketComponent
+  ): Result<null> {
+    const context = Validation.component(statement);
+
+    return this.ComponentTag(statement.tag, context)
+      .andThen(() => this.ElementParameters(statement.params, context))
+      .andThen(() => this.ComponentArguments(statement.args, context))
       .andThen(() => this.NamedBlocks(statement.blocks));
+  }
+
+  ComponentTag(
+    tag: mir.BlockCallee | ASTv2.ResolvedName,
+    context: Validation.AngleBracketContext
+  ): Result<null> {
+    switch (tag.type) {
+      case 'ResolvedName':
+        if (this.#strict) {
+          return this.errorFor(
+            context
+              .tag(tag)
+              .path()
+              .head(tag)
+              .addNote(
+                `If you wanted to create an element with that name, convert it to lowercase - \`<${tag.name.toLowerCase()}>\``
+              )
+          );
+        } else {
+          return Ok(null);
+        }
+      case 'Keyword':
+        return this.errorFor(context.tag(tag).path().head(tag));
+      default:
+        return this.PathOrVariableReference(tag, context.tag(tag).path());
+    }
   }
 
   SimpleElement(statement: mir.SimpleElement): Result<null> {
-    return this.ElementParameters(statement.params).andThen(() => this.Statements(statement.body));
+    const context = Validation.element(statement);
+    return this.ElementParameters(statement.params, context).andThen(() =>
+      this.ContentItems(statement.body)
+    );
   }
 
-  InvokeBlock(statement: mir.InvokeBlock): Result<null> {
-    return this.Expression(statement.head, statement.head, COMPONENT_RESOLUTION)
-      .andThen(() => this.Args(statement.args))
+  InvokeBlock(
+    statement: mir.InvokeBlockComponent | mir.InvokeResolvedBlockComponent
+  ): Result<null> {
+    const context = Validation.block(statement);
+
+    const callee =
+      statement.type === 'InvokeResolvedBlockComponent'
+        ? this.ResolvedName(statement.head, context)
+        : this.CalleeExpression(statement.head, context.callee(statement.head));
+
+    return callee
+      .andThen(() => this.Args(statement.args, context.args(statement.args)))
       .andThen(() => this.NamedBlocks(statement.blocks));
   }
 
-  If(statement: mir.If): Result<null> {
-    return this.Expression(statement.condition, statement)
+  IfContent(statement: mir.IfContent): Result<null> {
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
+
+    return this.ExpressionValue(
+      statement.condition,
+      context.positional('condition', statement.condition)
+    )
       .andThen(() => this.NamedBlock(statement.block))
       .andThen(() => {
         if (statement.inverse) {
@@ -287,10 +600,12 @@ export default class StrictModeValidationPass {
   }
 
   Each(statement: mir.Each): Result<null> {
-    return this.Expression(statement.value, statement)
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
+
+    return this.ExpressionValue(statement.value, context.positional('value', statement.value))
       .andThen(() => {
         if (statement.key) {
-          return this.Expression(statement.key, statement);
+          return this.ExpressionValue(statement.key.value, context.namedArg(statement.key));
         } else {
           return Ok(null);
         }
@@ -306,91 +621,115 @@ export default class StrictModeValidationPass {
   }
 
   Let(statement: mir.Let): Result<null> {
-    return this.Positional(statement.positional).andThen(() => this.NamedBlock(statement.block));
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
+
+    return this.Positional(
+      statement.positional,
+      context.positionalArgs(statement.positional)
+    ).andThen(() => this.NamedBlock(statement.block));
   }
 
   WithDynamicVars(statement: mir.WithDynamicVars): Result<null> {
-    return this.NamedArguments(statement.named).andThen(() => this.NamedBlock(statement.block));
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
+
+    return this.NamedArguments(statement.named, context).andThen(() =>
+      this.NamedBlock(statement.block)
+    );
   }
 
-  InvokeComponent(statement: mir.InvokeComponent): Result<null> {
-    return this.Expression(statement.definition, statement, COMPONENT_RESOLUTION)
-      .andThen(() => this.Args(statement.args))
-      .andThen(() => {
-        if (statement.blocks) {
-          return this.NamedBlocks(statement.blocks);
-        } else {
-          return Ok(null);
-        }
-      });
+  InvokeComponentKeyword(statement: mir.InvokeComponentKeyword): Result<null> {
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
+
+    return this.ExpressionValue(
+      statement.definition,
+      context.positional('definition', statement.definition)
+    ).andThen(() => this.Args(statement.args, context));
+  }
+
+  InvokeResolvedComponentKeyword(statement: mir.InvokeResolvedComponentKeyword): Result<null> {
+    const context = Validation.InvokeCustomSyntaxContext.keyword(statement);
+
+    return this.Args(statement.args, context).andThen(() => {
+      if (statement.blocks) this.NamedBlocks(statement.blocks);
+      return Ok(null);
+    });
   }
 
   InterpolateExpression(
     expression: mir.InterpolateExpression,
-    span: HasSourceSpan,
-    resolution?: ResolutionType
+    context: Validation.ConcatContext
   ): Result<null> {
     let expressions = expression.parts.toArray();
+    let result = Ok(null);
 
-    if (expressions.length === 1) {
-      return this.Expression(expressions[0], span, resolution);
-    } else {
-      return this.Expressions(expressions);
+    for (let expression of expressions) {
+      result = result.andThen(() => this.AttrStyleValue(expression, context));
     }
+
+    return result;
   }
 
   CallExpression(
     expression: mir.CallExpression,
-    span: HasSourceSpan,
-    resolution?: ResolutionType
+    context: Validation.SubExpressionContext
   ): Result<null> {
-    return this.Expression(expression.callee, span, resolution).andThen(() =>
-      this.Args(expression.args)
+    return this.ExpressionValue(expression.callee, context.callee(expression.callee)).andThen(() =>
+      this.Args(expression.args, context.args(expression.args))
     );
   }
 
-  IfInline(expression: mir.IfInline): Result<null> {
-    return this.Expression(expression.condition)
-      .andThen(() => this.Expression(expression.truthy))
+  IfExpression(
+    expression: mir.IfExpression,
+    context: Validation.InvokeCustomSyntaxContext
+  ): Result<null> {
+    return this.ExpressionValue(
+      expression.condition,
+      context.positional('condition', expression.condition)
+    )
+      .andThen(() =>
+        this.ExpressionValue(expression.truthy, context.positional('truthy', expression.truthy))
+      )
       .andThen(() => {
         if (expression.falsy) {
-          return this.Expression(expression.falsy);
+          return this.ExpressionValue(
+            expression.falsy,
+            context.positional('falsy', expression.falsy)
+          );
         } else {
           return Ok(null);
         }
       });
   }
 
-  Curry(expression: mir.Curry): Result<null> {
-    let resolution: ResolutionType;
+  Curry(expression: mir.Curry, context: Validation.InvokeCustomSyntaxContext): Result<null> {
+    return this.ExpressionValue(
+      expression.definition,
+      context.positional('definition', expression.definition)
+    ).andThen(() => this.Args(expression.args, context));
+  }
 
-    if (expression.curriedType === CURRIED_COMPONENT) {
-      resolution = COMPONENT_RESOLUTION;
-    } else if (expression.curriedType === CURRIED_HELPER) {
-      resolution = HELPER_RESOLUTION;
+  Log(expression: mir.Log, context: Validation.InvokeCustomSyntaxContext): Result<null> {
+    return this.Positional(expression.positional, context.positionalArgs(expression.positional));
+  }
+
+  ResolvedName(
+    callee: ASTv2.ResolvedName | ASTv2.UnresolvedBinding,
+    context: Validation.AnyResolveParentContext
+  ): Result<null> {
+    if (callee.type === 'UnresolvedBinding') {
+      return this.errorFor(context.resolved(callee).addNotes(callee.notes ?? []));
+    } else if (this.#strict) {
+      return this.errorFor(context.resolved(callee));
     } else {
-      resolution = MODIFIER_RESOLUTION;
+      return Ok(null);
+    }
+  }
+
+  errorFor(context: Validation.VariableReferenceContext): Result<null> {
+    if (this.template.scope.hasKeyword(context.name)) {
+      return Ok(null);
     }
 
-    return this.Expression(expression.definition, expression, resolution).andThen(() =>
-      this.Args(expression.args)
-    );
-  }
-
-  Log(expression: mir.Log): Result<null> {
-    return this.Positional(expression.positional, expression);
-  }
-
-  errorFor(
-    name: string,
-    span: HasSourceSpan,
-    type: ResolutionType = VALUE_RESOLUTION
-  ): Result<never> {
-    return Err(
-      generateSyntaxError(
-        `Attempted to resolve a ${type} in a strict mode template, but that value was not in scope: ${name}`,
-        loc(span)
-      )
-    );
+    return Err(context.error());
   }
 }

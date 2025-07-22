@@ -1,15 +1,32 @@
-import type { ASTv2, KeywordType } from '@glimmer/syntax';
+import type { KeywordType, SourceSpan } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/debug-util';
-import { generateSyntaxError, isKeyword, KEYWORDS_TYPES } from '@glimmer/syntax';
+import {
+  ASTv2,
+  generateSyntaxError,
+  isKeyword,
+  KEYWORDS_TYPES,
+  SourceSlice,
+} from '@glimmer/syntax';
 
 import type { Result } from '../../../shared/result';
 import type { NormalizationState } from '../context';
 
 import { Err } from '../../../shared/result';
 
+export interface KeywordInfo<Match extends KeywordMatch> {
+  node: Match;
+  loc: SourceSpan;
+  keyword: SourceSlice;
+  state: NormalizationState;
+  args: ASTv2.CurlyArgs;
+}
+
+export type InvokeKeywordInfo = KeywordInfo<InvokeKeywordMatch>;
+export type ContentKeywordInfo = KeywordInfo<ContentKeywordMatch>;
+
 export interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
-  assert: (options: Match, state: NormalizationState) => Result<V>;
-  translate: (options: { node: Match; state: NormalizationState }, param: V) => Result<Out>;
+  assert: (info: KeywordInfo<Match>) => Result<V>;
+  translate: (match: KeywordInfo<Match>, param: V) => Result<Out>;
 }
 
 export interface Keyword<K extends KeywordType = KeywordType, Out = unknown> {
@@ -26,14 +43,14 @@ class KeywordImpl<
   Param = unknown,
   Out = unknown,
 > {
-  protected types: Set<KeywordCandidates[K]['type']>;
+  protected types: Set<KeywordMatches[K]['type']>;
 
   constructor(
     protected keyword: S,
     type: KeywordType,
     private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
   ) {
-    let nodes = new Set<KeywordNode['type']>();
+    let nodes = new Set<KeywordMatch['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
       nodes.add(nodeType);
     }
@@ -42,105 +59,85 @@ class KeywordImpl<
   }
 
   protected match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
-    if (!this.types.has(node.type)) {
-      return false;
-    }
+    if (!node.isResolved) return false;
+    if (!node.resolved) return false;
 
-    let path = getCalleeExpression(node);
-
-    if (path !== null && path.type === 'Path' && path.ref.type === 'Free') {
-      return path.ref.name === this.keyword;
-    } else {
-      return false;
-    }
+    return node.resolved.name === this.keyword;
   }
 
   translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
     if (this.match(node)) {
-      let path = getCalleeExpression(node);
-
-      if (path !== null && path.type === 'Path' && path.tail.length > 0) {
-        return Err(
-          generateSyntaxError(
-            `The \`${
-              this.keyword
-            }\` keyword was used incorrectly. It was used as \`${path.loc.asString()}\`, but it cannot be used with additional path segments. \n\nError caused by`,
-            node.loc
-          )
-        );
-      }
-
-      let param = this.delegate.assert(node, state);
-      return param.andThen((param) => this.delegate.translate({ node, state }, param));
+      const args = getKeywordArgs(node);
+      const keyword = SourceSlice.keyword(this.keyword, node.resolved.loc);
+      let param = this.delegate.assert({ node, keyword, loc: node.loc, state, args });
+      return param.andThen((param) =>
+        this.delegate.translate({ node, keyword, loc: node.loc, state, args }, param)
+      );
     } else {
       return null;
     }
   }
 }
 
+function getKeywordArgs(node: KeywordMatch): ASTv2.CurlyArgs {
+  if ('args' in node) {
+    return node.args;
+  } else {
+    return ASTv2.EmptyCurlyArgs(node.resolved.loc.collapse('end'));
+  }
+}
+
 export const KEYWORD_NODES = {
-  Call: ['Call'],
-  Block: ['InvokeBlock'],
-  Append: ['AppendContent'],
-  Modifier: ['ElementModifier'],
+  Call: ['ResolvedCall', 'CurlyInvokeResolvedAttr'],
+  Block: ['InvokeResolvedBlock'],
+  Append: ['AppendResolvedContent', 'AppendResolvedInvokable'],
+  Modifier: ['ResolvedElementModifier'],
 } as const;
 
 export interface KeywordCandidates {
-  Call: ASTv2.ExpressionNode;
-  Block: ASTv2.InvokeBlock;
-  Append: ASTv2.AppendContent;
-  Modifier: ASTv2.ElementModifier;
+  Call:
+    | ASTv2.CallExpression
+    | ASTv2.ResolvedCallExpression
+    | ASTv2.CurlyInvokeResolvedAttr
+    | ASTv2.CurlyResolvedAttrValue;
+  Block: ASTv2.InvokeBlock | ASTv2.InvokeResolvedBlock;
+  Append: ASTv2.AppendContent | ASTv2.AppendResolvedContent | ASTv2.AppendResolvedInvokable;
+  Modifier: ASTv2.ElementModifier | ASTv2.ResolvedElementModifier;
 }
 
 export type KeywordCandidate = KeywordCandidates[keyof KeywordCandidates];
 
-export interface KeywordMatches {
-  Call: ASTv2.CallExpression;
-  Block: ASTv2.InvokeBlock;
-  Append: ASTv2.AppendContent;
-  Modifier: ASTv2.ElementModifier;
-}
+export type KeywordMatches = {
+  [P in keyof KeywordCandidates]: Extract<KeywordCandidates[P], { isResolved: true }>;
+};
 
 export type KeywordMatch = KeywordMatches[keyof KeywordMatches];
 
 /**
- * A "generic" keyword is something like `has-block`, which makes sense in the context
- * of sub-expression or append
+ * An invoke keyword candidate is something like `has-block`, which can be used as `(has-block)` or
+ * `{{has-block}}`.
  */
-export type GenericKeywordNode = ASTv2.AppendContent | ASTv2.CallExpression;
+export type InvokeKeywordMatch = CallKeywordMatch | AppendKeywordMatch;
+
+/**
+ * A content keyword candidate is something like `component`, which can be used as
+ * `{{component ...}}`, `(component ...)` or `{{#component ...}}`
+ */
+export type ContentKeywordMatch = InvokeKeywordMatch | BlockKeywordMatch;
+
+export type CallKeywordMatch = KeywordMatches['Call'];
+export type AppendKeywordMatch = KeywordMatches['Append'];
+export type BlockKeywordMatch = KeywordMatches['Block'];
 
 export type KeywordNode =
-  | GenericKeywordNode
+  | AppendKeywordMatch
   | ASTv2.CallExpression
   | ASTv2.InvokeBlock
   | ASTv2.ElementModifier;
 
 export type PossibleKeyword = KeywordNode;
-type OutFor<K extends Keyword | BlockKeyword> =
-  K extends BlockKeyword<infer Out> ? Out : K extends Keyword<KeywordType, infer Out> ? Out : never;
 
-function getCalleeExpression(
-  node: KeywordNode | ASTv2.ExpressionNode
-): ASTv2.ExpressionNode | null {
-  switch (node.type) {
-    // This covers the inside of attributes and expressions, as well as the callee
-    // of call nodes
-    case 'Path':
-      return node;
-    case 'AppendContent':
-      return getCalleeExpression(node.value);
-    case 'Call':
-    case 'InvokeBlock':
-    case 'ElementModifier':
-      return node.callee;
-    default:
-      return null;
-  }
-}
-
-export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = never>
-  implements Keyword<K, OutFor<KeywordList>>
-{
+export class Keywords<K extends KeywordType, Out = never> implements Keyword<K, Out> {
   _keywords: Keyword[] = [];
   _type: K;
 
@@ -148,30 +145,29 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
     this._type = type;
   }
 
-  kw<V, S extends string = string, Out = unknown>(
+  kw<const NewOut, V, S extends string = string>(
     name: S,
-    delegate: KeywordDelegate<KeywordMatches[K], V, Out>
-  ): this {
+    delegate: KeywordDelegate<KeywordMatches[K], V, NewOut>
+  ): Keywords<K, Out | NewOut> {
     this._keywords.push(new KeywordImpl(name, this._type, delegate));
 
     return this;
   }
 
-  translate(
-    node: KeywordCandidates[K],
-    state: NormalizationState
-  ): Result<OutFor<KeywordList>> | null {
+  translate(node: KeywordCandidates[K], state: NormalizationState): Result<Out> | null {
     for (let keyword of this._keywords) {
       let result = keyword.translate(node, state);
       if (result !== null) {
-        return result as Result<OutFor<KeywordList>>;
+        return result as Result<Out>;
       }
     }
 
-    let path = getCalleeExpression(node);
+    if (!node.isResolved) {
+      return null;
+    }
 
-    if (path && path.type === 'Path' && path.ref.type === 'Free' && isKeyword(path.ref.name)) {
-      let { name } = path.ref as { name: keyof typeof KEYWORDS_TYPES };
+    if (node.resolved && isKeyword(node.resolved.name)) {
+      let { name } = node.resolved;
 
       let usedType = this._type;
       let validTypes: readonly KeywordType[] = KEYWORDS_TYPES[name];

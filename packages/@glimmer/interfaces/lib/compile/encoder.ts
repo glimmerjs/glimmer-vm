@@ -1,5 +1,4 @@
 import type { Nullable, Optional } from '../core.js';
-import type { CompileTimeConstants } from '../program.js';
 import type { CompileTimeComponent } from '../serialize.js';
 import type { HandleResult, NamedBlocks } from '../template.js';
 import type { VmMachineOp as MachineOp, VmOp as Op } from '../vm-opcodes.js';
@@ -115,6 +114,7 @@ export type HighLevelResolutionOp =
 export type HighLevelOp = HighLevelBuilderOp | HighLevelResolutionOp;
 
 export type BuilderOpcode = Op | MachineOp;
+export type BuilderOperand = number | { label: string };
 
 export type BuilderOp = [
   op: BuilderOpcode,
@@ -154,11 +154,7 @@ export interface Encoder {
    * @param args up to three operands, formatted as
    *   { type: "type", value: value }
    */
-  push(
-    constants: CompileTimeConstants,
-    opcode: BuilderOpcode,
-    ...args: SingleBuilderOperand[]
-  ): void;
+  push(opcode: BuilderOpcode, ...args: BuilderOperand[]): void;
 
   /**
    * Start a new labels block. A labels block is a scope for labels that
@@ -194,7 +190,7 @@ export interface Encoder {
    * @param name
    * @param index
    */
-  label(name: string): void;
+  mark(name: string): void;
 
   error(error: EncoderError): void;
 }

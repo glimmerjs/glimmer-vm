@@ -27,9 +27,6 @@ export type $t0 = 6;
 export const $t0: $t0 = 6;
 export type $t1 = 7;
 export const $t1: $t1 = 7;
-// $8 or $v0 (return value)
-export type $v0 = 8;
-export const $v0 = 8;
 
 export type MachineRegister = $pc | $ra | $fp | $sp;
 
@@ -42,5 +39,5 @@ export function isLowLevelRegister(
 export type SavedRegister = $s0 | $s1;
 export type TemporaryRegister = $t0 | $t1;
 
-export type Register = MachineRegister | SavedRegister | TemporaryRegister | $v0;
-export type SyscallRegister = SavedRegister | TemporaryRegister | $v0;
+export type Register = MachineRegister | SavedRegister | TemporaryRegister;
+export type SyscallRegister = SavedRegister | TemporaryRegister;

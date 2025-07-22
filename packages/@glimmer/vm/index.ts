@@ -12,4 +12,4 @@ export {
 } from './lib/flags';
 export type { MachineRegister, Register, SyscallRegister } from './lib/registers';
 export type { SavedRegister, TemporaryRegister } from './lib/registers';
-export { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from './lib/registers';
+export { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, isLowLevelRegister } from './lib/registers';

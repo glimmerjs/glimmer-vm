@@ -2,7 +2,7 @@ import type { CompileTimeComponent, EvaluationContext } from '@glimmer/interface
 import { unwrapHandle } from '@glimmer/debug-util';
 
 export function compileEntry(entry: CompileTimeComponent, context: EvaluationContext) {
-  return unwrapHandle(entry.compilable!.compile(context));
+  return unwrapHandle(entry.layout!.compile(context));
 }
 
 export async function measureRender(

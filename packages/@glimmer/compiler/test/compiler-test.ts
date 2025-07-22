@@ -1,11 +1,7 @@
 /* eslint-disable qunit/no-test-expect-argument */
 
 import type { BuilderStatement } from '@glimmer/compiler';
-import type {
-  SerializedTemplate,
-  SerializedTemplateBlock,
-  SerializedTemplateWithLazyBlock,
-} from '@glimmer/interfaces';
+import type { SerializedTemplateBlock, WireFormat } from '@glimmer/interfaces';
 import {
   buildStatements,
   c,
@@ -17,20 +13,40 @@ import {
   WireFormatDebugger,
 } from '@glimmer/compiler';
 import { BUILDER_APPEND, BUILDER_CONCAT } from '@glimmer/constants';
-import { assign, strip } from '@glimmer/util';
+import { strip } from '@glimmer/util';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 
-function compile(content: string): SerializedTemplate {
-  let parsed = JSON.parse(precompile(content, {})) as unknown as SerializedTemplateWithLazyBlock;
-  let block = JSON.parse(parsed.block) as SerializedTemplateBlock;
+function compileTemplate(
+  template: string,
+  evaluate: (source: string) => WireFormat.SerializedTemplateWithLazyBlock
+) {
+  let source = precompile(template, {
+    lexicalScope: (_variable: string) => false,
+  });
 
-  return assign({}, parsed, { block });
+  let wire = evaluate(`(${source})`);
+
+  return {
+    ...wire,
+    block: JSON.parse(wire.block) as SerializedTemplateBlock,
+  };
 }
 
-function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
-  QUnit.test(desc, (assert) => {
-    let actual = compile(template);
+function testSyntax({
+  desc,
+  template,
+  expectedStatements,
+  testFn,
+}: {
+  desc: string;
+  template: string;
+  expectedStatements: BuilderStatement[];
+  testFn: (desc: string, block: QUnit.TestFunctionCallback) => void;
+}) {
+  testFn(desc, (assert) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    let actual = compileTemplate(template, (source) => eval(source));
 
     let symbols = new ProgramSymbols();
 
@@ -45,6 +61,19 @@ function test(desc: string, template: string, ...expectedStatements: BuilderStat
   });
 }
 
+function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
+  testSyntax({ desc, template, expectedStatements, testFn: QUnit.test });
+}
+
+test.todo = (desc: string, template: string, ...expectedStatements: BuilderStatement[]) => {
+  testSyntax({
+    desc,
+    template,
+    expectedStatements,
+    testFn: (desc: string, block: QUnit.TestFunctionCallback) => QUnit.todo(desc, block),
+  });
+};
+
 QUnit.test(
   '@arguments are on regular non-component/regular HTML nodes throws syntax error',
   (assert) => {
@@ -52,7 +81,8 @@ QUnit.test(
     <a @onClick={{action "hi"}}>Link</a>
   `;
     assert.throws(
-      () => compile(template),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      () => compileTemplate(template, (source) => eval(source)),
       /@onClick is not a valid attribute name. @arguments are only allowed on components, but the tag for this element \(`a`\) is a regular, non-component HTML element/u
     );
   }
@@ -70,8 +100,8 @@ test('Text curlies', '<div>{{title}}<span>{{title}}</span></div>', [
 
 test(
   `Smoke test (blocks don't produce 'this' fallback)`,
-  `{{#let person as |name|}}{{#let this.name as |test|}}{{test}}{{/let}}{{/let}}`,
-  ['!let', ['^person'], { as: 'name' }, [['!let', ['this.name'], { as: 'test' }, ['test']]]]
+  `{{#let @person as |name|}}{{#let this.name as |test|}}{{test}}{{/let}}{{/let}}`,
+  ['!let', ['@person'], { as: 'name' }, [['!let', ['this.name'], { as: 'test' }, ['test']]]]
 );
 
 test(
@@ -196,12 +226,12 @@ test('Custom Elements with dynamic content', '<x-foo><x-bar>{{derp}}</x-bar></x-
   [['<x-bar>', ['^derp']]],
 ]);
 
-test('helpers', '<div>{{testing title}}</div>', ['<div>', [['(^testing)', ['^title']]]]);
+test('helpers', '<div>{{testing @title}}</div>', ['<div>', [['(^testing)', ['@title']]]]);
 
 test(
   'Dynamic content within single custom element',
-  '<x-foo>{{#test param name=hash}}Content Here{{parent}}{{/test}}</x-foo>',
-  ['<x-foo>', [['#^test', ['^param'], { name: '^hash' }, [s`Content Here`, '^parent']]]]
+  '<x-foo>{{#test @param name=@hash}}Content Here{{parent}}{{/test}}</x-foo>',
+  ['<x-foo>', [['#^test', ['@param'], { name: '@hash' }, [s`Content Here`, '^parent']]]]
 );
 
 test('quotes in HTML', `<div>"This is a title," we're on a boat</div>`, [
@@ -494,25 +524,25 @@ test(
   '^argh'
 );
 
-test('simple blocks', `<div>{{#if admin}}<p>{{user}}</p>{{/if}}!</div>`, [
+test('simple blocks', `<div>{{#if @admin}}<p>{{user}}</p>{{/if}}!</div>`, [
   '<div>',
-  [['!if', ['^admin'], [['<p>', ['^user']]]], s`!`],
+  [['!if', ['@admin'], [['<p>', ['^user']]]], s`!`],
 ]);
 
-test('nested blocks', `<div>{{#if admin}}{{#if access}}<p>{{user}}</p>{{/if}}{{/if}}!</div>`, [
+test('nested blocks', `<div>{{#if @admin}}{{#if @access}}<p>{{user}}</p>{{/if}}{{/if}}!</div>`, [
   '<div>',
-  [['!if', ['^admin'], [['!if', ['^access'], [['<p>', ['^user']]]]]], s`!`],
+  [['!if', ['@admin'], [['!if', ['@access'], [['<p>', ['^user']]]]]], s`!`],
 ]);
 
 test(
   'loops',
-  `<div>{{#each people key="handle" as |p|}}<span>{{p.handle}}</span> - {{p.name}}{{/each}}</div>`,
+  `<div>{{#each @people key="handle" as |p|}}<span>{{p.handle}}</span> - {{p.name}}{{/each}}</div>`,
   [
     '<div>',
     [
       [
         '!each',
-        ['^people'],
+        ['@people'],
         { key: s`handle`, as: 'p' },
         [['<span>', ['p.handle']], s` - `, 'p.name'],
       ],
@@ -520,9 +550,9 @@ test(
   ]
 );
 
-test('simple helpers', `<div>{{testing title}}</div>`, [
+test('simple helpers', `<div>{{testing @title}}</div>`, [
   '<div>',
-  [[BUILDER_APPEND, ['(^testing)', ['^title']]]],
+  [[BUILDER_APPEND, ['(^testing)', ['@title']]]],
 ]);
 
 test('constant negative numbers', `<div>{{testing -123321}}</div>`, [
@@ -608,15 +638,15 @@ test('Sexp expressions', `<div>{{testing (testing "hello")}}</div>`, [
 
 test(
   'Multiple invocations of the same sexp',
-  `<div>{{testing (testing "hello" foo) (testing (testing bar "lol") baz)}}</div>`,
+  `<div>{{testing (testing "hello" @foo) (testing (testing @bar "lol") @baz)}}</div>`,
   [
     '<div>',
     [
       [
         '(^testing)',
         [
-          ['(^testing)', [s`hello`, '^foo']],
-          ['(^testing)', [['(^testing)', ['^bar', s`lol`]], '^baz']],
+          ['(^testing)', [s`hello`, '@foo']],
+          ['(^testing)', [['(^testing)', ['@bar', s`lol`]], '@baz']],
         ],
       ],
     ],
@@ -628,21 +658,21 @@ test('hash arguments', `<div>{{testing first="one" second="two"}}</div>`, [
   [['(^testing)', { first: s`one`, second: s`two` }]],
 ]);
 
-test('params in concat attribute position', `<a href="{{testing url}}">linky</a>`, [
+test('params in concat attribute position', `<a href="{{testing @url}}">linky</a>`, [
   '<a>',
-  { href: [BUILDER_CONCAT, ['(^testing)', ['^url']]] },
+  { href: [BUILDER_CONCAT, ['(^testing)', ['@url']]] },
   [s`linky`],
 ]);
 
-test('named args in concat attribute position', `<a href="{{testing path=url}}">linky</a>`, [
+test('named args in concat attribute position', `<a href="{{testing path=@url}}">linky</a>`, [
   '<a>',
-  { href: [BUILDER_CONCAT, ['(^testing)', { path: '^url' }]] },
+  { href: [BUILDER_CONCAT, ['(^testing)', { path: '@url' }]] },
   [s`linky`],
 ]);
 
 test(
   'multiple helpers in concat position',
-  `<a href="http://{{foo}}/{{testing bar}}/{{testing "baz"}}">linky</a>`,
+  `<a href="http://{{foo}}/{{testing @bar}}/{{testing "baz"}}">linky</a>`,
   [
     '<a>',
     {
@@ -651,7 +681,7 @@ test(
         s`http://`,
         '^foo',
         s`/`,
-        ['(^testing)', ['^bar']],
+        ['(^testing)', ['@bar']],
         s`/`,
         ['(^testing)', [s`baz`]],
       ],

@@ -73,8 +73,19 @@ export interface LocalDebugMap {
   ];
 }
 
+interface VarHead {
+  type: 'VarHead';
+  name: string;
+}
+
+interface ParseError {
+  type: 'Error';
+}
+
+type Local = ParseError | VarHead;
+
 export interface DebugProgramSymbolTable {
-  readonly templateLocals: readonly string[];
+  readonly locals: ParseError | Local[];
   readonly keywords: readonly string[];
   readonly symbols: readonly string[];
   readonly upvars: readonly string[];

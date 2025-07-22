@@ -5,10 +5,10 @@ import { LOCAL_LOGGER } from '@glimmer/util';
 import type * as mir from './mir';
 
 import WireFormatDebugger from '../../wire-format-debug';
-import { CONTENT } from './content';
+import { encodeContentList } from './content';
 
 export function visit(template: mir.Template): WireFormat.SerializedTemplateBlock {
-  let statements = CONTENT.list(template.body);
+  let statements = encodeContentList(template.body);
   let scope = template.scope;
   let block: WireFormat.SerializedTemplateBlock = [statements, scope.symbols, scope.upvars];
 

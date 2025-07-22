@@ -82,7 +82,7 @@ class ModifierTests extends RenderTest {
   }
 
   @test
-  'modifiers on components are forwarded to a single element receiving the splattributes'(
+  'modifiers on components are underlying forwarded to a single element receiving the splattributes'(
     assert: Assert
   ) {
     let modifierParams: Nullable<unknown[]> = null;

@@ -5,7 +5,8 @@
   },
   "[javascript][typescript]": {
     "editor.codeActionsOnSave": {
-      "source.fixAll": "always",
+      "source.fixAll.eslint": "always",
+      "source.fixAll.ts": "always",
       "source.formatDocument": "always"
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -14,8 +15,8 @@
   },
   "[json][jsonc][markdown][yaml]": {
     "editor.codeActionsOnSave": {
-      "source.fixAll": "always",
-      "source.formatDocument": "always"
+      "source.fixAll.eslint": "always",
+      "source.fixAll.format": "always"
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": false
@@ -30,16 +31,12 @@
   "eslint.enable": true,
   "eslint.lintTask.enable": true,
   "eslint.onIgnoredFiles": "warn",
-  "eslint.options": {
-    "overrideConfigFile": "./eslint.config.js"
-  },
   "eslint.problems.shortenToSingleLine": true,
-  "eslint.runtime": "node",
   "eslint.useFlatConfig": true,
   "eslint.validate": ["javascript", "typescript", "json", "jsonc"],
   "eslint.workingDirectories": [
     {
-      "pattern": "."
+      "mode": "auto"
     }
   ],
   "explorer.excludeGitIgnore": true,
@@ -47,12 +44,9 @@
     "**/.DS_Store": true,
     "**/.git": true,
     "**/dist": true,
+    "ts-dist": true,
     "**/node_modules": true,
     "tracerbench-results": true
-  },
-  "files.watcherExclude": {
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true
   },
   "inline-bookmarks.expert.custom.styles": {
     "active": {
@@ -118,7 +112,7 @@
       "@bandaid(?!\\()"
     ]
   },
-  "inline-bookmarks.view.showVisibleFilesOnly": true,
+  "inline-bookmarks.view.showVisibleFilesOnly": false,
   "javascript.preferences.importModuleSpecifier": "project-relative",
   "javascript.updateImportsOnFileMove.enabled": "always",
   "rewrap.autoWrap.enabled": true,
@@ -137,5 +131,12 @@
   "typescript.preferences.useAliasesForRenames": false,
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.updateImportsOnFileMove.enabled": "always",
-  "typescript.reportStyleChecksAsWarnings": false
+  "typescript.reportStyleChecksAsWarnings": false,
+  "stylelint.packageManager": "pnpm",
+  "npm.packageManager": "pnpm",
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+  "typescript.inlayHints.parameterNames.enabled": "literals",
+  "typescript.inlayHints.parameterTypes.enabled": true,
+  "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+  "typescript.inlayHints.variableTypes.enabled": true
 }

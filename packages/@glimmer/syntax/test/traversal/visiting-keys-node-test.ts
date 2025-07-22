@@ -4,7 +4,7 @@ import { preprocess as parse, traverse } from '@glimmer/syntax';
 function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Node | undefined]>) {
   let actualTraversal: Array<[string, AST.BaseNode]> = [];
 
-  traverse(node, {
+  traverse(node as any, {
     All: {
       enter(node) {
         actualTraversal.push(['enter', node]);

@@ -406,7 +406,7 @@ class CurlyScopeTest extends CurlyTest {
     this.registerComponent(
       'Curly',
       'foo-bar',
-      `[Layout: {{this.zomg}}][Layout: {{this.lol}}][Layout: {{this.foo}}]{{yield}}`,
+      `[Layout-1: {{this.zomg}}][Layout-2: {{this.lol}}][Layout-3: {{this.foo}}]{{yield}}`,
       FooBar
     );
 
@@ -432,9 +432,9 @@ class CurlyScopeTest extends CurlyTest {
           [Outside: zomg]
           [Inside: zomg]
           [Inside: zomg]
-          [Layout: ]
-          [Layout: ]
-          [Layout: zomg]
+          [Layout-1: ]
+          [Layout-2: ]
+          [Layout-3: zomg]
           [Block: zomg]
           [Block: zomg]
         </div>

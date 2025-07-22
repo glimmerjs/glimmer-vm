@@ -167,7 +167,7 @@ export class WorkspaceConfig {
       settings: {
         ...config.settings,
         node: {
-          version: '22',
+          version: '22.17',
         },
       },
       extends: [...javascript.extends, ...extendsConfig],

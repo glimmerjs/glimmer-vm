@@ -1,21 +1,27 @@
 import type { ASTv2 } from '@glimmer/syntax';
 import { CURRIED_COMPONENT } from '@glimmer/constants';
-import { generateSyntaxError } from '@glimmer/syntax';
+import { generateSyntaxError, GlimmerSyntaxError } from '@glimmer/syntax';
 
-import type { NormalizationState } from '../context';
-
+import { createNormalizationView } from '../../../shared/post-validation-view';
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
-import { VISIT_EXPRS } from '../visitors/expressions';
-import { VISIT_STMTS } from '../visitors/statements';
+import {
+  visitCurlyArgs,
+  visitCurlyNamedArguments,
+  visitExpr,
+  visitPositional,
+} from '../visitors/expressions';
+import { visitNamedBlock, visitNamedBlocks } from '../visitors/statements';
 import { keywords } from './impl';
 import { assertCurryKeyword } from './utils/curry';
 
+const view = createNormalizationView();
+
 export const BLOCK_KEYWORDS = keywords('Block')
   .kw('in-element', {
-    assert(node: ASTv2.InvokeBlock): Result<{
-      insertBefore: ASTv2.ExpressionNode | null;
-      destination: ASTv2.ExpressionNode;
+    assert(node): Result<{
+      insertBefore: ASTv2.CurlyArgument | null;
+      destination: ASTv2.ExpressionValueNode;
     }> {
       let { args } = node;
 
@@ -25,7 +31,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
         return Err(generateSyntaxError(`Cannot pass \`guid\` to \`{{#in-element}}\``, guid.loc));
       }
 
-      let insertBefore = args.get('insertBefore');
+      let insertBefore = args.getNode('insertBefore');
       let destination = args.nth(0);
 
       if (destination === null) {
@@ -42,36 +48,35 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ insertBefore, destination });
     },
 
-    translate(
-      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      {
-        insertBefore,
-        destination,
-      }: { insertBefore: ASTv2.ExpressionNode | null; destination: ASTv2.ExpressionNode }
-    ): Result<mir.InElement> {
+    translate({ node, keyword, state }, { insertBefore, destination }): Result<mir.InElement> {
       let named = node.blocks.get('default');
-      let body = VISIT_STMTS.NamedBlock(named, state);
-      let destinationResult = VISIT_EXPRS.visit(destination, state);
+      let body = visitNamedBlock(named, state);
+      let destinationResult = visitExpr(destination, state);
 
       return Result.all(body, destinationResult)
         .andThen(
           ([body, destination]): Result<{
             body: mir.NamedBlock;
-            destination: mir.ExpressionNode;
-            insertBefore: mir.ExpressionNode;
+            destination: mir.ExpressionValueNode;
+            insertBefore: mir.CustomNamedArgument<mir.ExpressionValueNode> | mir.Missing;
           }> => {
+            // Handle ErrorNode case
+            if (body.type === 'Error') {
+              return Err(generateSyntaxError('Invalid block body', body.loc));
+            }
+
             if (insertBefore) {
-              return VISIT_EXPRS.visit(insertBefore, state).mapOk((insertBefore) => ({
-                body,
+              return visitExpr(insertBefore.value, state).mapOk((insertBeforeValue) => ({
+                body: body,
                 destination,
-                insertBefore,
+                insertBefore: mir.CustomNamedArgument.from(insertBefore, insertBeforeValue),
               }));
             } else {
               return Ok({
-                body,
+                body: body,
                 destination,
                 insertBefore: new mir.Missing({
-                  loc: node.callee.loc.collapse('end'),
+                  loc: node.resolved.loc.collapse('end'),
                 }),
               });
             }
@@ -80,6 +85,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
         .mapOk(
           ({ body, destination, insertBefore }) =>
             new mir.InElement({
+              keyword,
               loc: node.loc,
               block: body,
               insertBefore,
@@ -90,27 +96,38 @@ export const BLOCK_KEYWORDS = keywords('Block')
     },
   })
   .kw('if', {
-    assert(node: ASTv2.InvokeBlock): Result<{
-      condition: ASTv2.ExpressionNode;
+    assert(node): Result<{
+      condition: ASTv2.ExpressionValueNode;
     }> {
       let { args } = node;
 
       if (!args.named.isEmpty()) {
         return Err(
-          generateSyntaxError(
+          GlimmerSyntaxError.highlight(
             `{{#if}} cannot receive named parameters, received ${args.named.entries
-              .map((e) => e.name.chars)
+              .map((e) => `\`${e.name.chars}\``)
               .join(', ')}`,
-            node.loc
+            args.named.loc
+              .highlight()
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              .withPrimary(args.named.entries[0]!.name.loc.highlight('invalid'))
           )
         );
       }
 
-      if (args.positional.size > 1) {
+      const [, second, ...rest] = args.positional.exprs;
+
+      if (second) {
         return Err(
-          generateSyntaxError(
+          GlimmerSyntaxError.highlight(
             `{{#if}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
-            node.loc
+            args.positional.loc
+              .highlight('positional arguments')
+              .withPrimary(
+                second.loc
+                  .withEnd(args.positional.loc.getEnd())
+                  .highlight(rest.length === 0 ? 'extra argument' : 'extra arguments')
+              )
           )
         );
       }
@@ -121,7 +138,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
         return Err(
           generateSyntaxError(
             `{{#if}} requires a condition as its first positional parameter, did not receive any parameters`,
-            node.loc
+            node.keyword.loc.highlight('missing condition')
           )
         );
       }
@@ -129,41 +146,42 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ condition });
     },
 
-    translate(
-      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { condition }: { condition: ASTv2.ExpressionNode }
-    ): Result<mir.If> {
+    translate({ node, keyword, state }, { condition }): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let conditionResult = VISIT_EXPRS.visit(condition, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
-      let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
+      let conditionResult = visitExpr(condition, state);
+      let blockResult = visitNamedBlock(block, state);
+      let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          new mir.IfContent({
+            keyword,
             loc: node.loc,
             condition,
-            block,
-            inverse,
+            block: view.get(block, 'named block'),
+            inverse: inverse ? view.get(inverse, 'named block') : null,
           })
       );
     },
   })
   .kw('unless', {
-    assert(node: ASTv2.InvokeBlock): Result<{
-      condition: ASTv2.ExpressionNode;
+    assert(node): Result<{
+      condition: ASTv2.ExpressionValueNode;
     }> {
       let { args } = node;
 
       if (!args.named.isEmpty()) {
         return Err(
-          generateSyntaxError(
+          GlimmerSyntaxError.highlight(
             `{{#unless}} cannot receive named parameters, received ${args.named.entries
-              .map((e) => e.name.chars)
+              .map((e) => `\`${e.name.chars}\``)
               .join(', ')}`,
-            node.loc
+            args.named.loc
+              .highlight()
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              .withPrimary(args.named.entries[0]!.name.loc.highlight('invalid'))
           )
         );
       }
@@ -191,32 +209,30 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ condition });
     },
 
-    translate(
-      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { condition }: { condition: ASTv2.ExpressionNode }
-    ): Result<mir.If> {
+    translate({ node, keyword, state }, { condition }): Result<mir.IfContent> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let conditionResult = VISIT_EXPRS.visit(condition, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
-      let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
+      let conditionResult = visitExpr(condition, state);
+      let blockResult = visitNamedBlock(block, state);
+      let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          new mir.IfContent({
+            keyword,
             loc: node.loc,
-            condition: new mir.Not({ value: condition, loc: node.loc }),
-            block,
-            inverse,
+            condition: new mir.Not({ keyword, value: condition, loc: node.loc }),
+            block: view.get(block, 'named block'),
+            inverse: inverse ? view.get(inverse, 'named block') : null,
           })
       );
     },
   })
   .kw('each', {
-    assert(node: ASTv2.InvokeBlock): Result<{
-      value: ASTv2.ExpressionNode;
-      key: ASTv2.ExpressionNode | null;
+    assert(node): Result<{
+      value: ASTv2.ExpressionValueNode;
+      key: ASTv2.CurlyArgument | null;
     }> {
       let { args } = node;
 
@@ -242,7 +258,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       let value = args.nth(0);
-      let key = args.get('key');
+      let key = args.getNode('key');
 
       if (value === null) {
         return Err(
@@ -256,37 +272,34 @@ export const BLOCK_KEYWORDS = keywords('Block')
       return Ok({ value, key });
     },
 
-    translate(
-      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { value, key }: { value: ASTv2.ExpressionNode; key: ASTv2.ExpressionNode | null }
-    ): Result<mir.Each> {
+    translate({ node, keyword, state }, { value, key }): Result<mir.Each> {
       let block = node.blocks.get('default');
       let inverse = node.blocks.get('else');
 
-      let valueResult = VISIT_EXPRS.visit(value, state);
-      let keyResult = key ? VISIT_EXPRS.visit(key, state) : Ok(null);
+      let valueResult = visitExpr(value, state);
+      let keyResult = key ? visitExpr(key.value, state) : Ok(null);
 
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
-      let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
+      let blockResult = visitNamedBlock(block, state);
+      let inverseResult = inverse ? visitNamedBlock(inverse, state) : Ok(null);
 
       return Result.all(valueResult, keyResult, blockResult, inverseResult).mapOk(
-        ([value, key, block, inverse]) =>
+        ([value, keyExpr, block, inverse]) =>
           new mir.Each({
+            keyword,
             loc: node.loc,
             value,
-            key,
-            block,
-            inverse,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            key: keyExpr ? mir.CustomNamedArgument.from(key!, keyExpr) : null,
+            block: view.get(block, 'named block'),
+            inverse: inverse ? view.get(inverse, 'named block') : null,
           })
       );
     },
   })
   .kw('let', {
-    assert(node: ASTv2.InvokeBlock): Result<{
-      positional: ASTv2.PositionalArguments;
+    assert({ node, args }): Result<{
+      positional: ASTv2.PresentPositional;
     }> {
-      let { args } = node;
-
       if (!args.named.isEmpty()) {
         return Err(
           generateSyntaxError(
@@ -298,7 +311,9 @@ export const BLOCK_KEYWORDS = keywords('Block')
         );
       }
 
-      if (args.positional.size === 0) {
+      const positional = args.positional.asPresent();
+
+      if (!positional) {
         return Err(
           generateSyntaxError(
             `{{#let}} requires at least one value as its first positional parameter, did not receive any parameters`,
@@ -313,50 +328,52 @@ export const BLOCK_KEYWORDS = keywords('Block')
         );
       }
 
-      return Ok({ positional: args.positional });
+      return Ok({ positional });
     },
 
-    translate(
-      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { positional }: { positional: ASTv2.PositionalArguments }
-    ): Result<mir.Let> {
+    translate({ node, keyword, state }, { positional }): Result<mir.Let> {
       let block = node.blocks.get('default');
 
-      let positionalResult = VISIT_EXPRS.Positional(positional, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
+      let positionalResult = visitPositional(positional, state);
+      let blockResult = visitNamedBlock(block, state);
 
       return Result.all(positionalResult, blockResult).mapOk(
         ([positional, block]) =>
           new mir.Let({
+            keyword,
             loc: node.loc,
             positional,
-            block,
+            block: view.get(block, 'named block'),
           })
       );
     },
   })
   .kw('-with-dynamic-vars', {
-    assert(node: ASTv2.InvokeBlock): Result<{
-      named: ASTv2.NamedArguments;
+    assert(node): Result<{
+      named: ASTv2.PresentCurlyNamedArguments;
     }> {
-      return Ok({ named: node.args.named });
+      const named = node.args.named.asPresent();
+
+      if (named) {
+        return Ok({ named });
+      } else {
+        return Err(generateSyntaxError(`(-with-dynamic-vars) requires named arguments`, node.loc));
+      }
     },
 
-    translate(
-      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { named }: { named: ASTv2.NamedArguments }
-    ): Result<mir.WithDynamicVars> {
+    translate({ node, keyword, state }, { named }): Result<mir.WithDynamicVars> {
       let block = node.blocks.get('default');
 
-      let namedResult = VISIT_EXPRS.NamedArguments(named, state);
-      let blockResult = VISIT_STMTS.NamedBlock(block, state);
+      let namedResult = visitCurlyNamedArguments(named, state);
+      let blockResult = visitNamedBlock(block, state);
 
       return Result.all(namedResult, blockResult).mapOk(
         ([named, block]) =>
           new mir.WithDynamicVars({
+            keyword,
             loc: node.loc,
             named,
-            block,
+            block: view.get(block, 'named block'),
           })
       );
     },
@@ -365,21 +382,46 @@ export const BLOCK_KEYWORDS = keywords('Block')
     assert: assertCurryKeyword(CURRIED_COMPONENT),
 
     translate(
-      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
-      { definition, args }: { definition: ASTv2.ExpressionNode; args: ASTv2.Args }
-    ): Result<mir.InvokeComponent> {
-      let definitionResult = VISIT_EXPRS.visit(definition, state);
-      let argsResult = VISIT_EXPRS.Args(args, state);
-      let blocksResult = VISIT_STMTS.NamedBlocks(node.blocks, state);
+      { node, keyword, state },
+      { definition, args }
+    ): Result<mir.InvokeComponentKeyword | mir.InvokeResolvedComponentKeyword> {
+      let definitionResult = visitExpr(definition, state);
+      let argsResult = visitCurlyArgs(args, state);
+      let blocksResult = visitNamedBlocks(node.blocks, state);
 
-      return Result.all(definitionResult, argsResult, blocksResult).mapOk(
-        ([definition, args, blocks]) =>
-          new mir.InvokeComponent({
-            loc: node.loc,
-            definition,
-            args,
-            blocks,
-          })
+      return Result.all(definitionResult, argsResult, blocksResult).andThen(
+        ([definition, args, blocks]) => {
+          if (definition.type === 'Literal') {
+            if (typeof definition.value !== 'string') {
+              return Err(
+                generateSyntaxError(
+                  `Expected literal component name to be a string, but received ${definition.value}`,
+                  definition.loc
+                )
+              );
+            }
+
+            return Ok(
+              new mir.InvokeResolvedComponentKeyword({
+                keyword,
+                loc: node.loc,
+                definition: definition.value,
+                args,
+                blocks,
+              })
+            );
+          }
+
+          return Ok(
+            new mir.InvokeComponentKeyword({
+              keyword,
+              loc: node.loc,
+              definition,
+              args,
+              blocks,
+            })
+          );
+        }
       );
     },
   });

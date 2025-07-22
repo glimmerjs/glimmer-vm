@@ -1,5 +1,6 @@
 import type * as ASTv1 from '../v1/api';
 
+import { isResultsError, resultsToArray } from '../v1/utils';
 import { escapeAttrValue, escapeText, sortByLoc } from './util';
 
 export const voidMap = new Set([
@@ -261,9 +262,7 @@ export default class Printer {
           break;
       }
     }
-    if (el.blockParams.length) {
-      this.BlockParams(el.blockParams);
-    }
+    this.BlockParams(el.paramsNode);
     if (el.selfClosing) {
       this.buffer += ' /';
     }
@@ -364,9 +363,7 @@ export default class Printer {
     this.Expression(block.path);
     this.Params(block.params);
     this.Hash(block.hash);
-    if (block.program.blockParams.length) {
-      this.BlockParams(block.program.blockParams);
-    }
+    this.BlockParams(block.program.paramsNode);
 
     if (block.chained) {
       this.buffer += block.inverseStrip.close ? '~}}' : '}}';
@@ -393,8 +390,13 @@ export default class Printer {
     }
   }
 
-  BlockParams(blockParams: string[]): void {
-    this.buffer += ` as |${blockParams.join(' ')}|`;
+  BlockParams(blockParams: ASTv1.BlockParams): void {
+    if (isResultsError(blockParams.names) || blockParams.names.length === 0) {
+      return;
+    }
+
+    const names = resultsToArray(blockParams.names).map((name) => name.name);
+    this.buffer += ` as |${names.join(' ')}|`;
   }
 
   ConcatStatement(concat: ASTv1.ConcatStatement): void {

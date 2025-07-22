@@ -1,15 +1,30 @@
 import type {
   BlockMetadata,
+  HasBlocksFlag,
+  HasNamedArgsFlag,
+  HasPositionalArgsFlag,
   LayoutWithContext,
   NamedBlocks,
-  Nullable,
+  Optional,
+  PresentArray,
   WireFormat,
 } from '@glimmer/interfaces';
 import { VM_PUSH_ARGS_OP, VM_PUSH_EMPTY_ARGS_OP } from '@glimmer/constants';
+import { exhausted } from '@glimmer/debug-util';
 import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
+import {
+  BLOCKS_OPCODE,
+  EMPTY_ARGS_OPCODE,
+  NAMED_ARGS_AND_BLOCKS_OPCODE,
+  NAMED_ARGS_OPCODE,
+  POSITIONAL_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE,
+  POSITIONAL_AND_NAMED_ARGS_OPCODE,
+} from '@glimmer/wire-format';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { EncodeOp } from '../encoder';
 
+import { EMPTY_BLOCKS, getNamedBlocks } from '../../utils';
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
 
@@ -21,23 +36,19 @@ import { expr } from './expr';
  * @param args.blocks
  * @param args.atNames
  */
-export function CompileArgs(
-  op: PushStatementOp,
-  positional: WireFormat.Core.Params,
-  named: WireFormat.Core.Hash,
-  blocks: NamedBlocks,
-  atNames: boolean
-): void {
+export function CompileArgs(encode: EncodeOp, args: WireFormat.Core.SomeArgs): void {
+  const blocks = hasBlocks(args) ? getNamedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
+
   let blockNames: string[] = blocks.names;
   for (const name of blockNames) {
-    PushYieldableBlock(op, blocks.get(name));
+    PushYieldableBlock(encode, blocks.get(name));
   }
 
-  let count = CompilePositional(op, positional);
+  let count = hasPositional(args) ? CompilePositional(encode, getPositional(args)) : 0;
 
   let flags = count << 4;
 
-  if (atNames) flags |= 0b1000;
+  flags |= 0b1000;
 
   if (blocks.hasAny) {
     flags |= 0b111;
@@ -45,45 +56,110 @@ export function CompileArgs(
 
   let names = EMPTY_ARRAY as readonly string[];
 
-  if (named) {
+  if (hasNamed(args)) {
+    const named = getNamed(args);
     names = named[0];
     let val = named[1];
-    for (let i = 0; i < val.length; i++) {
-      expr(op, val[i]);
+
+    for (const arg of val) {
+      expr(encode, arg);
     }
   }
 
-  op(VM_PUSH_ARGS_OP, names as string[], blockNames, flags);
+  encode.op(VM_PUSH_ARGS_OP, encode.array(names as string[]), encode.array(blockNames), flags);
 }
 
-export function SimpleArgs(
-  op: PushExpressionOp,
-  positional: Nullable<WireFormat.Core.Params>,
-  named: Nullable<WireFormat.Core.Hash>,
-  atNames: boolean
-): void {
-  if (positional === null && named === null) {
-    op(VM_PUSH_EMPTY_ARGS_OP);
+export const hasPositional = <T extends WireFormat.Core.SomeArgs>(
+  args: T
+): args is T & WireFormat.Core.HasPositionalArgs =>
+  !!(args[0] & (0b100 satisfies HasPositionalArgsFlag));
+
+export const getPositional = (args: WireFormat.Core.HasPositionalArgs): WireFormat.Core.Params =>
+  args[1];
+
+export const hasNamed = <T extends WireFormat.Core.SomeArgs>(
+  args: T
+): args is T & WireFormat.Core.HasNamedArgs => !!(args[0] & (0b010 satisfies HasNamedArgsFlag));
+
+export const getNamed = (args: WireFormat.Core.HasNamedArgs): WireFormat.Core.Hash => {
+  switch (args[0]) {
+    case NAMED_ARGS_OPCODE:
+    case NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[1];
+    case POSITIONAL_AND_NAMED_ARGS_OPCODE:
+    case POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[2];
+    default:
+      exhausted(args);
+  }
+};
+
+export const hasBlocks = <T extends WireFormat.Core.BlockArgs>(
+  args: T
+): args is T & WireFormat.Core.HasBlocks => !!(args[0] & (0b001 satisfies HasBlocksFlag));
+
+export const getBlocks = (args: WireFormat.Core.HasBlocks): WireFormat.Core.Blocks => {
+  switch (args[0]) {
+    case BLOCKS_OPCODE:
+      return args[1];
+    case POSITIONAL_AND_BLOCKS_OPCODE:
+    case NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[2];
+    case POSITIONAL_AND_NAMED_ARGS_AND_BLOCKS_OPCODE:
+      return args[3];
+    default:
+      exhausted(args);
+  }
+};
+
+export function SimpleArgs(encode: EncodeOp, args: WireFormat.Core.CallArgs): void {
+  if (args[0] === EMPTY_ARGS_OPCODE) {
+    encode.op(VM_PUSH_EMPTY_ARGS_OP);
     return;
   }
 
-  let count = CompilePositional(op, positional);
+  const positionalCount = hasPositional(args) ? CompilePositional(encode, getPositional(args)) : 0;
+  const names = hasNamed(args) ? CompileNamed(encode, getNamed(args)) : EMPTY_STRING_ARRAY;
 
-  let flags = count << 4;
+  encode.op(
+    VM_PUSH_ARGS_OP,
+    encode.array(names),
+    encode.array(EMPTY_STRING_ARRAY),
+    positionalCount << 4
+  );
+}
 
-  if (atNames) flags |= 0b1000;
-
-  let names = EMPTY_STRING_ARRAY;
-
-  if (named) {
-    names = named[0];
-    let val = named[1];
-    for (let i = 0; i < val.length; i++) {
-      expr(op, val[i]);
-    }
+export function blockArgs(encode: EncodeOp, args: WireFormat.Core.BlockArgs): void {
+  if (args[0] === EMPTY_ARGS_OPCODE) {
+    encode.op(VM_PUSH_EMPTY_ARGS_OP);
   }
 
-  op(VM_PUSH_ARGS_OP, names, EMPTY_STRING_ARRAY, flags);
+  const positionalCount = hasPositional(args) ? CompilePositional(encode, getPositional(args)) : 0;
+  const names = hasNamed(args) ? CompileNamed(encode, getNamed(args)) : EMPTY_STRING_ARRAY;
+  const blocks = hasBlocks(args) ? getNamedBlocks(getBlocks(args)) : EMPTY_BLOCKS;
+
+  const [blockFlags, ...blockNames] = CompileBlocks(encode, blocks);
+
+  const flags = (positionalCount << 4) | blockFlags;
+
+  encode.op(VM_PUSH_ARGS_OP, encode.array(names), encode.array(blockNames), flags);
+}
+
+export function CompileBlocks(
+  encode: EncodeOp,
+  blocks: NamedBlocks
+): [blockFlags: 0b000 | 0b111, ...blockNames: string[]] {
+  if (blocks.hasAny) {
+    const blockNames = blocks.names;
+
+    for (const blockName of blockNames) {
+      PushYieldableBlock(encode, blocks.get(blockName));
+    }
+
+    return [0b111, ...blockNames];
+  } else {
+    return [0b000];
+  }
 }
 
 /**
@@ -93,16 +169,33 @@ export function SimpleArgs(
  * @param positional an optional list of positional arguments
  */
 export function CompilePositional(
-  op: PushExpressionOp,
-  positional: Nullable<WireFormat.Core.Params>
+  encode: EncodeOp,
+  positional: Optional<WireFormat.Core.Params>
 ): number {
-  if (positional === null) return 0;
+  if (!positional) return 0;
 
-  for (let i = 0; i < positional.length; i++) {
-    expr(op, positional[i]);
+  for (const param of positional) {
+    expr(encode, param);
   }
 
   return positional.length;
+}
+
+export function CompilePresentPositional(
+  encode: EncodeOp,
+  positional: WireFormat.Core.Params
+): void {
+  for (const param of positional) expr(encode, param);
+}
+
+export function CompileNamed(encode: EncodeOp, named: WireFormat.Core.Hash): PresentArray<string> {
+  const [names, vals] = named;
+
+  for (const val of vals) {
+    expr(encode, val);
+  }
+
+  return names;
 }
 
 export function meta(layout: LayoutWithContext): BlockMetadata {

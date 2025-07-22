@@ -5,7 +5,7 @@ import { expectTypeOf } from 'expect-type';
 
 import { module, test } from '../-utils';
 
-expectTypeOf<ReturnType<typeof trackedArray>>().toMatchTypeOf<Array<unknown>>();
+expectTypeOf<ReturnType<typeof trackedArray>>().toEqualTypeOf<unknown[]>();
 
 module('@glimmer/validator: trackedArray()', () => {
   test('Can get values on array directly', (assert) => {

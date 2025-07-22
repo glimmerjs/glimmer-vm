@@ -38,7 +38,7 @@ export function equalTokens(
     );
   } else {
     QUnit.assert.pushResult({
-      result: QUnit.equiv(fragTokens.tokens, htmlTokens.tokens),
+      result: equiv,
       actual: fragTokens.html,
       expected: htmlTokens.html,
       message: message || 'expected tokens to match',

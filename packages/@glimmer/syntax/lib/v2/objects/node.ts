@@ -7,6 +7,22 @@ export interface BaseNodeFields {
   loc: SourceSpan;
 }
 
+export interface AbstractNode extends BaseNodeFields {
+  type: string;
+}
+
+interface TypedNodeDefinition<T extends string> {
+  fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
+}
+
+interface NodeDefinition {
+  fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
+}
+
+export type ValidatedPhase = 'validated';
+export type UnvalidatedPhase = 'unvalidated';
+export type Phase = ValidatedPhase | UnvalidatedPhase;
+
 /**
  * This is a convenience function for creating ASTv2 nodes, with an optional name and the node's
  * options.
@@ -37,21 +53,9 @@ export interface BaseNodeFields {
 export function node(): {
   fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
 };
-export function node<T extends string>(
-  name: T
-): {
-  fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
-};
 
-export function node<T extends string>(
-  name?: T
-):
-  | {
-      fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
-    }
-  | {
-      fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
-    } {
+export function node<T extends string>(name: T): TypedNodeDefinition<T>;
+export function node<T extends string>(name?: T): NodeDefinition | TypedNodeDefinition<T> {
   if (name !== undefined) {
     const type = name;
     return {

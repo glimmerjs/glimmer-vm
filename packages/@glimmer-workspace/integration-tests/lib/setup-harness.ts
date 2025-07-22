@@ -1,8 +1,6 @@
 /* eslint-disable no-console */
 import type { Expand } from '@glimmer/interfaces';
-import type { Runner } from 'js-reporters';
 import { debug } from '@glimmer/validator';
-import { autoRegister } from 'js-reporters';
 import { default as QUnit } from 'qunit';
 
 const SMOKE_TEST_FILE = './packages/@glimmer-workspace/integration-tests/test/smoke-test.ts';
@@ -30,9 +28,23 @@ export async function bootQunit(
   QUnit.start();
 }
 
+type QUnitExt = typeof QUnit & {
+  reporters: {
+    tap: {
+      init: (qunit: typeof QUnit, options: { log: (message: string) => void }) => void;
+    };
+  };
+};
+
+declare global {
+  const exposedCiLog: undefined | ((message: string) => void);
+  const ciHarnessEvent: undefined | ((event: string, details: QUnit.DoneDetails) => void);
+}
+
 export async function setupQunit() {
   const qunitLib: QUnit = await import('qunit');
   await import('qunit/qunit/qunit.css');
+  await import('./harness/tweaks.css');
 
   const testing = Testing.withConfig(
     {
@@ -47,6 +59,11 @@ export async function setupQunit() {
         'CI mode emits tap output and makes tests run faster by sacrificing UI responsiveness',
     },
     {
+      id: 'headless',
+      label: 'Headless Mode',
+      tooltip: 'Run tests in headless mode (no UI)',
+    },
+    {
       id: 'enable_internals_logging',
       label: 'Log Deep Internals',
       tooltip: 'Logs internals that are used in the development of the trace logs',
@@ -55,7 +72,8 @@ export async function setupQunit() {
     {
       id: 'enable_trace_logging',
       label: 'Trace Logs',
-      tooltip: 'Trace logs emit information about the internal VM state',
+      tooltip:
+        'Trace logs emit information about the internal VM state. NOTE: Some tests are incompatible with trace logging and may fail.',
     },
 
     {
@@ -72,18 +90,13 @@ export async function setupQunit() {
     }
   );
 
-  const runner = autoRegister();
+  // const runner = autoRegister();
 
-  testing.begin(() => {
-    if (testing.config.ci) {
-      // @ts-expect-error add reporters.tap to the types
-
-      const tap = qunitLib.reporters.tap as {
-        init: (runner: Runner, options: { log: (message: string) => void }) => void;
-      };
-      tap.init(runner, { log: console.info });
-    }
-  });
+  if (typeof exposedCiLog !== 'undefined') {
+    (qunitLib as QUnitExt).reporters.tap.init(qunitLib, {
+      log: exposedCiLog,
+    });
+  }
 
   await Promise.resolve();
 
@@ -125,8 +138,12 @@ export async function setupQunit() {
     qunitLib.moduleDone(pause);
   }
 
-  qunitLib.done(() => {
+  qunitLib.done((finish) => {
     console.log('[HARNESS] done');
+
+    if (typeof ciHarnessEvent !== 'undefined') {
+      ciHarnessEvent('end', finish);
+    }
   });
 
   return {
@@ -148,6 +165,10 @@ class Testing<Q extends typeof QUnit> {
   get config(): Q['config'] {
     return this.#qunit.config;
   }
+
+  readonly hasFlag = (flag: string): boolean => {
+    return hasFlag(flag);
+  };
 
   readonly begin = (begin: (details: QUnit.BeginDetails) => void | Promise<void>): void => {
     this.#qunit.begin(begin);

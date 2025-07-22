@@ -10,9 +10,11 @@
     "allowImportingTsExtensions": true,
     "allowArbitraryExtensions": true,
     "allowSyntheticDefaultImports": true,
+    "noFallthroughCasesInSwitch": false,
     "noImplicitReturns": false,
     "noUnusedLocals": false,
     "stripInternal": true,
+    "skipLibCheck": true,
     // TODO: Remove these and use the decorators manually to avoid infecting
     // the entire codebase with legacy transpilation semantics.
     "experimentalDecorators": true,
@@ -38,5 +40,5 @@
     "bin/**/*",
     "**/*.config.mts"
   ],
-  "exclude": ["ts-dist", "**/dist/**", "**/node_modules/**", "**/fixtures/**"]
+  "exclude": ["ts-dist", "**/dist/**", "**/node_modules/**", "**/fixtures/**", "**/*.bak.ts"]
 }

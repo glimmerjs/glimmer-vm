@@ -110,12 +110,15 @@ class DebugRenderTreeTest extends RenderTest {
     ]);
   }
 
+  // NOTE: This test is incompatible with trace logging (ENABLE_TRACE_LOGGING)
+  // When trace logging is enabled, the render tree nodes may not be captured correctly
   @test 'strict-mode modifiers'() {
     const state = trackedObj({ showSecond: false });
 
     const HelloWorld = defComponent('<p ...attributes>{{@arg}}</p>');
     const noopFn = () => {};
     const noop = defineSimpleModifier(noopFn);
+
     const Root = defComponent(
       `<HelloWorld {{noop}} @arg="first"/>{{#if state.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       { scope: { HelloWorld, state, noop }, emit: { moduleName: 'root.hbs' } }

@@ -44,11 +44,14 @@ export const APPEND_PATH_HEAD: APPEND_PATH_HEAD = 'AppendPath';
 export type APPEND_EXPR_HEAD = 'AppendExpr';
 export const APPEND_EXPR_HEAD: APPEND_EXPR_HEAD = 'AppendExpr';
 
+export type APPEND_INVOKE_HEAD = 'AppendInvoke';
+export const APPEND_INVOKE_HEAD: APPEND_INVOKE_HEAD = 'AppendInvoke';
+
 export type LITERAL_HEAD = 'Literal';
 export const LITERAL_HEAD: LITERAL_HEAD = 'Literal';
 
-export type MODIFIER_HEAD = 'Modifier';
-export const MODIFIER_HEAD: MODIFIER_HEAD = 'Modifier';
+export type MODIFIER_HEAD = 'DynamicModifier';
+export const MODIFIER_HEAD: MODIFIER_HEAD = 'DynamicModifier';
 
 export type DYNAMIC_COMPONENT_HEAD = 'DynamicComponent';
 export const DYNAMIC_COMPONENT_HEAD: DYNAMIC_COMPONENT_HEAD = 'DynamicComponent';
@@ -80,8 +83,8 @@ export type HeadKind =
 export type LOCAL_VAR = 'Local';
 export const LOCAL_VAR: LOCAL_VAR = 'Local';
 
-export type FREE_VAR = 'Free';
-export const FREE_VAR: FREE_VAR = 'Free';
+export type RESOLVED_CALLEE = 'Resolved';
+export const RESOLVED_CALLEE: RESOLVED_CALLEE = 'Resolved';
 
 export type ARG_VAR = 'Arg';
 export const ARG_VAR: ARG_VAR = 'Arg';
@@ -92,7 +95,7 @@ export const BLOCK_VAR: BLOCK_VAR = 'Block';
 export type THIS_VAR = 'This';
 export const THIS_VAR: THIS_VAR = 'This';
 
-export type VariableKind = LOCAL_VAR | FREE_VAR | ARG_VAR | BLOCK_VAR | THIS_VAR;
+export type VariableKind = LOCAL_VAR | RESOLVED_CALLEE | ARG_VAR | BLOCK_VAR | THIS_VAR;
 
 /// ExpressionKind ///
 

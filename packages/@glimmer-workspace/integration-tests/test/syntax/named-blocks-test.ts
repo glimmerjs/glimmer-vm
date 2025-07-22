@@ -1,246 +1,186 @@
-import {
-  jitSuite,
-  preprocess,
-  RenderTest,
-  syntaxErrorFor,
-  test,
-} from '@glimmer-workspace/integration-tests';
+import { PackageSuite, verifying } from '@glimmer-workspace/integration-tests';
 
-class NamedBlocksSyntaxErrors extends RenderTest {
-  static suiteName = 'named blocks syntax errors';
+const syntax = PackageSuite('@glimmer/syntax');
 
-  @test
-  'Defining block params on a component which has named blocks'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo as |bar|><:foo></:foo></Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'Unexpected block params list on <Foo> component invocation: when passing named blocks, the invocation tag cannot take block params',
-        '<Foo as |bar|><:foo></:foo></Foo>',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+syntax(['named block syntax errors'], (module) => {
+  module.test('Defining block params on a component which has named blocks', () => {
+    verifying(
+      `<Foo as |bar|><:foo></:foo></Foo>`,
+      `Unexpected block params list on <Foo> component invocation: when passing named blocks, the invocation tag cannot take block params`,
+      { lexicalScope: (name) => name === 'Foo' }
+    ).throws`
+      1 | <Foo as |bar|><:foo></:foo></Foo>
+        |      ========
+        |       \========== unexpected block params
+    `.errors();
+  });
 
-  @test
-  'Defining named blocks on a plain element is not allowed'() {
-    this.assert.throws(
-      () => {
-        preprocess('<div><:foo></:foo></div>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'Unexpected named block <:foo> inside <div> HTML element',
-        '<div><:foo></:foo></div>',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+  module.test('Defining named blocks on a plain element is not allowed', () => {
+    verifying(`<div><:foo></:foo></div>`, `Unexpected named block <:foo> inside <div> HTML element`)
+      .throws`
+      1 | <div><:foo></:foo></div>
+        |       ====
+        |         \===== unexpected named block
+    `.errors();
+  });
 
-  @test
-  'Defining top level named blocks is not allowed'() {
-    this.assert.throws(
-      () => {
-        preprocess('<:foo></:foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'Unexpected named block at the top-level of a template',
-        '<:foo></:foo>',
-        'test-module',
-        1,
-        0
-      )
-    );
+  module.test('Defining top level named blocks is not allowed', () => {
+    verifying(`<:foo></:foo>`, `Unexpected named block at the top-level of a template`, {
+      strict: 'both',
+      using: 'both',
+    }).throws`
+      1 | <:foo></:foo>
+        |  ====
+        |   \===== unexpected named block
+    `.errors();
+  });
 
-    this.assert.throws(
-      () => {
-        preprocess('{{#if}}<:foo></:foo>{{/if}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'Unexpected named block nested in a normal block',
-        '<:foo></:foo>',
-        'test-module',
-        1,
-        7
-      )
-    );
-  }
+  module.test('Defining named blocks inside a normal block is not allowed', () => {
+    verifying(`{{#if}}<:foo></:foo>{{/if}}`, `Unexpected named block nested in a normal block`, {
+      lexicalScope: (name) => name === 'if',
+    }).throws`
+      1 | {{#if}}<:foo></:foo>{{/if}}
+        |         ====
+        |           \===== unexpected named block
+    `.errors();
+  });
 
-  @test
-  'Passing multiple of the same named block throws an error'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:foo></:foo><:foo></:foo></Foo>', {
-          meta: { moduleName: 'test-module' },
-        });
-      },
-      syntaxErrorFor(
-        'Component had two named blocks with the same name, `<:foo>`. Only one block with a given name may be passed',
-        '<Foo><:foo></:foo><:foo></:foo></Foo>',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+  module.test('Passing multiple of the same named block is not allowed', () => {
+    verifying(
+      '<Foo><:foo></:foo><:foo></:foo></Foo>',
+      `Component had two named blocks with the same name, \`<:foo>\`. Only one block with a given name may be passed`,
+      { lexicalScope: (name) => name === 'Foo' }
+    ).throws`
+      1 | <Foo><:foo></:foo><:foo></:foo></Foo>
+        |                    ====
+        |                      \===== duplicate named block
+    `.errors();
+  });
 
-  @test
-  'Throws an error if both inverse and else named blocks are passed, inverse first'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:inverse></:inverse><:else></:else></Foo>', {
-          meta: { moduleName: 'test-module' },
-        });
-      },
-      syntaxErrorFor(
-        'Component has both <:else> and <:inverse> block. <:inverse> is an alias for <:else>',
+  module.test(
+    'Throws an error if both inverse and else named blocks are passed, inverse first',
+    () => {
+      verifying(
         '<Foo><:inverse></:inverse><:else></:else></Foo>',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+        `Component has both <:else> and <:inverse> block. <:inverse> is an alias for <:else>`,
+        { lexicalScope: (name) => name === 'Foo' }
+      ).throws`
+      1 | <Foo><:inverse></:inverse><:else></:else></Foo>
+        |                            =====
+        |                             \===== else is the same as inverse
+    `.errors();
 
-  @test
-  'Throws an error if both inverse and else named blocks are passed, else first'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:else></:else><:inverse></:inverse></Foo>', {
-          meta: { moduleName: 'test-module' },
-        });
-      },
-      syntaxErrorFor(
-        'Component has both <:else> and <:inverse> block. <:inverse> is an alias for <:else>',
+      verifying(
         '<Foo><:else></:else><:inverse></:inverse></Foo>',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+        `Component has both <:else> and <:inverse> block. <:inverse> is an alias for <:else>`,
+        { lexicalScope: (name) => name === 'Foo' }
+      ).throws`
+      1 | <Foo><:else></:else><:inverse></:inverse></Foo>
+        |                      ========
+        |                        \===== inverse is the same as else
+    `.errors();
+    }
+  );
 
-  @test
-  'Throws an error if there is content outside of the blocks'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo>Hello!<:foo></:foo></Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'Unexpected content inside <Foo> component invocation: when using named blocks, the tag cannot contain other content',
-        '<Foo>Hello!<:foo></:foo></Foo>',
-        'test-module',
-        1,
-        0
-      )
-    );
+  module.test('Throws an error if there is content outside of the blocks', () => {
+    verifying(
+      `<Foo>Hello!<:foo></:foo></Foo>`,
+      `Unexpected content inside <Foo> component invocation: when using named blocks, the tag cannot contain other content`,
+      { lexicalScope: (name) => name === 'Foo' }
+    ).throws`
+      1 | <Foo>Hello!<:foo></:foo></Foo>
+        |      ======
+        |        \===== unexpected content
+    `.errors();
 
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:foo></:foo>Hello!</Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'Unexpected content inside <Foo> component invocation: when using named blocks, the tag cannot contain other content',
-        '<Foo><:foo></:foo>Hello!</Foo>',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+    verifying(
+      `<Foo><:foo></:foo>Hello!</Foo>`,
+      `Unexpected content inside <Foo> component invocation: when using named blocks, the tag cannot contain other content`,
+      { lexicalScope: (name) => name === 'Foo' }
+    ).throws`
+      1 | <Foo><:foo></:foo>Hello!</Foo>
+        |                   ======
+        |                    \===== unexpected content
+    `.errors();
 
-  @test
-  'Cannot pass self closing named block'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:foo/></Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '<:foo/> is not a valid named block: named blocks cannot be self-closing',
-        '<:foo/>',
-        'test-module',
-        1,
-        5
-      )
-    );
-  }
+    verifying(
+      `<Foo><:foo></:foo>Hello!<:bar></:bar></Foo>`,
+      `Unexpected content inside <Foo> component invocation: when using named blocks, the tag cannot contain other content`,
+      { lexicalScope: (name) => name === 'Foo' }
+    ).throws`
+      1 | <Foo><:foo></:foo>Hello!<:bar></:bar></Foo>
+        |                   ======
+        |                    \===== unexpected content
+    `.errors();
+  });
 
-  @test
-  'Named blocks must start with a lower case letter'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:Bar></:Bar></Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '<:Bar> is not a valid named block, and named blocks must begin with a lowercase letter',
-        '<:Bar></:Bar>',
-        'test-module',
-        1,
-        5
-      )
-    );
+  module.test('Cannot pass self closing named block', () => {
+    verifying(`<Foo><:foo/></Foo>`, `Named blocks cannot be self-closing`, {
+      lexicalScope: (name) => name === 'Foo',
+    }).throws`
+      1 | <Foo><:foo/></Foo>
+        |      -----==
+        |           \===== invalid self-closing tag
+    `.errors();
 
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:1bar><:/1bar></Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'Invalid named block named detected, you may have created a named block without a name, or you may have began your name with a number. Named blocks must have names that are at least one character long, and begin with a lower case letter',
-        '<:/1bar>',
-        'test-module',
-        1,
-        12
-      )
-    );
-  }
+    verifying(`<Foo><:foo></:foo><:bar /></Foo>`, `Named blocks cannot be self-closing`, {
+      lexicalScope: (name) => name === 'Foo',
+    }).throws`
+      1 | <Foo><:foo></:foo><:bar /></Foo>
+        |                   ------==
+        |                    \===== invalid self-closing tag
+    `.errors();
+  });
 
-  @test
-  'Named blocks cannot have arguments, attributes, or modifiers'() {
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:bar attr="baz"></:bar></Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'named block <:bar> cannot have attributes, arguments, or modifiers',
-        '<:bar attr="baz"></:bar>',
-        'test-module',
-        1,
-        5
-      )
-    );
+  module.test('Named blocks must start with a lowercase letter', () => {
+    verifying(`<Foo><:Bar></:Bar></Foo>`, `Named blocks must start with a lowercase letter`, {
+      lexicalScope: (name) => name === 'Foo',
+    }).throws`
+      1 | <Foo><:Bar></:Bar></Foo>
+        |       ====
+        |       \===== Bar begins with a capital letter
+    `.errors();
 
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:bar @arg="baz"></:bar></Foo>', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'named block <:bar> cannot have attributes, arguments, or modifiers',
-        '<:bar @arg="baz"></:bar>',
-        'test-module',
-        1,
-        5
-      )
-    );
+    verifying(`<Foo><:1bar></:1bar></Foo>`, `Named blocks must start with a lowercase letter`, {
+      lexicalScope: (name) => name === 'Foo',
+    }).throws`
+      1 | <Foo><:1bar></:1bar></Foo>
+        |       =====
+        |       \===== 1bar begins with a number
+    `.errors();
+  });
 
-    this.assert.throws(
-      () => {
-        preprocess('<Foo><:bar {{modifier}}></:bar></Foo>', {
-          meta: { moduleName: 'test-module' },
-        });
-      },
-      syntaxErrorFor(
-        'named block <:bar> cannot have attributes, arguments, or modifiers',
-        '<:bar {{modifier}}></:bar>',
-        'test-module',
-        1,
-        5
-      )
-    );
-  }
-}
+  module.test('Named blocks cannot have arguments, attributes, or modifiers', () => {
+    verifying(`<Foo><:bar attr='baz'></:bar></Foo>`, `Named blocks cannot have attributes`, {
+      lexicalScope: (name) => name === 'Foo',
+    }).throws`
+      1 | <Foo><:bar attr='baz'></:bar></Foo>
+        |            ==========
+        |                 \===== invalid attribute
+    `.errors();
 
-jitSuite(NamedBlocksSyntaxErrors);
+    verifying(`<Foo><:bar ...attributes></:bar></Foo>`, `Named blocks cannot have ...attributes`, {
+      lexicalScope: (name) => name === 'Foo',
+    }).throws`
+      1 | <Foo><:bar ...attributes></:bar></Foo>
+        |            =============
+        |                 \===== invalid ...attributes
+    `.errors();
+
+    verifying(`<Foo><:bar @arg='baz'></:bar></Foo>`, `Named blocks cannot have arguments`, {
+      lexicalScope: (name) => name === 'Foo',
+    }).throws`
+      1 | <Foo><:bar @arg='baz'></:bar></Foo>
+        |            ==========
+        |             \===== invalid argument
+    `.errors();
+
+    verifying(`<Foo><:bar {{modifier}}></:bar></Foo>`, `Named blocks cannot have modifiers`, {
+      lexicalScope: (name) => name === 'Foo' || name === 'modifier',
+    }).throws`
+      1 | <Foo><:bar {{modifier}}></:bar></Foo>
+        |            ============
+        |             \===== invalid modifier
+    `.errors();
+  });
+});
