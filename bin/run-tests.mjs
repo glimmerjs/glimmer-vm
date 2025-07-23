@@ -3,8 +3,8 @@
 import child from 'child_process';
 import { resolve } from 'path';
 import PCR from 'puppeteer-chromium-resolver';
-import { fileURLToPath } from 'url';
 import stripAnsi from 'strip-ansi';
+import { fileURLToPath } from 'url';
 
 const { puppeteer, executablePath } = await PCR({});
 
@@ -13,6 +13,7 @@ const __root = fileURLToPath(new URL('..', import.meta.url));
 const qps = getQPs();
 const check = process.argv.includes('--check');
 const failingOnly = process.argv.includes('--failing-only') || check;
+const traceHarness = process.argv.includes('--trace-harness');
 
 function getQPs() {
   let params = [];
@@ -41,19 +42,14 @@ function getQP(filter) {
     case '--failing-only':
     case '--ci':
     case '--check':
+    case '--trace-harness':
       return [];
   }
 
-  if (filter === '--headless') {
-    return [];
-  } else if (filter === '--failing-only') {
-    return [];
-  } else if (filter === '--enable-trace-logging') {
+  if (filter === '--enable-trace-logging') {
     return ['enable_trace_logging'];
   } else if (filter === '--enable-subtle-logging') {
     return ['enable_subtle_logging'];
-  } else if (filter === '--ci') {
-    return [];
   } else if (filter.startsWith(`--filter=`)) {
     return [`filter=${encodeURIComponent(filter.slice('--filter='.length))}`];
   } else if (filter.startsWith(`--ids=`)) {
@@ -94,18 +90,24 @@ const port = await /** @type {Promise<string>} */ (
     // Buffer to accumulate output in case it comes in chunks
     let stdoutBuffer = '';
     let stderrBuffer = '';
+    let portFound = false;
 
     runvite.stderr?.on('data', (data) => {
       const chunk = String(data);
-      console.log('stderr', chunk);
-      stderrBuffer += chunk;
+      trace('stderr', chunk);
       
+      // Once port is found, no need to process further
+      if (portFound) return;
+      
+      stderrBuffer += chunk;
+
       // Check accumulated buffer for the port
       const cleanBuffer = stripAnsi(stderrBuffer);
       // More flexible regex that handles Vite's arrow prefix and whitespace
       const port = /https?:\/\/localhost:(\d+)/u.exec(cleanBuffer)?.[1];
       if (port) {
-        console.error('[DEBUG] Port detected in stderr:', port);
+        trace('Port detected in stderr:', port);
+        portFound = true;
         clearTimeout(timeout);
         fulfill(port);
       }
@@ -113,25 +115,30 @@ const port = await /** @type {Promise<string>} */ (
 
     runvite.stdout?.on('data', (data) => {
       const chunk = String(data);
-      stdoutBuffer += chunk;
-      
-      const cleanChunk = stripAnsi(chunk);
-      const cleanBuffer = stripAnsi(stdoutBuffer);
-      
-      console.error('[DEBUG] Vite stdout chunk:', JSON.stringify(chunk));
-      console.error('[DEBUG] Clean chunk:', JSON.stringify(cleanChunk));
-      console.error('[DEBUG] Accumulated buffer:', JSON.stringify(cleanBuffer));
       
       if (!check) {
         stderr(chunk);
       }
       
+      // Once port is found, no need to buffer or process further
+      if (portFound) return;
+      
+      stdoutBuffer += chunk;
+
+      const cleanChunk = stripAnsi(chunk);
+      const cleanBuffer = stripAnsi(stdoutBuffer);
+
+      trace('Vite stdout chunk:', JSON.stringify(chunk));
+      trace('Clean chunk:', JSON.stringify(cleanChunk));
+      trace('Accumulated buffer:', JSON.stringify(cleanBuffer));
+
       // Check accumulated buffer for the port
       // More flexible regex that handles Vite's arrow prefix and whitespace
       const port = /https?:\/\/localhost:(\d+)/u.exec(cleanBuffer)?.[1];
 
       if (port) {
-        console.error('[DEBUG] Port detected:', port);
+        trace('Port detected:', port);
+        portFound = true;
         clearTimeout(timeout);
         fulfill(port);
       }
@@ -268,5 +275,15 @@ process.exit(0);
 function stderr(msg, ...args) {
   if (!failingOnly) {
     console.error(msg, ...args);
+  }
+}
+
+/**
+ * @param {string} msg
+ * @param {...unknown} args
+ */
+function trace(msg, ...args) {
+  if (traceHarness) {
+    console.error(`[TRACE]`, msg, ...args);
   }
 }
