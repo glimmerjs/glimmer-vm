@@ -73,7 +73,7 @@ function getQP(filter) {
 stderr('[ci] starting');
 
 const port = await /** @type {Promise<string>} */ (
-  new Promise((fulfill) => {
+  new Promise((fulfill, reject) => {
     const runvite = child.fork(
       resolve(__root, 'node_modules', 'vite', 'bin', 'vite.js'),
       ['--port', '60173', '--no-open'],
@@ -81,6 +81,12 @@ const port = await /** @type {Promise<string>} */ (
         stdio: 'pipe',
       }
     );
+
+    // Add timeout for Vite startup
+    const timeout = setTimeout(() => {
+      runvite.kill();
+      reject(new Error('Vite failed to start within 30 seconds'));
+    }, 30000);
 
     process.on('exit', () => runvite.kill());
 
@@ -96,6 +102,7 @@ const port = await /** @type {Promise<string>} */ (
       const port = /http:\/\/localhost:(\d+)/u?.exec(chunk)?.[1];
 
       if (port) {
+        clearTimeout(timeout);
         fulfill(port);
       }
     });
@@ -109,7 +116,13 @@ stderr('[ci] spawned');
 const browser = await puppeteer.launch({
   headless: true,
   executablePath,
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--disable-software-rasterizer',
+  ],
 });
 
 stderr('[ci] puppeteer launched');
