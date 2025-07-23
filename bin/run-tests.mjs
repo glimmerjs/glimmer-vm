@@ -91,12 +91,19 @@ const port = await /** @type {Promise<string>} */ (
 
     process.on('exit', () => runvite.kill());
 
+    // Buffer to accumulate output in case it comes in chunks
+    let stdoutBuffer = '';
+    let stderrBuffer = '';
+
     runvite.stderr?.on('data', (data) => {
       const chunk = String(data);
       console.log('stderr', chunk);
-      // Also check stderr for the port in case Vite outputs there in CI
-      const cleanChunk = stripAnsi(chunk);
-      const port = /http:\/\/localhost:(\d+)/u.exec(cleanChunk)?.[1];
+      stderrBuffer += chunk;
+      
+      // Check accumulated buffer for the port
+      const cleanBuffer = stripAnsi(stderrBuffer);
+      // More flexible regex that handles Vite's arrow prefix and whitespace
+      const port = /https?:\/\/localhost:(\d+)/u.exec(cleanBuffer)?.[1];
       if (port) {
         console.error('[DEBUG] Port detected in stderr:', port);
         clearTimeout(timeout);
@@ -106,13 +113,22 @@ const port = await /** @type {Promise<string>} */ (
 
     runvite.stdout?.on('data', (data) => {
       const chunk = String(data);
+      stdoutBuffer += chunk;
+      
       const cleanChunk = stripAnsi(chunk);
+      const cleanBuffer = stripAnsi(stdoutBuffer);
+      
       console.error('[DEBUG] Vite stdout chunk:', JSON.stringify(chunk));
       console.error('[DEBUG] Clean chunk:', JSON.stringify(cleanChunk));
+      console.error('[DEBUG] Accumulated buffer:', JSON.stringify(cleanBuffer));
+      
       if (!check) {
         stderr(chunk);
       }
-      const port = /http:\/\/localhost:(\d+)/u.exec(cleanChunk)?.[1];
+      
+      // Check accumulated buffer for the port
+      // More flexible regex that handles Vite's arrow prefix and whitespace
+      const port = /https?:\/\/localhost:(\d+)/u.exec(cleanBuffer)?.[1];
 
       if (port) {
         console.error('[DEBUG] Port detected:', port);
