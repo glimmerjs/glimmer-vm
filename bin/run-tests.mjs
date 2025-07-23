@@ -4,6 +4,7 @@ import child from 'child_process';
 import { resolve } from 'path';
 import PCR from 'puppeteer-chromium-resolver';
 import { fileURLToPath } from 'url';
+import stripAnsi from 'strip-ansi';
 
 const { puppeteer, executablePath } = await PCR({});
 
@@ -91,17 +92,30 @@ const port = await /** @type {Promise<string>} */ (
     process.on('exit', () => runvite.kill());
 
     runvite.stderr?.on('data', (data) => {
-      console.log('stderr', String(data));
+      const chunk = String(data);
+      console.log('stderr', chunk);
+      // Also check stderr for the port in case Vite outputs there in CI
+      const cleanChunk = stripAnsi(chunk);
+      const port = /http:\/\/localhost:(\d+)/u.exec(cleanChunk)?.[1];
+      if (port) {
+        console.error('[DEBUG] Port detected in stderr:', port);
+        clearTimeout(timeout);
+        fulfill(port);
+      }
     });
 
     runvite.stdout?.on('data', (data) => {
       const chunk = String(data);
+      const cleanChunk = stripAnsi(chunk);
+      console.error('[DEBUG] Vite stdout chunk:', JSON.stringify(chunk));
+      console.error('[DEBUG] Clean chunk:', JSON.stringify(cleanChunk));
       if (!check) {
         stderr(chunk);
       }
-      const port = /http:\/\/localhost:(\d+)/u?.exec(chunk)?.[1];
+      const port = /http:\/\/localhost:(\d+)/u.exec(cleanChunk)?.[1];
 
       if (port) {
+        console.error('[DEBUG] Port detected:', port);
         clearTimeout(timeout);
         fulfill(port);
       }
