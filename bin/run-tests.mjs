@@ -95,10 +95,10 @@ const port = await /** @type {Promise<string>} */ (
     runvite.stderr?.on('data', (data) => {
       const chunk = String(data);
       trace('stderr', chunk);
-      
+
       // Once port is found, no need to process further
       if (portFound) return;
-      
+
       stderrBuffer += chunk;
 
       // Check accumulated buffer for the port
@@ -115,14 +115,14 @@ const port = await /** @type {Promise<string>} */ (
 
     runvite.stdout?.on('data', (data) => {
       const chunk = String(data);
-      
+
       if (!check) {
         stderr(chunk);
       }
-      
+
       // Once port is found, no need to buffer or process further
       if (portFound) return;
-      
+
       stdoutBuffer += chunk;
 
       const cleanChunk = stripAnsi(chunk);
