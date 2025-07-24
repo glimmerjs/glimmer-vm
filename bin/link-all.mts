@@ -25,7 +25,7 @@ import { mkdirp } from 'mkdirp';
 import { rimraf } from 'rimraf';
 import { x as untar } from 'tar';
 
-import { packages } from './packages.mjs';
+import { packages } from './packages.mts';
 
 const dist = new URL('../dist', import.meta.url).pathname;
 const pkgs = packages('@glimmer');
@@ -68,7 +68,7 @@ const unpack = pkgs.map(async (pkg) => {
       cwd: pkgDest,
     });
 
-    await unlink(tarball);
+    // await unlink(tarball);
 
     // https://github.com/pnpm/pnpm/issues/881
     const packageJsonPath = join(pkgDest, 'package.json');
