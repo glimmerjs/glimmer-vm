@@ -83,7 +83,6 @@ class TrackedWeakSetTest extends RenderTest {
     this.assertReactivity(
       class extends Component {
         obj = {};
-        obj2 = {};
         set = trackedWeakSet([this.obj]);
 
         get value() {
