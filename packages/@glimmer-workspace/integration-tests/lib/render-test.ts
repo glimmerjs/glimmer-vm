@@ -596,10 +596,6 @@ export class RenderTest implements IRenderTest {
     function getEntries() {
       if (!instance) return [];
 
-      if (instance.collection instanceof Map) {
-        return Array.from(instance.collection.entries());
-      }
-
       return Array.from(instance.collection as (string | number)[]);
     }
 
