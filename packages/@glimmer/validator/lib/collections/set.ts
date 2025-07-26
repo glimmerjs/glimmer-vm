@@ -153,24 +153,7 @@ class TrackedSet<T = unknown> implements Set<T> {
   }
 
   add(value: T): this {
-    /**
-     * In a WeakSet, there is no `.get()`, but if there was,
-     * we could assume it's the same value as what we passed.
-     *
-     * So for a WeakSet, if we try to add something that already exists
-     * we no-op.
-     *
-     * WeakSet already does this internally for us,
-     * but we want the ability for the reactive behavior to reflect the same behavior.
-     *
-     * i.e.: doing weakSet.add(value) should never dirty with the defaults
-     *       if the `value` is already in the weakSet
-     */
     if (this.#vals.has(value)) {
-      /**
-       * This looks a little silly, where a always will === b,
-       * but see the note above.
-       */
       let isUnchanged = this.#options.equals(value, value);
       if (isUnchanged) return this;
     } else {
