@@ -69,6 +69,8 @@ class TrackedWeakMap<K extends WeakKey = object, V = unknown> implements WeakMap
   }
 
   delete(key: K): boolean {
+    if (!this.#vals.has(key)) return true;
+
     this.#dirtyStorageFor(key);
 
     this.#storages.delete(key);
