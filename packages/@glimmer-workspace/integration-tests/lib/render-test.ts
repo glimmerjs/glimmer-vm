@@ -58,7 +58,7 @@ export class RenderTest implements IRenderTest {
   testType: ComponentKind = 'unknown';
 
   protected element: SimpleElement;
-  protected assert = QUnit.assert;
+  assert = QUnit.assert;
   protected context: Dict = dict();
   protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();

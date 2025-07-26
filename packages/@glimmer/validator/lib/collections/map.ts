@@ -141,6 +141,8 @@ class TrackedMap<K = unknown, V = unknown> implements Map<K, V> {
   }
 
   clear(): void {
+    if (this.#vals.size === 0) return;
+
     this.#storages.forEach((s) => DIRTY_TAG(s));
     this.#storages.clear();
 

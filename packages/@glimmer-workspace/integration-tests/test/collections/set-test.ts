@@ -4,6 +4,7 @@ import {
   GlimmerishComponent as Component,
   jitSuite,
   RenderTest,
+  strip,
   test,
 } from '@glimmer-workspace/integration-tests';
 
@@ -295,27 +296,117 @@ class TrackedSetTest extends RenderTest {
       }
     );
   }
+
+  // TODO: These tests are currently unstable on release, turn back on once
+  // behavior is fixed
+  // eachInReactivityTest(
+  //   'add',
+  //   class extends Component {
+  //     collection = trackedSet(['foo', 123]);
+  //     update() {
+  //       this.collection.add('bar');
+  //     }
+  //   }
+  // );
+  // eachInReactivityTest(
+  //   'add existing value',
+  //   class extends Component {
+  //     collection = trackedSet(['foo', 123]);
+  //     update() {
+  //       this.collection.add('foo');
+  //     }
+  //   }
+  // );
+
+  /**
+   *
+   * If any rendered change occurs at all, that's a success
+   *
+   */
+  @test
+  union() {
+    this.#testIfChange.call(this, {
+      op: (a: Set<string>, b: Set<string>) => {
+        return a.union(b);
+      },
+      change: (x: Set<string>) => x.add('another'),
+    });
+  }
+
+  @test
+  intersection() {
+    this.#testIfChange.call(this, {
+      op: (a: Set<string>, b: Set<string>) => {
+        return a.intersection(b);
+      },
+      change: (x: Set<string>) => x.add('another'),
+    });
+  }
+
+  @test
+  difference() {
+    this.#testIfChange.call(this, {
+      op: (a: Set<string>, b: Set<string>) => {
+        return a.difference(b);
+      },
+      change: (x: Set<string>) => x.add('another'),
+    });
+  }
+
+  @test
+  symmetricDifference() {
+    this.#testIfChange.call(this, {
+      op: (a: Set<string>, b: Set<string>) => {
+        return a.symmetricDifference(b);
+      },
+      change: (x: Set<string>) => x.add('another'),
+    });
+  }
+
+  #testIfChange({
+    op,
+    change,
+  }: {
+    change: (x: Set<string>) => void;
+    op: (a: Set<string>, b: Set<string>) => Set<string>;
+  }) {
+    let a = trackedSet(['123']);
+    let b = trackedSet(['abc']);
+
+    let renderedSet = new Set<string>();
+    let steps: string[] = [];
+
+    function verifySteps(s: string[]) {
+      QUnit.assert.deepEqual(steps, s);
+      steps = [];
+    }
+    function stepRecord(set: Set<string>) {
+      renderedSet = set;
+      steps.push(String(set.size));
+    }
+
+    const Foo = defineComponent(
+      { stepRecord, op, a, b },
+      strip`
+        {{#let (op a b) as |c|}}
+          {{stepRecord c}}
+        {{/let}}
+      `
+    );
+
+    this.renderComponent(Foo);
+    verifySteps([String(renderedSet.size)]);
+
+    change(a);
+
+    this.rerender();
+    verifySteps([String(renderedSet.size)]);
+
+    change(b);
+
+    this.rerender();
+    verifySteps([String(renderedSet.size)]);
+  }
 }
 
 jitSuite(TrackedSetTest);
-
-// TODO: These tests are currently unstable on release, turn back on once
-// behavior is fixed
-// eachInReactivityTest(
-//   'add',
-//   class extends Component {
-//     collection = trackedSet(['foo', 123]);
-//     update() {
-//       this.collection.add('bar');
-//     }
-//   }
-// );
-// eachInReactivityTest(
-//   'add existing value',
-//   class extends Component {
-//     collection = trackedSet(['foo', 123]);
-//     update() {
-//       this.collection.add('foo');
-//     }
-//   }
-// );

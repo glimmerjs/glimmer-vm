@@ -60,73 +60,45 @@ class TrackedSet<T = unknown> implements Set<T> {
     return this.#vals.values();
   }
 
-  // eslint-disable-next-line
-  // @ts-ignore -- These Set types added in TS 5.5
   union<U>(other: ReadonlySetLike<U>): Set<T | U> {
     consumeTag(this.#collection);
 
-    // eslint-disable-next-line
-    // @ts-ignore -- These Set types added in TS 5.5
     return this.#vals.union(other);
   }
 
-  // eslint-disable-next-line
-  // @ts-ignore -- These Set types added in TS 5.5
   intersection<U>(other: ReadonlySetLike<U>): Set<T & U> {
     consumeTag(this.#collection);
 
-    // eslint-disable-next-line
-    // @ts-ignore -- These Set types added in TS 5.5
     return this.#vals.intersection(other);
   }
 
-  // eslint-disable-next-line
-  // @ts-ignore -- These Set types added in TS 5.5
   difference<U>(other: ReadonlySetLike<U>): Set<T> {
     consumeTag(this.#collection);
 
-    // eslint-disable-next-line
-    // @ts-ignore -- These Set types added in TS 5.5
     return this.#vals.difference(other);
   }
 
-  // eslint-disable-next-line
-  // @ts-ignore -- These Set types added in TS 5.5
   symmetricDifference<U>(other: ReadonlySetLike<U>): Set<T | U> {
     consumeTag(this.#collection);
 
-    // eslint-disable-next-line
-    // @ts-ignore -- These Set types added in TS 5.5
     return this.#vals.symmetricDifference(other);
   }
 
-  // eslint-disable-next-line
-  // @ts-ignore -- These Set types added in TS 5.5
   isSubsetOf(other: ReadonlySetLike<unknown>): boolean {
     consumeTag(this.#collection);
 
-    // eslint-disable-next-line
-    // @ts-ignore -- These Set types added in TS 5.5
     return this.#vals.isSubsetOf(other);
   }
 
-  // eslint-disable-next-line
-  // @ts-ignore -- These Set types added in TS 5.5
   isSupersetOf(other: ReadonlySetLike<unknown>): boolean {
     consumeTag(this.#collection);
 
-    // eslint-disable-next-line
-    // @ts-ignore -- These Set types added in TS 5.5
     return this.#vals.isSupersetOf(other);
   }
 
-  // eslint-disable-next-line
-  // @ts-ignore -- These Set types added in TS 5.5
   isDisjointFrom(other: ReadonlySetLike<unknown>): boolean {
     consumeTag(this.#collection);
 
-    // eslint-disable-next-line
-    // @ts-ignore -- These Set types added in TS 5.5
     return this.#vals.isDisjointFrom(other);
   }
 
@@ -177,6 +149,8 @@ class TrackedSet<T = unknown> implements Set<T> {
 
   // **** ALL SETTERS ****
   clear(): void {
+    if (this.#vals.size === 0) return;
+
     this.#storages.forEach((s) => DIRTY_TAG(s));
     DIRTY_TAG(this.#collection);
 
