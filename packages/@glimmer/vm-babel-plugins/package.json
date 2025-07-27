@@ -8,7 +8,10 @@
     "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
     "directory": "packages/@glimmer/vm-babel-plugins"
   },
-  "author": "Tom Dale <tom@tomdale.net>",
+  "author": {
+    "name": "Tom Dale",
+    "email": "tom@tomdale.net"
+  },
   "private": false,
   "type": "module",
   "exports": "./index.ts",
@@ -39,15 +42,19 @@
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer-workspace/env": "workspace:*",
-    "@types/node": "^22.13.4",
+    "@types/node": "^22.16.3",
     "babel-plugin-tester": "^11.0.4",
-    "eslint": "^9.20.1",
+    "eslint": "^9.31.0",
     "mocha": "^11.7.1",
-    "publint": "^0.3.2",
-    "rollup": "^4.34.8",
-    "typescript": "^5.7.3"
+    "publint": "^0.3.12",
+    "rollup": "^4.45.1",
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=18.18.0"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/glimmerjs/glimmer-vm/issues"
+  },
+  "homepage": "https://github.com/glimmerjs/glimmer-vm#readme"
 }

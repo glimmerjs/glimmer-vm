@@ -2,6 +2,8 @@ import { keys } from '@glimmer/util';
 
 import type { ComponentTestMeta } from '../test-decorator';
 
+import { jitSuite } from './module';
+
 export function test(meta: ComponentTestMeta): MethodDecorator;
 export function test<T>(
   _target: object | ComponentTestMeta,
@@ -21,6 +23,20 @@ export function test(...args: any[]) {
   let descriptor = args[2];
   setTestingDescriptor(descriptor);
   return descriptor;
+}
+
+export function testSuite(...names: string[]) {
+  return <T extends new (...args: any[]) => any>(klass: T) => {
+    const suiteName = names.pop();
+    for (const name of names) {
+      QUnit.module(name);
+    }
+
+    // Add suiteName to the class if it's expected by jitSuite
+    (klass as any).suiteName = suiteName;
+    jitSuite(klass as any);
+    return klass;
+  };
 }
 
 function setTestingDescriptor(descriptor: PropertyDescriptor): void {

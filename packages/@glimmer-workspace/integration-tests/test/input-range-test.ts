@@ -3,6 +3,9 @@ import { EmberishCurlyComponent, jitSuite, test } from '@glimmer-workspace/integ
 
 import { AttributesTests } from './attributes-test';
 
+// NOTE: Tests in this file are incompatible with trace logging (ENABLE_TRACE_LOGGING)
+// When trace logging is enabled, input element values may not be read correctly,
+// resulting in empty string values instead of the expected numeric values.
 abstract class RangeTests extends AttributesTests {
   min = -5;
   max = 50;

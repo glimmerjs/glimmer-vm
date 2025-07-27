@@ -296,17 +296,18 @@ test('block with block params', () => {
   let statement = ast.body[1];
   if (assertNodeType(statement, 'BlockStatement')) {
     let block = statement.program;
+    const names = block.params;
 
-    if (assertNodeType(block.params[0], 'VarHead')) {
-      locEqual(block.params[0], 2, 15, 2, 18, 'bar');
+    if (assertNodeType(names[0], 'VarHead')) {
+      locEqual(names[0], 2, 15, 2, 18, 'bar');
     }
 
-    if (assertNodeType(block.params[1], 'VarHead')) {
-      locEqual(block.params[1], 2, 19, 2, 22, 'bat');
+    if (assertNodeType(names[1], 'VarHead')) {
+      locEqual(names[1], 2, 19, 2, 22, 'bat');
     }
 
-    if (assertNodeType(block.params[2], 'VarHead')) {
-      locEqual(block.params[2], 2, 23, 2, 26, 'baz');
+    if (assertNodeType(names[2], 'VarHead')) {
+      locEqual(names[2], 2, 23, 2, 26, 'baz');
     }
   }
 });
@@ -326,24 +327,26 @@ a
   if (assertNodeType(statement, 'BlockStatement')) {
     let block = statement.program;
 
-    if (assertNodeType(block.params[0], 'VarHead')) {
-      locEqual(block.params[0], 3, 1, 3, 4, 'bar');
+    const names = block.params;
+
+    if (assertNodeType(names[0], 'VarHead')) {
+      locEqual(names[0], 3, 1, 3, 4, 'bar');
     }
 
-    if (assertNodeType(block.params[1], 'VarHead')) {
-      locEqual(block.params[1], 3, 5, 3, 8, 'bat');
+    if (assertNodeType(names[1], 'VarHead')) {
+      locEqual(names[1], 3, 5, 3, 8, 'bat');
     }
 
-    if (assertNodeType(block.params[2], 'VarHead')) {
-      locEqual(block.params[2], 4, 6, 4, 7, 'b');
+    if (assertNodeType(names[2], 'VarHead')) {
+      locEqual(names[2], 4, 6, 4, 7, 'b');
     }
 
-    if (assertNodeType(block.params[3], 'VarHead')) {
-      locEqual(block.params[3], 5, 0, 5, 1, 'a');
+    if (assertNodeType(names[3], 'VarHead')) {
+      locEqual(names[3], 5, 0, 5, 1, 'a');
     }
 
-    if (assertNodeType(block.params[4], 'VarHead')) {
-      locEqual(block.params[4], 6, 6, 6, 7, 'z');
+    if (assertNodeType(names[4], 'VarHead')) {
+      locEqual(names[4], 6, 6, 6, 7, 'z');
     }
   }
 });
@@ -463,16 +466,18 @@ test('elment with block params edge case: block-params like attribute names', ()
 
   let element = ast.body[1];
   if (assertNodeType(element, 'ElementNode')) {
-    if (assertNodeType(element.params[0], 'VarHead')) {
-      locEqual(element.params[0], 2, 30, 2, 33, 'bar');
+    const names = element.params;
+
+    if (assertNodeType(names[0], 'VarHead')) {
+      locEqual(names[0], 2, 30, 2, 33, 'bar');
     }
 
-    if (assertNodeType(element.params[1], 'VarHead')) {
-      locEqual(element.params[1], 2, 34, 2, 37, 'bat');
+    if (assertNodeType(names[1], 'VarHead')) {
+      locEqual(names[1], 2, 34, 2, 37, 'bat');
     }
 
-    if (assertNodeType(element.params[2], 'VarHead')) {
-      locEqual(element.params[2], 2, 38, 2, 41, 'baz');
+    if (assertNodeType(names[2], 'VarHead')) {
+      locEqual(names[2], 2, 38, 2, 41, 'baz');
     }
   }
 });

@@ -17,11 +17,11 @@ import {
   CheckString,
 } from '@glimmer/debug';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
+import { isCurriedType } from '@glimmer/program';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import { isIndexable } from '@glimmer/util';
 import { ContentType } from '@glimmer/vm';
 
-import { isCurriedType } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
 import { APPEND_OPCODES } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
@@ -33,10 +33,17 @@ function toContentType(value: unknown) {
     return ContentType.String;
   } else if (
     isCurriedType(value, CURRIED_COMPONENT) ||
-    hasInternalComponentManager(value as object)
+    ((typeof value === 'object' || typeof value === 'function') &&
+      value !== null &&
+      hasInternalComponentManager(value))
   ) {
     return ContentType.Component;
-  } else if (isCurriedType(value, CURRIED_HELPER) || hasInternalHelperManager(value as object)) {
+  } else if (
+    isCurriedType(value, CURRIED_HELPER) ||
+    ((typeof value === 'object' || typeof value === 'function') &&
+      value !== null &&
+      hasInternalHelperManager(value))
+  ) {
     return ContentType.Helper;
   } else if (isSafeString(value)) {
     return ContentType.SafeString;
@@ -54,13 +61,22 @@ function toDynamicContentType(value: unknown) {
     return ContentType.String;
   }
 
-  if (isCurriedType(value, CURRIED_COMPONENT) || hasInternalComponentManager(value)) {
+  if (
+    isCurriedType(value, CURRIED_COMPONENT) ||
+    ((typeof value === 'object' || typeof value === 'function') &&
+      value !== null &&
+      hasInternalComponentManager(value))
+  ) {
     return ContentType.Component;
   } else {
     if (
       import.meta.env.DEV &&
       !isCurriedType(value, CURRIED_HELPER) &&
-      !hasInternalHelperManager(value)
+      !(
+        (typeof value === 'object' || typeof value === 'function') &&
+        value !== null &&
+        hasInternalHelperManager(value)
+      )
     ) {
       throw new Error(
         // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @fixme

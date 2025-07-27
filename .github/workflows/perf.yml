@@ -44,12 +44,12 @@ jobs:
       - uses: wyvox/action-setup-pnpm@v3
         if: steps.did-change.outputs.changed == 'true'
         with:
-          node-version: '22'
+          node-version: '22.17'
 
       - name: Setup Benchmark Directory
         if: steps.did-change.outputs.changed == 'true'
         run: pnpm run benchmark:setup
-        
+
       - name: RUN
         if: steps.did-change.outputs.changed == 'true'
         run: pnpm run benchmark:run

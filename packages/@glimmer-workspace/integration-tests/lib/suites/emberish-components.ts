@@ -14,7 +14,8 @@ export class EmberishComponentTests extends RenderTest {
   static suiteName = 'Emberish';
 
   @test
-  'Element modifier with hooks'(assert: Assert, count: Count) {
+  'Element modifier with hooks'(assert: Assert & { count: Count }) {
+    const count = assert.count;
     this.registerModifier(
       'foo',
       class {

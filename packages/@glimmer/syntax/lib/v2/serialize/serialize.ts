@@ -1,4 +1,5 @@
 import type { PresentArray } from '@glimmer/interfaces';
+import { exhausted } from '@glimmer/debug-util';
 
 import type * as ASTv2 from '../api';
 import type {
@@ -11,14 +12,13 @@ import type {
   SerializedContentNode,
   SerializedElementModifier,
   SerializedExpressionNode,
-  SerializedFreeVarReference,
   SerializedGlimmerComment,
   SerializedHtmlComment,
   SerializedHtmlOrSplatAttr,
   SerializedHtmlText,
   SerializedInterpolateExpression,
-  SerializedInvokeBlock,
-  SerializedInvokeComponent,
+  SerializedInvokeAngleBracketComponent,
+  SerializedInvokeBlockComponent,
   SerializedLiteralExpression,
   SerializedLocalVarReference,
   SerializedNamed,
@@ -27,6 +27,7 @@ import type {
   SerializedNamedBlocks,
   SerializedPathExpression,
   SerializedPositional,
+  SerializedResolvedVarReference,
   SerializedSimpleElement,
   SerializedThisReference,
   SerializedVariableReference,
@@ -34,10 +35,24 @@ import type {
 
 import { SourceSlice } from '../../source/slice';
 
+// ValidatedView for serialization - ensures no UnresolvedBinding nodes
+class SerializerView {
+  get<T extends { type: string }>(value: T | ASTv2.UnresolvedBinding): T {
+    if (value.type === 'UnresolvedBinding') {
+      throw new Error(
+        `Unresolved binding '${(value as ASTv2.UnresolvedBinding).name}' found during serialization. All bindings should be resolved before serialization.`
+      );
+    }
+    return value as T;
+  }
+}
+
+const view = new SerializerView();
+
 export class RefSerializer {
-  keyword(keyword: ASTv2.KeywordExpression): SerializedFreeVarReference {
+  keyword(keyword: ASTv2.KeywordExpression): SerializedResolvedVarReference {
     return {
-      type: 'Free',
+      type: 'Resolved',
       loc: keyword.loc.serialize(),
       resolution: 'Strict',
       name: keyword.name,
@@ -52,9 +67,9 @@ export class RefSerializer {
     };
   }
 
-  free(ref: ASTv2.FreeVarReference): SerializedFreeVarReference {
+  resolved(ref: ASTv2.ResolvedVarReference): SerializedResolvedVarReference {
     return {
-      type: 'Free',
+      type: 'Resolved',
       loc: ref.loc.serialize(),
       resolution: ref.resolution.serialize(),
       name: ref.name,
@@ -73,6 +88,23 @@ export class RefSerializer {
     return {
       type: 'This',
       loc: ref.loc.serialize(),
+    };
+  }
+
+  lexical(ref: ASTv2.LexicalVarReference): SerializedLocalVarReference {
+    return {
+      type: 'Local',
+      loc: ref.loc.serialize(),
+      name: ref.name,
+    };
+  }
+
+  resolvedName(ref: ASTv2.ResolvedName): SerializedResolvedVarReference {
+    return {
+      type: 'Resolved',
+      loc: ref.loc.serialize(),
+      resolution: 'Strict',
+      name: ref.name,
     };
   }
 }
@@ -98,19 +130,21 @@ export class ExprSerializer {
   }
 
   path(path: ASTv2.PathExpression): SerializedPathExpression {
+    const ref = view.get(path.ref);
     return {
       type: 'Path',
       loc: path.loc.serialize(),
-      ref: visit.ref(path.ref),
+      ref: visit.ref(ref),
       tail: path.tail.map((t) => t.serialize()),
     };
   }
 
   call(call: ASTv2.CallExpression): SerializedCallExpression {
+    const callee = view.get(call.callee);
     return {
       type: 'Call',
       loc: call.loc.serialize(),
-      callee: visit.expr(call.callee),
+      callee: visit.expr(callee),
       args: ARGS.args(call.args),
     };
   }
@@ -119,7 +153,29 @@ export class ExprSerializer {
     return {
       type: 'Interpolate',
       loc: interpolate.loc.serialize(),
-      parts: interpolate.parts.map((p) => visit.expr(p)) as PresentArray<SerializedExpressionNode>,
+      parts: interpolate.parts.map((p) => {
+        // Handle special interpolate part nodes
+        if ('value' in p && p.type === 'CurlyAttrValue') {
+          return visit.expr(p.value);
+        }
+        // Otherwise it's a regular expression node
+        return visit.expr(p as ASTv2.ExpressionValueNode);
+      }) as PresentArray<SerializedExpressionNode>,
+    };
+  }
+
+  resolvedCall(call: ASTv2.ResolvedCallExpression): SerializedCallExpression {
+    const resolved = view.get(call.resolved);
+    return {
+      type: 'Call',
+      loc: call.loc.serialize(),
+      callee: {
+        type: 'Path',
+        loc: resolved.loc.serialize(),
+        ref: REF.resolvedName(resolved),
+        tail: [],
+      },
+      args: ARGS.args(call.args),
     };
   }
 }
@@ -127,7 +183,7 @@ export class ExprSerializer {
 const EXPR = new ExprSerializer();
 
 class ArgsSerializer {
-  args(args: ASTv2.Args): SerializedArgs {
+  args(args: ASTv2.AnyArgs): SerializedArgs {
     return {
       loc: args.loc.serialize(),
       positional: this.positional(args.positional),
@@ -142,14 +198,27 @@ class ArgsSerializer {
     };
   }
 
-  named(named: ASTv2.NamedArguments): SerializedNamed {
-    return {
-      loc: named.loc.serialize(),
-      entries: named.entries.map((e) => this.entry(e)),
-    };
+  named(named: ASTv2.CurlyNamedArguments | ASTv2.ComponentNamedArguments): SerializedNamed {
+    if ('entries' in named) {
+      // Handle both types that have entries
+      return {
+        loc: named.loc.serialize(),
+        entries: named.entries.map((e) => {
+          if (e.value.type === 'Interpolate') {
+            // ComponentArgument has AttrValueNode which needs special handling
+            return [e.name.serialize(), visit.attrValue(e.value)];
+          } else {
+            // CurlyArgument
+            return this.entry(e as ASTv2.CurlyArgument);
+          }
+        }),
+      };
+    }
+    // Shouldn't reach here
+    throw new Error('Unexpected named arguments type');
   }
 
-  entry(entry: ASTv2.NamedArgument): SerializedNamedArgument {
+  entry(entry: ASTv2.CurlyArgument): SerializedNamedArgument {
     return [entry.name.serialize(), visit.expr(entry.value)];
   }
 }
@@ -190,12 +259,12 @@ export class ContentSerializer {
     };
   }
 
-  invokeBlock(node: ASTv2.InvokeBlock): SerializedInvokeBlock {
+  invokeBlock(node: ASTv2.InvokeBlock): SerializedInvokeBlockComponent {
     let args = ARGS.args(node.args);
     let callee = visit.expr(node.callee);
 
     return {
-      type: 'InvokeBlock',
+      type: 'InvokeBlockComponent',
       loc: node.loc.serialize(),
       args,
       callee,
@@ -203,9 +272,11 @@ export class ContentSerializer {
     };
   }
 
-  invokeComponent(node: ASTv2.InvokeComponent): SerializedInvokeComponent {
+  invokeAngleBracketComponent(
+    node: ASTv2.InvokeAngleBracketComponent
+  ): SerializedInvokeAngleBracketComponent {
     return {
-      type: 'InvokeComponent',
+      type: 'InvokeAngleBracketComponent',
       loc: node.loc.serialize(),
       callee: visit.expr(node.callee),
       blocks: INTERNAL.namedBlocks(node.blocks),
@@ -215,7 +286,7 @@ export class ContentSerializer {
     };
   }
 
-  simpleElement(node: ASTv2.SimpleElement): SerializedSimpleElement {
+  simpleElement(node: ASTv2.SimpleElementNode): SerializedSimpleElement {
     return {
       type: 'SimpleElement',
       loc: node.loc.serialize(),
@@ -231,12 +302,27 @@ export class ContentSerializer {
 const CONTENT = new ContentSerializer();
 
 class AttrBlockSerializer {
-  modifier(node: ASTv2.ElementModifier): SerializedElementModifier {
-    return {
-      loc: node.loc.serialize(),
-      callee: visit.expr(node.callee),
-      args: ARGS.args(node.args),
-    };
+  modifier(node: ASTv2.ElementModifier | ASTv2.ResolvedElementModifier): SerializedElementModifier {
+    if (node.type === 'ResolvedElementModifier') {
+      // ResolvedElementModifier doesn't have callee, it has a resolved property
+      const resolved = view.get(node.resolved);
+      return {
+        loc: node.loc.serialize(),
+        callee: {
+          type: 'Path',
+          loc: node.loc.serialize(),
+          ref: REF.resolvedName(resolved),
+          tail: [],
+        },
+        args: ARGS.args(node.args),
+      };
+    } else {
+      return {
+        loc: node.loc.serialize(),
+        callee: visit.expr(node.callee),
+        args: ARGS.args(node.args),
+      };
+    }
   }
 
   arg(node: ASTv2.ComponentArg): SerializedAttrOrArg {
@@ -247,7 +333,7 @@ class AttrBlockSerializer {
     return {
       loc: node.loc.serialize(),
       name: node.name.serialize(),
-      value: visit.expr(node.value),
+      value: visit.attrValue(node.value),
       trusting: node.trusting,
     };
   }
@@ -273,7 +359,12 @@ class InternalSerializer {
 
   namedBlocks(node: ASTv2.NamedBlocks): SerializedNamedBlocks {
     return {
-      blocks: node.blocks.map((b) => INTERNAL.namedBlock(b)),
+      blocks: node.blocks.map((b) => {
+        if (b.type === 'Error') {
+          throw new Error(`Error node found during serialization in named blocks`);
+        }
+        return INTERNAL.namedBlock(b);
+      }),
       loc: node.loc.serialize(),
     };
   }
@@ -282,18 +373,46 @@ class InternalSerializer {
 const INTERNAL = new InternalSerializer();
 
 const visit = {
-  expr(expr: ASTv2.ExpressionNode): SerializedExpressionNode {
-    switch (expr.type) {
+  attrValue(value: ASTv2.AttrValueNode): SerializedExpressionNode {
+    if ('value' in value && value.type === 'CurlyAttrValue') {
+      return visit.expr(value.value);
+    } else if (value.type === 'Interpolate') {
+      return EXPR.interpolate(value);
+    } else {
+      // It's a regular expression node
+      return visit.expr(value as ASTv2.ExpressionValueNode);
+    }
+  },
+
+  expr(expr: ASTv2.ExpressionValueNode | ASTv2.UnresolvedBinding): SerializedExpressionNode {
+    const node = view.get(expr);
+
+    switch (node.type) {
       case 'Literal':
-        return EXPR.literal(expr);
+        return EXPR.literal(node);
       case 'Keyword':
-        return EXPR.keyword(expr);
+        return EXPR.keyword(node);
       case 'Path':
-        return EXPR.path(expr);
+        return EXPR.path(node);
       case 'Call':
-        return EXPR.call(expr);
-      case 'Interpolate':
-        return EXPR.interpolate(expr);
+        return EXPR.call(node);
+      case 'ResolvedCall':
+        return EXPR.resolvedCall(node);
+      case 'This':
+      case 'Arg':
+      case 'Local':
+      case 'Lexical':
+        // Variable references are handled as paths
+        return {
+          type: 'Path',
+          loc: node.loc.serialize(),
+          ref: visit.ref(node),
+          tail: [],
+        };
+      case 'Error':
+        throw new Error(`Error node found during serialization`);
+      default:
+        exhausted(node);
     }
   },
 
@@ -309,12 +428,14 @@ const visit = {
     switch (ref.type) {
       case 'Arg':
         return REF.arg(ref);
-      case 'Free':
-        return REF.free(ref);
       case 'Local':
         return REF.local(ref);
       case 'This':
         return REF.self(ref);
+      case 'Lexical':
+        return REF.lexical(ref);
+      default:
+        exhausted(ref);
     }
   },
 
@@ -330,10 +451,12 @@ const visit = {
         return CONTENT.htmlText(node);
       case 'InvokeBlock':
         return CONTENT.invokeBlock(node);
-      case 'InvokeComponent':
-        return CONTENT.invokeComponent(node);
+      case 'InvokeAngleBracketComponent':
+        return CONTENT.invokeAngleBracketComponent(node);
       case 'SimpleElement':
         return CONTENT.simpleElement(node);
+      default:
+        throw new Error(`Unexpected content node type: ${node.type}`);
     }
   },
 };

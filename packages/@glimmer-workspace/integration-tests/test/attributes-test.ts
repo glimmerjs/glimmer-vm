@@ -11,6 +11,9 @@ import {
   tracked,
 } from '@glimmer-workspace/integration-tests';
 
+// NOTE: Some tests in this file are incompatible with trace logging (ENABLE_TRACE_LOGGING)
+// When trace logging is enabled, DOM operations and attribute/property reading may have
+// timing issues that cause tests to fail.
 export class AttributesTests extends RenderTest {
   static suiteName = 'Attributes';
 

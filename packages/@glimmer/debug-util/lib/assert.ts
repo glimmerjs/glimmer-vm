@@ -5,7 +5,7 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 export default function assert(test: unknown, msg: string): asserts test {
   if (LOCAL_DEBUG) {
     if (!test) {
-      throw new Error(msg || 'assertion failure');
+      throw new Error(msg ? `BUG: ${msg}` : 'BUG: assertion failure');
     }
   }
 }

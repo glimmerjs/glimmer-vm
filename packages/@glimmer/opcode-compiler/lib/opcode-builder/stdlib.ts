@@ -4,7 +4,9 @@ export class StdLib {
     private trustingGuardedAppend: number,
     private cautiousGuardedAppend: number,
     private trustingNonDynamicAppend: number,
-    private cautiousNonDynamicAppend: number
+    private cautiousNonDynamicAppend: number,
+    private trustingDynamicHelperAppend: number,
+    private cautiousDynamicHelperAppend: number
   ) {}
 
   get 'trusting-append'() {
@@ -25,5 +27,13 @@ export class StdLib {
 
   getAppend(trusting: boolean) {
     return trusting ? this.trustingGuardedAppend : this.cautiousGuardedAppend;
+  }
+
+  get 'trusting-dynamic-helper-append'() {
+    return this.trustingDynamicHelperAppend;
+  }
+
+  get 'cautious-dynamic-helper-append'() {
+    return this.cautiousDynamicHelperAppend;
   }
 }

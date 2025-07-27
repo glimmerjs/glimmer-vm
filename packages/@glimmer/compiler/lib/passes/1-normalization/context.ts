@@ -4,7 +4,7 @@ import type { OptionalList } from '../../shared/list';
 import type { Result } from '../../shared/result';
 import type * as mir from '../2-encoding/mir';
 
-import { VISIT_STMTS } from './visitors/statements';
+import { visitContentList } from './visitors/statements';
 
 /**
  * This is the mutable state for this compiler pass.
@@ -28,12 +28,12 @@ export class NormalizationState {
     return this._currentScope;
   }
 
-  visitBlock(block: ASTv2.Block): Result<OptionalList<mir.Statement>> {
+  visitBlock(block: ASTv2.Block): Result<OptionalList<mir.Content>> {
     let oldBlock = this._currentScope;
     this._currentScope = block.scope;
 
     try {
-      return VISIT_STMTS.visitList(block.body, this);
+      return visitContentList(block.body, this);
     } finally {
       this._currentScope = oldBlock;
     }

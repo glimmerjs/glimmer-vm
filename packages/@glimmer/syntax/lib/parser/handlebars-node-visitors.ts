@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
-import type { Nullable, Recast } from '@glimmer/interfaces';
-import type { TokenizerState } from 'simple-html-tokenizer';
-import { getLast, isPresentArray, localAssert, unwrap } from '@glimmer/debug-util';
+import type { Nullable, Optional, Recast } from '@glimmer/interfaces';
+import type { Tokenizer, TokenizerState } from 'simple-html-tokenizer';
+import { exhausted, getLast, isPresentArray, localAssert, unwrap } from '@glimmer/debug-util';
 
 import type { ParserNodeBuilder, StartTag } from '../parser';
 import type * as src from '../source/api';
@@ -11,7 +11,7 @@ import type * as HBS from '../v1/handlebars-ast';
 
 import { Parser } from '../parser';
 import { NON_EXISTENT_LOCATION } from '../source/location';
-import { generateSyntaxError } from '../syntax-error';
+import { generateSyntaxError, GlimmerSyntaxError } from '../syntax-error';
 import { appendChild, isHBSLiteral, printLiteral } from '../utils';
 import b from '../v1/parser-builders';
 
@@ -19,8 +19,12 @@ const BEFORE_ATTRIBUTE_NAME = 'beforeAttributeName' as TokenizerState.beforeAttr
 const ATTRIBUTE_VALUE_UNQUOTED = 'attributeValueUnquoted' as TokenizerState.attributeValueUnquoted;
 
 export interface PendingError {
-  mustache(span: SourceSpan): never;
-  eof(offset: SourceOffset): never;
+  mustache?: (mustache: SourceSpan, nextChar: string) => ASTv1.ErrorNode;
+  eof?: (offset: SourceOffset) => ASTv1.ErrorNode;
+  attrName?: (attrName: SourceSpan) => ASTv1.ErrorNode;
+  content?: {
+    mustache: src.SourceSpan;
+  };
 }
 
 export abstract class HandlebarsNodeVisitors extends Parser {
@@ -31,11 +35,17 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   // This allows the HTML tokenization to stash an error message and the next
   // mustache visitor will attach the message to the appropriate span and throw
   // the error.
-  protected pendingError: Nullable<PendingError> = null;
+  protected pending: Nullable<PendingError> = null;
 
   abstract override appendToCommentData(s: string): void;
   abstract override beginAttributeValue(quoted: boolean): void;
   abstract override finishAttributeValue(): void;
+
+  checkPendingEof(offset: SourceOffset) {
+    if (this.pending) {
+      return this.pending.eof?.(offset);
+    }
+  }
 
   parse(program: HBS.UpstreamProgram, blockParams: string[]): ASTv1.Template {
     localAssert(program.loc, '[BUG] Program in parser unexpectedly did not have loc');
@@ -52,17 +62,25 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // state when we are "done" parsing. For example, right now, `<foo` parses
     // into `Template { body: [] }` which is obviously incorrect
 
-    this.pendingError?.eof(template.loc.getEnd());
+    const error = this.checkPendingEof(template.loc.getEnd());
+
+    if (error) {
+      node.error = { eof: error };
+    }
 
     return template;
   }
 
-  Program(program: HBS.Program, blockParams?: ASTv1.VarHead[]): ASTv1.Block {
+  Program(
+    program: HBS.Program,
+    blockParams?: ASTv1.VarHead[],
+    paramsLoc?: Optional<SourceSpan>
+  ): ASTv1.Block {
     // The abstract signature doesn't have the blockParams argument, but in
     // practice we can only come from this.BlockStatement() which adds the
     // extra argument for us
     localAssert(
-      Array.isArray(blockParams),
+      Array.isArray(blockParams) && paramsLoc,
       '[BUG] Program in parser unexpectedly called without block params'
     );
 
@@ -74,6 +92,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let node = b.blockItself({
       body: [],
       params: blockParams,
+      paramsLoc,
       chained: program.chained,
       loc: this.source.spanFor(program.loc),
     });
@@ -101,7 +120,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // Ensure that that the element stack is balanced properly.
     if (node !== poppedNode) {
       if (poppedNode?.type === 'ElementNode') {
-        throw generateSyntaxError(`Unclosed element \`${poppedNode.tag}\``, poppedNode.loc);
+        throw GlimmerSyntaxError.highlight(
+          `Unclosed element \`${poppedNode.tag}\``,
+          poppedNode.path.loc.highlight('unclosed tag')
+        );
       } else {
         // If the stack is not balanced, then it is likely our own bug, because
         // any unclosed Handlebars blocks should already been caught by now
@@ -123,16 +145,17 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if (this.tokenizer.state !== 'data' && this.tokenizer.state !== 'beforeData') {
       throw generateSyntaxError(
         'A block may only be used inside an HTML element or another block.',
-        this.source.spanFor(block.loc)
+        this.source.highlightFor(block.path, 'invalid block')
       );
     }
 
-    const { path, params, hash } = acceptCallNodes(this, block);
+    const { path, params, hash, loc: callLoc } = acceptCallNodes(this, block);
     const loc = this.source.spanFor(block.loc);
 
     // Backfill block params loc for the default block
     let blockParams: ASTv1.VarHead[] = [];
     let repairedBlock: HBS.BlockStatement;
+    let blockParamsLoc: SourceSpan | null = null;
 
     if (block.program.blockParams?.length) {
       // Start from right after the hash
@@ -165,21 +188,27 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // fencing our block params, neatly whitespace separated and with
       // legal identifiers only
       const content = span.asString();
-      let skipStart = content.indexOf('|') + 1;
-      const limit = content.indexOf('|', skipStart);
+      const paramsStart = /as\s+|\|/u.exec(content);
+      const paramsStartOffset = paramsStart?.index ?? -1;
+      const paramsEnd = content.indexOf('|', paramsStartOffset + 4);
+      blockParamsLoc = span
+        .getStart()
+        .move(paramsStartOffset)
+        .next(paramsEnd - paramsStartOffset);
+      let skipStart = paramsStart?.[0].length ?? 0;
 
       for (const name of block.program.blockParams) {
         let nameStart: number;
         let loc: SourceSpan;
 
-        if (skipStart >= limit) {
+        if (skipStart >= paramsEnd) {
           nameStart = -1;
         } else {
           nameStart = content.indexOf(name, skipStart);
         }
 
-        if (nameStart === -1 || nameStart + name.length > limit) {
-          skipStart = limit;
+        if (nameStart === -1 || nameStart + name.length > paramsEnd) {
+          skipStart = paramsEnd;
           loc = this.source.spanFor(NON_EXISTENT_LOCATION);
         } else {
           skipStart = nameStart;
@@ -193,8 +222,19 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       repairedBlock = repairBlock(this.source, block, loc);
     }
 
-    const program = this.Program(repairedBlock.program, blockParams);
-    const inverse = repairedBlock.inverse ? this.Program(repairedBlock.inverse, []) : null;
+    const program = this.Program(
+      repairedBlock.program,
+      blockParams,
+      blockParamsLoc ?? callLoc.collapse('end')
+    );
+    const inverse = repairedBlock.inverse
+      ? this.Program(repairedBlock.inverse, [], callLoc.collapse('end'))
+      : null;
+
+    localAssert(
+      path.type !== 'SubExpression',
+      '[BUG] BlockStatement in parser unexpectedly had SubExpression path'
+    );
 
     const node = b.block({
       path,
@@ -213,8 +253,12 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     appendChild(parentProgram, node);
   }
 
-  MustacheStatement(rawMustache: HBS.MustacheStatement): ASTv1.MustacheStatement | void {
-    this.pendingError?.mustache(this.source.spanFor(rawMustache.loc));
+  MustacheStatement(
+    rawMustache: HBS.MustacheStatement
+  ): ASTv1.ParseResult<ASTv1.MustacheStatement> | void {
+    if (this.pending) {
+      this.pending.content = { mustache: this.source.spanFor(rawMustache.loc) };
+    }
 
     const { tokenizer } = this;
 
@@ -227,10 +271,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     const { escaped, loc, strip } = rawMustache;
 
     if ('original' in rawMustache.path && rawMustache.path.original === '...attributes') {
-      throw generateSyntaxError(
-        'Illegal use of ...attributes',
-        this.source.spanFor(rawMustache.loc)
+      appendChild(
+        this.currentElement(),
+        b.error(
+          'Invalid use of ...attributes',
+          this.source.highlightFor(rawMustache.path, `invalid ${this.#getCurlyPosition()}`)
+        )
       );
+
+      // don't return so that we fully process the mustache and continue parsing
     }
 
     if (isHBSLiteral(rawMustache.path)) {
@@ -263,7 +312,37 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // Tag helpers
       case 'tagOpen':
       case 'tagName':
-        throw generateSyntaxError(`Cannot use mustaches in an elements tagname`, mustache.loc);
+        this.ensureStartTag();
+        this.appendToTagName('ERROR');
+        appendChild(
+          this.currentElement(),
+          b.error(
+            `Invalid dynamic tag name`,
+            this.source
+              .highlightFor(mustache)
+              .withPrimary({ loc: mustache.path, label: 'dynamic value' })
+          )
+        );
+        this.finishTag();
+        this.tokenizer.transitionTo(BEFORE_ATTRIBUTE_NAME);
+        return;
+
+      case 'endTagOpen':
+      case 'endTagName':
+        this.ensureEndTag();
+        this.appendToTagName('ERROR');
+        appendChild(
+          this.currentElement(),
+          b.error(
+            `Invalid dynamic closing tag name`,
+            this.source
+              .highlightFor(mustache)
+              .withPrimary({ loc: mustache.path, label: 'dynamic value' })
+          )
+        );
+        this.finishTag();
+        this.tokenizer.transitionTo(BEFORE_ATTRIBUTE_NAME);
+        return;
 
       case 'beforeAttributeName':
         addElementModifier(this.currentStartTag, mustache);
@@ -301,6 +380,69 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return mustache;
   }
 
+  #getPosition() {
+    const state = this.tokenizer.state;
+
+    switch (state) {
+      case 'beforeData':
+      case 'data':
+        return 'in content';
+      case 'beforeAttributeValue':
+        return 'in an attribute';
+      case 'beforeAttributeName':
+      case 'attributeName':
+      case 'afterAttributeName':
+      case 'afterAttributeValueQuoted':
+      case 'attributeValueUnquoted':
+      case 'tagOpen':
+      case 'tagName':
+        return 'in an opening tag';
+      case 'endTagOpen':
+      case 'endTagName':
+        return 'in a closing tag';
+      case 'selfClosingStartTag':
+        return 'in a self-closing tag';
+      case 'attributeValueDoubleQuoted':
+      case 'attributeValueSingleQuoted':
+        return 'in a quoted attribute';
+
+      default:
+        if (state.startsWith('comment')) {
+          return 'in a comment';
+        }
+
+        return `in the ${state} tokenizer state`;
+    }
+  }
+
+  #getCurlyPosition() {
+    const state = this.tokenizer.state;
+    switch (state) {
+      case 'tagOpen':
+      case 'tagName':
+        return 'tag name';
+
+      case 'beforeAttributeName':
+      case 'attributeName':
+      case 'afterAttributeName':
+      case 'afterAttributeValueQuoted':
+        return 'modifier';
+
+      // Attribute values
+      case 'beforeAttributeValue':
+      case 'attributeValueUnquoted':
+        return 'attribute value';
+      case 'attributeValueDoubleQuoted':
+      case 'attributeValueSingleQuoted':
+        return 'attribute value part';
+
+      // TODO: Only append child when the tokenizer state makes
+      // sense to do so, otherwise throw an error.
+      default:
+        return 'content';
+    }
+  }
+
   appendDynamicAttributeValuePart(part: ASTv1.MustacheStatement): void {
     this.finalizeTextPart();
     const attr = this.currentAttr;
@@ -324,7 +466,18 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   ContentStatement(content: HBS.ContentStatement): void {
     updateTokenizerLocation(this.tokenizer, content);
 
-    this.tokenizer.tokenizePart(content.value);
+    if (this.pending?.content && this.pending.mustache) {
+      const nextChar = content.value.slice(0, 1);
+      (this.tokenizer as unknown as Omit<Tokenizer, 'input'> & { input: string }).input += nextChar;
+      const error = this.pending.mustache(this.pending.content.mustache, nextChar);
+      this.currentStartTag.params.push(error);
+      this.currentStartTag.paramsEnd = this.offset();
+      this.pending = null;
+      this.tokenizer.tokenizePart(content.value.slice(1));
+    } else {
+      this.tokenizer.tokenizePart(content.value);
+    }
+
     this.tokenizer.flushData();
   }
 
@@ -350,42 +503,41 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         appendChild(this.currentElement(), comment);
         break;
 
-      default:
+      default: {
         throw generateSyntaxError(
-          `Using a Handlebars comment when in the \`${tokenizer['state']}\` state is not supported`,
-          this.source.spanFor(rawComment.loc)
+          `Invalid comment ${this.#getPosition()}`,
+          this.source.highlightFor(rawComment, `invalid comment`)
         );
+      }
     }
 
     return comment;
   }
 
-  PartialStatement(partial: HBS.PartialStatement): never {
-    throw generateSyntaxError(
-      `Handlebars partials are not supported`,
-      this.source.spanFor(partial.loc)
+  #invalid(kind: string, node: HBS.Node): void {
+    appendChild(
+      this.currentElement(),
+      b.error(
+        `Handlebars ${kind}s are not supported`,
+        this.source.highlightFor(node, `invalid ${kind}`)
+      )
     );
   }
 
-  PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): never {
-    throw generateSyntaxError(
-      `Handlebars partial blocks are not supported`,
-      this.source.spanFor(partialBlock.loc)
-    );
+  PartialStatement(partial: HBS.PartialStatement): void {
+    this.#invalid('partial', partial);
   }
 
-  Decorator(decorator: HBS.Decorator): never {
-    throw generateSyntaxError(
-      `Handlebars decorators are not supported`,
-      this.source.spanFor(decorator.loc)
-    );
+  PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): void {
+    this.#invalid('partial block', partialBlock);
   }
 
-  DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): never {
-    throw generateSyntaxError(
-      `Handlebars decorator blocks are not supported`,
-      this.source.spanFor(decoratorBlock.loc)
-    );
+  Decorator(decorator: HBS.Decorator): void {
+    this.#invalid('decorator', decorator);
+  }
+
+  DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): void {
+    this.#invalid('decorator block', decoratorBlock);
   }
 
   SubExpression(sexpr: HBS.SubExpression): ASTv1.SubExpression {
@@ -393,34 +545,45 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return b.sexpr({ path, params, hash, loc: this.source.spanFor(sexpr.loc) });
   }
 
-  PathExpression(path: HBS.PathExpression): ASTv1.PathExpression {
+  PathExpression(path: HBS.PathExpression): HBS.Output<'PathExpression'> {
     const { original } = path;
+    const { source } = this;
     let parts: string[];
 
     if (original.indexOf('/') !== -1) {
       if (original.slice(0, 2) === './') {
-        throw generateSyntaxError(
+        return b.error(
           `Using "./" is not supported in Glimmer and unnecessary`,
-          this.source.spanFor(path.loc)
+          this.source
+            .highlightFor(path)
+            .withPrimary(
+              source
+                .spanFor(path.loc)
+                .sliceStartChars({ chars: 2 })
+                .highlight('invalid `./` syntax')
+            )
         );
       }
       if (original.slice(0, 3) === '../') {
-        throw generateSyntaxError(
-          `Changing context using "../" is not supported in Glimmer`,
-          this.source.spanFor(path.loc)
-        );
+        return b.error(`Changing context using \`../\` is not supported in Glimmer`, {
+          primary: this.source
+            .spanFor(path.loc)
+            .sliceStartChars({ chars: 2 })
+            .highlight('invalid `..` syntax'),
+          expanded: this.source.highlightFor(path),
+        });
       }
       if (original.indexOf('.') !== -1) {
-        throw generateSyntaxError(
-          `Mixing '.' and '/' in paths is not supported in Glimmer; use only '.' to separate property paths`,
-          this.source.spanFor(path.loc)
+        return b.error(
+          'Mixing `.` and `/` in paths is not supported in Glimmer; use only `.` to separate property paths',
+          { primary: this.source.highlightFor(path, 'invalid mixed syntax') }
         );
       }
       parts = [path.parts.join('/')];
     } else if (original === '.') {
       throw generateSyntaxError(
         `'.' is not a supported path in Glimmer; check for a path with a trailing '.'`,
-        this.source.spanFor(path.loc)
+        this.source.highlightFor(path, 'invalid path')
       );
     } else {
       parts = path.parts;
@@ -456,7 +619,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       if (head === undefined) {
         throw generateSyntaxError(
           `Attempted to parse a path expression, but it was not valid. Paths beginning with @ must start with a-z.`,
-          this.source.spanFor(path.loc)
+          this.source.highlightFor(path, 'expected a-z')
         );
       }
 
@@ -588,9 +751,17 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
   tokenizer.column = column;
 }
 
+export interface CallNodes {
+  path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
+  params: ASTv1.Expression[];
+  hash: ASTv1.Hash;
+  loc: SourceSpan;
+}
+
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
   node: {
+    loc: HBS.SourceLocation;
     path:
       | HBS.PathExpression
       | HBS.SubExpression
@@ -602,12 +773,8 @@ function acceptCallNodes(
     params: HBS.Expression[];
     hash?: HBS.Hash;
   }
-): {
-  path: ASTv1.PathExpression | ASTv1.SubExpression;
-  params: ASTv1.Expression[];
-  hash: ASTv1.Hash;
-} {
-  let path: ASTv1.PathExpression | ASTv1.SubExpression;
+): CallNodes {
+  let path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
 
   switch (node.path.type) {
     case 'PathExpression':
@@ -635,29 +802,54 @@ function acceptCallNodes(
       } else {
         value = 'undefined';
       }
-      throw generateSyntaxError(
-        `${node.path.type} "${
+
+      path = b.error(
+        `\`${
           node.path.type === 'StringLiteral' ? node.path.original : value
-        }" cannot be called as a sub-expression, replace (${value}) with ${value}`,
-        compiler.source.spanFor(node.path.loc)
+        }\` cannot be called. Consider replacing \`(${value})\` with \`${value}\` if you meant to use it as a value`,
+        compiler.source
+          .highlightFor(node)
+          .withPrimary(
+            compiler.source.highlightFor(
+              node.path,
+              `${literalDescription(node.path)} is not callable`
+            )
+          )
       );
     }
   }
 
+  const start = path.loc.getStart();
   const params = node.params.map((e) => compiler.acceptNode<HBS.Expression['type']>(e));
 
-  // if there is no hash, position it as a collapsed node immediately after the last param (or the
-  // path, if there are also no params)
-  const end = isPresentArray(params) ? getLast(params).loc : path.loc;
+  const paramsEnd = isPresentArray(params) ? getLast(params).loc : path.loc;
+  const end = node.hash ? compiler.source.spanFor(node.hash.loc) : paramsEnd;
 
   const hash = node.hash
     ? compiler.Hash(node.hash)
     : b.hash({
         pairs: [],
-        loc: compiler.source.spanFor(end).collapse('end'),
+        loc: end.collapse('end'),
       });
 
-  return { path, params, hash };
+  return { path, params, hash, loc: start.until(end.getEnd()) };
+}
+
+function literalDescription(literal: HBS.Literal) {
+  switch (literal.type) {
+    case 'StringLiteral':
+      return 'string';
+    case 'NumberLiteral':
+      return 'number';
+    case 'BooleanLiteral':
+      return 'boolean';
+    case 'UndefinedLiteral':
+      return 'undefined';
+    case 'NullLiteral':
+      return 'null';
+    default:
+      exhausted(literal);
+  }
 }
 
 function addElementModifier(
@@ -670,7 +862,10 @@ function addElementModifier(
     const modifier = `{{${printLiteral(path)}}}`;
     const tag = `<${element.name} ... ${modifier} ...`;
 
-    throw generateSyntaxError(`In ${tag}, ${modifier} is not a valid modifier`, mustache.loc);
+    throw generateSyntaxError(
+      `In ${tag}, ${modifier} is not a valid modifier`,
+      loc.getSource().highlightFor(mustache.path, 'invalid literal')
+    );
   }
 
   const modifier = b.elementModifier({ path, params, hash, loc });

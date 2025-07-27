@@ -1,3 +1,5 @@
+import type { ArraySlice } from 'type-fest';
+
 export const EMPTY_ARRAY: readonly unknown[] = Object.freeze([]) as readonly unknown[];
 
 export function emptyArray<T>(): T[] {
@@ -29,19 +31,23 @@ export function* enumerate<T>(input: Iterable<T>): IterableIterator<[number, T]>
   }
 }
 
-type ZipEntry<T extends readonly unknown[]> = {
-  [P in keyof T]: P extends `${infer N extends number}` ? [N, T[P], T[P]] : never;
+type ZipEntry<T extends readonly unknown[], U extends readonly unknown[]> = {
+  [P in keyof T]: P extends `${infer N extends number}`
+    ? P extends keyof U
+      ? [N, T[P], U[P]]
+      : [N, T[P], undefined]
+    : never;
 }[keyof T & number];
 
 /**
- * Zip two tuples with the same type and number of elements.
+ * Zip two tuples with the same number of elements.
  */
-export function* zipTuples<T extends readonly unknown[]>(
+export function* zipTuples<T extends readonly unknown[], U extends readonly unknown[]>(
   left: T,
-  right: T
-): IterableIterator<ZipEntry<T>> {
+  right: U
+): IterableIterator<ZipEntry<T, U>> {
   for (let i = 0; i < left.length; i++) {
-    yield [i, left[i], right[i]] as ZipEntry<T>;
+    yield [i, left[i], right[i]] as ZipEntry<T, U>;
   }
 }
 
@@ -60,5 +66,18 @@ export function* zipArrays<T>(
 
   for (let i = left.length; i < right.length; i++) {
     yield ['push', i, undefined, right[i]] as ['push', number, undefined, T];
+  }
+}
+
+export function slice<
+  const T extends unknown[],
+  const Start extends number,
+  const End extends number = never,
+>(input: T, start: Start, end?: End): ArraySlice<T, Start, End> {
+  if (end === undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+    return input.slice(start) as any;
+  } else {
+    return input.slice(start, end) as ArraySlice<T, Start, End>;
   }
 }

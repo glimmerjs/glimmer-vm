@@ -1,5 +1,6 @@
 // @ts-check
 import gitignore from 'eslint-config-flat-gitignore';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 
 import {
   code,
@@ -15,9 +16,10 @@ import { WORKSPACE_ROOT } from '@glimmer-workspace/repo-metadata';
 /** @internal */
 export default config(
   gitignore(),
+  eslintConfigPrettier,
   {
     name: '@glimmer-workspace/ignores',
-    ignores: ['ts-dist/**/*', '.reference/**/*'],
+    ignores: ['ts-dist/**/*', '.reference/**/*', 'node_modules/**/*'],
   },
   override('no-console packages', {
     filter: 'env!=console',
@@ -110,6 +112,7 @@ export default config(
     },
     rules: {
       'n/no-process-exit': 'off',
+      'n/hashbang': 'off',
     },
   },
   jsons

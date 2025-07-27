@@ -11,7 +11,7 @@ import type {
 } from '@glimmer/interfaces';
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
+import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1 } from '@glimmer/vm';
 
 import type { Primitive } from './dism/dism';
 
@@ -322,7 +322,6 @@ export const CheckRegister: Checker<Register> = new (class {
       case $pc:
       case $t0:
       case $t1:
-      case $v0:
         return true;
       default:
         return false;
@@ -341,14 +340,13 @@ export const CheckSyscallRegister: Checker<SyscallRegister> = new (class {
       case $s1:
       case $t0:
       case $t1:
-      case $v0:
         return true;
       default:
         return false;
     }
   }
   expected(): string {
-    return `syscall register ($s0, $s1, $t0, $t1, $v0)`;
+    return `syscall register ($s0, $s1, $t0, $t1)`;
   }
 })();
 

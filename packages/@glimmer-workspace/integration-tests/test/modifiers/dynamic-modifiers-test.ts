@@ -3,9 +3,9 @@ import {
   defineSimpleHelper,
   defineSimpleModifier,
   GlimmerishComponent,
+  highlightError,
   jitSuite,
   RenderTest,
-  syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
 
@@ -155,13 +155,12 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
       () => {
         this.registerComponent('TemplateOnly', 'Bar', '<div {{x.foo}}></div>');
       },
-      syntaxErrorFor(
-        'You attempted to invoke a path (`{{x.foo}}`) as a modifier, but x was not in scope',
-        '{{x.foo}}',
-        'an unknown module',
-        1,
-        5
-      )
+      highlightError('Attempted to invoke `x.foo` as a modifier, but `x` was not in scope')`
+        1 | <div {{x.foo}}></div>
+          |        =----
+          |          \---- modifier
+          |        \====== not in scope
+      `
     );
   }
 

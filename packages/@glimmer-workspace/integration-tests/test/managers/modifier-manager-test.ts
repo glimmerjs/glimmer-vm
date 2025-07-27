@@ -124,8 +124,8 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.verifySteps(['Foo didInsertElement', 'Bar didInsertElement']);
   }
 
-  @test 'can give consistent access to underlying DOM element'(assert: Assert) {
-    assert.expect(6);
+  @test 'can give consistent access to underlying DOM element'() {
+    const record = this.record;
 
     let foo = this.defineModifier(
       class extends CustomModifier {
@@ -137,16 +137,16 @@ abstract class ModifierManagerTest extends RenderTest {
           // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- intentionally consume
           this.args.positional[0];
 
-          assert.strictEqual(this.element.tagName, 'H1');
+          record.event('didInsertElement', this.element.tagName);
           this.savedElement = this.element;
         }
 
         override didUpdate() {
-          assert.strictEqual(this.element, this.savedElement);
+          record.equal('didUpdate', this.element, this.savedElement);
         }
 
         override willDestroyElement() {
-          assert.strictEqual(this.element, this.savedElement);
+          record.equal('willDestroyElement', this.element, this.savedElement);
         }
       }
     );
@@ -157,8 +157,15 @@ abstract class ModifierManagerTest extends RenderTest {
     this.renderComponent(Main, args);
     this.assertHTML(`<h1>hello world</h1>`);
 
+    this.record.expect('after rendering', ['didInsertElement', 'H1']);
+
     args['truthy'] = 'true';
     this.rerender();
+
+    this.record.expect('after rerendering', ['didUpdate', 'equal']);
+
+    this.destroy();
+    this.record.expect('after destroying', ['willDestroyElement', 'equal']);
   }
 
   @test 'lifecycle hooks are autotracked by default'(assert: Assert) {

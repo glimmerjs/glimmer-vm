@@ -24,7 +24,7 @@ import {
 import { dev, localAssert, unwrap } from '@glimmer/debug-util';
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
+import { $pc, $ra, $s0, $s1, $sp, $t0, $t1 } from '@glimmer/vm';
 
 import type { LowLevelVM, VM } from './vm';
 import type { Externs } from './vm/low-level';
@@ -151,7 +151,6 @@ export class AppendOpcodes {
           logger.log(diff.registers[$s1].describe());
           logger.log(diff.registers[$t0].describe());
           logger.log(diff.registers[$t1].describe());
-          logger.log(diff.registers[$v0].describe());
           logger.log(diff.stack.describe());
           logger.log(diff.destructors.describe());
           logger.log(diff.scope.describe());

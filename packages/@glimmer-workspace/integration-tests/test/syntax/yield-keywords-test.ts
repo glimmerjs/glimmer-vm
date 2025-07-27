@@ -1,141 +1,104 @@
-import {
-  jitSuite,
-  preprocess,
-  RenderTest,
-  syntaxErrorFor,
-  test,
-} from '@glimmer-workspace/integration-tests';
+import { PackageSuite, verifying } from '@glimmer-workspace/integration-tests';
 
-class NamedBlocksSyntaxErrors extends RenderTest {
-  static suiteName = 'yield keywords syntax errors';
+const syntax = PackageSuite('@glimmer/syntax');
 
-  @test
-  'yield throws if receiving any named args besides `to`'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{yield foo="bar"}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        "yield only takes a single named argument: 'to'",
-        'foo="bar"',
-        'test-module',
-        1,
-        8
-      )
-    );
-  }
+syntax(['yield keywords syntax errors'], (module) => {
+  module.test('yield throws if receiving any named args besides `to`', () => {
+    verifying(`{{yield foo='bar'}}`, "yield only takes a single named argument: 'to'", {
+      // this is a keyword error, not a parse error
+      using: 'compiler',
+    }).throws`
+      1 | {{yield foo='bar'}}
+        |         ===------
+        |          \===== invalid argument
+    `.errors();
+  });
 
-  @test
-  'you can only yield to a literal string value'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{yield to=this.bar}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        'you can only yield to a literal string value',
-        'this.bar',
-        'test-module',
-        1,
-        11
-      )
-    );
-  }
+  module.test('You can only yield to a literal string value', () => {
+    verifying('{{yield to=this.bar}}', 'You can only yield to a literal string value', {
+      using: 'compiler',
+    }).throws`
+      1 | {{yield to=this.bar}}
+        |            ========
+        |             \===== not a string literal
+    `.errors();
+  });
 
-  @test
-  'has-block throws if receiving any named args'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{has-block foo="bar"}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '(has-block) does not take any named arguments',
-        '{{has-block foo="bar"}}',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+  module.test('has-block throws if receiving any named args', () => {
+    verifying(`{{has-block foo='bar'}}`, '(has-block) does not take any named arguments', {
+      using: 'compiler',
+    }).throws`
+      1 | {{has-block foo='bar'}}
+        |             ===------
+        |             \===== unexpected named argument
+    `.errors();
+  });
 
-  @test
-  'has-block throws if receiving multiple positional'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{has-block "foo" "bar"}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '(has-block) only takes a single positional argument',
-        '{{has-block "foo" "bar"}}',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+  module.test('has-block throws if receiving multiple positional', () => {
+    verifying(`{{has-block 'foo' 'bar'}}`, '`has-block` only takes a single positional argument', {
+      using: 'compiler',
+    }).throws`
+      1 | {{has-block 'foo' 'bar'}}
+        |                   =====
+        |                    \===== extra argument
+    `.errors();
+  });
 
-  @test
-  'has-block throws if receiving a value besides a string'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{has-block this.bar}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '(has-block) can only receive a string literal as its first argument',
-        '{{has-block this.bar}}',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+  module.test('has-block throws if receiving a value besides a string', () => {
+    verifying(
+      '{{has-block this.bar}}',
+      '`has-block` can only receive a string literal as its first argument',
+      { using: 'compiler' }
+    ).throws`
+      1 | {{has-block this.bar}}
+        |             ========
+        |               \===== invalid argument
+    `.errors();
+  });
 
-  @test
-  'has-block-params throws if receiving any named args'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{has-block-params foo="bar"}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '(has-block-params) does not take any named arguments',
-        '{{has-block-params foo="bar"}}',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+  module.test('has-block-params throws if receiving any named args', () => {
+    verifying(
+      `{{has-block-params foo='bar'}}`,
+      '(has-block-params) does not take any named arguments',
+      { using: 'compiler' }
+    ).throws`
+      1 | {{has-block-params foo='bar'}}
+        |                    ===------
+        |                      \===== unexpected named argument
+    `.errors();
+  });
 
-  @test
-  'has-block-params throws if receiving multiple positional'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{has-block-params "foo" "bar"}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '(has-block-params) only takes a single positional argument',
-        '{{has-block-params "foo" "bar"}}',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
+  module.test('has-block-params throws if receiving multiple positional', () => {
+    verifying(
+      `{{has-block-params 'foo' 'bar' 'baz'}}`,
+      '`has-block-params` only takes a single positional argument',
+      { using: 'compiler' }
+    ).throws`
+      1 | {{has-block-params 'foo' 'bar' 'baz'}}
+        |                          ===========
+        |                           \===== extra arguments
+    `.errors();
+  });
 
-  @test
-  'has-block-params throws if receiving a value besides a string'() {
-    this.assert.throws(
-      () => {
-        preprocess('{{has-block-params this.bar}}', { meta: { moduleName: 'test-module' } });
-      },
-      syntaxErrorFor(
-        '(has-block-params) can only receive a string literal as its first argument',
-        '{{has-block-params this.bar}}',
-        'test-module',
-        1,
-        0
-      )
-    );
-  }
-}
+  module.test('has-block-params throws if receiving a value besides a string', () => {
+    verifying(
+      '{{has-block-params this.bar}}',
+      '`has-block-params` can only receive a string literal as its first argument',
+      { using: 'compiler' }
+    ).throws`
+      1 | {{has-block-params this.bar}}
+        |                    ========
+        |                       \===== invalid argument
+    `.errors();
 
-jitSuite(NamedBlocksSyntaxErrors);
+    verifying(
+      '{{has-block-params 123}}',
+      '`has-block-params` can only receive a string literal as its first argument',
+      { using: 'compiler' }
+    ).throws`
+    1 | {{has-block-params 123}}
+      |                    ===
+      |                     \===== invalid argument
+  `.errors();
+  });
+});

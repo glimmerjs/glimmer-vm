@@ -15,10 +15,12 @@ export function childrenFor(
 
 export function appendChild(
   parent: ASTv1.Block | ASTv1.Template | ASTv1.ElementNode,
-  node: ASTv1.Statement
+  ...nodes: ASTv1.Statement[]
 ): void {
-  childrenFor(parent).push(node);
+  childrenFor(parent).push(...nodes);
 }
+
+export const appendChildren = appendChild;
 
 export function isHBSLiteral(path: HBS.Expression): path is HBS.Literal;
 export function isHBSLiteral(path: ASTv1.Expression): path is ASTv1.Literal;

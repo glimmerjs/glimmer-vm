@@ -39,9 +39,14 @@
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:*",
     "@glimmer-workspace/env": "workspace:*",
-    "eslint": "^9.20.1",
-    "publint": "^0.3.2",
-    "rollup": "^4.34.8",
-    "typescript": "^5.7.3"
-  }
+    "@glimmer/local-debug-flags": "workspace:*",
+    "eslint": "^9.31.0",
+    "publint": "^0.3.12",
+    "rollup": "^4.45.1",
+    "typescript": "^5.8.3"
+  },
+  "bugs": {
+    "url": "https://github.com/glimmerjs/glimmer-vm/issues"
+  },
+  "homepage": "https://github.com/glimmerjs/glimmer-vm#readme"
 }

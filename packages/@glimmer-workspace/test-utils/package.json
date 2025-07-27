@@ -7,10 +7,11 @@
   "scripts": {},
   "dependencies": {
     "@glimmer/interfaces": "workspace:*",
+    "@glimmer/syntax": "workspace:*",
     "@glimmer/util": "workspace:*"
   },
   "devDependencies": {
     "@glimmer/debug-util": "workspace:*",
-    "eslint": "^9.20.1"
+    "eslint": "^9.31.0"
   }
 }

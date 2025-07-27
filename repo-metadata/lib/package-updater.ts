@@ -2,6 +2,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import type { PackageJson } from 'read-pkg';
+import type { PackageJsonData } from 'write-pkg';
 import chalk from 'chalk';
 import deepmerge from 'deepmerge';
 import { globby } from 'globby';
@@ -37,7 +39,7 @@ interface PackageManifest {
 }
 
 interface UpdateContext {
-  manifest: PackageManifest;
+  manifest: PackageJson;
   packageInfo: PackageInfo;
   isPublished: boolean;
   isRoot: boolean;
@@ -47,7 +49,7 @@ interface UpdateContext {
 // Catalog of devDependencies to sync
 const CATALOG = {
   devDependencies: {
-    rollup: '^4.34.8',
+    rollup: '^4.45.1',
   },
 };
 
@@ -98,7 +100,10 @@ export class PackageUpdater {
   private async updatePackage(packagePath: string): Promise<boolean> {
     try {
       // Read package.json using read-pkg for normalization
-      const manifest = await readPackage({ cwd: packagePath.replace('/package.json', '') });
+      const manifest = await readPackage({
+        cwd: packagePath.replace('/package.json', ''),
+        normalize: false,
+      });
 
       if (!manifest.name) {
         return false;
@@ -127,7 +132,11 @@ export class PackageUpdater {
       const rollupConfigChanged = this.updateRollupConfig(context, rollupConfigPath);
 
       if (manifestChanged) {
-        await writePackage(packagePath.replace('/package.json', ''), updatedManifest);
+        await writePackage(
+          packagePath.replace('/package.json', ''),
+          updatedManifest as PackageJsonData,
+          { normalize: false }
+        );
         this.logUpdate(packageInfo.root, 'package.json');
       }
 
@@ -156,6 +165,12 @@ export class PackageUpdater {
     // Clean up legacy scripts (replaced with prepack)
     delete updated.scripts['test:types'];
     delete updated.scripts['test:lint'];
+
+    delete updated['_id']; // Remove _id field if present
+
+    if (typeof updated['readme'] === 'string' && updated['readme'].includes('ERROR:')) {
+      delete updated['readme']; // Remove readme if it contains an error
+    }
 
     // Repository configuration
     if (isPublished || isRoot) {

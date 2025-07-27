@@ -5,8 +5,14 @@
  * 2. Namespaced resolution
  */
 
-import type { GetContextualFreeOpcode } from '@glimmer/interfaces';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import type {
+  GetKeywordOpcode,
+  Optional,
+  ResolveAsComponentCalleeOpcode,
+  ResolveAsHelperCalleeOpcode,
+  ResolveAsModifierHeadOpcode,
+} from '@glimmer/interfaces';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import type { FreeVarNamespace } from './constants';
 
@@ -19,17 +25,20 @@ import { COMPONENT_VAR_NS, HELPER_VAR_NS, MODIFIER_VAR_NS } from './constants';
  * 2. in an local variable invocation with dot paths
  */
 export const STRICT_RESOLUTION = {
-  resolution: (): GetContextualFreeOpcode => SexpOpcodes.GetStrictKeyword,
+  isResolvedAppendable: false,
+  resolution: (): GetKeywordOpcode => Op.GetKeyword,
   serialize: (): SerializedResolution => 'Strict',
-  isAngleBracket: false as const,
-};
+  namespace: Op.GetKeyword,
+  isAngleBracket: false,
+  isResolvedAngleBracket: false,
+} as const;
 
 export type StrictResolution = typeof STRICT_RESOLUTION;
 
 export const HTML_RESOLUTION = {
   ...STRICT_RESOLUTION,
   isAngleBracket: true as const,
-};
+} as const;
 
 export type HtmlResolution = typeof HTML_RESOLUTION;
 
@@ -97,18 +106,28 @@ export class LooseModeResolution {
     readonly isAngleBracket = false
   ) {}
 
-  resolution(): GetContextualFreeOpcode {
+  get isResolvedAppendable(): boolean {
+    return this.namespaces.length > 1;
+  }
+
+  get isResolvedAngleBracket(): boolean {
+    return (
+      this.namespaces.length === 1 && this.namespaces[0] === COMPONENT_VAR_NS && this.isAngleBracket
+    );
+  }
+
+  get namespace(): Optional<
+    ResolveAsModifierHeadOpcode | ResolveAsComponentCalleeOpcode | ResolveAsHelperCalleeOpcode
+  > {
     if (this.namespaces.length === 1) {
       switch (this.namespaces[0]) {
-        case HELPER_VAR_NS:
-          return SexpOpcodes.GetFreeAsHelperHead;
         case MODIFIER_VAR_NS:
-          return SexpOpcodes.GetFreeAsModifierHead;
+          return Op.ResolveAsModifierCallee;
         case COMPONENT_VAR_NS:
-          return SexpOpcodes.GetFreeAsComponentHead;
+          return Op.ResolveAsComponentCallee;
+        case HELPER_VAR_NS:
+          return Op.ResolveAsHelperCallee;
       }
-    } else {
-      return SexpOpcodes.GetFreeAsComponentOrHelperHead;
     }
   }
 

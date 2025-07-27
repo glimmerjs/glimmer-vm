@@ -2,7 +2,7 @@ import type { WireFormat } from '@glimmer/interfaces';
 import type { TemplateWithIdAndReferrer } from '@glimmer/opcode-compiler';
 import { precompile } from '@glimmer/compiler';
 import { localAssert, unwrapTemplate } from '@glimmer/debug-util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 import { preprocess } from '@glimmer-workspace/integration-tests';
 
 import { module } from '../support';
@@ -52,24 +52,25 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     assert.ok(hello, 'avoid unused variable lint');
 
     let [statements] = wire.block;
-    let [[, componentNameExpr], ...divExpr] = statements as [
-      WireFormat.Statements.Component,
-      ...WireFormat.Statement[],
+    let [[op, componentNameExpr], ...divExpr] = statements as [
+      WireFormat.Content.SomeInvokeComponent,
+      ...WireFormat.Content[],
     ];
+
+    localAssert(
+      op === Op.InvokeLexicalComponent,
+      'The first content item in the template is a lexical invoke component'
+    );
 
     assert.deepEqual(wire.scope?.(), [hello]);
 
     assert.deepEqual(
       componentNameExpr,
-      [SexpOpcodes.GetLexicalSymbol, 0],
+      0,
       'The component invocation is for the lexical symbol `hello` (the 0th lexical entry)'
     );
 
-    assert.deepEqual(divExpr, [
-      [SexpOpcodes.OpenElement, 0],
-      [SexpOpcodes.FlushElement],
-      [SexpOpcodes.CloseElement],
-    ]);
+    assert.deepEqual(divExpr, [[Op.OpenElement, 0], [Op.FlushElement], [Op.CloseElement]]);
   });
 
   test('lexicalScope works if the component name is a path', (assert) => {
@@ -80,22 +81,18 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let [statements] = wire.block;
     let [[, componentNameExpr], ...divExpr] = statements as [
-      WireFormat.Statements.Component,
-      ...WireFormat.Statement[],
+      WireFormat.Content.SomeInvokeComponent,
+      ...WireFormat.Content[],
     ];
 
     assert.deepEqual(wire.scope?.(), [f]);
     assert.deepEqual(
       componentNameExpr,
-      [SexpOpcodes.GetLexicalSymbol, 0, ['hello']],
+      [Op.StackExpression, [Op.GetLexicalSymbol, 0], [Op.GetProperty, 'hello']],
       'The component invocation is for the lexical symbol `hello` (the 0th lexical entry)'
     );
 
-    assert.deepEqual(divExpr, [
-      [SexpOpcodes.OpenElement, 0],
-      [SexpOpcodes.FlushElement],
-      [SexpOpcodes.CloseElement],
-    ]);
+    assert.deepEqual(divExpr, [[Op.OpenElement, 0], [Op.FlushElement], [Op.CloseElement]]);
   });
 
   test('customizeComponentName is used if present', (assert) => {
@@ -108,15 +105,14 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     );
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.Component];
+    let [invoke] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
-      `component name is a free variable lookup`
+      invoke[0] === Op.InvokeResolvedComponent,
+      `The first content item in the template is an resolved invoke component`
     );
 
-    let componentName = block[2][componentNameExpr[1]];
+    let componentName = block[2][invoke[1]];
     assert.strictEqual(componentName, 'ooFX', 'customized component name was used');
   });
 
@@ -131,16 +127,15 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, , letBlock]] = block[0] as [WireFormat.Statements.Let];
-    let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Statements.Component];
+    let [[, , letBlock]] = block[0] as [WireFormat.Content.Let];
+
+    let [[invoke]] = letBlock;
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
-      `component name is a free variable lookup`
+      invoke?.[0] === Op.InvokeResolvedComponent,
+      `the first content item in the let block is an invoke component`
     );
-
-    let componentName = block[2][componentNameExpr[1]];
+    let componentName = block[2][invoke[1]];
     assert.strictEqual(componentName, 'rental', 'customized component name was used');
   });
 
@@ -155,15 +150,14 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.Block];
+    let [invoke] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
+      invoke[0] === Op.InvokeResolvedComponent,
       `component name is a free variable lookup`
     );
 
-    let componentName = block[2][componentNameExpr[1]];
+    let componentName = block[2][invoke[1]];
     assert.strictEqual(componentName, 'my-component', 'original component name was used');
   });
 
@@ -178,15 +172,14 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
-    let [[, componentNameExpr]] = block[0] as [WireFormat.Statements.Block];
+    let [invoke] = block[0] as [WireFormat.Content.SomeInvokeComponent];
 
     localAssert(
-      Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
-      `component name is a free variable lookup`
+      invoke[0] === Op.InvokeResolvedComponent,
+      `first content item is a resolved invoke component`
     );
 
-    let componentName = block[2][componentNameExpr[1]];
+    let componentName = block[2][invoke[1]];
     assert.strictEqual(componentName, 'MyComponent', 'original component name was used');
   });
 
@@ -203,7 +196,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let [openElementExpr] = block[0];
 
     localAssert(
-      Array.isArray(openElementExpr) && openElementExpr[0] === SexpOpcodes.OpenElement,
+      Array.isArray(openElementExpr) && openElementExpr[0] === Op.OpenElement,
       `expr is open element`
     );
 
@@ -220,15 +213,21 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let wire = _wire!;
     assert.deepEqual(wire.scope?.(), [target]);
     assert.deepEqual(wire.block[0], [
-      [SexpOpcodes.Append, [SexpOpcodes.GetLexicalSymbol, 0, ['message']]],
-    ]);
+      [
+        Op.AppendValueCautiously,
+        [Op.StackExpression, [Op.GetLexicalSymbol, 0], [Op.GetProperty, 'message']],
+      ],
+    ] satisfies WireFormat.Content[]);
   });
 
-  test('when "this" is not in locals, it compiles to GetSymbol', (assert) => {
+  test('when "this" is not in locals, it compiles to GetSymbolOrPath', (assert) => {
     let wire = compile(`{{this.message}}`, [], (source) => eval(source));
     assert.strictEqual(wire.scope, undefined);
     assert.deepEqual(wire.block[0], [
-      [SexpOpcodes.Append, [SexpOpcodes.GetSymbol, 0, ['message']]],
-    ]);
+      [
+        Op.AppendValueCautiously,
+        [Op.StackExpression, [Op.GetLocalSymbol, 0], [Op.GetProperty, 'message']],
+      ],
+    ] satisfies WireFormat.Content[]);
   });
 });

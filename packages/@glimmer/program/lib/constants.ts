@@ -20,7 +20,7 @@ import {
   managerHasCapability,
 } from '@glimmer/manager';
 import { templateFactory } from '@glimmer/opcode-compiler';
-import { enumerate } from '@glimmer/util';
+import { enumerate, isIndexable } from '@glimmer/util';
 import { InternalComponentCapabilities } from '@glimmer/vm';
 
 import { DEFAULT_TEMPLATE } from './util/default-template';
@@ -174,28 +174,40 @@ export class ConstantsImpl implements ProgramConstants {
 
   component(definitionState: ComponentDefinitionState, owner: object): ComponentDefinition;
   component(
-    definitionState: ComponentDefinitionState,
+    definitionState: unknown,
+    owner: object,
+    isOptional?: true,
+    debugName?: string
+  ): ComponentDefinition | null;
+  component(
+    definitionState: unknown,
     owner: object,
     isOptional?: true,
     debugName?: string
   ): ComponentDefinition | null {
-    let definition = this.componentDefinitionCache.get(definitionState);
+    if (!isIndexable(definitionState)) {
+      return null;
+    }
+
+    // After isIndexable check, we know it's an object or function, safe to use as cache key
+    const state = definitionState as ComponentDefinitionState | ResolvedComponentDefinition;
+    let definition = this.componentDefinitionCache.get(state);
 
     if (definition === undefined) {
-      let manager = getInternalComponentManager(definitionState, isOptional);
+      let manager = getInternalComponentManager(state, isOptional);
 
       if (manager === null) {
-        this.componentDefinitionCache.set(definitionState, null);
+        this.componentDefinitionCache.set(state, null);
         return null;
       }
 
       localAssert(manager, 'BUG: expected manager');
 
-      let capabilities = capabilityFlagsFrom(manager.getCapabilities(definitionState));
+      let capabilities = capabilityFlagsFrom(manager.getCapabilities(state));
 
-      let templateFactory = getComponentTemplate(definitionState);
+      let templateFactory = getComponentTemplate(state);
 
-      let compilable = null;
+      let layout = null;
       let template;
 
       if (
@@ -209,11 +221,7 @@ export class ConstantsImpl implements ProgramConstants {
       if (template !== undefined) {
         template = unwrapTemplate(template);
 
-        compilable = managerHasCapability(
-          manager,
-          capabilities,
-          InternalComponentCapabilities.wrapped
-        )
+        layout = managerHasCapability(manager, capabilities, InternalComponentCapabilities.wrapped)
           ? template.asWrappedLayout()
           : template.asLayout();
       }
@@ -223,8 +231,8 @@ export class ConstantsImpl implements ProgramConstants {
         handle: -1, // replaced momentarily
         manager,
         capabilities,
-        state: definitionState,
-        compilable,
+        state,
+        layout,
       };
 
       definition.handle = this.value(definition);
@@ -233,7 +241,7 @@ export class ConstantsImpl implements ProgramConstants {
         definition.debugName = debugName;
       }
 
-      this.componentDefinitionCache.set(definitionState, definition);
+      this.componentDefinitionCache.set(state, definition);
       this.componentDefinitionCount++;
     }
 
@@ -250,7 +258,7 @@ export class ConstantsImpl implements ProgramConstants {
       let { manager, state, template } = resolvedDefinition;
       let capabilities = capabilityFlagsFrom(manager.getCapabilities(resolvedDefinition));
 
-      let compilable = null;
+      let layout = null;
 
       if (
         !managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicLayout)
@@ -261,11 +269,7 @@ export class ConstantsImpl implements ProgramConstants {
       if (template !== null) {
         template = unwrapTemplate(template);
 
-        compilable = managerHasCapability(
-          manager,
-          capabilities,
-          InternalComponentCapabilities.wrapped
-        )
+        layout = managerHasCapability(manager, capabilities, InternalComponentCapabilities.wrapped)
           ? template.asWrappedLayout()
           : template.asLayout();
       }
@@ -276,7 +280,7 @@ export class ConstantsImpl implements ProgramConstants {
         manager,
         capabilities,
         state,
-        compilable,
+        layout,
       };
 
       definition.handle = this.value(definition);

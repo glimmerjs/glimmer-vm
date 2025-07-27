@@ -4,7 +4,9 @@ import { localAssert } from '@glimmer/debug-util';
 import type * as ASTv1 from './api';
 
 import { SourceSpan } from '../source/span';
+import * as Validation from '../validation-context/validation-context';
 import { buildLegacyLiteral, buildLegacyMustache, buildLegacyPath } from './legacy-interop';
+import { resultsToArray } from './utils';
 
 const DEFAULT_STRIP = {
   close: false,
@@ -25,28 +27,52 @@ class Builders {
     };
   }
 
+  error(message: string, options: Validation.IntoHighlight): ASTv1.ErrorNode {
+    const highlight = Validation.Highlight.from(options);
+
+    return {
+      type: 'Error',
+      loc: highlight.selection.loc,
+      message,
+      highlight,
+    };
+  }
+
   blockItself({
     body,
     params,
+    paramsLoc,
     chained = false,
     loc,
   }: {
     body: ASTv1.Statement[];
     params: ASTv1.VarHead[];
+    paramsLoc: SourceSpan;
     chained?: Optional<boolean>;
     loc: SourceSpan;
   }): ASTv1.Block {
     return {
       type: 'Block',
       body,
-      params,
+      paramsNode: {
+        type: 'BlockParams',
+        names: params,
+        loc: paramsLoc,
+      },
+      get params() {
+        return resultsToArray(this.paramsNode.names);
+      },
       get blockParams() {
         return this.params.map((p) => p.name);
       },
       set blockParams(params: string[]) {
-        this.params = params.map((name) => {
-          return b.var({ name, loc: SourceSpan.synthetic(name) });
-        });
+        this.paramsNode = {
+          type: 'BlockParams',
+          names: params.map((name) => {
+            return b.var({ name, loc: SourceSpan.synthetic(name) });
+          }),
+          loc: paramsLoc,
+        };
       },
       chained,
       loc,
@@ -106,7 +132,7 @@ class Builders {
     inverseStrip = DEFAULT_STRIP,
     closeStrip = DEFAULT_STRIP,
   }: {
-    path: ASTv1.PathExpression | ASTv1.SubExpression;
+    path: ASTv1.ParseResult<ASTv1.PathExpression>;
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     defaultBlock: ASTv1.Block;
@@ -172,6 +198,7 @@ class Builders {
     attributes,
     modifiers,
     params,
+    paramsLoc,
     comments,
     children,
     openTag,
@@ -182,11 +209,13 @@ class Builders {
     selfClosing: boolean;
     attributes: ASTv1.AttrNode[];
     modifiers: ASTv1.ElementModifierStatement[];
-    params: ASTv1.VarHead[];
+    params: ASTv1.ParseResults<ASTv1.VarHead>;
+    paramsLoc: SourceSpan;
     children: ASTv1.Statement[];
     comments: ASTv1.MustacheCommentStatement[];
     openTag: SourceSpan;
     closeTag: Nullable<SourceSpan>;
+    errors?: ASTv1.TokenizerErrors;
     loc: SourceSpan;
   }): ASTv1.ElementNode {
     let _selfClosing = selfClosing;
@@ -196,7 +225,12 @@ class Builders {
       path,
       attributes,
       modifiers,
-      params,
+      params: resultsToArray(params),
+      paramsNode: {
+        type: 'BlockParams',
+        names: params,
+        loc: paramsLoc,
+      },
       comments,
       children,
       openTag,
@@ -208,13 +242,11 @@ class Builders {
       set tag(name: string) {
         this.path.original = name;
       },
-      get blockParams() {
-        return this.params.map((p) => p.name);
+      get blockParams(): string[] {
+        return resultsToArray(params).map((p) => p.name);
       },
-      set blockParams(params: string[]) {
-        this.params = params.map((name) => {
-          return b.var({ name, loc: SourceSpan.synthetic(name) });
-        });
+      set blockParams(paramList: string[]) {
+        params = paramList.map((name) => b.var({ name, loc: SourceSpan.synthetic(name) }));
       },
       get selfClosing() {
         return _selfClosing;
@@ -237,7 +269,7 @@ class Builders {
     hash,
     loc,
   }: {
-    path: ASTv1.PathExpression | ASTv1.SubExpression;
+    path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     loc: SourceSpan;
@@ -282,7 +314,7 @@ class Builders {
     hash,
     loc,
   }: {
-    path: ASTv1.PathExpression | ASTv1.SubExpression;
+    path: ASTv1.ParseResult<ASTv1.PathExpression | ASTv1.SubExpression>;
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     loc: SourceSpan;

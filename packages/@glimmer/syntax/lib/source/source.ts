@@ -1,9 +1,11 @@
-import type { Nullable } from '@glimmer/interfaces';
+import type { Nullable, Optional } from '@glimmer/interfaces';
 import { localAssert, setLocalDebugType } from '@glimmer/debug-util';
 
 import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation, SourcePosition } from './location';
 
+import { HighlightedSpan } from '../validation-context/validation-context';
+import { CharPosition } from './loc/offset';
 import { SourceOffset, SourceSpan } from './span';
 
 export class Source {
@@ -11,11 +13,17 @@ export class Source {
     return new Source(source, options.meta?.moduleName);
   }
 
+  #linesCache: Optional<string[]> = undefined;
+
   constructor(
     readonly source: string,
     readonly module = 'an unknown module'
   ) {
     setLocalDebugType('syntax:source', this);
+  }
+
+  get start(): SourceOffset {
+    return new CharPosition(this, 0).wrap();
   }
 
   /**
@@ -31,6 +39,56 @@ export class Source {
 
   offsetFor(line: number, column: number): SourceOffset {
     return SourceOffset.forHbsPos(this, { line, column });
+  }
+
+  hasLine(line: number): boolean {
+    return line >= 0 && line <= this.#getLines().length;
+  }
+
+  #getLines(): string[] {
+    let lines = this.#linesCache;
+    if (lines === undefined) {
+      lines = this.#linesCache = this.source.split('\n');
+    }
+
+    return lines;
+  }
+
+  getLine(lineno: number): Optional<string> {
+    return this.#getLines()[lineno - 1];
+  }
+
+  /**
+   * Returns a span for the given line number.
+   */
+  lineSpan(lineno: number): SourceSpan {
+    const line = this.getLine(lineno);
+
+    localAssert(line !== undefined, `invalid line number: ${lineno}`);
+
+    return SourceSpan.forHbsLoc(this, {
+      start: { line: lineno, column: 0 },
+      end: { line: lineno, column: line.length },
+    });
+  }
+
+  highlightFor(
+    { loc: { start, end } }: { loc: Readonly<SourceLocation> },
+    label?: string
+  ): HighlightedSpan {
+    const loc = this.spanFor({ start, end });
+
+    return HighlightedSpan.from({ loc, label });
+  }
+
+  fullSpan(): SourceSpan {
+    return new CharPosition(this, 0)
+      .wrap()
+      .until(new CharPosition(this, this.source.length).wrap());
+  }
+
+  offsetSpan({ start, end }: { start: number; end: number }): SourceSpan {
+    return new CharPosition(this, start).wrap().until(new CharPosition(this, end).wrap());
   }
 
   spanFor({ start, end }: Readonly<SourceLocation>): SourceSpan {

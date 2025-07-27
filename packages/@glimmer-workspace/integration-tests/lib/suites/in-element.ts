@@ -22,7 +22,7 @@ export class InElementSuite extends RenderTest {
         BlockStatement(node: AST.BlockStatement) {
           let b = env.syntax.builders;
           let { path, ...rest } = node;
-          if (path.type !== 'SubExpression' && path.original === 'maybe-in-element') {
+          if ('original' in path && path.original === 'maybe-in-element') {
             return assign({ path: b.path('in-element', path.loc) }, rest);
           } else {
             return node;

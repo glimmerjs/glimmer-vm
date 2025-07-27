@@ -36,6 +36,7 @@
     "@glimmer/interfaces": "workspace:*",
     "@glimmer/manager": "workspace:*",
     "@glimmer/opcode-compiler": "workspace:*",
+    "@glimmer/reference": "workspace:*",
     "@glimmer/util": "workspace:*",
     "@glimmer/vm": "workspace:*",
     "@glimmer/wire-format": "workspace:*"
@@ -46,9 +47,14 @@
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
     "@glimmer/local-debug-flags": "workspace:*",
-    "eslint": "^9.20.1",
-    "publint": "^0.3.2",
-    "rollup": "^4.34.8",
-    "typescript": "^5.7.3"
-  }
+    "eslint": "^9.31.0",
+    "publint": "^0.3.12",
+    "rollup": "^4.45.1",
+    "type-fest": "^4.41.0",
+    "typescript": "^5.8.3"
+  },
+  "bugs": {
+    "url": "https://github.com/glimmerjs/glimmer-vm/issues"
+  },
+  "homepage": "https://github.com/glimmerjs/glimmer-vm#readme"
 }

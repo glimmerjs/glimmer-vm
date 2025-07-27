@@ -1,48 +1,86 @@
-import type { NamedBlocks, Nullable, SerializedInlineBlock, WireFormat } from '@glimmer/interfaces';
+import type {
+  AbstractNamedBlocks,
+  EmptyNamedBlocks,
+  NamedBlocks,
+  Nullable,
+  Optional,
+  PresentNamedBlocks,
+  SerializedInlineBlock,
+  WireFormat,
+} from '@glimmer/interfaces';
 import { unwrap } from '@glimmer/debug-util';
 import { assign, dict, enumerate } from '@glimmer/util';
 
 interface NamedBlocksDict {
-  [key: string]: Nullable<WireFormat.SerializedInlineBlock>;
+  [key: string]: Optional<WireFormat.SerializedInlineBlock>;
 }
 
-export class NamedBlocksImpl implements NamedBlocks {
-  public names: string[];
+export class NamedBlocksImpl implements AbstractNamedBlocks {
+  static empty(): EmptyNamedBlocks {
+    return new NamedBlocksImpl(undefined) as unknown as EmptyNamedBlocks;
+  }
 
-  constructor(private blocks: Nullable<NamedBlocksDict>) {
+  static of(blocks: NamedBlocksDict): PresentNamedBlocks {
+    return new NamedBlocksImpl(blocks) as unknown as PresentNamedBlocks;
+  }
+
+  readonly names: string[];
+  readonly #blocks: Optional<NamedBlocksDict>;
+
+  private constructor(blocks: Optional<NamedBlocksDict>) {
+    this.#blocks = blocks;
     this.names = blocks ? Object.keys(blocks) : [];
   }
 
   get(name: string): Nullable<SerializedInlineBlock> {
-    if (!this.blocks) return null;
+    if (!this.#blocks) return null;
 
-    return this.blocks[name] || null;
+    return this.#blocks[name] || null;
   }
 
   has(name: string): boolean {
-    let { blocks } = this;
-    return blocks !== null && name in blocks;
+    let blocks = this.#blocks;
+    return blocks !== undefined && name in blocks;
   }
 
-  with(name: string, block: Nullable<SerializedInlineBlock>): NamedBlocks {
-    let { blocks } = this;
+  with(name: string, block: Optional<SerializedInlineBlock>): PresentNamedBlocks {
+    let blocks = this.#blocks;
 
     if (blocks) {
-      return new NamedBlocksImpl(assign({}, blocks, { [name]: block }));
+      return NamedBlocksImpl.of(assign({}, blocks, { [name]: block }));
     } else {
-      return new NamedBlocksImpl({ [name]: block });
+      return NamedBlocksImpl.of({ [name]: block });
+    }
+  }
+
+  remove(name: string): [Optional<SerializedInlineBlock>, NamedBlocks] {
+    let blocks = this.#blocks;
+
+    if (blocks && name in blocks) {
+      const block = blocks[name];
+
+      return [
+        block,
+        NamedBlocksImpl.of(
+          Object.fromEntries(Object.entries(blocks).filter(([key]) => key !== name))
+        ),
+      ];
+    } else {
+      return [undefined, this as unknown as NamedBlocks];
     }
   }
 
   get hasAny(): boolean {
-    return this.blocks !== null;
+    return this.#blocks !== undefined;
   }
 }
 
-export const EMPTY_BLOCKS = new NamedBlocksImpl(null);
+export const EMPTY_BLOCKS = NamedBlocksImpl.empty();
 
-export function namedBlocks(blocks: WireFormat.Core.Blocks): NamedBlocks {
-  if (blocks === null) {
+export function getNamedBlocks(blocks: WireFormat.Core.Blocks): PresentNamedBlocks;
+export function getNamedBlocks(blocks: Optional<WireFormat.Core.Blocks>): NamedBlocks;
+export function getNamedBlocks(blocks: Optional<WireFormat.Core.Blocks>): NamedBlocks {
+  if (!blocks) {
     return EMPTY_BLOCKS;
   }
 
@@ -54,5 +92,5 @@ export function namedBlocks(blocks: WireFormat.Core.Blocks): NamedBlocks {
     out[key] = unwrap(values[i]);
   }
 
-  return new NamedBlocksImpl(out);
+  return NamedBlocksImpl.of(out);
 }

@@ -1,5 +1,6 @@
 import type {
   CapturedArguments,
+  ComponentDefinition,
   CurriedComponent,
   CurriedHelper,
   CurriedModifier,
@@ -7,6 +8,8 @@ import type {
   Owner,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
+import type { Tagged } from 'type-fest';
+import { CURRIED_COMPONENT } from '@glimmer/constants';
 
 const TYPE: unique symbol = Symbol('TYPE');
 const INNER: unique symbol = Symbol('INNER');
@@ -16,8 +19,22 @@ const RESOLVED: unique symbol = Symbol('RESOLVED');
 
 const CURRIED_VALUES = new WeakSet();
 
-export function isCurriedValue(value: unknown): value is CurriedValue {
-  return CURRIED_VALUES.has(value as object);
+export function isCurriedComponent(value: object): value is CurriedComponentValue {
+  return CURRIED_VALUES.has(value) && (value as CurriedValue)[TYPE] === CURRIED_COMPONENT;
+}
+
+export function isComponentDefinition(value: object): value is ComponentDefinition {
+  return !isCurriedComponent(value);
+}
+
+export function isCurriedValue<T extends CurriedType>(
+  value: unknown,
+  type?: T
+): value is CurriedValue<T> {
+  return (
+    CURRIED_VALUES.has(value as object) &&
+    (type === undefined || (value as CurriedValue)[TYPE] === type)
+  );
 }
 
 export function isCurriedType<T extends CurriedType>(
@@ -26,6 +43,9 @@ export function isCurriedType<T extends CurriedType>(
 ): value is CurriedValue<T> {
   return isCurriedValue(value) && value[TYPE] === type;
 }
+
+export type CurriedComponentValue = CurriedValue<CurriedComponent> &
+  Tagged<object, 'Glimmer.CurriedComponentValue'>;
 
 export class CurriedValue<T extends CurriedType = CurriedType> {
   [TYPE]: T;
