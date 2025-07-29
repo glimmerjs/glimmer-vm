@@ -23,3 +23,14 @@ export const BENCHMARK_ROOT: string;
 export function getPackageInfo(packageName: string): PackageInfo | undefined;
 
 export function isRoot(pkg: PackageInfo): boolean;
+
+/**
+ * Get all workspace packages with their manifest and absolute rootDir.
+ * This replaces @pnpm/workspace.find-packages functionality.
+ */
+export function getWorkspacePackages(): WorkspacePackage[];
+
+export interface WorkspacePackage {
+  manifest: PackageInfo;
+  rootDir: string;
+}

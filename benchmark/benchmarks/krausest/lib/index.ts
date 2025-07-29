@@ -147,4 +147,9 @@ export default async function render(element: HTMLElement, isInteractive: boolea
 
   // finishing bench
   enforcePaintEvent();
+  
+  // Signal completion if the function is available
+  if (typeof (window as any).benchmarkComplete === 'function') {
+    await (window as any).benchmarkComplete();
+  }
 }

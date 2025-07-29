@@ -16,7 +16,7 @@
  */
 
 import { writeFileSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import chalk from 'chalk';
@@ -25,7 +25,7 @@ import { mkdirp } from 'mkdirp';
 import { rimraf } from 'rimraf';
 import { x as untar } from 'tar';
 
-import { packages } from './packages.mts';
+import { packages } from './packages.mjs';
 
 const dist = new URL('../dist', import.meta.url).pathname;
 const pkgs = packages('@glimmer');
@@ -67,6 +67,8 @@ const unpack = pkgs.map(async (pkg) => {
       strip: 1,
       cwd: pkgDest,
     });
+
+    await unlink(tarball);
 
     // https://github.com/pnpm/pnpm/issues/881
     const packageJsonPath = join(pkgDest, 'package.json');

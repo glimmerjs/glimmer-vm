@@ -21,3 +21,10 @@ tracerbench-results
 .planning/
 .investigation/
 .reference/
+
+# Test and benchmark outputs
+test-videos/
+videos/
+benchmark-complete.png
+test-completion.png
+benchmark-screenshot.png

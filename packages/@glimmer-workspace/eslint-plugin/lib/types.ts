@@ -1,5 +1,4 @@
 import type { PackageInfo } from '@glimmer-workspace/repo-metadata';
-import type { Project } from '@pnpm/workspace.find-packages';
 import type { Linter } from 'eslint';
 import type { ConfigArray, InfiniteDepthConfigWithExtends } from 'typescript-eslint';
 
@@ -25,8 +24,6 @@ export interface RepoMeta {
   strictness?: 'strict' | 'loose';
   lint?: string;
 }
-
-export type WorkspacePackage = Project & { manifest: { 'repo-meta'?: RepoMeta } };
 
 export interface PackageFilter {
   matches: (pkg: PackageInfo) => boolean;

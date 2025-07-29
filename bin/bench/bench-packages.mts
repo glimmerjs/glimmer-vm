@@ -1,12 +1,10 @@
 import { join, relative, resolve } from 'node:path';
 
-import type { Project } from '@pnpm/workspace.find-packages';
 import type { PackageJson } from 'type-fest';
-import { findWorkspacePackagesNoCheck } from '@pnpm/workspace.find-packages';
+import { getWorkspacePackages, type WorkspacePackage } from '@glimmer-workspace/repo-metadata';
 import chalk from 'chalk';
 import { $ } from 'execa';
 import fs from 'fs-extra';
-import pMap from 'p-map';
 
 const { writeFile } = fs;
 
@@ -34,7 +32,7 @@ export async function buildKrausestDeps({
   roots: Roots;
   format?: boolean | undefined;
 }) {
-  const packages = await findWorkspacePackagesNoCheck(roots.workspace);
+  const packages = getWorkspacePackages();
 
   const benchEnvPkg = getPkg(packages, '@glimmer-workspace/benchmark-env');
   const benchEnvManifest = await getManifest(roots, benchEnvPkg.rootDir);
@@ -44,24 +42,24 @@ export async function buildKrausestDeps({
   const benchEnvDeps = neededDeps(packages, benchEnvManifest);
   const krausestDeps = neededDeps(packages, krausestManifest);
 
-  await buildPkg(roots, benchEnvPkg);
+  // Ensure the packages directory exists
+  const packagesDir = join(roots.benchmark, 'packages');
+  await fs.ensureDir(packagesDir);
 
-  const allDeps = new Set([...benchEnvDeps, ...krausestDeps]);
+  // First, ensure all packages are built using turbo (with caching)
+  console.log(chalk.cyan('Building packages with turbo...'));
+  await $({ cwd: roots.workspace, stdio: 'inherit' })`pnpm turbo prepack`;
+  
+  // Then pack them using turbo pack:local (which also benefits from caching)
+  console.log(chalk.cyan('Packing benchmark packages...'));
+  await $({ cwd: roots.workspace, stdio: 'inherit' })`pnpm turbo pack:local`;
 
-  const built = await pMap(
-    [...allDeps],
-    async (pkg) => {
-      return await buildPkg(roots, pkg);
-    },
-    { concurrency: 1 }
-  );
-
-  // const built: { name: string; filename: string }[] = [];
-  // for (const pkg of allDeps) {
-  //   built.push(await buildPkg(roots, pkg));
-  // }
-
-  // const built = await Promise.all([...allDeps].map((pkg) => buildPkg(roots, pkg)));
+  // Collect the built packages info
+  const allDeps = new Set([benchEnvPkg, ...benchEnvDeps, ...krausestDeps]);
+  const built = [...allDeps].map(pkg => ({
+    name: pkg.manifest.name!,
+    filename: relative(roots.benchmark, join(roots.benchmark, 'packages', `${pkg.manifest.name}.tgz`))
+  }));
 
   {
     const deps = krausestManifest.dependencies ?? {};
@@ -132,7 +130,7 @@ async function writeManifest(
   }
 }
 
-function getPkg(packages: Project[], name: string): Project {
+function getPkg(packages: WorkspacePackage[], name: string): WorkspacePackage {
   const pkg = packages.find((pkg) => pkg.manifest.name === name);
 
   if (!pkg) {
@@ -142,7 +140,7 @@ function getPkg(packages: Project[], name: string): Project {
   return pkg;
 }
 
-function neededDeps(packages: Project[], manifest: PnpmPackageJson): Project[] {
+function neededDeps(packages: WorkspacePackage[], manifest: PnpmPackageJson): WorkspacePackage[] {
   const allDeps = {
     ...manifest.dependencies,
     ...manifest.devDependencies,
@@ -192,26 +190,6 @@ function update(
   return false;
 }
 
-async function buildPkg(roots: Roots, pkg: Project): Promise<{ name: string; filename: string }> {
-  if (!pkg.manifest.name) {
-    throw new Error(`Package at ${pkg.rootDir} has no name`);
-  }
-
-  const packagesDest = join(roots.benchmark, 'packages');
-  const dest = join(packagesDest, `${pkg.manifest.name}.tgz`);
-
-  const result = await $({
-    stdio: 'pipe',
-    verbose: true,
-  })`pnpm -C ${pkg.rootDir} pack --out ${dest}`;
-
-  if (result.failed) {
-    console.error(`Failed to build ${pkg.manifest.name}`);
-    throw new Error(result.stderr);
-  }
-
-  return { name: pkg.manifest.name, filename: relative(roots.benchmark, dest) };
-}
 
 if (process.argv[1] === import.meta.filename) {
   const { BENCHMARK_ROOT, WORKSPACE_ROOT } = await import('@glimmer-workspace/repo-metadata');

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 
-import { packages } from './packages.mjs';
+import { packages } from '../meta/packages.mjs';
 
 /*
   Example JSON entry:

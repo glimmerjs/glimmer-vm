@@ -1,13 +1,14 @@
-/* eslint-disable n/no-process-exit */
 import os from 'node:os';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 
-import type { PackageJson } from 'type-fest';
 import { WORKSPACE_ROOT } from '@glimmer-workspace/repo-metadata';
+import chalk from 'chalk';
 import fs from 'fs-extra';
 import { $, which } from 'zx';
 
 import { buildKrausestDeps } from './bench-packages.mts';
+import type { ServerInfo } from '../browser/browser-utils-playwright.mts';
 
 const { ensureDirSync, writeFileSync } = fs;
 
@@ -92,6 +93,15 @@ const EXPERIMENT_URL = `http://localhost:${EXPERIMENT_PORT}`;
 
 const pnpm = await which('pnpm');
 
+// Check if benchmark packages exist
+const packagesDir = join(EXPERIMENT_DIRS.src, 'packages');
+if (!fs.existsSync(packagesDir) || fs.readdirSync(packagesDir).length === 0) {
+  console.error(chalk.red('\nError: Benchmark packages not found!'));
+  console.error(chalk.yellow('\nPlease run: pnpm benchmark:setup'));
+  console.error(chalk.gray('\nThis will build the necessary package tarballs for benchmarking.\n'));
+  process.exit(1);
+}
+
 // set up experiment
 {
   if (FRESH_EXPERIMENT_CHECKOUT) {
@@ -148,11 +158,6 @@ console.info({
   await $({ cwd: CONTROL_DIRS.repo })`${pnpm} install`;
   await $({ cwd: CONTROL_DIRS.repo })`${pnpm} turbo prepack --output-logs=new-only`;
 
-  const benchmarkEnv = join(CONTROL_DIRS.repo, 'packages/@glimmer-workspace/benchmark-env');
-
-  /** @bandaid{@link patchControl} */
-  await patchControl(benchmarkEnv);
-
   await buildKrausestDeps({
     roots: { benchmark: CONTROL_DIRS.bench, workspace: CONTROL_DIRS.repo },
   });
@@ -162,18 +167,69 @@ console.info({
   await $({ cwd: CONTROL_DIRS.bench })`${pnpm} vite build`;
 }
 
-// Intentionally don't await these. TODO: Investigate if theer's a better structure.
-const control = $`cd ${CONTROL_DIRS.bench} && pnpm vite preview --port ${CONTROL_PORT}`;
-const experiment = $`cd ${EXPERIMENT_DIRS.bench} && pnpm vite preview --port ${EXPERIMENT_PORT}`;
+// Start benchmark servers
+async function startBenchmarkServer(cwd: string, port: number): Promise<ServerInfo> {
+  return new Promise((resolve, reject) => {
+    const viteProcess = spawn('pnpm', ['vite', 'preview', '--port', port.toString()], {
+      cwd,
+      shell: true,
+    });
+
+    const timeoutId = setTimeout(() => {
+      viteProcess.kill();
+      reject(new Error(`Vite server failed to start on port ${port}`));
+    }, 30000);
+
+    let serverStarted = false;
+
+    viteProcess.stdout?.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes(`http://localhost:${port}`) && !serverStarted) {
+        serverStarted = true;
+        clearTimeout(timeoutId);
+        resolve({
+          port,
+          cleanup: () => viteProcess.kill(),
+        });
+      }
+    });
+
+    viteProcess.stderr?.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes(`http://localhost:${port}`) && !serverStarted) {
+        serverStarted = true;
+        clearTimeout(timeoutId);
+        resolve({
+          port,
+          cleanup: () => viteProcess.kill(),
+        });
+      }
+    });
+
+    viteProcess.on('error', (err) => {
+      clearTimeout(timeoutId);
+      reject(err);
+    });
+
+    viteProcess.on('exit', (code) => {
+      if (!serverStarted) {
+        clearTimeout(timeoutId);
+        reject(new Error(`Vite exited with code ${code}`));
+      }
+    });
+  });
+}
+
+const controlServer = await startBenchmarkServer(CONTROL_DIRS.bench, CONTROL_PORT);
+const experimentServer = await startBenchmarkServer(EXPERIMENT_DIRS.bench, EXPERIMENT_PORT);
 
 process.on('exit', () => {
-  void Promise.allSettled([control.kill(), experiment.kill()]);
+  controlServer.cleanup();
+  experimentServer.cleanup();
 });
 
-await new Promise((resolve) => {
-  // giving 5 seconds for the server to start
-  setTimeout(resolve, 5000);
-});
+console.log(chalk.green(`Control server started on port ${CONTROL_PORT}`));
+console.log(chalk.green(`Experiment server started on port ${EXPERIMENT_PORT}`));
 
 try {
   const output =
@@ -187,32 +243,8 @@ try {
 } catch (p) {
   console.error(p);
   process.exit(1);
+} finally {
+  controlServer.cleanup();
+  experimentServer.cleanup();
 }
 
-// @bandaid(until: the current PR is merged)
-//
-// Right now, the `main` branch of `@glimmer-workspace/benchmark-env` does not have a buildable
-// version of `@glimmer-workspace/benchmark-env`, so we need to manually build it.
-//
-// Once this PR is merged, we can remove this code because all future control branches will have
-// built `@glimmer-workspace/benchmark-env` in the `pnpm build` step above.
-async function patchControl(benchmarkEnv: string) {
-  writeFileSync(
-    join(benchmarkEnv, 'rollup.config.mjs'),
-    [
-      `import { Package } from '@glimmer-workspace/build-support';`,
-
-      `export default Package.config(import.meta);`,
-    ].join('\n\n')
-  );
-
-  const manifest = JSON.parse(
-    await fs.readFile(join(benchmarkEnv, 'package.json'), 'utf8')
-  ) as PackageJson;
-  manifest.publishConfig ??= {};
-  manifest.publishConfig['exports'] = './dist/prod/index.js';
-  writeFileSync(join(benchmarkEnv, 'package.json'), JSON.stringify(manifest, null, 2), 'utf8');
-
-  // This is also a patch for incorrect behavior on the current `main`.
-  await $({ cwd: benchmarkEnv })`${pnpm} rollup --config rollup.config.mjs --external`;
-}

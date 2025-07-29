@@ -22,8 +22,8 @@
     "outDir": "ts-dist",
     "customConditions": ["@glimmer-vm/source"]
   },
-  "files": ["eslint.config.js"],
   "include": [
+    "eslint.config.js",
     ".meta-updater/**/*",
     "repo-metadata/**/*",
     "packages/@glimmer/*/index.*",

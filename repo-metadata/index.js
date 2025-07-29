@@ -1,4 +1,4 @@
-/** @import { PackageInfo, RepoMeta } from './lib/types'; */
+/** @import { PackageInfo, RepoMeta } from './lib/types.js' */
 import { resolve } from 'node:path';
 
 import metadata from './metadata.json' with { type: 'json' };
@@ -22,4 +22,17 @@ export function getPackageInfo(packageName) {
  */
 export function isRoot(pkg) {
   return pkg.root === '';
+}
+
+/**
+ * Get all workspace packages with their manifest and absolute rootDir.
+ * This replaces @pnpm/workspace.find-packages functionality.
+ * 
+ * @returns {{ manifest: PackageInfo, rootDir: string }[]}
+ */
+export function getWorkspacePackages() {
+  return /** @type {RepoMeta} */ (metadata).packages.map((pkg) => ({
+    manifest: pkg,
+    rootDir: resolve(WORKSPACE_ROOT, pkg.root || '.')
+  }));
 }

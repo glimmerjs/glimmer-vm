@@ -28,7 +28,7 @@ export default async function renderBenchmark(
 
     const result = renderSync(
       env,
-      renderComponent(context, treeBuilder, {}, component.state, args)
+      renderComponent(context, treeBuilder, null, component, args)
     );
 
     registerResult(result, () => {

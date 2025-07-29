@@ -65,11 +65,12 @@ export default function createRegistry(): Registry {
   return {
     registerComponent: (name: string, component: object) => {
       let manager = getInternalComponentManager(component);
+      let template = getComponentTemplate(component)!;
 
       components.set(name, {
         state: component,
         manager,
-        template: getComponentTemplate(component)!({}),
+        template: template(null),
       });
     },
     registerHelper: (name, helper) => {

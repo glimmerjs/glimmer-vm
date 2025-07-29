@@ -14,7 +14,8 @@ export default function createBenchmark(): Benchmark {
   return {
     templateOnlyComponent: (name, template) => {
       let definition = templateOnlyComponent();
-      setComponentTemplate(templateFactory(template), definition);
+      let factory = templateFactory(template);
+      setComponentTemplate(factory, definition);
 
       registry.registerComponent(name, definition);
     },

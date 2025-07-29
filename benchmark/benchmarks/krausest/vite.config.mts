@@ -15,7 +15,7 @@ const packagePath = (name: string) => {
 };
 
 export default defineConfig({
-  plugins: [importMeta(), benchmark()],
+  plugins: [importMeta(), benchmark(), isolate()],
   preview: {
     strictPort: true,
   },
@@ -60,10 +60,26 @@ function benchmark(): Plugin {
       let result: string | undefined;
       if (id.endsWith('.hbs')) {
         const source = fs.readFileSync(id, 'utf8');
-        const compiled = precompile(source);
+        const compiled = precompile(source, {
+          meta: { moduleName: id },
+        });
         result = `export default ${compiled};`;
       }
       return result;
+    },
+  };
+}
+
+function isolate(): Plugin {
+  return {
+    name: 'cross-origin-isolation',
+
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+        res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+        next();
+      });
     },
   };
 }
