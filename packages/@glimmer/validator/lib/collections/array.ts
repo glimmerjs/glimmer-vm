@@ -9,6 +9,12 @@
 import { consumeTag } from '../tracking';
 import { createUpdatableTag, DIRTY_TAG } from '../validators';
 
+type Options<T> = {
+  equals: (a: T, b: T) => boolean;
+  description: string | undefined;
+  unsafeSkipMakingCopy: boolean;
+};
+
 const ARRAY_GETTER_METHODS = new Set<string | symbol | number>([
   Symbol.iterator,
   'concat',
@@ -49,15 +55,12 @@ function convertToInt(prop: number | string | symbol): number | null {
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 class TrackedArray<T = unknown> {
-  #options: { equals: (a: T, b: T) => boolean; description: string | undefined };
+  #options: Options<T>;
 
-  constructor(
-    arr: T[],
-    options: { equals: (a: T, b: T) => boolean; description: string | undefined }
-  ) {
+  constructor(arr: T[], options: Options<T>) {
     this.#options = options;
 
-    const clone = arr.slice();
+    const array = options.unsafeSkipMakingCopy ? arr : arr.slice();
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
@@ -70,7 +73,7 @@ class TrackedArray<T = unknown> {
      */
     let nativelyAccessingLengthFromWriteMethod = false;
 
-    return new Proxy(clone, {
+    return new Proxy(array, {
       get(target, prop /*, _receiver */) {
         const index = convertToInt(prop);
 
@@ -197,12 +200,10 @@ interface TrackedArray<T = unknown> extends Array<T> {}
 // Ensure instanceof works correctly
 Object.setPrototypeOf(TrackedArray.prototype, Array.prototype);
 
-export function trackedArray<T = unknown>(
-  data?: T[],
-  options?: { equals?: (a: T, b: T) => boolean; description?: string }
-): T[] {
+export function trackedArray<T = unknown>(data?: T[], options?: Partial<Options<T>>): T[] {
   return new TrackedArray(data ?? [], {
     equals: options?.equals ?? Object.is,
     description: options?.description,
+    unsafeSkipMakingCopy: options?.unsafeSkipMakingCopy ?? false,
   });
 }
