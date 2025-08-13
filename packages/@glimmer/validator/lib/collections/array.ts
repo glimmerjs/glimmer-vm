@@ -147,7 +147,7 @@ class TrackedArray<T = unknown> {
       },
 
       getPrototypeOf() {
-        return TrackedArray.prototype;
+        return Object.getPrototypeOf(self);
       },
     }) as TrackedArray<T>;
   }
@@ -196,6 +196,8 @@ interface TrackedArray<T = unknown> extends Array<T> {}
 
 // Ensure instanceof works correctly
 Object.setPrototypeOf(TrackedArray.prototype, Array.prototype);
+
+export { TrackedArray };
 
 export function trackedArray<T = unknown>(
   data?: T[],
