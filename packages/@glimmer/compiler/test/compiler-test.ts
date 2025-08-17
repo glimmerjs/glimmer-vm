@@ -58,6 +58,19 @@ QUnit.test(
   }
 );
 
+QUnit.test(
+  'invalid html attribute throws syntax error',
+  (assert) => {
+    const template = strip`
+    <a * >Link</a>
+  `;
+    assert.throws(
+      () => compile(template),
+      /"\*" is not a valid attribute name/u
+    );
+  }
+);
+
 test('HTML text content', 'content', s`content`);
 
 test('Text curlies', '<div>{{title}}<span>{{title}}</span></div>', [
