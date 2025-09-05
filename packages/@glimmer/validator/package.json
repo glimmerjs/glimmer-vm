@@ -2,7 +2,7 @@
   "name": "@glimmer/validator",
   "version": "0.95.0",
   "license": "MIT",
-  "description": "Objects used to track values and their dirtiness in Glimmer",
+  "description": "Objects used to track values and their dirtiness in Glimmer/Ember",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/glimmerjs/glimmer-vm.git",
