@@ -1,5 +1,39 @@
 # Changelog
 
+## Release (2025-10-07)
+
+@glimmer/compiler 0.94.12 (patch)
+@glimmer/destroyable 0.94.9 (patch)
+@glimmer/encoder 0.93.9 (patch)
+@glimmer/interfaces 0.94.7 (patch)
+@glimmer/manager 0.94.11 (patch)
+@glimmer/node 0.94.11 (patch)
+@glimmer/opcode-compiler 0.94.11 (patch)
+@glimmer/program 0.94.11 (patch)
+@glimmer/reference 0.94.10 (patch)
+@glimmer/runtime 0.94.12 (patch)
+@glimmer/syntax 0.95.1 (patch)
+@glimmer/util 0.94.9 (patch)
+@glimmer/validator 0.95.1 (patch)
+@glimmer/vm 0.94.9 (patch)
+@glimmer/wire-format 0.94.9 (patch)
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1773](https://github.com/glimmerjs/glimmer-vm/pull/1773) Maintain opcode stack consistency in non-interactive mode ([@ef4](https://github.com/ef4))
+* `@glimmer/interfaces`
+  * [#1774](https://github.com/glimmerjs/glimmer-vm/pull/1774) Keep @glimmer/interfaces all d.ts for consistency ([@ef4](https://github.com/ef4))
+* `@glimmer/validator`
+  * [#1766](https://github.com/glimmerjs/glimmer-vm/pull/1766) Fix a variable name ([@boris-petrov](https://github.com/boris-petrov))
+
+#### :house: Internal
+* `@glimmer-workspace/integration-tests`
+  * [#1770](https://github.com/glimmerjs/glimmer-vm/pull/1770) Cleanup duplicate test decorator implementation ([@ef4](https://github.com/ef4))
+
+#### Committers: 2
+- Boris Petrov ([@boris-petrov](https://github.com/boris-petrov))
+- Edward Faulkner ([@ef4](https://github.com/ef4))
+
 ## Release (2025-07-27)
 
 @glimmer/compiler 0.94.11 (patch)
