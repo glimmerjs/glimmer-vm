@@ -51,7 +51,7 @@
     "@glimmer-workspace/eslint-plugin": "workspace:*",
     "@glimmer-workspace/integration-tests": "workspace:*",
     "@glimmer-workspace/repo-metadata": "workspace:*",
-    "@glimmer/env": "0.1.7",
+    "@glimmer/env": "workspace:*",
     "@rollup/plugin-sucrase": "^5.0.2",
     "@rollup/plugin-terser": "^0.4.4",
     "@tsconfig/strictest": "^2.0.5",
@@ -135,13 +135,13 @@
     },
     "overrides": {
       "@glimmer/syntax": "workspace:*",
+      "@oclif/plugin-warn-if-update-available": "^3.1.42",
       "@rollup/pluginutils": "^5.0.2",
       "@types/node": "$@types/node",
-      "typescript": "$typescript",
-      "@oclif/plugin-warn-if-update-available": "^3.1.42",
       "d3-color": "^3.1.0",
       "esbuild": "^0.25.0",
-      "got": "^11.8.5"
+      "got": "^11.8.5",
+      "typescript": "$typescript"
     },
     "peerDependencyRules": {
       "allowAny": [

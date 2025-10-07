@@ -46,8 +46,6 @@
     "@glimmer/vm": "workspace:*"
   },
   "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:*",
-    "@glimmer-workspace/env": "workspace:*",
     "@glimmer/constants": "workspace:*",
     "@glimmer/debug": "workspace:*",
     "@glimmer/debug-util": "workspace:*",
