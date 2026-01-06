@@ -1,4 +1,10 @@
-# Status [![Build Status](https://travis-ci.org/glimmerjs/glimmer-vm.svg?branch=main)](https://travis-ci.org/glimmerjs/glimmer-vm)
+> [!CAUTION]
+> This repository is archived.
+> As of 2026-01-06 this repo has merged with [ember.js](https://github.com/emberjs/ember.js)
+> and we will no longer be publishing the `@glimmer/*` packages from this repo separately from `ember-source`.
+
+> [!NOTE]
+> If you have an open PR or issue you'd like considerd you'll unfortunately need to reopen it against [ember.js](https://github.com/emberjs/ember.js)
 
 
 Glimmer is a flexible, low-level rendering pipeline for building a "live" DOM
