@@ -1,6 +1,6 @@
 /* eslint-disable import-x/no-extraneous-dependencies */
 
-import { trackedArray } from '@glimmer/validator';
+import { TrackedArray, trackedArray } from '@glimmer/validator';
 import { expectTypeOf } from 'expect-type';
 
 import { module, test } from '../-utils';
@@ -40,6 +40,18 @@ module('@glimmer/validator: trackedArray()', () => {
 
     assert.strictEqual(arr.length, 0);
     assert.strictEqual(arr[0], undefined);
+  });
+
+  test('Allows creating subtypes', (assert) => {
+    class MyTrackedArray extends TrackedArray {
+      constructor() {
+        super([], { equals: Object.is, description: undefined });
+      }
+    }
+
+    let arr = new MyTrackedArray();
+
+    assert.strictEqual(Object.getPrototypeOf(arr).constructor, MyTrackedArray);
   });
 
   module('methods', () => {
