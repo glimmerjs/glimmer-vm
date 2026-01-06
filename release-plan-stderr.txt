@@ -1,0 +1,7 @@
+Warning: unknown package "@glimmer-workspace/integration-tests"
+# Unlabeled Changes
+
+* [#1777](https://github.com/glimmerjs/glimmer-vm/pull/1777) Update README with archive notice and migration info ([@kategengler](https://github.com/kategengler))
+
+
+*Cannot plan release until the above changes are labeled*.
