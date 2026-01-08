@@ -42,6 +42,19 @@ module('@glimmer/validator: trackedArray()', () => {
     assert.strictEqual(arr[0], undefined);
   });
 
+  test('Can skip creating a copy', (assert) => {
+    let original = [123];
+    let arr = trackedArray(original);
+    original[0]++;
+
+    assert.strictEqual(arr[0], 123);
+
+    arr = trackedArray(original, { unsafeSkipMakingCopy: true });
+    original[0]++;
+
+    assert.strictEqual(arr[0], 125);
+  });
+
   module('methods', () => {
     test('isArray', (assert) => {
       let arr = trackedArray();
