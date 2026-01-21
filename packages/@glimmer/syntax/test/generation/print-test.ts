@@ -19,6 +19,8 @@ let templates = [
   '<Foo>{{bar}}</Foo>',
   '<Foo></Foo>',
   '<Foo />',
+  '<_Foo />',
+  '<_Foo></_Foo>',
   '<Foo as |bar|>{{bar}}</Foo>',
   '{{#in-element this.someElement}}Content here{{/in-element}}',
   // components that *can* be void elements if lower-cased
