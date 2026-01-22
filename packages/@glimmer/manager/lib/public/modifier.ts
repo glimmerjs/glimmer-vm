@@ -36,13 +36,12 @@ export function modifierCapabilities<Version extends keyof ModifierCapabilitiesV
   });
 }
 
-export interface CustomModifierState<ModifierInstance> {
+export interface CustomModifierState<ModifierStateBucket> {
   tag: UpdatableTag;
   element: SimpleElement;
-  modifier: ModifierInstance;
-  delegate: ModifierManager<ModifierInstance>;
+  modifier: ModifierStateBucket;
+  delegate: ModifierManager<ModifierStateBucket>;
   args: Arguments;
-  debugName?: string;
 }
 
 /**
@@ -69,12 +68,12 @@ export interface CustomModifierState<ModifierInstance> {
   * `updateModifier()` - invoked when the arguments passed to a modifier change
   * `destroyModifier()` - invoked when the modifier is about to be destroyed
 */
-export class CustomModifierManager<O extends Owner, ModifierInstance>
-  implements InternalModifierManager<CustomModifierState<ModifierInstance>>
+export class CustomModifierManager<O extends Owner, ModifierStateBucket>
+  implements InternalModifierManager<CustomModifierState<ModifierStateBucket>>
 {
-  private componentManagerDelegates = new WeakMap<O, ModifierManager<ModifierInstance>>();
+  private componentManagerDelegates = new WeakMap<O, ModifierManager<ModifierStateBucket>>();
 
-  constructor(private factory: ManagerFactory<O, ModifierManager<ModifierInstance>>) {}
+  constructor(private factory: ManagerFactory<O, ModifierManager<ModifierStateBucket>>) {}
 
   private getDelegateFor(owner: O) {
     let { componentManagerDelegates } = this;
@@ -105,41 +104,44 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     let delegate = this.getDelegateFor(owner);
 
     let args = argsProxyFor(capturedArgs, 'modifier');
-    let instance: ModifierInstance = delegate.createModifier(definition, args);
+    let modifier: ModifierStateBucket = delegate.createModifier(definition, args);
 
     let tag = createUpdatableTag();
-    let state: CustomModifierState<ModifierInstance>;
+    let state: CustomModifierState<ModifierStateBucket>;
 
     state = {
       tag,
       element,
       delegate,
       args,
-      modifier: instance,
+      modifier,
     };
 
-    registerDestructor(state, () => delegate.destroyModifier(instance, args));
+    registerDestructor(state, () => delegate.destroyModifier(modifier, args));
 
     return state;
   }
 
   getDebugName(definition: object) {
-    if (typeof definition === 'function') {
-      return definition.name || definition.toString();
-    } else {
-      return '<unknown>';
+    const delegate = this.factory.prototype;
+    if (typeof delegate?.getDebugName === 'function') {
+      return delegate.getDebugName(definition);
     }
+    return (definition as any).name || '<unknown>';
   }
 
-  getDebugInstance({ modifier }: CustomModifierState<ModifierInstance>) {
-    return modifier;
+  getDebugInstance({ delegate, modifier }: CustomModifierState<ModifierStateBucket>) {
+    if (typeof delegate?.getDebugInstance === 'function') {
+      return delegate.getDebugInstance(modifier);
+    }
+    return modifier || delegate;
   }
 
-  getTag({ tag }: CustomModifierState<ModifierInstance>) {
+  getTag({ tag }: CustomModifierState<ModifierStateBucket>) {
     return tag;
   }
 
-  install({ element, args, modifier, delegate }: CustomModifierState<ModifierInstance>) {
+  install({ element, args, modifier, delegate }: CustomModifierState<ModifierStateBucket>) {
     let { capabilities } = delegate;
 
     if (capabilities.disableAutoTracking) {
@@ -149,7 +151,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     }
   }
 
-  update({ args, modifier, delegate }: CustomModifierState<ModifierInstance>) {
+  update({ args, modifier, delegate }: CustomModifierState<ModifierStateBucket>) {
     let { capabilities } = delegate;
 
     if (capabilities.disableAutoTracking) {
@@ -159,7 +161,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     }
   }
 
-  getDestroyable(state: CustomModifierState<ModifierInstance>) {
+  getDestroyable(state: CustomModifierState<ModifierStateBucket>) {
     return state;
   }
 }
