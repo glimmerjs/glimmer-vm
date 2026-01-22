@@ -6,12 +6,12 @@ on:
       BRANCH:
         description: Branch to checkout
         required: false
-        default: 'main'
+        default: "main"
         type: string
   # Don't run on every merge to main, because many merges
   # may not even be vm related, but infra, or GH Actions
   pull_request:
-    types: [ labeled ]
+    types: [labeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -44,12 +44,12 @@ jobs:
       - uses: wyvox/action-setup-pnpm@v3
         if: steps.did-change.outputs.changed == 'true'
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Setup Benchmark Directory
         if: steps.did-change.outputs.changed == 'true'
         run: pnpm run benchmark:setup
-        
+
       - name: RUN
         if: steps.did-change.outputs.changed == 'true'
         run: pnpm run benchmark:run
@@ -60,7 +60,7 @@ jobs:
 
       - name: Upload Tracerbench Artifacts
         if: steps.did-change.outputs.changed == 'true' && (failure() || success())
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Trace Artifacts
           path: tracerbench-results
